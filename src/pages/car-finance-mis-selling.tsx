@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
-import LanguageSwitcher from "../components/LanguageSwitcher";
-import LanguageSwitcherFlags from "../components/LanguageSwitcherFlags";
+import LanguageSwitcher from "../../components/LanguageSwitcher";
+import LanguageSwitcherFlags from "../../components/LanguageSwitcherFlags";
 
 
 const SITE_URL = "https://www.justproveit.co.uk";
