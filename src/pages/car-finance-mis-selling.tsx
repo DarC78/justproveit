@@ -1,6 +1,7 @@
 import Head from "next/head";
 import Link from "next/link";
 
+
 const SITE_URL = "https://www.justproveit.co.uk";
 const PAGE_PATH = "/car-finance-mis-selling";
 const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
@@ -84,6 +85,98 @@ export default function CarFinanceMisSellingPart1() {
         <meta name="twitter:description" content={DESCRIPTION} />
 
         {/* JSON-LD */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              "mainEntity": [
+                {
+                  "@type": "Question",
+                  "name": "What is car finance mis-selling?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Car finance mis-selling occurs when a car finance agreement is sold without full transparency or fairness. This may involve undisclosed commission, inflated interest rates, or a lack of clear explanation about how the agreement was structured."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Is every car finance agreement mis-sold?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "No. Many car finance agreements were sold fairly. Whether mis-selling occurred depends on how the agreement was sold, what information was disclosed, and whether financial incentives influenced the deal without the customer being informed."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Who may be affected by car finance mis-selling?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "People who took out car finance in the UK may be affected if they were not clearly informed about commission arrangements, interest rate setting, or available alternatives. This can apply even if the agreement is paid off or the car is no longer owned."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Does car finance mis-selling apply to PCP agreements?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. Personal Contract Purchase (PCP) agreements are commonly associated with car finance mis-selling concerns, particularly where interest rates or commission arrangements were not clearly disclosed at the point of sale."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Does it also apply to Hire Purchase agreements?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes. Hire Purchase agreements can also be affected, especially where the interest rate was discretionary or commission was not disclosed to the customer."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Can closed or settled car finance agreements still be reviewed?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "In some cases, yes. A car finance agreement does not always need to be active to be reviewed. Closed agreements may still be considered depending on time limits and when the issue became apparent."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Will making a complaint affect my credit score?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Making a complaint about a car finance agreement does not, by itself, affect your credit score."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "How long does a car finance complaint take?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Lenders typically have up to eight weeks to investigate and respond to a car finance complaint, although some cases may take longer depending on complexity."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Do I need all my paperwork to complain?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Having documents can help, but lenders usually hold copies of finance agreements and may be able to retrieve them even if you no longer have the paperwork."
+                  }
+                },
+                {
+                  "@type": "Question",
+                  "name": "Is compensation guaranteed in car finance mis-selling cases?",
+                  "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "No. Compensation is not guaranteed. Outcomes depend on individual circumstances, including how the agreement was sold and whether mis-selling can be established."
+                  }
+                }
+              ]
+            }),
+          }}
+        />
+        
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
@@ -219,6 +312,56 @@ export default function CarFinanceMisSellingPart1() {
                       What this guide covers next
                     </a>
                   </li>
+                  <li>
+  <a className="hover:underline" href="#who-may-be-affected">
+    Who may be affected?
+  </a>
+</li>
+<li>
+  <a className="hover:underline" href="#eligibility-questions">
+    Key eligibility questions
+  </a>
+</li>
+<li>
+  <a className="hover:underline" href="#products">
+    Which car finance products are affected?
+  </a>
+</li>
+<li>
+  <a className="hover:underline" href="#pcp">
+    PCP (Personal Contract Purchase)
+  </a>
+</li>
+<li>
+  <a className="hover:underline" href="#hire-purchase">
+    Hire Purchase (HP)
+  </a>
+</li>
+<li>
+  <a className="hover:underline" href="#add-ons">
+    Add-ons & extras
+  </a>
+</li>
+<li>
+  <a className="hover:underline" href="#years">
+    Which years are commonly affected?
+  </a>
+</li>
+<li>
+  <a className="hover:underline" href="#lenders">
+    Which lenders may be involved?
+  </a>
+</li>
+<li>
+  <a className="hover:underline" href="#dealer-vs-lender">
+    Dealer vs lender: who is responsible?
+  </a>
+</li>
+<li>
+  <a className="hover:underline" href="#closed-agreements">
+    Closed agreements
+  </a>
+</li>
                 </ol>
               </nav>
 
@@ -533,14 +676,406 @@ export default function CarFinanceMisSellingPart1() {
                 </div>
               </Section>
 
-              {/* Minimal “Part navigation” placeholder */}
-              <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                <p className="text-sm font-extrabold">Continue this guide</p>
-                <p className="mt-2 text-sm text-slate-700">
-                  Part 2 and Part 3 will be added here (eligibility, process,
-                  compensation examples, FAQs & cases).
-                </p>
-              </div>
+              {/* =========================
+    PART 2 — Eligibility + Products + Lenders
+   ========================= */}
+
+<Section id="who-may-be-affected" title="Who may be affected by car finance mis-selling">
+  <p>
+    One of the most common misconceptions is that car finance mis-selling only affects a small
+    group of people or only applies to “extreme” cases. In reality, eligibility is often broader
+    than people expect.
+  </p>
+
+  <h3 className="mt-6 text-lg font-bold">You may be affected even if:</h3>
+  <ul className="mt-3 list-disc space-y-2 pl-6">
+    <li>Your agreement is fully paid off</li>
+    <li>You no longer own the car</li>
+    <li>You never missed a payment</li>
+    <li>The dealership seemed “helpful”</li>
+    <li>The agreement felt standard at the time</li>
+  </ul>
+
+  <Callout>
+    Mis-selling is not about whether you struggled financially. It’s about how the agreement was
+    sold.
+  </Callout>
+
+  <p className="mt-4 text-sm text-slate-600">
+    Related:{" "}
+    <Link className="font-semibold text-emerald-700 hover:underline" href="/who-is-eligible-car-finance">
+      Who is eligible? (practical checklist)
+    </Link>
+  </p>
+</Section>
+
+<Section id="eligibility-questions" title="Key eligibility questions">
+  <p>
+    Eligibility is about the sale, not the outcome. You don’t need to answer “yes” to every point
+    below — but these are strong indicators that further review may be justified.
+  </p>
+
+  <ul className="mt-3 list-disc space-y-2 pl-6">
+    <li>Were you told the dealer could influence the interest rate?</li>
+    <li>Were you told the dealer earned commission linked to your interest rate?</li>
+    <li>Were alternative rates discussed?</li>
+    <li>Was the focus mainly on monthly payments rather than the total cost of credit?</li>
+    <li>Did the agreement feel rushed or presented as non-negotiable?</li>
+  </ul>
+
+  <p className="mt-4">
+    If your answer to several of these is “no” or “I don’t remember”, it doesn’t automatically
+    mean mis-selling occurred — but it can be a signal that the sale may not have been fully
+    transparent.
+  </p>
+</Section>
+
+<Section id="products" title="Which car finance products are affected?">
+  <p>
+    Car finance mis-selling is not limited to one product. However, some products are more commonly
+    involved because of how they are structured and sold through dealerships.
+  </p>
+
+  <div className="mt-4 grid gap-4 md:grid-cols-2">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="text-base font-bold">PCP</h3>
+      <p className="mt-2 text-sm text-slate-700">
+        Often linked to mis-selling concerns because customers focus on monthly payments, while APR and
+        commission incentives can be less visible.
+      </p>
+      <p className="mt-3 text-sm">
+        <Link className="font-semibold text-emerald-700 hover:underline" href="/pcp-mis-selling">
+          PCP mis-selling explained →
+        </Link>
+      </p>
+    </div>
+
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="text-base font-bold">Hire Purchase (HP)</h3>
+      <p className="mt-2 text-sm text-slate-700">
+        Can also be affected — especially where APR was discretionary or commission was not disclosed.
+      </p>
+      <p className="mt-3 text-sm">
+        <Link className="font-semibold text-emerald-700 hover:underline" href="/hire-purchase-mis-selling">
+          Hire Purchase mis-selling explained →
+        </Link>
+      </p>
+    </div>
+  </div>
+</Section>
+
+<Section id="pcp" title="PCP (Personal Contract Purchase)">
+  <p>
+    PCP is one of the most common product types linked to car finance mis-selling. PCP agreements
+    emphasise affordability (monthly payment) and can de-emphasise total cost of credit — which can
+    make it easier for interest rate increases and commission-linked incentives to go unnoticed.
+  </p>
+
+  <h3 className="mt-6 text-lg font-bold">Why PCP is particularly affected</h3>
+  <ul className="mt-3 list-disc space-y-2 pl-6">
+    <li>Customers focus on monthly payments rather than APR comparisons</li>
+    <li>Total cost of credit can be less obvious at point of sale</li>
+    <li>Dealership incentives can influence the rate offered</li>
+  </ul>
+
+  <h3 className="mt-6 text-lg font-bold">Common PCP-related issues</h3>
+  <ul className="mt-3 list-disc space-y-2 pl-6">
+    <li>Inflated APR compared with what may have been available</li>
+    <li>No clear explanation of how the interest rate was set</li>
+    <li>No disclosure of commission arrangements</li>
+    <li>Add-ons bundled into finance without clear consent</li>
+  </ul>
+
+  <p className="mt-4">
+    PCP mis-selling does not mean PCP itself is wrong. It means the way the agreement was sold may
+    have been unfair or insufficiently transparent.
+  </p>
+</Section>
+
+<Section id="hire-purchase" title="Hire Purchase (HP)">
+  <p>
+    Hire Purchase agreements are also commonly affected. Because HP can feel more straightforward
+    than PCP, customers are often less likely to question APR setting or whether the rate was
+    negotiable.
+  </p>
+
+  <h3 className="mt-6 text-lg font-bold">Common HP-related issues</h3>
+  <ul className="mt-3 list-disc space-y-2 pl-6">
+    <li>Lack of transparency around APR</li>
+    <li>Commission not disclosed</li>
+    <li>No explanation of whether the rate was negotiable</li>
+  </ul>
+</Section>
+
+<Section id="add-ons" title="Add-ons and extras (often overlooked)">
+  <p>
+    Mis-selling is not always limited to the core finance agreement. Add-ons can strengthen the
+    overall picture where costs were bundled or consent was unclear.
+  </p>
+
+  <h3 className="mt-6 text-lg font-bold">Common add-ons include:</h3>
+  <ul className="mt-3 list-disc space-y-2 pl-6">
+    <li>GAP insurance</li>
+    <li>Extended warranties</li>
+    <li>Service plans</li>
+    <li>Paint and fabric protection</li>
+  </ul>
+
+  <h3 className="mt-6 text-lg font-bold">Issues can arise when:</h3>
+  <ul className="mt-3 list-disc space-y-2 pl-6">
+    <li>Add-ons were bundled without clear explanation</li>
+    <li>Costs were financed without explicit consent</li>
+    <li>Alternatives were not discussed</li>
+  </ul>
+
+  <p className="mt-4 text-sm text-slate-600">
+    Related:{" "}
+    <Link className="font-semibold text-emerald-700 hover:underline" href="/car-finance-add-ons-mis-selling">
+      Add-ons mis-selling explained →
+    </Link>
+  </p>
+</Section>
+
+<Section id="years" title="Which years are commonly affected?">
+  <p>
+    There is no single year that automatically decides eligibility. However, much scrutiny focuses
+    on agreements taken out before 2021, when Discretionary Commission Models (DCM) were banned.
+  </p>
+  <p>
+    That said, earlier agreements can still be relevant, and later agreements may still raise issues
+    depending on disclosure and incentives.
+  </p>
+
+  <p className="mt-4 text-sm text-slate-600">
+    Related:{" "}
+    <Link className="font-semibold text-emerald-700 hover:underline" href="/what-years-are-affected">
+      Which years are affected? →
+    </Link>
+  </p>
+</Section>
+
+<Section id="lenders" title="Which lenders may be involved?">
+  <p>
+    Car finance mis-selling is not limited to small lenders or specific brands. Many major UK car
+    finance providers use dealership distribution models, where incentives and commissions can exist.
+  </p>
+  <p>
+    The key point is not a lender’s name, but whether the dealer had discretion, whether incentives
+    influenced the outcome, and whether the customer was informed.
+  </p>
+
+  <p className="mt-4 text-sm text-slate-600">
+    Related:{" "}
+    <Link className="font-semibold text-emerald-700 hover:underline" href="/which-lenders-are-affected">
+      Which lenders are affected? →
+    </Link>
+  </p>
+</Section>
+
+<Section id="dealer-vs-lender" title="Dealer vs lender: who is responsible?">
+  <p>
+    In car finance, the dealer sells the finance, but the lender provides the credit. Both can be
+    relevant: the dealer’s actions during the sale matter, and the lender’s oversight and agreement
+    structure matter.
+  </p>
+  <p>
+    This is why complaints are usually directed to the lender, even if the problem arose at the
+    dealership.
+  </p>
+</Section>
+
+<Section id="closed-agreements" title="Closed agreements">
+  <p>
+    An agreement does not need to be active to be relevant. Closed agreements may still be reviewed
+    if they fall within applicable time limits, or if the issue only became apparent later due to
+    regulatory findings.
+  </p>
+
+  <Callout>
+    Many people assume: “If it’s paid off, nothing can be done.” That is often not true.
+  </Callout>
+</Section>
+
+{/* =========================
+    PART 3 — Process, Compensation, FAQs
+   ========================= */}
+
+<Section id="complaint-process" title="How the car finance complaint process works">
+  <p>
+    If you believe your car finance agreement may have been mis-sold, the process
+    for raising concerns is structured and regulated. Understanding each step
+    helps you decide how to proceed.
+  </p>
+
+  <h3 className="mt-6 text-lg font-bold">Step 1: Identify the lender</h3>
+  <p>
+    Complaints are normally made to the <strong>lender</strong>, not the
+    dealership. The lender is responsible for how the finance agreement was
+    arranged and administered.
+  </p>
+
+  <h3 className="mt-6 text-lg font-bold">Step 2: Raise a formal complaint</h3>
+  <p>
+    You can submit a complaint directly to the lender, explaining why you believe
+    the agreement may have been mis-sold. This usually involves:
+  </p>
+  <ul className="mt-3 list-disc space-y-2 pl-6">
+    <li>Providing agreement details</li>
+    <li>Explaining what you were (or were not) told</li>
+    <li>Requesting a review of commission and interest rate setting</li>
+  </ul>
+
+  <h3 className="mt-6 text-lg font-bold">Step 3: Lender review period</h3>
+  <p>
+    The lender normally has up to <strong>8 weeks</strong> to investigate and
+    respond. They may request further information during this time.
+  </p>
+
+  <h3 className="mt-6 text-lg font-bold">Step 4: Outcome or escalation</h3>
+  <p>
+    If you disagree with the lender’s response, you may be able to escalate the
+    matter further, depending on circumstances and time limits.
+  </p>
+
+  <p className="mt-4 text-sm text-slate-600">
+    Related:{" "}
+    <Link className="font-semibold text-emerald-700 hover:underline" href="/how-to-complain-car-finance">
+      Step-by-step complaint guide →
+    </Link>
+  </p>
+</Section>
+
+<Section id="diy-vs-specialist" title="Complaining yourself vs using a specialist service">
+  <p>
+    There is no single “right” approach. Some people prefer to complain
+    themselves, while others use specialist support.
+  </p>
+
+  <div className="mt-6 grid gap-4 md:grid-cols-2">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="text-base font-bold">Complaining yourself</h3>
+      <ul className="mt-3 list-disc space-y-2 pl-6 text-sm">
+        <li>No fees</li>
+        <li>Full control over communication</li>
+        <li>Requires time and confidence</li>
+        <li>You handle responses and follow-ups</li>
+      </ul>
+    </div>
+
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <h3 className="text-base font-bold">Using a specialist service</h3>
+      <ul className="mt-3 list-disc space-y-2 pl-6 text-sm">
+        <li>Support with wording and process</li>
+        <li>Experience with lenders’ responses</li>
+        <li>Usually involves a fee if successful</li>
+        <li>Less hands-on for the consumer</li>
+      </ul>
+    </div>
+  </div>
+
+  <Callout>
+    Using a specialist does not guarantee a better outcome — and complaining
+    yourself does not reduce your rights.
+  </Callout>
+</Section>
+
+<Section id="compensation" title="What compensation may look like">
+  <p>
+    Compensation in car finance mis-selling cases varies widely. There is no
+    fixed amount and no guaranteed outcome.
+  </p>
+
+  <h3 className="mt-6 text-lg font-bold">Compensation may include:</h3>
+  <ul className="mt-3 list-disc space-y-2 pl-6">
+    <li>Refund of excess interest paid</li>
+    <li>Interest on refunded amounts</li>
+    <li>Adjustment of the agreement balance</li>
+  </ul>
+
+  <h3 className="mt-6 text-lg font-bold">What affects the amount?</h3>
+  <ul className="mt-3 list-disc space-y-2 pl-6">
+    <li>Size of the agreement</li>
+    <li>Interest rate difference</li>
+    <li>Length of the term</li>
+    <li>Commission structure involved</li>
+  </ul>
+
+  <Callout>
+    Headlines often mention large figures, but real outcomes depend entirely on
+    individual circumstances.
+  </Callout>
+</Section>
+
+<Section id="common-myths" title="Common myths and misunderstandings">
+  <ul className="list-disc space-y-3 pl-6">
+    <li>
+      <strong>“If I paid everything on time, nothing is wrong.”</strong>  
+      Payment history does not determine whether mis-selling occurred.
+    </li>
+    <li>
+      <strong>“If the agreement is closed, it’s too late.”</strong>  
+      Closed agreements may still be reviewed in some cases.
+    </li>
+    <li>
+      <strong>“Everyone is entitled to compensation.”</strong>  
+      Eligibility depends on how the agreement was sold.
+    </li>
+    <li>
+      <strong>“The dealer alone is responsible.”</strong>  
+      Lenders also have regulatory responsibilities.
+    </li>
+  </ul>
+</Section>
+
+<Section id="faqs" title="Frequently asked questions">
+  <h3 className="mt-4 text-lg font-bold">Is every car finance agreement mis-sold?</h3>
+  <p>
+    No. Many agreements were sold fairly. Mis-selling depends on disclosure,
+    incentives and the sales process.
+  </p>
+
+  <h3 className="mt-4 text-lg font-bold">Do I need paperwork?</h3>
+  <p>
+    Having documents helps, but lenders often hold copies of agreements and can
+    retrieve them.
+  </p>
+
+  <h3 className="mt-4 text-lg font-bold">Will making a complaint affect my credit score?</h3>
+  <p>
+    Making a complaint alone does not affect your credit score.
+  </p>
+
+  <h3 className="mt-4 text-lg font-bold">How long does the process take?</h3>
+  <p>
+    Initial lender reviews typically take up to 8 weeks, though some cases take
+    longer.
+  </p>
+
+  <p className="mt-6 text-sm text-slate-600">
+    Related:{" "}
+    <Link className="font-semibold text-emerald-700 hover:underline" href="/car-finance-mis-selling-faqs">
+      Full FAQs →
+    </Link>
+  </p>
+</Section>
+
+<Section id="conclusion" title="Final thoughts">
+  <p>
+    Car finance mis-selling is not about blame — it is about understanding
+    whether a financial agreement was fair, transparent and properly explained.
+  </p>
+
+  <p>
+    This guide is designed to help you understand the issue clearly, without
+    pressure, before deciding what to do next.
+  </p>
+
+  <Callout>
+    Being informed is the first step. Any next step should be your choice.
+  </Callout>
+</Section>
+
+
             </article>
 
             {/* SIDEBAR */}
