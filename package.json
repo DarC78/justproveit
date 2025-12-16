@@ -3,11 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
+  "dev": "next dev",
+  "build": "next build && next export",
+  "start": "next start"
+},
   "dependencies": {
     "next": "^15.5.9",
     "react": "19.2.1",
