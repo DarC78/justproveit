@@ -19,6 +19,28 @@ export default function CarFinanceMisSellingPart1() {
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
+    hasPart: [
+      {
+        "@type": "WebPage",
+        "@id": `${SITE_URL}/what-is-car-finance-mis-selling`,
+        "name": "What is car finance mis-selling?"
+      },
+      {
+        "@type": "WebPage",
+        "@id": `${SITE_URL}/who-is-eligible-car-finance`,
+        "name": "Who is eligible for car finance mis-selling?"
+      },
+      {
+        "@type": "WebPage",
+        "@id": `${SITE_URL}/how-to-complain-car-finance`,
+        "name": "How to complain about car finance mis-selling"
+      },
+      {
+        "@type": "WebPage",
+        "@id": `${SITE_URL}/car-finance-mis-selling-faqs`,
+        "name": "Car finance mis-selling FAQs"
+      }
+    ],
     headline:
       "Car Finance Mis-Selling in the UK – The Complete Independent Guide (Part 1)",
     description: DESCRIPTION,
@@ -443,6 +465,15 @@ export default function CarFinanceMisSellingPart1() {
                   might otherwise have paid — not because of their credit
                   profile, but because of how the agreement was structured and
                   incentivised.
+                </p>
+                <p className="mt-4 text-sm text-slate-600">
+                  Next step if this sounds relevant:{" "}
+                  <Link
+                    className="font-semibold text-emerald-700 hover:underline"
+                    href="/how-to-complain-car-finance"
+                  >
+                    How to complain about car finance mis-selling →
+                  </Link>
                 </p>
               </Section>
 
@@ -900,11 +931,22 @@ export default function CarFinanceMisSellingPart1() {
     PART 3 — Process, Compensation, FAQs
    ========================= */}
 
-<Section id="complaint-process" title="How the car finance complaint process works">
+<Section
+  id="complaint-process"
+  title="How the car finance complaint process works (step-by-step)"
+>
   <p>
-    If you believe your car finance agreement may have been mis-sold, the process
-    for raising concerns is structured and regulated. Understanding each step
-    helps you decide how to proceed.
+    This section explains the complaint process at a high level.
+    If you want a detailed, practical walkthrough with templates and
+    examples, see our dedicated guide below.
+  </p>
+  <p className="mt-2 text-sm">
+    <Link
+      className="font-semibold text-emerald-700 hover:underline"
+      href="/how-to-complain-car-finance"
+    >
+      Full step-by-step complaint guide →
+    </Link>
   </p>
 
   <h3 className="mt-6 text-lg font-bold">Step 1: Identify the lender</h3>
@@ -1097,15 +1139,17 @@ export default function CarFinanceMisSellingPart1() {
                 </SidebarBox>
 
                 <SidebarBox title="Related guides">
-                  <SidebarLink href="/pcp-mis-selling">PCP mis-selling</SidebarLink>
-                  <SidebarLink href="/hire-purchase-mis-selling">
-                    Hire Purchase mis-selling
-                  </SidebarLink>
                   <SidebarLink href="/how-to-complain-car-finance">
                     How to complain
                   </SidebarLink>
-                  <SidebarLink href="/car-finance-mis-selling-faqs">
-                    FAQs
+                  <SidebarLink href="/who-is-eligible-car-finance">
+                    Who is eligible?
+                  </SidebarLink>
+                  <SidebarLink href="/pcp-mis-selling">
+                    PCP mis-selling
+                  </SidebarLink>
+                  <SidebarLink href="/hire-purchase-mis-selling">
+                    Hire Purchase mis-selling
                   </SidebarLink>
                 </SidebarBox>
 
