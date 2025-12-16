@@ -42,7 +42,7 @@ export default function CarFinanceMisSellingPart1() {
       }
     ],
     headline:
-      "Car Finance Mis-Selling in the UK – The Complete Independent Guide (Part 1)",
+      "Car Finance Mis-Selling UK – The Complete Independent Guide | JustProveIt",
     description: DESCRIPTION,
     mainEntityOfPage: {
       "@type": "WebPage",
@@ -82,6 +82,72 @@ export default function CarFinanceMisSellingPart1() {
     ],
   };
 
+  const itemListJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Car Finance Mis-Selling – Complete Guide",
+  "description":
+    "A structured set of independent guides explaining car finance mis-selling in the UK, including causes, regulation, eligibility and complaint process.",
+  "itemListOrder": "https://schema.org/ItemListOrderAscending",
+  "numberOfItems": 9,
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "What Is Car Finance Mis-Selling?",
+      "url": "https://www.justproveit.co.uk/what-is-car-finance-mis-selling",
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "FCA Car Finance Investigation Explained",
+      "url": "https://www.justproveit.co.uk/fca-car-finance-investigation",
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Hidden Commission Explained",
+      "url": "https://www.justproveit.co.uk/hidden-commission-explained",
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "name": "Discretionary Commission Models (DCM)",
+      "url": "https://www.justproveit.co.uk/discretionary-commission-models",
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "name": "PCP Mis-Selling Explained",
+      "url": "https://www.justproveit.co.uk/pcp-mis-selling",
+    },
+    {
+      "@type": "ListItem",
+      "position": 6,
+      "name": "Hire Purchase Mis-Selling Explained",
+      "url": "https://www.justproveit.co.uk/hire-purchase-mis-selling",
+    },
+    {
+      "@type": "ListItem",
+      "position": 7,
+      "name": "Who Is Eligible for Car Finance Mis-Selling?",
+      "url": "https://www.justproveit.co.uk/who-is-eligible-car-finance",
+    },
+    {
+      "@type": "ListItem",
+      "position": 8,
+      "name": "How to Complain About Car Finance Mis-Selling",
+      "url": "https://www.justproveit.co.uk/how-to-complain-car-finance",
+    },
+    {
+      "@type": "ListItem",
+      "position": 9,
+      "name": "Car Finance Mis-Selling FAQs",
+      "url": "https://www.justproveit.co.uk/car-finance-mis-selling-faqs",
+    },
+  ],
+};
+
   return (
     <>
       <Head>
@@ -100,6 +166,7 @@ export default function CarFinanceMisSellingPart1() {
         <meta property="og:description" content={DESCRIPTION} />
         <meta property="og:url" content={CANONICAL} />
         <meta property="og:site_name" content="JustProveIt" />
+        <meta httpEquiv="content-language" content="en-GB" />
 
         {/* Twitter */}
         <meta name="twitter:card" content="summary_large_image" />
@@ -206,6 +273,12 @@ export default function CarFinanceMisSellingPart1() {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(itemListJsonLd),
+          }}
         />
       </Head>
 

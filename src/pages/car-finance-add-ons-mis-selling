@@ -1,0 +1,303 @@
+import Head from "next/head";
+import Link from "next/link";
+
+const SITE_URL = "https://www.justproveit.co.uk";
+const PAGE_PATH = "/car-finance-add-ons-mis-selling";
+const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
+
+const TITLE =
+  "Car Finance Add-Ons Mis-Selling Explained | GAP, Warranties & Extras";
+const DESCRIPTION =
+  "Learn how add-ons such as GAP insurance, extended warranties and service plans can contribute to car finance mis-selling in the UK when disclosure and consent are unclear.";
+
+export default function CarFinanceAddOnsMisSelling() {
+  const published = "2025-12-16";
+  const modified = "2025-12-16";
+
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: "Car Finance Add-Ons and Mis-Selling Explained",
+    description: DESCRIPTION,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": CANONICAL,
+    },
+    author: {
+      "@type": "Organization",
+      name: "JustProveIt",
+      url: SITE_URL,
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "JustProveIt",
+      url: SITE_URL,
+    },
+    datePublished: published,
+    dateModified: modified,
+    inLanguage: "en-GB",
+    isPartOf: {
+      "@type": "WebPage",
+      "@id": `${SITE_URL}/car-finance-mis-selling`,
+      name: "Car Finance Mis-Selling – Complete Guide",
+    },
+  };
+
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: [
+      {
+        "@type": "Question",
+        name: "What are car finance add-ons?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text:
+            "Add-ons are optional products sold alongside a car finance agreement, such as GAP insurance, extended warranties, service plans, or vehicle protection products.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Can add-ons contribute to car finance mis-selling?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text:
+            "Yes. Add-ons can contribute to mis-selling concerns where costs were not clearly explained, consent was unclear, or products were bundled into finance without proper disclosure.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Does mis-selling require the add-on itself to be unsuitable?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text:
+            "No. The issue is not whether the add-on was useful, but whether it was sold transparently and with informed consent.",
+        },
+      },
+      {
+        "@type": "Question",
+        name: "Do add-ons matter if the finance agreement is closed?",
+        acceptedAnswer: {
+          "@type": "Answer",
+          text:
+            "In some cases, yes. Add-ons can still be relevant even if the agreement has ended, depending on how they were sold and applicable time limits.",
+        },
+      },
+    ],
+  };
+
+  const breadcrumbJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: `${SITE_URL}/`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Car Finance Mis-Selling",
+        item: `${SITE_URL}/car-finance-mis-selling`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: "Add-Ons & Extras",
+        item: CANONICAL,
+      },
+    ],
+  };
+
+  return (
+    <>
+      <Head>
+        <title>{TITLE}</title>
+        <meta name="description" content={DESCRIPTION} />
+        <link rel="canonical" href={CANONICAL} />
+
+        {/* Language */}
+        <meta httpEquiv="content-language" content="en-GB" />
+
+        {/* Robots */}
+        <meta name="robots" content="index,follow,max-image-preview:large" />
+
+        {/* Open Graph */}
+        <meta property="og:type" content="article" />
+        <meta property="og:title" content={TITLE} />
+        <meta property="og:description" content={DESCRIPTION} />
+        <meta property="og:url" content={CANONICAL} />
+        <meta property="og:site_name" content="JustProveIt" />
+
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+
+        {/* JSON-LD */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }}
+        />
+      </Head>
+
+      <main className="mx-auto max-w-3xl px-4 py-10">
+        <article>
+          <h1 className="text-3xl font-extrabold">
+            Car Finance Add-Ons and Mis-Selling
+          </h1>
+
+          <p className="mt-4 text-lg">
+            Car finance mis-selling is not always limited to interest rates and
+            commission. Optional add-ons and extras sold alongside finance
+            agreements can also raise concerns where disclosure or consent was
+            unclear.
+          </p>
+
+          <p className="mt-3 text-sm text-slate-600">
+            Part of the complete guide:{" "}
+            <Link
+              href="/car-finance-mis-selling"
+              className="font-semibold text-emerald-700 hover:underline"
+            >
+              Car finance mis-selling explained →
+            </Link>
+          </p>
+
+          <hr className="my-10" />
+
+          <Section title="What are add-ons and extras?">
+            <p>
+              Add-ons are additional products sold at the point of purchase,
+              often alongside a car finance agreement. While they can offer
+              genuine value in some cases, concerns arise when they are sold
+              without proper explanation.
+            </p>
+          </Section>
+
+          <Section title="Common car finance add-ons">
+            <ul className="mt-3 list-disc space-y-2 pl-6">
+              <li>GAP insurance</li>
+              <li>Extended warranties</li>
+              <li>Service and maintenance plans</li>
+              <li>Paint, fabric or alloy protection</li>
+            </ul>
+          </Section>
+
+          <Section title="How add-ons can contribute to mis-selling">
+            <ul className="mt-3 list-disc space-y-2 pl-6">
+              <li>Add-ons bundled into the finance without clear explanation</li>
+              <li>Costs included in monthly payments without explicit consent</li>
+              <li>Optional products presented as mandatory</li>
+              <li>Limited or no discussion of alternatives</li>
+            </ul>
+          </Section>
+
+          <Section title="Why financing add-ons matters">
+            <p>
+              When add-ons are financed rather than paid upfront, customers may
+              pay interest on those products for the full term of the agreement.
+              This can significantly increase the overall cost.
+            </p>
+          </Section>
+
+          <Section title="Add-ons alongside PCP and Hire Purchase">
+            <p>
+              Add-ons are commonly bundled into both{" "}
+              <Link
+                href="/pcp-mis-selling"
+                className="font-semibold text-emerald-700 hover:underline"
+              >
+                PCP
+              </Link>{" "}
+              and{" "}
+              <Link
+                href="/hire-purchase-mis-selling"
+                className="font-semibold text-emerald-700 hover:underline"
+              >
+                Hire Purchase
+              </Link>{" "}
+              agreements. The product type does not remove the requirement for
+              transparency and informed consent.
+            </p>
+          </Section>
+
+          <Section title="Do add-ons guarantee mis-selling?">
+            <p>
+              No. The presence of add-ons does not automatically mean
+              mis-selling occurred. The key issue is how they were explained,
+              priced, and agreed.
+            </p>
+          </Section>
+
+          <Section title="What to do if add-ons were unclear">
+            <p>
+              If you believe add-ons were included without proper explanation,
+              they may form part of a wider review of how your agreement was
+              sold.
+            </p>
+
+            <p className="mt-4 text-sm text-slate-600">
+              Next step:{" "}
+              <Link
+                href="/who-is-eligible-car-finance"
+                className="font-semibold text-emerald-700 hover:underline"
+              >
+                Who may be eligible →
+              </Link>
+            </p>
+          </Section>
+
+          <hr className="my-10" />
+
+          <p className="text-sm text-slate-600">Related reading:</p>
+          <ul className="mt-2 list-disc space-y-2 pl-6 text-sm">
+            <li>
+              <Link
+                href="/hidden-commission-explained"
+                className="font-semibold text-emerald-700 hover:underline"
+              >
+                Hidden commission explained →
+              </Link>
+            </li>
+            <li>
+              <Link
+                href="/how-to-complain-car-finance"
+                className="font-semibold text-emerald-700 hover:underline"
+              >
+                How to complain →
+              </Link>
+            </li>
+          </ul>
+        </article>
+      </main>
+    </>
+  );
+}
+
+/* -------- Small component -------- */
+
+function Section({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-10">
+      <h2 className="text-2xl font-bold">{title}</h2>
+      <div className="prose prose-slate mt-4 max-w-none">
+        {children}
+      </div>
+    </section>
+  );
+}

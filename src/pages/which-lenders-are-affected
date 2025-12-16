@@ -2,22 +2,22 @@ import Head from "next/head";
 import Link from "next/link";
 
 const SITE_URL = "https://www.justproveit.co.uk";
-const PAGE_PATH = "/what-is-car-finance-mis-selling";
+const PAGE_PATH = "/which-lenders-are-affected";
 const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
 
 const TITLE =
-  "What Is Car Finance Mis-Selling? | Clear Explanation for UK Consumers";
+  "Which Lenders Are Affected by Car Finance Mis-Selling? | UK Guide";
 const DESCRIPTION =
-  "A clear, independent explanation of what car finance mis-selling means in the UK, how it happens, and why many agreements are now being reviewed.";
+  "Learn which types of car finance lenders may be affected by mis-selling concerns in the UK, and why the focus is on sales practices rather than lender names.";
 
-export default function WhatIsCarFinanceMisSelling() {
+export default function WhichLendersAreAffected() {
   const published = "2025-12-16";
   const modified = "2025-12-16";
 
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
-    headline: "What Is Car Finance Mis-Selling?",
+    headline: "Which Lenders Are Affected by Car Finance Mis-Selling?",
     description: DESCRIPTION,
     mainEntityOfPage: {
       "@type": "WebPage",
@@ -49,47 +49,38 @@ export default function WhatIsCarFinanceMisSelling() {
     mainEntity: [
       {
         "@type": "Question",
-        name: "What does car finance mis-selling mean?",
+        name: "Is car finance mis-selling limited to certain lenders?",
         acceptedAnswer: {
           "@type": "Answer",
           text:
-            "Car finance mis-selling means a finance agreement was sold without clear, fair and transparent information. This can involve undisclosed commission, discretionary interest rates, or insufficient explanation of key terms.",
+            "No. Car finance mis-selling is not limited to specific lenders. The key issue is how the finance was sold and whether commission, interest rates and alternatives were clearly explained.",
         },
       },
       {
         "@type": "Question",
-        name: "Is car finance mis-selling illegal?",
+        name: "Are large or well-known lenders affected?",
         acceptedAnswer: {
           "@type": "Answer",
           text:
-            "Mis-selling is not about illegality in every case. It concerns whether the agreement was sold fairly and transparently, in line with consumer protection rules.",
+            "Yes. Large and well-known lenders can be involved where dealership sales processes created conflicts of interest or lacked transparency.",
         },
       },
       {
         "@type": "Question",
-        name: "Does mis-selling require dishonesty?",
+        name: "Does the lender or dealer matter more?",
         acceptedAnswer: {
           "@type": "Answer",
           text:
-            "No. Mis-selling often occurs through omission, incentives, or lack of explanation rather than deliberate deception.",
+            "Both can be relevant. Dealers sell the finance, but lenders are responsible for the agreement and for ensuring sales practices meet regulatory standards.",
         },
       },
       {
         "@type": "Question",
-        name: "Does paying on time mean there was no mis-selling?",
+        name: "Does the lender name decide eligibility?",
         acceptedAnswer: {
           "@type": "Answer",
           text:
-            "No. Payment history does not determine whether mis-selling occurred. The focus is on how the agreement was sold.",
-        },
-      },
-      {
-        "@type": "Question",
-        name: "Are all car finance agreements mis-sold?",
-        acceptedAnswer: {
-          "@type": "Answer",
-          text:
-            "No. Many agreements were sold fairly. Mis-selling depends on the circumstances of the sale.",
+            "No. Eligibility depends on how the agreement was sold, not on the lender’s brand or size.",
         },
       },
     ],
@@ -114,7 +105,7 @@ export default function WhatIsCarFinanceMisSelling() {
       {
         "@type": "ListItem",
         position: 3,
-        name: "What Is Mis-Selling?",
+        name: "Which Lenders Are Affected?",
         item: CANONICAL,
       },
     ],
@@ -161,13 +152,13 @@ export default function WhatIsCarFinanceMisSelling() {
       <main className="mx-auto max-w-3xl px-4 py-10">
         <article>
           <h1 className="text-3xl font-extrabold">
-            What Is Car Finance Mis-Selling?
+            Which Lenders Are Affected by Car Finance Mis-Selling?
           </h1>
 
           <p className="mt-4 text-lg">
-            Car finance mis-selling is a term used to describe situations where
-            a car finance agreement was sold without proper transparency or
-            fairness. It focuses on the sales process rather than the outcome.
+            Many people assume car finance mis-selling only affects certain
+            lenders. In reality, the focus is not on specific names, but on how
+            finance agreements were sold.
           </p>
 
           <p className="mt-3 text-sm text-slate-600">
@@ -182,73 +173,79 @@ export default function WhatIsCarFinanceMisSelling() {
 
           <hr className="my-10" />
 
-          <section className="space-y-10">
-            <Section title="Mis-selling is about the sale, not the result">
-              <p>
-                A common misunderstanding is that mis-selling only applies if
-                something went obviously wrong. In reality, it is about whether
-                you were given clear, fair and complete information when the
-                agreement was sold.
-              </p>
-              <p>
-                You may have paid every instalment on time and still have been
-                mis-sold a finance agreement.
-              </p>
-            </Section>
+          <Section title="Why lender names are not the starting point">
+            <p>
+              Mis-selling concerns arise from sales practices, incentives and
+              disclosure. Two customers with the same lender can have very
+              different experiences depending on how their agreement was
+              arranged.
+            </p>
+          </Section>
 
-            <Section title="How car finance is usually sold">
-              <p>
-                Car finance is typically arranged at a dealership. The process
-                often focuses on monthly payments, deposits and affordability,
-                while more complex elements such as APR, commission and total
-                cost of credit receive less attention.
-              </p>
-            </Section>
+          <Section title="Dealership-based lending models">
+            <p>
+              Many UK car finance lenders distribute their products through
+              dealerships. This means the dealer plays a central role in
+              presenting the finance, explaining terms, and setting expectations.
+            </p>
+          </Section>
 
-            <Section title="Where mis-selling concerns arise">
-              <ul className="mt-3 list-disc space-y-2 pl-6">
-                <li>Commission arrangements were not disclosed</li>
-                <li>Interest rates were discretionary but presented as fixed</li>
-                <li>The focus was on monthly payments only</li>
-                <li>Key information was omitted or unclear</li>
-              </ul>
-            </Section>
+          <Section title="How lenders can still be responsible">
+            <p>
+              Although the dealer sells the finance, the lender provides the
+              credit and sets the framework within which the sale takes place.
+              This can include commission structures and permitted interest rate
+              ranges.
+            </p>
+          </Section>
 
-            <Section title="Mis-selling does not require dishonesty">
-              <p>
-                Many mis-selling concerns arise without anyone deliberately
-                misleading the customer. Incentives, structure and omission can
-                be enough to undermine fairness.
-              </p>
-            </Section>
+          <Section title="Are some lenders more commonly discussed?">
+            <p>
+              Public discussion often focuses on lenders that used certain
+              commission models or had high volumes of dealership-distributed
+              finance. This does not mean other lenders are excluded.
+            </p>
+          </Section>
 
-            <Section title="Why car finance mis-selling matters">
-              <p>
-                Mis-selling matters because it affects how much interest you
-                paid and whether you were able to make a fully informed decision.
-              </p>
-              <p>
-                Understanding mis-selling allows consumers to decide what, if
-                anything, they want to do next.
-              </p>
+          <Section title="Why eligibility is lender-neutral">
+            <p>
+              Eligibility depends on disclosure, transparency and incentives —
+              not on the lender’s brand. This is why complaints are assessed on a
+              case-by-case basis.
+            </p>
 
-              <p className="mt-4 text-sm text-slate-600">
-                Next step:{" "}
-                <Link
-                  href="/who-is-eligible-car-finance"
-                  className="font-semibold text-emerald-700 hover:underline"
-                >
-                  Who may be eligible →
-                </Link>
-              </p>
-            </Section>
-          </section>
+            <p className="mt-4 text-sm text-slate-600">
+              Related:{" "}
+              <Link
+                href="/dealer-vs-lender-responsibility"
+                className="font-semibold text-emerald-700 hover:underline"
+              >
+                Dealer vs lender responsibility →
+              </Link>
+            </p>
+          </Section>
+
+          <Section title="What to do if you are unsure">
+            <p>
+              If you do not know who your lender was, this does not prevent
+              further review. Lenders usually hold records of agreements, even
+              where paperwork is missing.
+            </p>
+
+            <p className="mt-4 text-sm text-slate-600">
+              Next step:{" "}
+              <Link
+                href="/who-is-eligible-car-finance"
+                className="font-semibold text-emerald-700 hover:underline"
+              >
+                Who may be eligible →
+              </Link>
+            </p>
+          </Section>
 
           <hr className="my-10" />
 
-          <p className="text-sm text-slate-600">
-            Related reading:
-          </p>
+          <p className="text-sm text-slate-600">Related reading:</p>
           <ul className="mt-2 list-disc space-y-2 pl-6 text-sm">
             <li>
               <Link
@@ -260,10 +257,10 @@ export default function WhatIsCarFinanceMisSelling() {
             </li>
             <li>
               <Link
-                href="/fca-car-finance-investigation"
+                href="/how-to-complain-car-finance"
                 className="font-semibold text-emerald-700 hover:underline"
               >
-                FCA car finance investigation →
+                How to complain →
               </Link>
             </li>
           </ul>
@@ -273,7 +270,7 @@ export default function WhatIsCarFinanceMisSelling() {
   );
 }
 
-/* -------- Small component -------- */
+/* ---------- Small component ---------- */
 
 function Section({
   title,
@@ -283,7 +280,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section>
+    <section className="mt-10">
       <h2 className="text-2xl font-bold">{title}</h2>
       <div className="prose prose-slate mt-4 max-w-none">
         {children}
