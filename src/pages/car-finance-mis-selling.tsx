@@ -2,6 +2,7 @@ import Head from "next/head";
 import Link from "next/link";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
 import LanguageSwitcherFlags from "../../components/LanguageSwitcherFlags";
+import SiteHeader from "../../components/SiteHeader";
 
 
 const SITE_URL = "https://www.justproveit.co.uk";
@@ -1299,7 +1300,7 @@ function SiteHeader() {
   );
 }
 
-export default SiteHeader;
+
 
 function SiteFooter() {
   return (
