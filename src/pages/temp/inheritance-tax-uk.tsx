@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
-import SiteHeader from "../../components/SiteHeader";
+import SiteHeader from "../../../components/SiteHeader";
 
 const SITE_URL = "https://www.justproveit.co.uk";
 const PAGE_PATH = "/inheritance-tax-uk";
