@@ -714,7 +714,15 @@ export default function InheritanceTaxUKPart1() {
 
 /* ---------------- UI helpers ---------------- */
 
-function Section({ id, title, children }) {
+function Section({
+  id,
+  title,
+  children,
+}: {
+  id: string;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <section id={id} className="mt-10">
       <h2 className="text-2xl font-bold">{title}</h2>
@@ -723,7 +731,7 @@ function Section({ id, title, children }) {
   );
 }
 
-function Callout({ children }) {
+function Callout({ children } : {children: String}) {
   return (
     <div className="my-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
       <p className="text-sm font-semibold text-amber-900">Key point</p>
