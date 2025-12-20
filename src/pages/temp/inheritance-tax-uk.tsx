@@ -1,9 +1,8 @@
 import Head from "next/head";
-import Link from "next/link";
 import SiteHeader from "../../../components/SiteHeader";
 
 const SITE_URL = "https://www.justproveit.co.uk";
-const PAGE_PATH = "/inheritance-tax-uk";
+const PAGE_PATH = "/temp/inheritance-tax-uk";
 const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
 
 const TITLE =
@@ -731,7 +730,7 @@ function Section({
   );
 }
 
-function Callout({ children } : {children: String}) {
+function Callout({ children } : {children: string}) {
   return (
     <div className="my-6 rounded-2xl border border-amber-200 bg-amber-50 p-5">
       <p className="text-sm font-semibold text-amber-900">Key point</p>
