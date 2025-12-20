@@ -63,7 +63,7 @@ export default function InheritanceTaxUKPart1() {
     <>
       <Head>
         <title>{TITLE}</title>
-        <meta name="description" content={DESCRIPTION} />
+        <meta name="description" lang = "en-GB" content={DESCRIPTION} />
         <link rel="canonical" href={CANONICAL} />
         <meta name="robots" content="index,follow,max-image-preview:large" />
 
