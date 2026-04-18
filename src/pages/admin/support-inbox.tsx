@@ -37,6 +37,80 @@ type SourceMode = "cached" | "live" | "merged";
 type LoadStatus = "idle" | "loading" | "ready" | "error";
 
 const DEFAULT_LIMIT = 20;
+const FALLBACK_REPLY_TEMPLATES: ReplyTemplate[] = [
+  {
+    key: "justUpdate",
+    label: "justUpdate",
+    sortOrder: 40,
+    plainText: `Buna ziua,
+
+Acesta este doar un update de la firma de finantare. Nu trebuie sa faceti nimic deocamdata. 
+
+Sistemul nostru v-a emis si un email de update de la noi din sistem, cu stadiul dosarului si pasii urmatori. 
+
+Emailul a fost trimis de pe adresa suport@justproveit.co.uk . O sa va rog sa cautati si in spam daca nu il gasiti in inbox. 
+
+Daca mai sunt intreabari, va stam la dispozitie.
+
+Cu stima, 
+Echipa de suport ProveIt`,
+  },
+  {
+    key: "queryNoAnswer",
+    label: "queryNoAnswer",
+    sortOrder: 50,
+    plainText: `Buna ziua,
+
+FCA a clarificat pe 30 Martie toate detaliile schemei. 
+
+Din ce intelegem noi, pare ca finantatorul nu v-a raspuns la nici un email. 
+
+In 99% din aceste cazuri, clientul nostru a semnat online cu o firma de avocatura, iar finantatorul a ales sa discute doar cu firma de avocatura si sa nu raspunda la email-uri.
+
+Nu este o problema, putem rezolva. Dar este important sa stim daca asta este cazul, si denumirea firmei de avocatura. 
+
+Puteti urmati acest video si sa cautati daca aveti un claim deschis si cu o firma de avocatura: https://youtu.be/3wwhwmA1MdY ?
+
+Daca aveti ceva de genul asta, va rog sa ne spuneti denumirea firmei de avocatura.
+
+Cu stima, 
+Echipa de suport ProveIt`,
+  },
+  {
+    key: "autoACK",
+    label: "autoACK",
+    sortOrder: 60,
+    plainText: `Buna ziua,
+
+Multumim pentru informare. Finantatorul v-a trimis un auto reply, ceea ce inseamna ca a confirmat ca ati demarat procesul de recuperare. 
+
+Va rugam sa ne spuneti cand va mai trimite un alt email. 
+
+Ca o nota separata, puteti urmati acest video si sa cautati daca aveti un claim deschis si cu o firma de avocatura: https://youtu.be/3wwhwmA1MdY ?
+
+Cateodata sunt website-uri super inelatoare. 
+
+Daca aveti ceva de genul asta, va rog sa ne spuneti denumirea firmei de avocatura si noi vom incerca sa va scoatem din contractul cu ei. 
+
+Cu stima, 
+Echipa de suport ProveIt`,
+  },
+  {
+    key: "statusUpdate",
+    label: "statusUpdate",
+    sortOrder: 70,
+    plainText: `Buna ziua,
+
+Ar fi trebuit sa fi primit un email din sistem (suport@justproveit.co.uk). O sa va rog sa verificati si in spam. 
+
+In acel email vedeti exact stadiul dosarului, si pasii urmatori.
+
+Daca sunt intrebari, va stam la dispozitie. 
+
+Cu stima, 
+Echipa de suport ProveIt`,
+  },
+];
 
 export default function SupportInboxPage() {
   const router = useRouter();
@@ -180,11 +254,7 @@ export default function SupportInboxPage() {
 
         setConfig(nextConfig);
         setGmailProfile(nextProfile);
-        setTemplates(
-          (templateResponse.templates ?? [])
-            .filter((template) => template.enabled !== false)
-            .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0)),
-        );
+        setTemplates(mergeReplyTemplates(templateResponse.templates ?? []));
         setRepliedThreadKeys(new Set(repliedState.threadKeys ?? []));
         setSkippedThreadKeys(new Set(skippedState.threadKeys ?? []));
 
@@ -1123,6 +1193,29 @@ function renderTemplateText(
 
 function getTemplateLabel(template: ReplyTemplate) {
   return template.label ?? template.name ?? template.title ?? template.key;
+}
+
+function mergeReplyTemplates(backendTemplates: ReplyTemplate[]) {
+  const templateMap = new Map<string, ReplyTemplate>();
+
+  backendTemplates
+    .filter((template) => template.enabled !== false)
+    .forEach((template, index) => {
+      templateMap.set(template.key, {
+        ...template,
+        sortOrder: template.sortOrder ?? index * 10,
+      });
+    });
+
+  FALLBACK_REPLY_TEMPLATES.forEach((template) => {
+    if (!templateMap.has(template.key)) {
+      templateMap.set(template.key, template);
+    }
+  });
+
+  return Array.from(templateMap.values()).sort(
+    (left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0),
+  );
 }
 
 function stripHtml(value: string) {
