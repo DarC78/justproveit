@@ -565,9 +565,11 @@ export default function SupportInboxPage() {
       });
 
       await markThreadState(token, "replied", {
+        mailboxEmail: config?.mailboxEmail ?? "oz@proveitweb.co.uk",
         threadKey: selectedThreadKey,
         recipientEmail: recipient,
         subject,
+        repliedByEmail: user?.email ?? "",
       });
 
       if (
@@ -600,9 +602,11 @@ export default function SupportInboxPage() {
 
     await runAction("Marking thread skipped...", async () => {
       await markThreadState(token, "skipped", {
+        mailboxEmail: config?.mailboxEmail ?? "oz@proveitweb.co.uk",
         threadKey: selectedThreadKey,
         senderEmail: getReplyRecipient(selectedMessage),
         subject: selectedMessage.subject ?? "",
+        skippedByEmail: user?.email ?? "",
       });
       setSkippedThreadKeys((current) =>
         addThreadStateKeys(current, getThreadStateKeys(selectedMessage)),
@@ -660,9 +664,11 @@ export default function SupportInboxPage() {
 
       if (selectedThreadKey) {
         await markThreadState(token, "skipped", {
+          mailboxEmail: config?.mailboxEmail ?? "oz@proveitweb.co.uk",
           threadKey: selectedThreadKey,
           senderEmail: getReplyRecipient(selectedMessage),
           subject: selectedMessage.subject ?? "",
+          skippedByEmail: user?.email ?? "",
         });
         setSkippedThreadKeys((current) =>
           addThreadStateKeys(current, getThreadStateKeys(selectedMessage)),
@@ -1301,7 +1307,7 @@ function getMessageId(message: SupportMessage | null, index: number) {
 function getThreadKey(message: SupportMessage) {
   const threadId = message.threadId ?? message.externalThreadId;
   if (threadId) {
-    return threadId;
+    return `thread:${threadId}`;
   }
 
   const messageId =
@@ -1310,7 +1316,7 @@ function getThreadKey(message: SupportMessage) {
     message.externalMessageId ??
     message.id ??
     message._id;
-  return messageId ?? "";
+  return messageId ? `message:${messageId}` : "";
 }
 
 function getThreadStateKeys(message: SupportMessage) {
