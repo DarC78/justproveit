@@ -532,6 +532,16 @@ export default function SupportInboxPage() {
     await runAction("Sending reply...", async () => {
       const headers = buildReplyHeaders(selectedMessage);
       const templateKey = selectedTemplate?.key ?? "";
+      const replyBodyText = buildClassicReplyBody(
+        selectedMessage,
+        trimmedReply,
+        customerContext,
+      );
+      const replyBodyHtml = buildClassicReplyHtml(
+        selectedMessage,
+        trimmedReply,
+        customerContext,
+      );
       const result = await sendGmailReply(token, {
         to: recipient,
         bcc:
@@ -539,8 +549,8 @@ export default function SupportInboxPage() {
             ? config?.felicitariBccEmail
             : "",
         subject,
-        text: trimmedReply,
-        html: plainTextToHtml(trimmedReply),
+        text: replyBodyText,
+        html: replyBodyHtml,
         threadId: selectedMessage.threadId ?? selectedMessage.externalThreadId ?? "",
         inReplyTo: headers.inReplyTo,
         references: headers.references,
@@ -1314,12 +1324,47 @@ function buildReplySubject(message: SupportMessage) {
 }
 
 function buildReplyHeaders(message: SupportMessage) {
-  const headers = message.headers ?? {};
+  const headers = getRawMessageHeaders(message);
   const inReplyTo =
-    headers["Message-ID"] ?? headers["Message-Id"] ?? message.messageId ?? "";
-  const references = [headers.References, inReplyTo].filter(Boolean).join(" ");
+    message.messageId ??
+    message.internetMessageId ??
+    getHeaderValueCaseInsensitive(headers, "Message-ID") ??
+    "";
+  const references = buildReplyReferencesHeader(headers, inReplyTo);
 
   return { inReplyTo, references };
+}
+
+function getRawMessageHeaders(message: SupportMessage) {
+  const rawHeaders = getRecord(message.rawJson, "headers");
+  return { ...(rawHeaders ?? {}), ...(message.headers ?? {}) } as Record<
+    string,
+    string
+  >;
+}
+
+function getHeaderValueCaseInsensitive(
+  headers: Record<string, string>,
+  headerName: string,
+) {
+  const key = Object.keys(headers).find(
+    (name) => name.toLowerCase() === headerName.toLowerCase(),
+  );
+  return key ? headers[key] : "";
+}
+
+function buildReplyReferencesHeader(
+  headers: Record<string, string>,
+  messageId: string,
+) {
+  const existingReferences = getHeaderValueCaseInsensitive(headers, "References");
+  const parts = existingReferences.split(/\s+/).filter(Boolean);
+
+  if (!messageId) {
+    return parts.join(" ");
+  }
+
+  return parts.includes(messageId) ? parts.join(" ") : [...parts, messageId].join(" ");
 }
 
 async function findLastSentEmailToRecipient(token: string, recipient: string) {
@@ -1412,6 +1457,159 @@ function formatLastSentEmailForReplyBox(message: SupportMessage, recipient: stri
     "",
     "Choose a template or replace this text before sending a new reply.",
   ].join("\n");
+}
+
+function buildClassicReplyBody(
+  message: SupportMessage,
+  replyText: string,
+  context: CustomerContextResponse | null,
+) {
+  const quotedThread = buildQuotedThreadText(message, context);
+  return quotedThread ? `${replyText}\n\n${quotedThread}` : replyText;
+}
+
+function buildClassicReplyHtml(
+  message: SupportMessage,
+  replyText: string,
+  context: CustomerContextResponse | null,
+) {
+  const replyHtml = plainTextToHtml(replyText);
+  const quotedThreadHtml = buildQuotedThreadHtml(message, context);
+  return quotedThreadHtml ? `${replyHtml}${quotedThreadHtml}` : replyHtml;
+}
+
+function buildQuotedThreadText(
+  selectedMessage: SupportMessage,
+  context: CustomerContextResponse | null,
+) {
+  const threadMessages = getSelectedThreadMessages(selectedMessage, context);
+  if (!threadMessages.length) {
+    return "";
+  }
+
+  return threadMessages
+    .map((message) => {
+      const body = getMessagePlainText(message);
+      return [
+        buildReplyHeaderLine(message),
+        body ? quoteEmailBody(body) : "> (No email body available.)",
+      ].join("\n");
+    })
+    .join("\n\n");
+}
+
+function buildQuotedThreadHtml(
+  selectedMessage: SupportMessage,
+  context: CustomerContextResponse | null,
+) {
+  const threadMessages = getSelectedThreadMessages(selectedMessage, context);
+  if (!threadMessages.length) {
+    return "";
+  }
+
+  return threadMessages
+    .map((message) => {
+      const bodyHtml = message.bodyHtml?.trim();
+      const fallbackBody = escapeHtml(getMessagePlainText(message)).replace(/\n/g, "<br>");
+      return [
+        buildReplyHeaderLineHtml(message),
+        `<blockquote style="margin:0 0 0 12px;padding-left:12px;border-left:2px solid #d0d7de;">${
+          bodyHtml || fallbackBody || "(No email body available.)"
+        }</blockquote>`,
+      ].join("");
+    })
+    .join("");
+}
+
+function getSelectedThreadMessages(
+  selectedMessage: SupportMessage,
+  context: CustomerContextResponse | null,
+) {
+  const selectedThreadId = selectedMessage.threadId ?? selectedMessage.externalThreadId ?? "";
+  const contextMessages = extractMessagesFromCustomerContext(context);
+  const threadMessages = selectedThreadId
+    ? contextMessages.filter(
+        (message) =>
+          (message.threadId ?? message.externalThreadId ?? "") === selectedThreadId,
+      )
+    : [];
+  const messages = threadMessages.length ? threadMessages : [selectedMessage];
+  const seen = new Set<string>();
+
+  return messages
+    .filter((message, index) => {
+      const key = getMessageId(message, index);
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
+    .sort((left, right) => getMessageTimestamp(left) - getMessageTimestamp(right));
+}
+
+function extractMessagesFromCustomerContext(
+  context: CustomerContextResponse | null,
+) {
+  const conversations = getArray(getRecord(context, "customer"), "conversations") ?? [];
+
+  return conversations.flatMap((conversation) => {
+    const conversationRecord = conversation as Record<string, unknown>;
+    const conversationThreadId = String(
+      conversationRecord.externalThreadId ?? conversationRecord.threadId ?? "",
+    );
+    const messages = getArray(conversationRecord, "messages") ?? [];
+
+    return messages.map((message) => {
+      const messageRecord = message as Record<string, unknown>;
+      const rawJson = getRecord(messageRecord, "rawJson");
+      return {
+        ...messageRecord,
+        rawJson: rawJson ?? undefined,
+        externalThreadId: String(
+          messageRecord.externalThreadId ??
+            messageRecord.threadId ??
+            rawJson?.threadId ??
+            conversationThreadId,
+        ),
+        threadId: String(
+          messageRecord.threadId ??
+            messageRecord.externalThreadId ??
+            rawJson?.threadId ??
+            conversationThreadId,
+        ),
+      } as SupportMessage;
+    });
+  });
+}
+
+function buildReplyHeaderLine(message: SupportMessage) {
+  const from = message.from ?? message.fromEmail ?? "Unknown sender";
+  const date = formatDisplayDate(message.sentAtUtc ?? message.createdAtUtc ?? message.date);
+  return `On ${date}, ${from} wrote:`;
+}
+
+function buildReplyHeaderLineHtml(message: SupportMessage) {
+  return `<p style="margin:16px 0 8px;color:#4b5563;">${escapeHtml(
+    buildReplyHeaderLine(message),
+  )}</p>`;
+}
+
+function getMessagePlainText(message: SupportMessage) {
+  return (
+    message.bodyText?.trim() ||
+    message.body?.trim() ||
+    stripHtml(message.bodyHtml ?? "") ||
+    message.snippet?.trim() ||
+    ""
+  );
+}
+
+function quoteEmailBody(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => `> ${line}`)
+    .join("\n");
 }
 
 function renderTemplateText(

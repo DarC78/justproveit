@@ -33,9 +33,11 @@ export type SupportMessage = {
   id?: string;
   _id?: string;
   messageId?: string;
+  internetMessageId?: string;
   threadId?: string;
   externalMessageId?: string;
   externalThreadId?: string;
+  direction?: string;
   from?: string;
   fromEmail?: string;
   fromDisplayName?: string;
@@ -50,8 +52,10 @@ export type SupportMessage = {
   internalDate?: string | number;
   snippet?: string;
   body?: string;
+  bodyText?: string;
   bodyHtml?: string;
   headers?: Record<string, string>;
+  rawJson?: Record<string, unknown>;
   attachments?: MessageAttachment[];
 };
 
