@@ -243,8 +243,12 @@ export default function SupportInboxPage() {
   const visibleMessages = useMemo(
     () =>
       messages.filter((message) => {
-        const key = getThreadKey(message);
-        return key && !repliedThreadKeys.has(key) && !skippedThreadKeys.has(key);
+        const keys = getThreadStateKeys(message);
+        return (
+          keys.length > 0 &&
+          !hasAnyThreadStateKey(keys, repliedThreadKeys) &&
+          !hasAnyThreadStateKey(keys, skippedThreadKeys)
+        );
       }),
     [messages, repliedThreadKeys, skippedThreadKeys],
   );
@@ -353,8 +357,8 @@ export default function SupportInboxPage() {
         setConfig(nextConfig);
         setGmailProfile(nextProfile);
         setTemplates(CODE_REPLY_TEMPLATES);
-        setRepliedThreadKeys(new Set(repliedState.threadKeys ?? []));
-        setSkippedThreadKeys(new Set(skippedState.threadKeys ?? []));
+        setRepliedThreadKeys(normalizeThreadStateKeys(repliedState.threadKeys));
+        setSkippedThreadKeys(normalizeThreadStateKeys(skippedState.threadKeys));
 
         const recentResponse = await getRecentMessages(accessToken, {
           source: "cached",
@@ -577,7 +581,9 @@ export default function SupportInboxPage() {
         });
       }
 
-      setRepliedThreadKeys((current) => new Set([...current, selectedThreadKey]));
+      setRepliedThreadKeys((current) =>
+        addThreadStateKeys(current, getThreadStateKeys(selectedMessage)),
+      );
       setReplyText("");
       return `Reply sent${result.id ? `: ${result.id}` : ""}.`;
     });
@@ -598,7 +604,9 @@ export default function SupportInboxPage() {
         senderEmail: getReplyRecipient(selectedMessage),
         subject: selectedMessage.subject ?? "",
       });
-      setSkippedThreadKeys((current) => new Set([...current, selectedThreadKey]));
+      setSkippedThreadKeys((current) =>
+        addThreadStateKeys(current, getThreadStateKeys(selectedMessage)),
+      );
       return "Thread marked as skipped.";
     });
   }
@@ -656,7 +664,9 @@ export default function SupportInboxPage() {
           senderEmail: getReplyRecipient(selectedMessage),
           subject: selectedMessage.subject ?? "",
         });
-        setSkippedThreadKeys((current) => new Set([...current, selectedThreadKey]));
+        setSkippedThreadKeys((current) =>
+          addThreadStateKeys(current, getThreadStateKeys(selectedMessage)),
+        );
       }
 
       return "Moved to Gmail trash.";
@@ -1291,12 +1301,77 @@ function getMessageId(message: SupportMessage | null, index: number) {
 function getThreadKey(message: SupportMessage) {
   const threadId = message.threadId ?? message.externalThreadId;
   if (threadId) {
-    return `thread:${threadId}`;
+    return threadId;
   }
 
   const messageId =
-    message.messageId ?? message.externalMessageId ?? message.id ?? message._id;
-  return messageId ? `message:${messageId}` : "";
+    message.messageId ??
+    message.internetMessageId ??
+    message.externalMessageId ??
+    message.id ??
+    message._id;
+  return messageId ?? "";
+}
+
+function getThreadStateKeys(message: SupportMessage) {
+  const keys = new Set<string>();
+  const threadId = message.threadId ?? message.externalThreadId;
+  const messageId =
+    message.messageId ??
+    message.internetMessageId ??
+    message.externalMessageId ??
+    message.id ??
+    message._id;
+
+  addThreadStateKeyVariants(keys, threadId, "thread");
+  addThreadStateKeyVariants(keys, messageId, "message");
+
+  return Array.from(keys);
+}
+
+function normalizeThreadStateKeys(keys: string[] | undefined) {
+  const normalized = new Set<string>();
+
+  (keys ?? []).forEach((key) => {
+    const value = key.trim();
+    if (!value) {
+      return;
+    }
+
+    normalized.add(value);
+    if (value.startsWith("thread:")) {
+      normalized.add(value.slice("thread:".length));
+    } else if (value.startsWith("message:")) {
+      normalized.add(value.slice("message:".length));
+    } else {
+      normalized.add(`thread:${value}`);
+      normalized.add(`message:${value}`);
+    }
+  });
+
+  return normalized;
+}
+
+function addThreadStateKeys(current: Set<string>, keys: string[]) {
+  return normalizeThreadStateKeys([...current, ...keys]);
+}
+
+function addThreadStateKeyVariants(
+  keys: Set<string>,
+  value: string | undefined,
+  prefix: "thread" | "message",
+) {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return;
+  }
+
+  keys.add(trimmed);
+  keys.add(`${prefix}:${trimmed}`);
+}
+
+function hasAnyThreadStateKey(keys: string[], stateKeys: Set<string>) {
+  return keys.some((key) => stateKeys.has(key));
 }
 
 function getReplyRecipient(message: SupportMessage) {
