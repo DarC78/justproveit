@@ -1040,8 +1040,8 @@ function CustomerPanel({
               value={hasPositiveDecision(customer) ? "Yes" : "No"}
             />
             <CustomerMetric
-              title="Other emails"
-              value={getOtherEmailsText(customer)}
+              title="Customer emails"
+              value={getCustomerEmailsText(customer)}
             />
             <CustomerMetric
               title="Number of services"
@@ -1483,6 +1483,12 @@ function buildCustomerView(context: CustomerContextResponse | null) {
   const firstDate = getCustomerString(summary, ["firstDate", "customerStartedAt"]);
   const numberOfCars = Number(summary.numberOfCars);
 
+  const primaryEmail = getCustomerString(customer, [
+    "primaryEmail",
+    "email",
+    "customerEmail",
+  ]);
+
   return {
     ...customer,
     carFinanceCases,
@@ -1499,9 +1505,7 @@ function buildCustomerView(context: CustomerContextResponse | null) {
     numberOfCars: Number.isFinite(numberOfCars)
       ? String(numberOfCars)
       : getCustomerString(customer, ["numberOfCars", "numberOfServices"]) || "0",
-    otherEmails: Array.from(collectEmailValues({ result, support })).filter(
-      (email) => email !== getCustomerString(customer, ["primaryEmail", "email"]),
-    ),
+    customerEmails: collectCustomerEmails(customer, primaryEmail),
   };
 }
 
@@ -1637,8 +1641,8 @@ function collectEmailValues(value: unknown, emailSet = new Set<string>()) {
   return emailSet;
 }
 
-function getOtherEmailsText(customer: Record<string, unknown>) {
-  const values = customer.otherEmails;
+function getCustomerEmailsText(customer: Record<string, unknown>) {
+  const values = customer.customerEmails;
   if (!Array.isArray(values)) {
     return "-";
   }
@@ -1648,6 +1652,47 @@ function getOtherEmailsText(customer: Record<string, unknown>) {
   );
 
   return emails.length ? emails.join("; ") : "-";
+}
+
+function collectCustomerEmails(
+  customer: Record<string, unknown>,
+  primaryEmail = "",
+) {
+  const emails = new Set<string>();
+
+  addEmailCandidate(emails, primaryEmail);
+  [
+    "primaryEmail",
+    "email",
+    "customerEmail",
+    "userEmail",
+    "leadEmail",
+    "normalizedEmail",
+  ].forEach((key) => addEmailCandidate(emails, customer[key]));
+
+  ["emails", "emailAddresses", "aliases", "customerEmails"].forEach((key) => {
+    collectEmailValues(customer[key], emails);
+  });
+
+  return Array.from(emails)
+    .filter((email) => !isInternalEmail(email))
+    .sort((left, right) => left.localeCompare(right));
+}
+
+function addEmailCandidate(emailSet: Set<string>, value: unknown) {
+  if (typeof value !== "string") {
+    return;
+  }
+
+  const match = value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
+  if (match) {
+    emailSet.add(match[0].toLowerCase());
+  }
+}
+
+function isInternalEmail(email: string) {
+  const domain = email.split("@")[1]?.toLowerCase() ?? "";
+  return domain === "proveitweb.co.uk" || domain === "justproveit.co.uk";
 }
 
 function hasPositiveDecision(customer: Record<string, unknown>) {
