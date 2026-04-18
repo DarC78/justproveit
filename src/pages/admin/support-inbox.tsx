@@ -1337,14 +1337,23 @@ async function findLastSentEmailToRecipient(token: string, recipient: string) {
     });
     const refs = searchResult.messages ?? [];
     const fullMessages = await Promise.all(
-      refs
-        .map((message) => message.id ?? message.messageId ?? message.externalMessageId)
-        .filter((messageId): messageId is string => Boolean(messageId))
-        .map((messageId) => getMessage(token, messageId).catch(() => null)),
+      refs.map(async (message) => {
+        const messageId = message.id ?? message.messageId ?? message.externalMessageId;
+
+        if (!messageId) {
+          return hasUsableMessagePreview(message) ? message : null;
+        }
+
+        const fullMessage = await getMessage(token, messageId).catch(() => null);
+        return fullMessage ?? (hasUsableMessagePreview(message) ? message : null);
+      }),
     );
     const matchingMessages = fullMessages
       .filter((message): message is SupportMessage => Boolean(message))
-      .filter((message) => parseEmailAddress(message.from ?? "") === "oz@proveitweb.co.uk")
+      .filter((message) => {
+        const from = parseEmailAddress(message.from ?? message.fromEmail ?? "");
+        return !from || from === "oz@proveitweb.co.uk";
+      })
       .sort(
         (left, right) =>
           getMessageTimestamp(right) - getMessageTimestamp(left),
@@ -1359,10 +1368,30 @@ async function findLastSentEmailToRecipient(token: string, recipient: string) {
 }
 
 function buildGmailAddressQueryTerm(email: string) {
-  return email.includes("@") ? `"${email}"` : email;
+  return email.trim().toLowerCase().replaceAll('"', "");
+}
+
+function hasUsableMessagePreview(message: SupportMessage) {
+  return Boolean(
+    message.from ||
+      message.fromEmail ||
+      message.subject ||
+      message.date ||
+      message.sentAtUtc ||
+      message.createdAtUtc ||
+      message.internalDate ||
+      message.snippet ||
+      message.body ||
+      message.bodyHtml,
+  );
 }
 
 function getMessageTimestamp(message: SupportMessage) {
+  const internalDate = Number(message.internalDate);
+  if (Number.isFinite(internalDate) && internalDate > 0) {
+    return internalDate;
+  }
+
   const value = message.sentAtUtc ?? message.createdAtUtc ?? message.date ?? "";
   const timestamp = value ? new Date(value).getTime() : 0;
   return Number.isFinite(timestamp) ? timestamp : 0;

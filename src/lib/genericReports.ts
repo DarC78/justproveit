@@ -47,6 +47,7 @@ export type SupportMessage = {
   date?: string;
   sentAtUtc?: string;
   createdAtUtc?: string;
+  internalDate?: string | number;
   snippet?: string;
   body?: string;
   bodyHtml?: string;
