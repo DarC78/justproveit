@@ -2034,15 +2034,93 @@ function summarizePayments(customer: Record<string, unknown>) {
     return "-";
   }
 
-  const total = payments.reduce((sum, payment) => {
-    if (!payment || typeof payment !== "object") {
-      return sum;
-    }
-    const amount = Number((payment as Record<string, unknown>).amount);
-    return Number.isFinite(amount) ? sum + amount : sum;
-  }, 0);
+  const paymentLines = payments.map(formatPaymentLine).filter(Boolean);
+  return paymentLines.length ? paymentLines.join("; ") : "-";
+}
 
-  return `${payments.length} payments${total ? ` · £${total.toFixed(2)}` : ""}`;
+function formatPaymentLine(payment: unknown) {
+  if (!payment || typeof payment !== "object") {
+    return "";
+  }
+
+  const record = payment as Record<string, unknown>;
+  const date =
+    formatPaymentDate(
+      readFirstValue(record, [
+        "paymentDate",
+        "paidAt",
+        "paidAtUtc",
+        "createdAt",
+        "createdAtUtc",
+        "date",
+        "paymentDateUtc",
+      ]),
+    ) || "Date unknown";
+  const amount = formatPaymentAmount(
+    readFirstValue(record, [
+      "amount",
+      "amountGbp",
+      "paymentAmount",
+      "paidAmount",
+      "grossAmount",
+      "total",
+      "value",
+    ]),
+  );
+
+  return amount ? `${date} - ${amount}` : `${date} - amount unknown`;
+}
+
+function readFirstValue(record: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (value !== undefined && value !== null && String(value).trim()) {
+      return value;
+    }
+  }
+
+  return "";
+}
+
+function formatPaymentDate(value: unknown) {
+  if (!value) {
+    return "";
+  }
+
+  const parsed = new Date(String(value));
+  if (Number.isNaN(parsed.getTime())) {
+    return String(value);
+  }
+
+  return parsed.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function formatPaymentAmount(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return "";
+  }
+
+  if (typeof value === "string" && value.includes("£")) {
+    return value.trim();
+  }
+
+  const amount =
+    typeof value === "number"
+      ? value
+      : Number(String(value).replace(/[£,\s]/g, ""));
+
+  if (!Number.isFinite(amount)) {
+    return String(value).trim();
+  }
+
+  return `£${amount.toLocaleString("en-GB", {
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 function readError(error: unknown) {
