@@ -169,6 +169,24 @@ export function getCustomerContext(token: string, email: string) {
   );
 }
 
+export function getMessage(token: string, messageId: string) {
+  return fetchJson<SupportMessage>(
+    `${BASE_PATH}/messages/${encodeURIComponent(messageId)}`,
+    { headers: authHeaders(token) },
+  );
+}
+
+export function searchGmail(
+  token: string,
+  payload: { query: string; maxResults: number; pageToken?: string },
+) {
+  return fetchJson<MessagesResponse>(`${BASE_PATH}/gmail/search`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ pageToken: "", ...payload }),
+  });
+}
+
 export function sendGmailReply(token: string, payload: SendReplyRequest) {
   return fetchJson<{ id?: string; threadId?: string; labelIds?: string[] }>(
     `${BASE_PATH}/gmail/send`,

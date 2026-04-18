@@ -6,6 +6,7 @@ import {
   getCustomerContext,
   getGenericReportsConfig,
   getGmailProfile,
+  getMessage,
   getRecentMessages,
   getReplyTemplates,
   getThreadState,
@@ -16,6 +17,7 @@ import {
   recordStageOneClosed,
   ReplyTemplate,
   searchMessagesByEmail,
+  searchGmail,
   sendGenericUpdateEmail,
   sendGmailReply,
   SupportMessage,
@@ -133,6 +135,7 @@ export default function SupportInboxPage() {
     useState<CustomerContextResponse | null>(null);
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
   const [replyText, setReplyText] = useState("");
+  const [lastSentEmailStatus, setLastSentEmailStatus] = useState("");
   const [repliedThreadKeys, setRepliedThreadKeys] = useState<Set<string>>(
     () => new Set(),
   );
@@ -320,11 +323,59 @@ export default function SupportInboxPage() {
     };
   }, [selectedMessage, token]);
 
+  useEffect(() => {
+    if (!token || !selectedMessage || selectedTemplateKey) {
+      return;
+    }
+
+    const accessToken = token;
+    const recipient = getReplyRecipient(selectedMessage);
+    if (!recipient) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadLastSentEmail() {
+      setLastSentEmailStatus(`Searching last email sent to ${recipient}...`);
+      setReplyText(`Searching Gmail for the last email sent to ${recipient}...`);
+
+      try {
+        const lastEmail = await findLastSentEmailToRecipient(accessToken, recipient);
+        if (cancelled) {
+          return;
+        }
+
+        if (lastEmail) {
+          setReplyText(formatLastSentEmailForReplyBox(lastEmail, recipient));
+          setLastSentEmailStatus(`Loaded last email sent to ${recipient}.`);
+        } else {
+          setReplyText(`No previous Gmail email found from support to ${recipient}.`);
+          setLastSentEmailStatus(`No previous support email found for ${recipient}.`);
+        }
+      } catch (lastEmailError) {
+        if (!cancelled) {
+          const message = readError(lastEmailError);
+          setReplyText(`Unable to load the last email sent by support: ${message}`);
+          setLastSentEmailStatus(`Unable to load last support email: ${message}`);
+        }
+      }
+    }
+
+    loadLastSentEmail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedMessage, selectedTemplateKey, token]);
+
   function handleSelectMessage(message: SupportMessage) {
+    const recipient = getReplyRecipient(message);
     setSelectedMessage(message);
     setCustomerContext(null);
     setSelectedTemplateKey("");
-    setReplyText("");
+    setReplyText(recipient ? "" : "No valid recipient found for this client.");
+    setLastSentEmailStatus("");
   }
 
   async function handleSearch(event: FormEvent<HTMLFormElement>) {
@@ -361,6 +412,7 @@ export default function SupportInboxPage() {
   function handleApplyTemplate(templateKey: string) {
     setSelectedTemplateKey(templateKey);
     const template = templates.find((item) => item.key === templateKey);
+    setLastSentEmailStatus("");
     setReplyText(renderTemplateText(template, selectedMessage, selectedCustomer));
   }
 
@@ -786,6 +838,11 @@ export default function SupportInboxPage() {
                     className="mt-4 w-full rounded-md border border-slate-300 px-3 py-3 text-sm leading-6 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
                     placeholder="Write a reply or choose a template."
                   />
+                  {lastSentEmailStatus ? (
+                    <p className="mt-2 text-xs font-semibold text-slate-500">
+                      {lastSentEmailStatus}
+                    </p>
+                  ) : null}
                 </div>
 
                 <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -1168,6 +1225,69 @@ function buildReplyHeaders(message: SupportMessage) {
   const references = [headers.References, inReplyTo].filter(Boolean).join(" ");
 
   return { inReplyTo, references };
+}
+
+async function findLastSentEmailToRecipient(token: string, recipient: string) {
+  const addressTerm = buildGmailAddressQueryTerm(recipient);
+  const queries = [
+    `in:sent to:${addressTerm} -in:drafts`,
+    `from:oz@proveitweb.co.uk to:${addressTerm} -in:drafts`,
+  ];
+
+  for (const query of queries) {
+    const searchResult = await searchGmail(token, {
+      query,
+      maxResults: 10,
+      pageToken: "",
+    });
+    const refs = searchResult.messages ?? [];
+    const fullMessages = await Promise.all(
+      refs
+        .map((message) => message.id ?? message.messageId ?? message.externalMessageId)
+        .filter((messageId): messageId is string => Boolean(messageId))
+        .map((messageId) => getMessage(token, messageId).catch(() => null)),
+    );
+    const matchingMessages = fullMessages
+      .filter((message): message is SupportMessage => Boolean(message))
+      .filter((message) => parseEmailAddress(message.from ?? "") === "oz@proveitweb.co.uk")
+      .sort(
+        (left, right) =>
+          getMessageTimestamp(right) - getMessageTimestamp(left),
+      );
+
+    if (matchingMessages[0]) {
+      return matchingMessages[0];
+    }
+  }
+
+  return null;
+}
+
+function buildGmailAddressQueryTerm(email: string) {
+  return email.includes("@") ? `"${email}"` : email;
+}
+
+function getMessageTimestamp(message: SupportMessage) {
+  const value = message.sentAtUtc ?? message.createdAtUtc ?? message.date ?? "";
+  const timestamp = value ? new Date(value).getTime() : 0;
+  return Number.isFinite(timestamp) ? timestamp : 0;
+}
+
+function formatLastSentEmailForReplyBox(message: SupportMessage, recipient: string) {
+  const sentAt = formatDisplayDate(
+    message.sentAtUtc ?? message.createdAtUtc ?? message.date,
+  );
+  const body = stripHtml(message.body || message.bodyHtml || message.snippet || "");
+
+  return [
+    `Last email sent to ${recipient}`,
+    `Date: ${sentAt}`,
+    `Subject: ${message.subject || "(no subject)"}`,
+    "",
+    body || "No email body available.",
+    "",
+    "Choose a template or replace this text before sending a new reply.",
+  ].join("\n");
 }
 
 function renderTemplateText(
