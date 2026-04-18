@@ -175,7 +175,7 @@ export default function PcpMisSellingExplained() {
             </Section>
 
             <Section title="Signs of PCP Mis-Selling">
-              <p>Common signs include lack of clarity on terms, undisclosed costs, and deals that do not match the buyer's financial situation.</p>
+              <p>Common signs include lack of clarity on terms, undisclosed costs, and deals that do not match the buyer&apos;s financial situation.</p>
               <p>If you feel pressured into a deal or were not given full information, you might have been mis-sold.</p>
             </Section>
 
