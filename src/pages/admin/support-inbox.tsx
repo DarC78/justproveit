@@ -237,26 +237,16 @@ export default function SupportInboxPage() {
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
   const [replyText, setReplyText] = useState("");
   const [lastSentEmailStatus, setLastSentEmailStatus] = useState("");
-  const [repliedThreadKeys, setRepliedThreadKeys] = useState<Set<string>>(
+  const [, setRepliedThreadKeys] = useState<Set<string>>(
     () => new Set(),
   );
-  const [skippedThreadKeys, setSkippedThreadKeys] = useState<Set<string>>(
+  const [, setSkippedThreadKeys] = useState<Set<string>>(
     () => new Set(),
   );
 
   const visibleMessages = useMemo(
-    () =>
-      messages
-        .filter((message) => {
-        const keys = getThreadStateKeys(message);
-        return (
-          keys.length > 0 &&
-          !hasAnyThreadStateKey(keys, repliedThreadKeys) &&
-          !hasAnyThreadStateKey(keys, skippedThreadKeys)
-        );
-      })
-        .slice(0, ACTIONABLE_MESSAGE_LIMIT),
-    [messages, repliedThreadKeys, skippedThreadKeys],
+    () => messages.slice(0, ACTIONABLE_MESSAGE_LIMIT),
+    [messages],
   );
 
   const selectedTemplate = useMemo(
@@ -289,15 +279,10 @@ export default function SupportInboxPage() {
       });
       const nextMessages = response.messages ?? [];
       setMessages(nextMessages);
-      const nextVisibleMessages = filterActionableMessages(
-        nextMessages,
-        repliedThreadKeys,
-        skippedThreadKeys,
-      );
-      setSelectedMessage(nextVisibleMessages[0] ?? null);
+      setSelectedMessage(nextMessages[0] ?? null);
       setCustomerContext(null);
       setLoadStatus("ready");
-      setActionStatus(formatActionableLoadStatus(response, nextVisibleMessages.length));
+      setActionStatus(formatActionableLoadStatus(response, nextMessages.length));
     } catch (loadError) {
       setLoadStatus("error");
       setError(readError(loadError));
@@ -390,25 +375,12 @@ export default function SupportInboxPage() {
 
         if (!cancelled) {
           const nextMessages = recentResponse.messages ?? [];
-          const nextRepliedKeys = mergeThreadStateKeys(
-            repliedState.threadKeys,
-            readStoredThreadStateKeys("replied", nextConfig.mailboxEmail),
-          );
-          const nextSkippedKeys = mergeThreadStateKeys(
-            skippedState.threadKeys,
-            readStoredThreadStateKeys("skipped", nextConfig.mailboxEmail),
-          );
-          const nextVisibleMessages = filterActionableMessages(
-            nextMessages,
-            nextRepliedKeys,
-            nextSkippedKeys,
-          );
           setMessages(nextMessages);
-          setSelectedMessage(nextVisibleMessages[0] ?? null);
+          setSelectedMessage(nextMessages[0] ?? null);
           setCustomerContext(null);
           setLoadStatus("ready");
           setSource("merged");
-          setActionStatus(formatActionableLoadStatus(recentResponse, nextVisibleMessages.length));
+          setActionStatus(formatActionableLoadStatus(recentResponse, nextMessages.length));
         }
       } catch (bootstrapError) {
         if (!cancelled) {
@@ -626,6 +598,7 @@ export default function SupportInboxPage() {
         writeStoredThreadStateKeys("replied", config?.mailboxEmail, next);
         return next;
       });
+      removeMessagesFromInbox(stateKeys);
       setReplyText("");
       return `Reply sent${result.id ? `: ${result.id}` : ""}.`;
     });
@@ -654,6 +627,7 @@ export default function SupportInboxPage() {
         writeStoredThreadStateKeys("skipped", config?.mailboxEmail, next);
         return next;
       });
+      removeMessagesFromInbox(stateKeys);
       return "Thread marked as skipped.";
     });
   }
@@ -719,10 +693,31 @@ export default function SupportInboxPage() {
           writeStoredThreadStateKeys("skipped", config?.mailboxEmail, next);
           return next;
         });
+        removeMessagesFromInbox(stateKeys);
       }
 
       return "Moved to Gmail trash.";
     });
+  }
+
+  function removeMessagesFromInbox(stateKeys: string[]) {
+    setMessages((currentMessages) => {
+      const nextMessages = currentMessages.filter(
+        (message) => !hasAnyThreadStateKey(getThreadStateKeys(message), new Set(stateKeys)),
+      );
+      setSelectedMessage((currentSelected) => {
+        if (
+          currentSelected &&
+          !hasAnyThreadStateKey(getThreadStateKeys(currentSelected), new Set(stateKeys))
+        ) {
+          return currentSelected;
+        }
+
+        return nextMessages[0] ?? null;
+      });
+      return nextMessages;
+    });
+    setCustomerContext(null);
   }
 
   async function handleGenericUpdate() {
@@ -1444,21 +1439,6 @@ function getMessageId(message: SupportMessage | null, index: number) {
     message?.externalMessageId ??
     `${message?.threadId ?? "message"}-${index}`
   );
-}
-
-function filterActionableMessages(
-  messages: SupportMessage[],
-  repliedThreadKeys: Set<string>,
-  skippedThreadKeys: Set<string>,
-) {
-  return messages.filter((message) => {
-    const keys = getThreadStateKeys(message);
-    return (
-      keys.length > 0 &&
-      !hasAnyThreadStateKey(keys, repliedThreadKeys) &&
-      !hasAnyThreadStateKey(keys, skippedThreadKeys)
-    );
-  });
 }
 
 function formatActionableLoadStatus(
