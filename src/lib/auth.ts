@@ -116,7 +116,7 @@ export async function logoutRequest(token: string) {
 }
 
 export async function adminMeRequest(token: string) {
-  return fetchJson<AdminProfile>("/admin/me", {
+  return fetchJson<AdminProfile>("/justproveit/admin/me", {
     headers: authHeaders(token),
   });
 }
