@@ -734,9 +734,16 @@ export default function SupportInboxPage() {
       return;
     }
 
-    const customerEmail = buildContextEmail(selectedMessage);
+    const fallbackEmail = buildContextEmail(selectedMessage);
+    const customerEmail = getPrimaryCustomerEmail(selectedCustomer, fallbackEmail);
     if (!customerEmail) {
       setActionStatus("No customer email found for this message.");
+      return;
+    }
+
+    if (hasPositiveDecision(selectedCustomer)) {
+      setCustomerContext(markCustomerContextPositiveDecision(customerContext));
+      setActionStatus("Customer already has Decizie Pozitiva recorded.");
       return;
     }
 
@@ -763,6 +770,11 @@ export default function SupportInboxPage() {
           selectedSubject: selectedMessage.subject ?? "",
         },
       });
+      setCustomerContext(markCustomerContextPositiveDecision(customerContext));
+      const refreshedContext = await getCustomerContext(token, customerEmail).catch(() => null);
+      if (refreshedContext) {
+        setCustomerContext(refreshedContext);
+      }
       return "Decizie Pozitiva recorded.";
     });
   }
@@ -1880,6 +1892,51 @@ function getCustomerString(
   }
 
   return "";
+}
+
+function getPrimaryCustomerEmail(
+  customer: Record<string, unknown> | null,
+  fallbackEmail = "",
+) {
+  return (
+    getCustomerString(customer, [
+      "primaryEmail",
+      "email",
+      "customerEmail",
+      "userEmail",
+      "leadEmail",
+      "normalizedEmail",
+    ]) || fallbackEmail
+  ).toLowerCase();
+}
+
+function markCustomerContextPositiveDecision(
+  context: CustomerContextResponse | null,
+) {
+  if (!context) {
+    return context;
+  }
+
+  const nextContext = { ...context };
+  const result =
+    getRecord(nextContext, "result") ??
+    getRecord(nextContext, "replyContext") ??
+    getRecord(nextContext, "customerReplyContext") ??
+    getRecord(nextContext, "azureContext") ??
+    nextContext;
+  const customer =
+    getRecord(result, "customer") ??
+    getRecord(nextContext, "customer") ??
+    getRecord(result, "data");
+
+  if (customer) {
+    customer.hasPositiveDecision = true;
+    customer.positiveDecision = true;
+    customer.stageOneClosed = true;
+    customer.statusLabel = getCustomerString(customer, ["statusLabel"]) || "Decizie Pozitiva";
+  }
+
+  return nextContext;
 }
 
 function buildCustomerView(context: CustomerContextResponse | null) {
