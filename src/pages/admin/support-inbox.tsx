@@ -80,7 +80,10 @@ export default function SupportInboxPage() {
     [selectedTemplateKey, templates],
   );
 
-  const selectedCustomer = customerContext?.customer ?? null;
+  const selectedCustomer = useMemo(
+    () => buildCustomerView(customerContext),
+    [customerContext],
+  );
   const selectedRecipient = selectedMessage ? getReplyRecipient(selectedMessage) : "";
   const selectedThreadKey = selectedMessage ? getThreadKey(selectedMessage) : "";
 
@@ -910,6 +913,18 @@ function CustomerPanel({
               value={hasPositiveDecision(customer) ? "Yes" : "No"}
             />
             <CustomerMetric
+              title="Other emails"
+              value={getOtherEmailsText(customer)}
+            />
+            <CustomerMetric
+              title="Number of services"
+              value={getCustomerString(customer, ["numberOfCars", "numberOfServices"]) || "-"}
+            />
+            <CustomerMetric
+              title="Number of emails"
+              value={getCustomerString(customer, ["totalEmails", "numberOfEmails"]) || "-"}
+            />
+            <CustomerMetric
               title="Finance companies"
               value={joinCaseValues(customer, ["financeCompany", "company", "lender"])}
             />
@@ -923,7 +938,15 @@ function CustomerPanel({
             />
           </>
         ) : context ? (
-          <p className="text-sm text-slate-600">No customer record was returned.</p>
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">
+              Customer context returned, but no recognised customer object was
+              found.
+            </p>
+            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-950">
+              Top-level keys: {Object.keys(context).join(", ") || "none"}
+            </p>
+          </div>
         ) : (
           <p className="text-sm text-slate-600">
             Customer context loads when you select a message.
@@ -1141,6 +1164,23 @@ function formatDisplayDate(value?: string) {
   });
 }
 
+function formatShortDate(value?: string) {
+  if (!value) {
+    return "-";
+  }
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return value;
+  }
+
+  return parsed.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
 function formatDateForApi(value: string) {
   return value ? value.replaceAll("-", "/") : undefined;
 }
@@ -1177,6 +1217,129 @@ function getCustomerString(
   return "";
 }
 
+function buildCustomerView(context: CustomerContextResponse | null) {
+  if (!context) {
+    return null;
+  }
+
+  const result =
+    getRecord(context, "result") ??
+    getRecord(context, "replyContext") ??
+    getRecord(context, "customerReplyContext") ??
+    getRecord(context, "azureContext") ??
+    context;
+  const support =
+    getRecord(context, "support") ??
+    getRecord(context, "supportResult") ??
+    getRecord(context, "supportMailboxView") ??
+    getRecord(context, "supportView") ??
+    getRecord(result, "support") ??
+    {};
+  const customer =
+    getRecord(result, "customer") ??
+    getRecord(context, "customer") ??
+    getRecord(result, "data") ??
+    findCustomerLikeRecord(context);
+
+  if (!customer) {
+    return null;
+  }
+
+  const summary = getRecord(result, "summary") ?? getRecord(context, "summary") ?? {};
+  const carFinanceCases =
+    getArray(result, "carFinanceCases") ??
+    getArray(context, "carFinanceCases") ??
+    getArray(customer, "carFinanceCases") ??
+    [];
+  const successfulPayments =
+    getArray(result, "successfulPayments") ??
+    getArray(context, "successfulPayments") ??
+    getArray(customer, "successfulPayments") ??
+    [];
+  const supportConversations =
+    getArray(getRecord(support, "customer") ?? {}, "conversations") ??
+    getArray(support, "conversations") ??
+    [];
+  const totalEmails = supportConversations.reduce((sum, conversation) => {
+    if (!conversation || typeof conversation !== "object") {
+      return sum;
+    }
+
+    return sum + (Number((conversation as Record<string, unknown>).messageCount) || 0);
+  }, 0);
+  const firstDate = getCustomerString(summary, ["firstDate", "customerStartedAt"]);
+  const numberOfCars = Number(summary.numberOfCars);
+
+  return {
+    ...customer,
+    carFinanceCases,
+    successfulPayments,
+    customerSinceLabel:
+      getCustomerString(customer, ["customerSinceLabel", "customerSince"]) ||
+      formatShortDate(firstDate),
+    statusLabel:
+      getCustomerString(customer, ["statusLabel", "commercialStatus", "status"]) ||
+      "-",
+    phoneNumber: getCustomerPhoneFromSources(result, support),
+    hasPositiveDecision: hasPositiveDecision(customer),
+    totalEmails: String(totalEmails || getCustomerString(customer, ["totalEmails"]) || "0"),
+    numberOfCars: Number.isFinite(numberOfCars)
+      ? String(numberOfCars)
+      : getCustomerString(customer, ["numberOfCars", "numberOfServices"]) || "0",
+    otherEmails: Array.from(collectEmailValues({ result, support })).filter(
+      (email) => email !== getCustomerString(customer, ["primaryEmail", "email"]),
+    ),
+  };
+}
+
+function getRecord(source: unknown, key: string) {
+  if (!source || typeof source !== "object") {
+    return null;
+  }
+
+  const value = (source as Record<string, unknown>)[key];
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function getArray(source: unknown, key: string) {
+  if (!source || typeof source !== "object") {
+    return null;
+  }
+
+  const value = (source as Record<string, unknown>)[key];
+  return Array.isArray(value) ? value : null;
+}
+
+function findCustomerLikeRecord(source: unknown): Record<string, unknown> | null {
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return null;
+  }
+
+  const record = source as Record<string, unknown>;
+  const hasCustomerFields = [
+    "primaryEmail",
+    "displayName",
+    "commercialStatus",
+    "customerName",
+    "email",
+  ].some((key) => typeof record[key] === "string" && record[key]);
+
+  if (hasCustomerFields) {
+    return record;
+  }
+
+  for (const value of Object.values(record)) {
+    const nested = findCustomerLikeRecord(value);
+    if (nested) {
+      return nested;
+    }
+  }
+
+  return null;
+}
+
 function getCustomerName(customer: Record<string, unknown> | null, fallback = "") {
   return (
     getCustomerString(customer, [
@@ -1197,6 +1360,81 @@ function getCustomerPhone(customer: Record<string, unknown> | null) {
 
   const phones = customer?.phones;
   return Array.isArray(phones) && typeof phones[0] === "string" ? phones[0] : "";
+}
+
+function getCustomerPhoneFromSources(...sources: unknown[]) {
+  for (const source of sources) {
+    const phones = collectPhoneValues(source);
+    const first = Array.from(phones)[0];
+    if (first) {
+      return first;
+    }
+  }
+
+  return "";
+}
+
+function collectPhoneValues(value: unknown, phoneSet = new Set<string>()) {
+  if (!value) {
+    return phoneSet;
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.replace(/[^\d+]/g, "");
+    if (normalized.length >= 10 && normalized.length <= 14) {
+      phoneSet.add(value.trim());
+    }
+    return phoneSet;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectPhoneValues(item, phoneSet));
+    return phoneSet;
+  }
+
+  if (typeof value === "object") {
+    Object.values(value).forEach((item) => collectPhoneValues(item, phoneSet));
+  }
+
+  return phoneSet;
+}
+
+function collectEmailValues(value: unknown, emailSet = new Set<string>()) {
+  if (!value) {
+    return emailSet;
+  }
+
+  if (typeof value === "string") {
+    const match = value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
+    if (match) {
+      emailSet.add(match[0].toLowerCase());
+    }
+    return emailSet;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectEmailValues(item, emailSet));
+    return emailSet;
+  }
+
+  if (typeof value === "object") {
+    Object.values(value).forEach((item) => collectEmailValues(item, emailSet));
+  }
+
+  return emailSet;
+}
+
+function getOtherEmailsText(customer: Record<string, unknown>) {
+  const values = customer.otherEmails;
+  if (!Array.isArray(values)) {
+    return "-";
+  }
+
+  const emails = values.filter(
+    (value): value is string => typeof value === "string" && value.trim() !== "",
+  );
+
+  return emails.length ? emails.join("; ") : "-";
 }
 
 function hasPositiveDecision(customer: Record<string, unknown>) {
