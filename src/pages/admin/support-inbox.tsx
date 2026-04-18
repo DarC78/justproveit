@@ -39,7 +39,6 @@ type SourceMode = "cached" | "live" | "merged";
 type LoadStatus = "idle" | "loading" | "ready" | "error";
 
 const ACTIONABLE_MESSAGE_LIMIT = 20;
-const RECENT_MESSAGE_SCAN_LIMIT = 100;
 const DEFAULT_MAILBOX_EMAIL = "oz@proveitweb.co.uk";
 const THREAD_STATE_STORAGE_PREFIX = "justproveit:genericreports:thread-state";
 const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
@@ -283,7 +282,8 @@ export default function SupportInboxPage() {
     try {
       const response = await getRecentMessages(token, {
         source,
-        limit: RECENT_MESSAGE_SCAN_LIMIT,
+        limit: ACTIONABLE_MESSAGE_LIMIT,
+        actionableOnly: true,
         afterDate: formatDateForApi(startDate),
         beforeDate: formatExclusiveEndDateForApi(endDate),
       });
@@ -297,9 +297,7 @@ export default function SupportInboxPage() {
       setSelectedMessage(nextVisibleMessages[0] ?? null);
       setCustomerContext(null);
       setLoadStatus("ready");
-      setActionStatus(
-        `Loaded ${Math.min(nextVisibleMessages.length, ACTIONABLE_MESSAGE_LIMIT)} actionable messages from ${nextMessages.length} scanned ${source} messages.`,
-      );
+      setActionStatus(formatActionableLoadStatus(response, nextVisibleMessages.length));
     } catch (loadError) {
       setLoadStatus("error");
       setError(readError(loadError));
@@ -386,7 +384,8 @@ export default function SupportInboxPage() {
 
         const recentResponse = await getRecentMessages(accessToken, {
           source: "merged",
-          limit: RECENT_MESSAGE_SCAN_LIMIT,
+          limit: ACTIONABLE_MESSAGE_LIMIT,
+          actionableOnly: true,
         });
 
         if (!cancelled) {
@@ -409,9 +408,7 @@ export default function SupportInboxPage() {
           setCustomerContext(null);
           setLoadStatus("ready");
           setSource("merged");
-          setActionStatus(
-            `Loaded ${Math.min(nextVisibleMessages.length, ACTIONABLE_MESSAGE_LIMIT)} actionable messages from ${nextMessages.length} scanned merged messages.`,
-          );
+          setActionStatus(formatActionableLoadStatus(recentResponse, nextVisibleMessages.length));
         }
       } catch (bootstrapError) {
         if (!cancelled) {
@@ -1462,6 +1459,20 @@ function filterActionableMessages(
       !hasAnyThreadStateKey(keys, skippedThreadKeys)
     );
   });
+}
+
+function formatActionableLoadStatus(
+  response: { source?: string; messages?: SupportMessage[]; scannedCount?: number; hasMore?: boolean },
+  visibleCount: number,
+) {
+  const sourceLabel = response.source ?? "merged";
+  const scanned =
+    typeof response.scannedCount === "number"
+      ? ` from ${response.scannedCount} scanned`
+      : "";
+  const more = response.hasMore ? " More may be available." : "";
+
+  return `Loaded ${Math.min(visibleCount, ACTIONABLE_MESSAGE_LIMIT)} actionable ${sourceLabel} messages${scanned}.${more}`;
 }
 
 function getThreadKey(message: SupportMessage) {

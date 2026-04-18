@@ -72,7 +72,12 @@ export type MessagesResponse = {
   connectedMailboxEmail?: string;
   source?: string;
   query?: string;
+  actionableOnly?: boolean;
   messageCount?: number;
+  scannedCount?: number;
+  skippedByStateCount?: number;
+  duplicateThreadCount?: number;
+  hasMore?: boolean;
   resultSizeEstimate?: number;
   nextPageToken?: string;
   messages?: SupportMessage[];
@@ -108,7 +113,7 @@ function authHeaders(token: string) {
   };
 }
 
-function buildQuery(params: Record<string, string | number | undefined>) {
+function buildQuery(params: Record<string, string | number | boolean | undefined>) {
   const query = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {
@@ -150,6 +155,7 @@ export function getRecentMessages(
   options: {
     source: "cached" | "live" | "merged";
     limit: number;
+    actionableOnly?: boolean;
     afterDate?: string;
     beforeDate?: string;
   },
