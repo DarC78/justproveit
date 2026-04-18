@@ -38,7 +38,8 @@ import {
 type SourceMode = "cached" | "live" | "merged";
 type LoadStatus = "idle" | "loading" | "ready" | "error";
 
-const DEFAULT_LIMIT = 20;
+const ACTIONABLE_MESSAGE_LIMIT = 20;
+const RECENT_MESSAGE_SCAN_LIMIT = 100;
 const DEFAULT_MAILBOX_EMAIL = "oz@proveitweb.co.uk";
 const THREAD_STATE_STORAGE_PREFIX = "justproveit:genericreports:thread-state";
 const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
@@ -246,14 +247,16 @@ export default function SupportInboxPage() {
 
   const visibleMessages = useMemo(
     () =>
-      messages.filter((message) => {
+      messages
+        .filter((message) => {
         const keys = getThreadStateKeys(message);
         return (
           keys.length > 0 &&
           !hasAnyThreadStateKey(keys, repliedThreadKeys) &&
           !hasAnyThreadStateKey(keys, skippedThreadKeys)
         );
-      }),
+      })
+        .slice(0, ACTIONABLE_MESSAGE_LIMIT),
     [messages, repliedThreadKeys, skippedThreadKeys],
   );
 
@@ -280,16 +283,23 @@ export default function SupportInboxPage() {
     try {
       const response = await getRecentMessages(token, {
         source,
-        limit: config?.emailPageSize ?? DEFAULT_LIMIT,
+        limit: RECENT_MESSAGE_SCAN_LIMIT,
         afterDate: formatDateForApi(startDate),
         beforeDate: formatExclusiveEndDateForApi(endDate),
       });
       const nextMessages = response.messages ?? [];
       setMessages(nextMessages);
-      setSelectedMessage(nextMessages[0] ?? null);
+      const nextVisibleMessages = filterActionableMessages(
+        nextMessages,
+        repliedThreadKeys,
+        skippedThreadKeys,
+      );
+      setSelectedMessage(nextVisibleMessages[0] ?? null);
       setCustomerContext(null);
       setLoadStatus("ready");
-      setActionStatus(`Loaded ${nextMessages.length} ${source} messages.`);
+      setActionStatus(
+        `Loaded ${Math.min(nextVisibleMessages.length, ACTIONABLE_MESSAGE_LIMIT)} actionable messages from ${nextMessages.length} scanned ${source} messages.`,
+      );
     } catch (loadError) {
       setLoadStatus("error");
       setError(readError(loadError));
@@ -375,17 +385,33 @@ export default function SupportInboxPage() {
         );
 
         const recentResponse = await getRecentMessages(accessToken, {
-          source: "cached",
-          limit: nextConfig.emailPageSize ?? DEFAULT_LIMIT,
+          source: "merged",
+          limit: RECENT_MESSAGE_SCAN_LIMIT,
         });
 
         if (!cancelled) {
           const nextMessages = recentResponse.messages ?? [];
+          const nextRepliedKeys = mergeThreadStateKeys(
+            repliedState.threadKeys,
+            readStoredThreadStateKeys("replied", nextConfig.mailboxEmail),
+          );
+          const nextSkippedKeys = mergeThreadStateKeys(
+            skippedState.threadKeys,
+            readStoredThreadStateKeys("skipped", nextConfig.mailboxEmail),
+          );
+          const nextVisibleMessages = filterActionableMessages(
+            nextMessages,
+            nextRepliedKeys,
+            nextSkippedKeys,
+          );
           setMessages(nextMessages);
-          setSelectedMessage(nextMessages[0] ?? null);
+          setSelectedMessage(nextVisibleMessages[0] ?? null);
           setCustomerContext(null);
           setLoadStatus("ready");
-          setActionStatus(`Loaded ${nextMessages.length} cached messages.`);
+          setSource("merged");
+          setActionStatus(
+            `Loaded ${Math.min(nextVisibleMessages.length, ACTIONABLE_MESSAGE_LIMIT)} actionable messages from ${nextMessages.length} scanned merged messages.`,
+          );
         }
       } catch (bootstrapError) {
         if (!cancelled) {
@@ -1421,6 +1447,21 @@ function getMessageId(message: SupportMessage | null, index: number) {
     message?.externalMessageId ??
     `${message?.threadId ?? "message"}-${index}`
   );
+}
+
+function filterActionableMessages(
+  messages: SupportMessage[],
+  repliedThreadKeys: Set<string>,
+  skippedThreadKeys: Set<string>,
+) {
+  return messages.filter((message) => {
+    const keys = getThreadStateKeys(message);
+    return (
+      keys.length > 0 &&
+      !hasAnyThreadStateKey(keys, repliedThreadKeys) &&
+      !hasAnyThreadStateKey(keys, skippedThreadKeys)
+    );
+  });
 }
 
 function getThreadKey(message: SupportMessage) {
