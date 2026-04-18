@@ -38,6 +38,8 @@ type SourceMode = "cached" | "live" | "merged";
 type LoadStatus = "idle" | "loading" | "ready" | "error";
 
 const DEFAULT_LIMIT = 20;
+const DEFAULT_MAILBOX_EMAIL = "oz@proveitweb.co.uk";
+const THREAD_STATE_STORAGE_PREFIX = "justproveit:genericreports:thread-state";
 const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
   {
     key: "felicitari",
@@ -357,8 +359,18 @@ export default function SupportInboxPage() {
         setConfig(nextConfig);
         setGmailProfile(nextProfile);
         setTemplates(CODE_REPLY_TEMPLATES);
-        setRepliedThreadKeys(normalizeThreadStateKeys(repliedState.threadKeys));
-        setSkippedThreadKeys(normalizeThreadStateKeys(skippedState.threadKeys));
+        setRepliedThreadKeys(
+          mergeThreadStateKeys(
+            repliedState.threadKeys,
+            readStoredThreadStateKeys("replied", nextConfig.mailboxEmail),
+          ),
+        );
+        setSkippedThreadKeys(
+          mergeThreadStateKeys(
+            skippedState.threadKeys,
+            readStoredThreadStateKeys("skipped", nextConfig.mailboxEmail),
+          ),
+        );
 
         const recentResponse = await getRecentMessages(accessToken, {
           source: "cached",
@@ -565,7 +577,7 @@ export default function SupportInboxPage() {
       });
 
       await markThreadState(token, "replied", {
-        mailboxEmail: config?.mailboxEmail ?? "oz@proveitweb.co.uk",
+        mailboxEmail: config?.mailboxEmail ?? DEFAULT_MAILBOX_EMAIL,
         threadKey: selectedThreadKey,
         recipientEmail: recipient,
         subject,
@@ -583,9 +595,12 @@ export default function SupportInboxPage() {
         });
       }
 
-      setRepliedThreadKeys((current) =>
-        addThreadStateKeys(current, getThreadStateKeys(selectedMessage)),
-      );
+      const stateKeys = getThreadStateKeys(selectedMessage);
+      setRepliedThreadKeys((current) => {
+        const next = addThreadStateKeys(current, stateKeys);
+        writeStoredThreadStateKeys("replied", config?.mailboxEmail, next);
+        return next;
+      });
       setReplyText("");
       return `Reply sent${result.id ? `: ${result.id}` : ""}.`;
     });
@@ -602,15 +617,18 @@ export default function SupportInboxPage() {
 
     await runAction("Marking thread skipped...", async () => {
       await markThreadState(token, "skipped", {
-        mailboxEmail: config?.mailboxEmail ?? "oz@proveitweb.co.uk",
+        mailboxEmail: config?.mailboxEmail ?? DEFAULT_MAILBOX_EMAIL,
         threadKey: selectedThreadKey,
         senderEmail: getReplyRecipient(selectedMessage),
         subject: selectedMessage.subject ?? "",
         skippedByEmail: user?.email ?? "",
       });
-      setSkippedThreadKeys((current) =>
-        addThreadStateKeys(current, getThreadStateKeys(selectedMessage)),
-      );
+      const stateKeys = getThreadStateKeys(selectedMessage);
+      setSkippedThreadKeys((current) => {
+        const next = addThreadStateKeys(current, stateKeys);
+        writeStoredThreadStateKeys("skipped", config?.mailboxEmail, next);
+        return next;
+      });
       return "Thread marked as skipped.";
     });
   }
@@ -664,15 +682,18 @@ export default function SupportInboxPage() {
 
       if (selectedThreadKey) {
         await markThreadState(token, "skipped", {
-          mailboxEmail: config?.mailboxEmail ?? "oz@proveitweb.co.uk",
+          mailboxEmail: config?.mailboxEmail ?? DEFAULT_MAILBOX_EMAIL,
           threadKey: selectedThreadKey,
           senderEmail: getReplyRecipient(selectedMessage),
           subject: selectedMessage.subject ?? "",
           skippedByEmail: user?.email ?? "",
         });
-        setSkippedThreadKeys((current) =>
-          addThreadStateKeys(current, getThreadStateKeys(selectedMessage)),
-        );
+        const stateKeys = getThreadStateKeys(selectedMessage);
+        setSkippedThreadKeys((current) => {
+          const next = addThreadStateKeys(current, stateKeys);
+          writeStoredThreadStateKeys("skipped", config?.mailboxEmail, next);
+          return next;
+        });
       }
 
       return "Moved to Gmail trash.";
@@ -1358,8 +1379,59 @@ function normalizeThreadStateKeys(keys: string[] | undefined) {
   return normalized;
 }
 
+function mergeThreadStateKeys(...keyGroups: Array<string[] | undefined>) {
+  return normalizeThreadStateKeys(keyGroups.flatMap((keys) => keys ?? []));
+}
+
 function addThreadStateKeys(current: Set<string>, keys: string[]) {
   return normalizeThreadStateKeys([...current, ...keys]);
+}
+
+function readStoredThreadStateKeys(
+  state: "replied" | "skipped",
+  mailboxEmail?: string,
+) {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(
+      getThreadStateStorageKey(state, mailboxEmail),
+    );
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredThreadStateKeys(
+  state: "replied" | "skipped",
+  mailboxEmail: string | undefined,
+  keys: Set<string>,
+) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      getThreadStateStorageKey(state, mailboxEmail),
+      JSON.stringify(Array.from(keys)),
+    );
+  } catch {
+    // Browser storage is a fallback only; LaunchingStack remains the source of truth.
+  }
+}
+
+function getThreadStateStorageKey(
+  state: "replied" | "skipped",
+  mailboxEmail?: string,
+) {
+  return `${THREAD_STATE_STORAGE_PREFIX}:${mailboxEmail ?? DEFAULT_MAILBOX_EMAIL}:${state}`;
 }
 
 function addThreadStateKeyVariants(
