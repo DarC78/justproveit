@@ -2041,8 +2041,11 @@ function addEmailsToCustomerContext(
   const customer = getMutableCustomerRecord(nextContext);
 
   if (customer) {
-    const currentEmails = getCustomerEmails(customer);
-    customer.customerEmails = Array.from(new Set([...currentEmails, ...emails]));
+    const existingManualEmails = getStringArray(customer.manuallyAddedCustomerEmails);
+    customer.manuallyAddedCustomerEmails = Array.from(
+      new Set([...existingManualEmails, ...emails]),
+    );
+    customer.customerEmails = collectCustomerEmails(customer);
   }
 
   return nextContext;
@@ -2053,17 +2056,12 @@ function getAddedCustomerEmails(response: unknown, fallbackEmail: string) {
     response && typeof response === "object"
       ? (response as Record<string, unknown>)
       : {};
-  const responseEmails = Array.isArray(record.customerEmails)
-    ? record.customerEmails
-        .filter((value): value is string => typeof value === "string")
-        .map((value) => value.trim().toLowerCase())
-    : [];
   const responseNewEmail =
     typeof record.newEmail === "string" ? record.newEmail.trim().toLowerCase() : "";
 
   return Array.from(
     new Set(
-      [...responseEmails, responseNewEmail, fallbackEmail.trim().toLowerCase()].filter(
+      [responseNewEmail, fallbackEmail.trim().toLowerCase()].filter(
         (email) => email && isValidEmail(email),
       ),
     ),
@@ -2279,31 +2277,6 @@ function collectPhoneValues(value: unknown, phoneSet = new Set<string>()) {
   return phoneSet;
 }
 
-function collectEmailValues(value: unknown, emailSet = new Set<string>()) {
-  if (!value) {
-    return emailSet;
-  }
-
-  if (typeof value === "string") {
-    const match = value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
-    if (match) {
-      emailSet.add(match[0].toLowerCase());
-    }
-    return emailSet;
-  }
-
-  if (Array.isArray(value)) {
-    value.forEach((item) => collectEmailValues(item, emailSet));
-    return emailSet;
-  }
-
-  if (typeof value === "object") {
-    Object.values(value).forEach((item) => collectEmailValues(item, emailSet));
-  }
-
-  return emailSet;
-}
-
 function getCustomerEmailsText(customer: Record<string, unknown>) {
   const emails = getCustomerEmails(customer);
   return emails.length ? emails.join("; ") : "-";
@@ -2315,10 +2288,7 @@ function getCustomerEmails(customer: Record<string, unknown>) {
     return [];
   }
 
-  return values
-    .filter((value): value is string => typeof value === "string")
-    .map((value) => value.trim().toLowerCase())
-    .filter(Boolean);
+  return getStringArray(values);
 }
 
 function collectCustomerEmails(
@@ -2326,6 +2296,7 @@ function collectCustomerEmails(
   primaryEmail = "",
 ) {
   const emails = new Set<string>();
+  const manualEmails = new Set<string>();
 
   addEmailCandidate(emails, primaryEmail);
   [
@@ -2337,13 +2308,26 @@ function collectCustomerEmails(
     "normalizedEmail",
   ].forEach((key) => addEmailCandidate(emails, customer[key]));
 
-  ["emails", "emailAddresses", "aliases", "customerEmails"].forEach((key) => {
-    collectEmailValues(customer[key], emails);
-  });
+  getStringArray(customer.manuallyAddedCustomerEmails).forEach((email) =>
+    addEmailCandidate(manualEmails, email),
+  );
 
-  return Array.from(emails)
-    .filter((email) => !isInternalEmail(email))
+  return Array.from(
+    new Set([
+      ...Array.from(emails).filter((email) => !isInternalEmail(email)),
+      ...manualEmails,
+    ]),
+  )
     .sort((left, right) => left.localeCompare(right));
+}
+
+function getStringArray(value: unknown) {
+  return Array.isArray(value)
+    ? value
+        .filter((item): item is string => typeof item === "string")
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean)
+    : [];
 }
 
 function addEmailCandidate(emailSet: Set<string>, value: unknown) {
