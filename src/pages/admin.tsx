@@ -10,6 +10,7 @@ export default function AdminPage() {
   const router = useRouter();
   const { status, user, isAdmin, requireAdmin, logout } = useAuth();
   const [gateStatus, setGateStatus] = useState<GateStatus>("checking");
+  const [gateError, setGateError] = useState("");
 
   useEffect(() => {
     if (status === "loading") {
@@ -25,10 +26,21 @@ export default function AdminPage() {
 
     async function checkAdminAccess() {
       setGateStatus("checking");
-      const allowed = isAdmin && (await requireAdmin());
+      setGateError("");
+
+      if (!isAdmin) {
+        setGateStatus("denied");
+        setGateError(
+          "The logged-in user profile does not include tenant-admin or admin:access.",
+        );
+        return;
+      }
+
+      const result = await requireAdmin();
 
       if (!cancelled) {
-        setGateStatus(allowed ? "allowed" : "denied");
+        setGateStatus(result.allowed ? "allowed" : "denied");
+        setGateError(result.error ?? "");
       }
     }
 
@@ -87,6 +99,27 @@ export default function AdminPage() {
                 Your account is signed in, but LaunchingStack did not confirm
                 tenant admin access for JustProveIt.
               </p>
+              {gateError ? (
+                <p className="mt-3 rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-950">
+                  {gateError}
+                </p>
+              ) : null}
+              <dl className="mt-4 grid gap-3 text-sm text-red-950 sm:grid-cols-2">
+                <div>
+                  <dt className="font-bold">Roles</dt>
+                  <dd className="mt-1 break-words">
+                    {user?.roles?.length ? user.roles.join(", ") : "None"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-bold">Permissions</dt>
+                  <dd className="mt-1 break-words">
+                    {user?.permissions?.length
+                      ? user.permissions.join(", ")
+                      : "None"}
+                  </dd>
+                </div>
+              </dl>
               <Link
                 href="/"
                 className="mt-5 inline-flex rounded-md bg-red-900 px-4 py-2 text-sm font-bold text-white hover:bg-red-950"

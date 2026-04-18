@@ -30,7 +30,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
-  requireAdmin: () => Promise<boolean>;
+  requireAdmin: () => Promise<{ allowed: boolean; error?: string }>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -168,14 +168,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const requireAdmin = useCallback(async () => {
     if (!token) {
-      return false;
+      return { allowed: false, error: "No access token is stored." };
     }
 
     try {
       await adminMeRequest(token);
-      return true;
-    } catch {
-      return false;
+      return { allowed: true };
+    } catch (error) {
+      return {
+        allowed: false,
+        error: error instanceof Error ? error.message : "Admin gate failed.",
+      };
     }
   }, [token]);
 
