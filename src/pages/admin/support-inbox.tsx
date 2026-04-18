@@ -2109,11 +2109,12 @@ function buildCustomerView(context: CustomerContextResponse | null) {
     getRecord(context, "supportView") ??
     getRecord(result, "support") ??
     {};
-  const customer =
-    getRecord(result, "customer") ??
-    getRecord(context, "customer") ??
-    getRecord(result, "data") ??
-    findCustomerLikeRecord(context);
+  const customer = mergeCustomerRecords([
+    findCustomerLikeRecord(context),
+    getRecord(context, "customer"),
+    getRecord(result, "data"),
+    getRecord(result, "customer"),
+  ]);
 
   if (!customer) {
     return null;
@@ -2168,6 +2169,26 @@ function buildCustomerView(context: CustomerContextResponse | null) {
       : getCustomerString(customer, ["numberOfCars", "numberOfServices"]) || "0",
     customerEmails: collectCustomerEmails(customer, primaryEmail),
   };
+}
+
+function mergeCustomerRecords(records: Array<Record<string, unknown> | null>) {
+  const validRecords = records.filter(
+    (record): record is Record<string, unknown> => Boolean(record),
+  );
+
+  if (!validRecords.length) {
+    return null;
+  }
+
+  const merged = Object.assign({}, ...validRecords);
+
+  ["customerEmails", "aliases", "manuallyAddedCustomerEmails"].forEach((key) => {
+    merged[key] = Array.from(
+      new Set(validRecords.flatMap((record) => getStringArray(record[key]))),
+    );
+  });
+
+  return merged;
 }
 
 function getRecord(source: unknown, key: string) {
