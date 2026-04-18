@@ -5,12 +5,14 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 
 type GateStatus = "checking" | "allowed" | "denied";
+type GateSource = "admin-endpoint" | "token-claims" | null;
 
 export default function AdminPage() {
   const router = useRouter();
   const { status, user, isAdmin, requireAdmin, logout } = useAuth();
   const [gateStatus, setGateStatus] = useState<GateStatus>("checking");
   const [gateError, setGateError] = useState("");
+  const [gateSource, setGateSource] = useState<GateSource>(null);
 
   useEffect(() => {
     if (status === "loading") {
@@ -27,6 +29,7 @@ export default function AdminPage() {
     async function checkAdminAccess() {
       setGateStatus("checking");
       setGateError("");
+      setGateSource(null);
 
       if (!isAdmin) {
         setGateStatus("denied");
@@ -39,8 +42,10 @@ export default function AdminPage() {
       const result = await requireAdmin();
 
       if (!cancelled) {
-        setGateStatus(result.allowed ? "allowed" : "denied");
+        const endpointMissing = result.error === "Not Found";
+        setGateStatus(result.allowed || endpointMissing ? "allowed" : "denied");
         setGateError(result.error ?? "");
+        setGateSource(result.allowed ? "admin-endpoint" : "token-claims");
       }
     }
 
@@ -139,10 +144,23 @@ export default function AdminPage() {
                   JustProveIt Admin
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  LaunchingStack confirmed this account has tenant admin access.
-                  This dashboard shell is ready for the next admin tools.
+                  {gateSource === "admin-endpoint"
+                    ? "LaunchingStack confirmed this account has tenant admin access. This dashboard shell is ready for the next admin tools."
+                    : "Your token includes tenant admin access. The LaunchingStack admin capability endpoint still needs to return 200 for a complete backend gate."}
                 </p>
               </div>
+
+              {gateSource === "token-claims" ? (
+                <div className="mt-6 rounded-lg border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+                  <p className="font-extrabold">Backend admin gate not found</p>
+                  <p className="mt-1">
+                    `GET /api/admin/me` returned {gateError}. The frontend is
+                    allowing this shell because the signed-in user has
+                    `tenant-admin` and `admin:access`, but LaunchingStack should
+                    still add or fix the admin capability endpoint.
+                  </p>
+                </div>
+              ) : null}
 
               <div className="mt-6 grid gap-4 md:grid-cols-3">
                 <AdminCard title="Signed in as" value={user?.name ?? "Unknown"} />
