@@ -174,6 +174,25 @@ export function getCustomerContext(token: string, email: string) {
   );
 }
 
+export function addCustomerEmail(
+  token: string,
+  payload: {
+    customerEmail: string;
+    newEmail: string;
+    source?: string;
+    metadata?: Record<string, unknown>;
+  },
+) {
+  return fetchJson<CustomerContextResponse | { success?: boolean }>(
+    `${BASE_PATH}/customers/emails`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export function getMessage(token: string, messageId: string) {
   return fetchJson<SupportMessage>(
     `${BASE_PATH}/messages/${encodeURIComponent(messageId)}`,

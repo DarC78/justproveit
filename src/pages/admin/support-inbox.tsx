@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import {
+  addCustomerEmail,
   addPhoneToAzureQueue,
   CustomerContextResponse,
   GenericReportsConfig,
@@ -228,6 +229,7 @@ export default function SupportInboxPage() {
   const [endDate, setEndDate] = useState("");
   const [searchEmail, setSearchEmail] = useState("");
   const [phoneSearch, setPhoneSearch] = useState("");
+  const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<SupportMessage | null>(null);
   const [customerContext, setCustomerContext] =
@@ -779,6 +781,61 @@ export default function SupportInboxPage() {
     });
   }
 
+  async function handleAddCustomerEmail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!token || !selectedMessage || !selectedCustomer) {
+      return;
+    }
+
+    const emailToAdd = newCustomerEmail.trim().toLowerCase();
+    if (!isValidEmail(emailToAdd)) {
+      setActionStatus("Enter a valid email address to add to this customer.");
+      return;
+    }
+
+    const customerEmail = getPrimaryCustomerEmail(
+      selectedCustomer,
+      buildContextEmail(selectedMessage),
+    );
+    if (!customerEmail) {
+      setActionStatus("No customer email found for the selected customer.");
+      return;
+    }
+
+    if (getCustomerEmails(selectedCustomer).includes(emailToAdd)) {
+      setActionStatus(`${emailToAdd} is already listed for this customer.`);
+      setNewCustomerEmail("");
+      return;
+    }
+
+    await runAction(`Adding ${emailToAdd} to customer...`, async () => {
+      const response = await addCustomerEmail(token, {
+        customerEmail,
+        newEmail: emailToAdd,
+        source: "genericreports_admin",
+        metadata: {
+          threadKey: selectedThreadKey,
+          selectedSubject: selectedMessage.subject ?? "",
+        },
+      });
+
+      const refreshedContext = await getCustomerContext(token, customerEmail).catch(
+        () => null,
+      );
+      if (refreshedContext) {
+        setCustomerContext(refreshedContext);
+      } else if (isCustomerContextResponse(response)) {
+        setCustomerContext(response);
+      } else {
+        setCustomerContext(addEmailToCustomerContext(customerContext, emailToAdd));
+      }
+
+      setNewCustomerEmail("");
+      return `Added ${emailToAdd} to customer.`;
+    });
+  }
+
   async function runAction(
     loadingMessage: string,
     action: () => Promise<string>,
@@ -959,6 +1016,9 @@ export default function SupportInboxPage() {
                   customer={selectedCustomer}
                   context={customerContext}
                   selectedMessage={selectedMessage}
+                  newEmail={newCustomerEmail}
+                  onNewEmailChange={setNewCustomerEmail}
+                  onAddEmail={handleAddCustomerEmail}
                 />
               </section>
 
@@ -1153,10 +1213,16 @@ function CustomerPanel({
   customer,
   context,
   selectedMessage,
+  newEmail,
+  onNewEmailChange,
+  onAddEmail,
 }: {
   customer: Record<string, unknown> | null;
   context: CustomerContextResponse | null;
   selectedMessage: SupportMessage | null;
+  newEmail: string;
+  onNewEmailChange: (value: string) => void;
+  onAddEmail: (event: FormEvent<HTMLFormElement>) => void;
 }) {
   const email = selectedMessage ? buildContextEmail(selectedMessage) : "";
 
@@ -1197,6 +1263,24 @@ function CustomerPanel({
               title="Customer emails"
               value={getCustomerEmailsText(customer)}
             />
+            <form onSubmit={onAddEmail} className="rounded-md border border-slate-200 p-3">
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Add customer email
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(event) => onNewEmailChange(event.target.value)}
+                  placeholder="new@email.co.uk"
+                  className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
+                />
+              </label>
+              <button
+                type="submit"
+                className="mt-2 w-full rounded-md bg-emerald-700 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-800"
+              >
+                Add email
+              </button>
+            </form>
             <CustomerMetric
               title="Number of services"
               value={getCustomerString(customer, ["numberOfCars", "numberOfServices"]) || "-"}
@@ -1481,6 +1565,10 @@ function parseEmailAddress(value: string) {
   const match = value.match(/<([^>]+)>/);
   const candidate = (match?.[1] ?? value).trim().toLowerCase();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(candidate) ? candidate : "";
+}
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim().toLowerCase());
 }
 
 function buildReplySubject(message: SupportMessage) {
@@ -1939,6 +2027,48 @@ function markCustomerContextPositiveDecision(
   return nextContext;
 }
 
+function addEmailToCustomerContext(
+  context: CustomerContextResponse | null,
+  email: string,
+) {
+  if (!context) {
+    return context;
+  }
+
+  const nextContext = { ...context };
+  const customer = getMutableCustomerRecord(nextContext);
+
+  if (customer) {
+    const currentEmails = getCustomerEmails(customer);
+    customer.customerEmails = Array.from(new Set([...currentEmails, email]));
+  }
+
+  return nextContext;
+}
+
+function getMutableCustomerRecord(context: CustomerContextResponse) {
+  const result =
+    getRecord(context, "result") ??
+    getRecord(context, "replyContext") ??
+    getRecord(context, "customerReplyContext") ??
+    getRecord(context, "azureContext") ??
+    context;
+
+  return (
+    getRecord(result, "customer") ??
+    getRecord(context, "customer") ??
+    getRecord(result, "data")
+  );
+}
+
+function isCustomerContextResponse(value: unknown): value is CustomerContextResponse {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      ("customer" in value || "result" in value || "support" in value),
+  );
+}
+
 function buildCustomerView(context: CustomerContextResponse | null) {
   if (!context) {
     return null;
@@ -2151,16 +2281,20 @@ function collectEmailValues(value: unknown, emailSet = new Set<string>()) {
 }
 
 function getCustomerEmailsText(customer: Record<string, unknown>) {
+  const emails = getCustomerEmails(customer);
+  return emails.length ? emails.join("; ") : "-";
+}
+
+function getCustomerEmails(customer: Record<string, unknown>) {
   const values = customer.customerEmails;
   if (!Array.isArray(values)) {
-    return "-";
+    return [];
   }
 
-  const emails = values.filter(
-    (value): value is string => typeof value === "string" && value.trim() !== "",
-  );
-
-  return emails.length ? emails.join("; ") : "-";
+  return values
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim().toLowerCase())
+    .filter(Boolean);
 }
 
 function collectCustomerEmails(
