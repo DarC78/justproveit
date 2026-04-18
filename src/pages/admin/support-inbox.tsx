@@ -823,12 +823,14 @@ export default function SupportInboxPage() {
       const refreshedContext = await getCustomerContext(token, customerEmail).catch(
         () => null,
       );
+      const addedEmails = getAddedCustomerEmails(response, emailToAdd);
+
       if (refreshedContext) {
-        setCustomerContext(refreshedContext);
+        setCustomerContext(addEmailsToCustomerContext(refreshedContext, addedEmails));
       } else if (isCustomerContextResponse(response)) {
-        setCustomerContext(response);
+        setCustomerContext(addEmailsToCustomerContext(response, addedEmails));
       } else {
-        setCustomerContext(addEmailToCustomerContext(customerContext, emailToAdd));
+        setCustomerContext(addEmailsToCustomerContext(customerContext, addedEmails));
       }
 
       setNewCustomerEmail("");
@@ -2027,9 +2029,9 @@ function markCustomerContextPositiveDecision(
   return nextContext;
 }
 
-function addEmailToCustomerContext(
+function addEmailsToCustomerContext(
   context: CustomerContextResponse | null,
-  email: string,
+  emails: string[],
 ) {
   if (!context) {
     return context;
@@ -2040,10 +2042,32 @@ function addEmailToCustomerContext(
 
   if (customer) {
     const currentEmails = getCustomerEmails(customer);
-    customer.customerEmails = Array.from(new Set([...currentEmails, email]));
+    customer.customerEmails = Array.from(new Set([...currentEmails, ...emails]));
   }
 
   return nextContext;
+}
+
+function getAddedCustomerEmails(response: unknown, fallbackEmail: string) {
+  const record =
+    response && typeof response === "object"
+      ? (response as Record<string, unknown>)
+      : {};
+  const responseEmails = Array.isArray(record.customerEmails)
+    ? record.customerEmails
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim().toLowerCase())
+    : [];
+  const responseNewEmail =
+    typeof record.newEmail === "string" ? record.newEmail.trim().toLowerCase() : "";
+
+  return Array.from(
+    new Set(
+      [...responseEmails, responseNewEmail, fallbackEmail.trim().toLowerCase()].filter(
+        (email) => email && isValidEmail(email),
+      ),
+    ),
+  );
 }
 
 function getMutableCustomerRecord(context: CustomerContextResponse) {

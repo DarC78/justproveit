@@ -183,7 +183,15 @@ export function addCustomerEmail(
     metadata?: Record<string, unknown>;
   },
 ) {
-  return fetchJson<CustomerContextResponse | { success?: boolean }>(
+  return fetchJson<
+    | CustomerContextResponse
+    | {
+        success?: boolean;
+        customerEmail?: string;
+        newEmail?: string;
+        customerEmails?: string[];
+      }
+  >(
     `${BASE_PATH}/customers/emails`,
     {
       method: "POST",
