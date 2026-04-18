@@ -8,7 +8,6 @@ import {
   getGmailProfile,
   getMessage,
   getRecentMessages,
-  getReplyTemplates,
   getThreadState,
   GmailProfile,
   markMessageRead,
@@ -39,7 +38,105 @@ type SourceMode = "cached" | "live" | "merged";
 type LoadStatus = "idle" | "loading" | "ready" | "error";
 
 const DEFAULT_LIMIT = 20;
-const FALLBACK_REPLY_TEMPLATES: ReplyTemplate[] = [
+const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
+  {
+    key: "felicitari",
+    label: "felicitari",
+    sortOrder: 10,
+    plainText: `Buna ziua,
+
+Felicitari! Finantatorul v-a retinut complaint-ul, prin urmare sunteti in primul val care isi va recupera banii. 
+
+Sunt 3 spete pentru care se recupereaza banii. Una se cheama DCA cealalta. Alta in care comisionul era mai mare de 35% din dobanda. Si cea de-a treia speta in care exista o relatie de unu la unu intre dealer si finantaror. 
+
+In 30 Martie 2026 FCA a comunicat toate formulele de calcul. Finantatorii au 3 luni sa isi puna la punct sistemele informatice (adica pana pe 30 iunie). Dupa aceasta data incep sa trimita deciziile. Au maxim 3 luni (adica pana pe 30 Septembrie), sa rezolve plangerile. 
+
+Prin emailul lor va confirma ca au retinut complaint-ul. Cand mai primiti vreo notificare de la ei o sa va rog sa ne spuneti. 
+Este foarte important ca ati depasit aceasta etapa inainte sa inceapa schema de compensare. Asta inseamna ca veti fi in primul val de ramburs. 
+
+https://www.fca.org.uk/news/statements/fca-confirms-motor-finance-redress-scheme
+
+Avem un program prin care puteti castiga cateva sute de lire pe luna. Noi vom infiinta o pagina pe site-ul nostru cu testimoniale de la clientii nostrii. Cand cineva intra la noi pe site, vede si da click pe testimonialul dvs, si devine client, atunci dumneavoastra primiti £35. Pentru fiecare persoana.
+
+Mai mult, in fiecare luna avem o tombola iar un testimonial va castiga £50.
+
+Daca ati vrea sa participati tot ce aveti de facut este sa ne lasati un testimonial scris asupra interactiunii cu firma noastra si sa atasati o poza dupa decizia dvs. (acoperiti-va datele personale).
+
+Sincer, chiar daca nu ati dori sa participati, tot am aprecia foarte mult feedback-ul dumneavoastra sincer. Suntem o echipa tanara si la inceput de drum si avem nevoie de sustinerea clientilor nostrii.
+
+Puteti sa il lasati aici: https://uk.trustpilot.com/review/proveitweb.co.uk
+
+Pentru orice alte intrebari va stam la dispozitie.
+
+
+Cu respect,
+Echipa de suport ProveIt
+`,
+  },
+  {
+    key: "atiSemnatCmc",
+    label: "atiSemnatCmc",
+    sortOrder: 20,
+    plainText: `Buna ziua,
+
+Acest email nu este de la finantator, ci de la o firma de avocatura. Sa intelegem ca ati aplicat si cu o alta firma de recuperari? Mare atentie ca in acest fel puteti ajunge sa platiti in doua parti. Mai mult, in aceste circumstante unii finantatori aleg sa discute direct cu firma de avocatura si sa nu va raspunda la email-uri. 
+
+Aveti aici un video in care dl. Adrian arata cat de usor si inselator este procesul de aplicare cu o firma de avocatura: https://youtu.be/3wwhwmA1MdY
+
+Cel mai bine este sa clarificati de ce v-au trimis acest email si sa intelegeti daca aveti claim-ul deschis si cu ei. 
+
+Daca aveti un claim deschis si cu ei, in general taxa lor este de 50% din ceea ce se recupereaza. 
+
+Noi va putem ajuta sa incercati sa inchideti contractul cu ei, dar in primul rand o sa va rog sa clarificati situatia cu ei. 
+
+Toate cele bune,
+Echipa Proveit`,
+  },
+  {
+    key: "cancelCmc",
+    label: "cancelCmc",
+    sortOrder: 30,
+    plainText: `Buna ziua,
+
+Trimiteti un email catre <email CMC> cu urmatorul continut (completati-va datele dvs):
+
+Subject: Cancellation of Contract Due to Lack of Transparency and Misleading Practices
+
+Dear sir/madam,
+I am writing to formally request the immediate cancellation of the contract I recently signed with your company regarding the recovery of extra interest related to the car finance mis selling scandal. This cancellation should happen without any penalties.
+
+After further consideration, I have identified several issues with the way the contract was presented and agreed upon:
+
+Please provide an evidence where I signed the contract with yourself. I remember signing for a FREE check. I don't recall any contract for you to represent me. I don't exclude that in your terms and conditions it might have been such a contract. However, at the point of sale where I sighed and entered my details there were only details about the free check.
+
+Lack of Transparency Regarding Commission: At no point during our initial discussions or in the documents provided was the commission your company charges communicated in a clear and transparent manner (as FCA mandates). I only became aware of the significant commission after signing the contract, which I find unacceptable. Can you provide an evidence that the commissions were clearly explained when I signed the free check. Clearly on that page I don't remember seeing any commissions.
+
+As English is not my native language, I feel like I was in a very vulnerable position when going through your website. Again, I was under the impression that I was signing for a free check. This is based on the Ad that I've seen and also the website pages. I think FCA mandates that you need to identify and treat differently vulnerable customers, such as the ones for which English is not the native language, such as in my case.
+
+Misleading Information During the Signing Process: I was under the impression that I was merely submitting an enquiry to explore the possibility of recovering extra interest. However, I later discovered that I had unwittingly signed a legally binding contract. This misrepresentation is deeply concerning and not something I would expect from a reputable company regulated by FCA and SAR.
+
+Can you present the screen where I signed the contract? I am sure on that screen it was mentioned only the fact that I am doing a free check, nothing in relation to signing of a contract. 
+
+Untransparent Ways of Working: The overall approach your company has taken - ranging from the initial communication to the lack of clarity in your processes - has been opaque and far from what I consider to be good business practice. This has eroded my trust in your services.
+
+FCA mandates that a claims management company should identify if a customer signed with two or more companies. Due to your website being so misleading, and the fees not being clearly explained on the website, and the fact that I was under the impression this is a FREE check, I went through multiple companies such as yours.
+
+On their page, FCA mandates very clearly that in the process for car finance mis selling scandal one doesn't need to use a CMC. Moreover, a claims management company should identify if the user applied with multiple companies, just because is so easy and deceiving. In my case there was no verification, no question if I applied before or not! Not a single step has been taken to prevent me to apply with multiple companies. 
+
+Given the above points, I believe it is in both of our interests to terminate this agreement immediately and with no penalty. I am determined to seek justice on this matter as far as the law allows me and using all authorities, including FCA, FOS and SAR.
+
+Please confirm in writing that the contract has been cancelled and that no further action will be taken by your company on my behalf. Moreover, please confirm that at any point I will not be liable for any costs to you.
+
+I would appreciate a prompt response to this email to avoid any further complications.
+
+Thank you for your understanding.
+
+
+Sincerely,
+[Numele intreg]
+[Adresa]
+[Data nasterii]`,
+  },
   {
     key: "justUpdate",
     label: "justUpdate",
@@ -240,13 +337,11 @@ export default function SupportInboxPage() {
         const [
           nextConfig,
           nextProfile,
-          templateResponse,
           repliedState,
           skippedState,
         ] = await Promise.all([
           getGenericReportsConfig(accessToken),
           getGmailProfile(accessToken),
-          getReplyTemplates(accessToken),
           getThreadState(accessToken, "replied"),
           getThreadState(accessToken, "skipped"),
         ]);
@@ -257,7 +352,7 @@ export default function SupportInboxPage() {
 
         setConfig(nextConfig);
         setGmailProfile(nextProfile);
-        setTemplates(mergeReplyTemplates(templateResponse.templates ?? []));
+        setTemplates(CODE_REPLY_TEMPLATES);
         setRepliedThreadKeys(new Set(repliedState.threadKeys ?? []));
         setSkippedThreadKeys(new Set(skippedState.threadKeys ?? []));
 
@@ -1313,29 +1408,6 @@ function renderTemplateText(
 
 function getTemplateLabel(template: ReplyTemplate) {
   return template.label ?? template.name ?? template.title ?? template.key;
-}
-
-function mergeReplyTemplates(backendTemplates: ReplyTemplate[]) {
-  const templateMap = new Map<string, ReplyTemplate>();
-
-  backendTemplates
-    .filter((template) => template.enabled !== false)
-    .forEach((template, index) => {
-      templateMap.set(template.key, {
-        ...template,
-        sortOrder: template.sortOrder ?? index * 10,
-      });
-    });
-
-  FALLBACK_REPLY_TEMPLATES.forEach((template) => {
-    if (!templateMap.has(template.key)) {
-      templateMap.set(template.key, template);
-    }
-  });
-
-  return Array.from(templateMap.values()).sort(
-    (left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0),
-  );
 }
 
 function stripHtml(value: string) {
