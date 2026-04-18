@@ -2296,7 +2296,7 @@ function collectCustomerEmails(
   primaryEmail = "",
 ) {
   const emails = new Set<string>();
-  const manualEmails = new Set<string>();
+  const trustedCustomerEmails = new Set<string>();
 
   addEmailCandidate(emails, primaryEmail);
   [
@@ -2308,14 +2308,20 @@ function collectCustomerEmails(
     "normalizedEmail",
   ].forEach((key) => addEmailCandidate(emails, customer[key]));
 
-  getStringArray(customer.manuallyAddedCustomerEmails).forEach((email) =>
-    addEmailCandidate(manualEmails, email),
-  );
+  [
+    "customerEmails",
+    "aliases",
+    "manuallyAddedCustomerEmails",
+  ].forEach((key) => {
+    getStringArray(customer[key]).forEach((email) =>
+      addEmailCandidate(trustedCustomerEmails, email),
+    );
+  });
 
   return Array.from(
     new Set([
       ...Array.from(emails).filter((email) => !isInternalEmail(email)),
-      ...manualEmails,
+      ...trustedCustomerEmails,
     ]),
   )
     .sort((left, right) => left.localeCompare(right));
