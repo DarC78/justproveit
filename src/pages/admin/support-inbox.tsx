@@ -43,6 +43,7 @@ type LoadStatus = "idle" | "loading" | "ready" | "error";
 const ACTIONABLE_MESSAGE_LIMIT = 20;
 const DEFAULT_MAILBOX_EMAIL = "oz@proveitweb.co.uk";
 const DONE_NO_REPLY_LABEL_NAME = "Done - No Reply Needed";
+const DONE_ANSWERED_LABEL_NAME = "Done - Answered";
 const THREAD_STATE_STORAGE_PREFIX = "justproveit:genericreports:thread-state";
 const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
   {
@@ -243,7 +244,7 @@ export default function SupportInboxPage() {
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
   const [replyText, setReplyText] = useState("");
   const [lastSentEmailStatus, setLastSentEmailStatus] = useState("");
-  const [, setRepliedThreadKeys] = useState<Set<string>>(
+  const [repliedThreadKeys, setRepliedThreadKeys] = useState<Set<string>>(
     () => new Set(),
   );
   const [skippedThreadKeys, setSkippedThreadKeys] = useState<Set<string>>(
@@ -286,7 +287,7 @@ export default function SupportInboxPage() {
       });
       const nextMessages = filterMessagesByStateKeys(
         response.messages ?? [],
-        skippedThreadKeys,
+        combineThreadStateKeySets(repliedThreadKeys, skippedThreadKeys),
       );
       setMessages(nextMessages);
       setSelectedMessage(nextMessages[0] ?? null);
@@ -367,12 +368,11 @@ export default function SupportInboxPage() {
         setGmailProfile(nextProfile);
         setGmailLabels(labelsResponse.labels ?? []);
         setTemplates(CODE_REPLY_TEMPLATES);
-        setRepliedThreadKeys(
-          mergeThreadStateKeys(
-            repliedState.threadKeys,
-            readStoredThreadStateKeys("replied", nextConfig.mailboxEmail),
-          ),
+        const nextRepliedThreadKeys = mergeThreadStateKeys(
+          repliedState.threadKeys,
+          readStoredThreadStateKeys("replied", nextConfig.mailboxEmail),
         );
+        setRepliedThreadKeys(nextRepliedThreadKeys);
         const nextSkippedThreadKeys = mergeThreadStateKeys(
           skippedState.threadKeys,
           readStoredThreadStateKeys("skipped", nextConfig.mailboxEmail),
@@ -388,7 +388,7 @@ export default function SupportInboxPage() {
         if (!cancelled) {
           const nextMessages = filterMessagesByStateKeys(
             recentResponse.messages ?? [],
-            nextSkippedThreadKeys,
+            combineThreadStateKeySets(nextRepliedThreadKeys, nextSkippedThreadKeys),
           );
           setMessages(nextMessages);
           setSelectedMessage(nextMessages[0] ?? null);
@@ -548,9 +548,23 @@ export default function SupportInboxPage() {
     const recipient = getReplyRecipient(selectedMessage);
     const subject = buildReplySubject(selectedMessage);
     const trimmedReply = replyText.trim();
+    const selectedMessageId = getGmailMessageId(selectedMessage);
 
     if (!recipient || !trimmedReply) {
       setActionStatus("Select a message and write a reply before sending.");
+      return;
+    }
+
+    if (!selectedMessageId) {
+      setActionStatus("No Gmail message id found for the selected email.");
+      return;
+    }
+
+    const answeredLabel = findGmailLabelByName(gmailLabels, DONE_ANSWERED_LABEL_NAME);
+    if (!answeredLabel) {
+      setActionStatus(
+        `Gmail label "${DONE_ANSWERED_LABEL_NAME}" was not found. Refresh the inbox after creating it in Gmail.`,
+      );
       return;
     }
 
@@ -558,7 +572,7 @@ export default function SupportInboxPage() {
       return;
     }
 
-    await runAction("Sending reply...", async () => {
+    await runAction(`Sending reply and moving email to ${DONE_ANSWERED_LABEL_NAME}...`, async () => {
       const headers = buildReplyHeaders(selectedMessage);
       const templateKey = selectedTemplate?.key ?? "";
       const replyBodyText = buildClassicReplyBody(
@@ -589,9 +603,15 @@ export default function SupportInboxPage() {
         },
       });
 
+      await markMessageRead(token, selectedMessageId);
+      await updateMessageLabels(token, selectedMessageId, {
+        addLabelIds: [answeredLabel.id],
+        removeLabelIds: ["INBOX"],
+      });
+
       await markThreadState(token, "replied", {
         mailboxEmail: config?.mailboxEmail ?? DEFAULT_MAILBOX_EMAIL,
-        threadKey: selectedThreadKey,
+        threadKey: `message:${selectedMessageId}`,
         recipientEmail: recipient,
         subject,
         repliedByEmail: user?.email ?? "",
@@ -608,7 +628,7 @@ export default function SupportInboxPage() {
         });
       }
 
-      const stateKeys = getThreadStateKeys(selectedMessage);
+      const stateKeys = getMessageStateKeys(selectedMessage);
       setRepliedThreadKeys((current) => {
         const next = addThreadStateKeys(current, stateKeys);
         writeStoredThreadStateKeys("replied", config?.mailboxEmail, next);
@@ -616,7 +636,7 @@ export default function SupportInboxPage() {
       });
       removeMessagesFromInbox(stateKeys);
       setReplyText("");
-      return `Reply sent${result.id ? `: ${result.id}` : ""}.`;
+      return `Reply sent${result.id ? `: ${result.id}` : ""} and email moved to ${DONE_ANSWERED_LABEL_NAME}.`;
     });
   }
 
@@ -1655,6 +1675,10 @@ function filterMessagesByStateKeys(
   return messages.filter(
     (message) => !hasAnyThreadStateKey(getThreadStateKeys(message), stateKeys),
   );
+}
+
+function combineThreadStateKeySets(...sets: Set<string>[]) {
+  return normalizeThreadStateKeys(sets.flatMap((set) => Array.from(set)));
 }
 
 function normalizeThreadStateKeys(keys: string[] | undefined) {
