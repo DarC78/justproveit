@@ -228,8 +228,6 @@ export default function SupportInboxPage() {
   const [config, setConfig] = useState<GenericReportsConfig | null>(null);
   const [gmailProfile, setGmailProfile] = useState<GmailProfile | null>(null);
   const [gmailLabels, setGmailLabels] = useState<GmailLabel[]>([]);
-  const [selectedLabelId, setSelectedLabelId] = useState("");
-  const [markReadWithLabel, setMarkReadWithLabel] = useState(true);
   const [templates, setTemplates] = useState<ReplyTemplate[]>([]);
   const [source, setSource] = useState<SourceMode>("cached");
   const [startDate, setStartDate] = useState("");
@@ -265,7 +263,6 @@ export default function SupportInboxPage() {
     () => buildCustomerView(customerContext),
     [customerContext],
   );
-  const userLabels = useMemo(() => getUserGmailLabels(gmailLabels), [gmailLabels]);
   const selectedRecipient = selectedMessage ? getReplyRecipient(selectedMessage) : "";
   const selectedThreadKey = selectedMessage ? getThreadKey(selectedMessage) : "";
 
@@ -497,7 +494,6 @@ export default function SupportInboxPage() {
     setSelectedMessage(message);
     setCustomerContext(null);
     setSelectedTemplateKey("");
-    setSelectedLabelId("");
     setReplyText(recipient ? "" : "No valid recipient found for this client.");
     setLastSentEmailStatus("");
   }
@@ -689,66 +685,6 @@ export default function SupportInboxPage() {
       removeMessagesFromInbox(stateKeys);
       return `Email marked read and moved to ${DONE_NO_REPLY_LABEL_NAME}.`;
     });
-  }
-
-  async function handleApplyLabel() {
-    if (!token || !selectedMessage || !selectedLabelId) {
-      return;
-    }
-
-    const label = gmailLabels.find((item) => item.id === selectedLabelId);
-    const labelName = label?.name ?? selectedLabelId;
-
-    if (
-      !window.confirm(
-        `${markReadWithLabel ? "Mark this Gmail thread as read and apply" : "Apply"} the "${labelName}" label?`,
-      )
-    ) {
-      return;
-    }
-
-    await runAction(
-      markReadWithLabel ? `Marking read and applying ${labelName}...` : `Applying ${labelName}...`,
-      async () => {
-        if (markReadWithLabel) {
-          const selectedMessageId = getGmailMessageId(selectedMessage);
-          if (!selectedMessageId) {
-            throw new Error("No Gmail message id found for the selected email.");
-          }
-          await markMessageRead(token, selectedMessageId);
-        }
-
-        const selectedMessageId = getGmailMessageId(selectedMessage);
-        if (!selectedMessageId) {
-          throw new Error("No Gmail message id found for the selected email.");
-        }
-
-        await updateMessageLabels(token, selectedMessageId, {
-          addLabelIds: [selectedLabelId],
-          removeLabelIds: [],
-        });
-
-        await markThreadState(token, "skipped", {
-          mailboxEmail: config?.mailboxEmail ?? DEFAULT_MAILBOX_EMAIL,
-          threadKey: `message:${selectedMessageId}`,
-          senderEmail: getReplyRecipient(selectedMessage),
-          subject: selectedMessage.subject ?? "",
-          skippedByEmail: user?.email ?? "",
-        });
-
-        const stateKeys = getMessageStateKeys(selectedMessage);
-        setSkippedThreadKeys((current) => {
-          const next = addThreadStateKeys(current, stateKeys);
-          writeStoredThreadStateKeys("skipped", config?.mailboxEmail, next);
-          return next;
-        });
-        removeMessagesFromInbox(stateKeys);
-
-        return markReadWithLabel
-          ? `Marked read, applied ${labelName}, and hid the email.`
-          : `Applied ${labelName} and hid the email.`;
-      },
-    );
   }
 
   async function handleTrash() {
@@ -1184,43 +1120,6 @@ export default function SupportInboxPage() {
                     <ActionButton onClick={handleSkip} disabled={!selectedMessage}>
                       Ignore
                     </ActionButton>
-                    <div className="rounded-md border border-slate-200 p-3">
-                      <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                        Gmail label
-                        <select
-                          value={selectedLabelId}
-                          onChange={(event) => setSelectedLabelId(event.target.value)}
-                          disabled={!selectedMessage || !userLabels.length}
-                          className="mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 disabled:bg-slate-100 disabled:text-slate-500"
-                        >
-                          <option value="">
-                            {userLabels.length ? "Choose label" : "No user labels"}
-                          </option>
-                          {userLabels.map((label) => (
-                            <option key={label.id} value={label.id}>
-                              {label.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <label className="mt-3 flex items-center gap-2 text-sm font-semibold text-slate-700">
-                        <input
-                          type="checkbox"
-                          checked={markReadWithLabel}
-                          onChange={(event) => setMarkReadWithLabel(event.target.checked)}
-                          className="h-4 w-4 rounded border-slate-300 text-emerald-700"
-                        />
-                        Mark read too
-                      </label>
-                      <div className="mt-3">
-                        <ActionButton
-                          onClick={handleApplyLabel}
-                          disabled={!selectedMessage || !selectedLabelId}
-                        >
-                          Apply label
-                        </ActionButton>
-                      </div>
-                    </div>
                     <ActionButton
                       onClick={handleTrash}
                       disabled={!selectedMessage}
@@ -1367,17 +1266,53 @@ function CustomerPanel({
   onPositiveDecision: () => void;
 }) {
   const email = selectedMessage ? buildContextEmail(selectedMessage) : "";
+  const customerEmailsText = customer ? getCustomerEmailsText(customer) : "-";
+  const relatedEmailsText =
+    customer && context ? getRelatedCustomerEmailsText(customer, context) : "-";
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
       <div className="border-b border-slate-200 p-4">
         <h2 className="text-lg font-extrabold">Customer</h2>
         <p className="text-sm text-slate-600">{email || "No customer selected"}</p>
+        <div className="mt-3 grid gap-2">
+          <ActionButton
+            onClick={onGenericUpdate}
+            disabled={!selectedMessage || !customer}
+          >
+            Trimite Update General
+          </ActionButton>
+          <ActionButton
+            onClick={onPositiveDecision}
+            disabled={!selectedMessage || !customer}
+            tone="danger"
+          >
+            Update DB zie pozitiva
+          </ActionButton>
+        </div>
       </div>
 
       <div className="space-y-4 p-4">
         {customer ? (
           <>
+            <form onSubmit={onAddEmail} className="rounded-md border border-slate-200 p-3">
+              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Add customer email
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(event) => onNewEmailChange(event.target.value)}
+                  placeholder="new@email.co.uk"
+                  className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
+                />
+              </label>
+              <button
+                type="submit"
+                className="mt-2 w-full rounded-md bg-emerald-700 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-800"
+              >
+                Add email
+              </button>
+            </form>
             <CustomerMetric
               title="Name"
               value={getCustomerName(customer, email) || "Unknown"}
@@ -1402,41 +1337,13 @@ function CustomerPanel({
               value={hasPositiveDecision(customer) ? "Yes" : "No"}
             />
             <CustomerMetric
-              title="Customer emails"
-              value={getCustomerEmailsText(customer)}
+              title="Customer email"
+              value={customerEmailsText}
             />
-            <form onSubmit={onAddEmail} className="rounded-md border border-slate-200 p-3">
-              <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                Add customer email
-                <input
-                  type="email"
-                  value={newEmail}
-                  onChange={(event) => onNewEmailChange(event.target.value)}
-                  placeholder="new@email.co.uk"
-                  className="mt-2 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-normal text-slate-900 outline-none focus:border-emerald-700 focus:ring-2 focus:ring-emerald-700/20"
-                />
-              </label>
-              <button
-                type="submit"
-                className="mt-2 w-full rounded-md bg-emerald-700 px-3 py-2 text-sm font-bold text-white hover:bg-emerald-800"
-              >
-                Add email
-              </button>
-            </form>
-            <div className="grid gap-2 rounded-md border border-slate-200 p-3">
-              <ActionButton
-                onClick={onGenericUpdate}
-                disabled={!selectedMessage || !customer}
-              >
-                Generic update
-              </ActionButton>
-              <ActionButton
-                onClick={onPositiveDecision}
-                disabled={!selectedMessage || !customer}
-              >
-                Update Decizie Pozitiva
-              </ActionButton>
-            </div>
+            <CustomerMetric
+              title="Other emails related to this customer"
+              value={relatedEmailsText}
+            />
             <CustomerMetric
               title="Number of services"
               value={getCustomerString(customer, ["numberOfCars", "numberOfServices"]) || "-"}
@@ -1567,15 +1474,6 @@ function ActionButton({
   );
 }
 
-function getUserGmailLabels(labels: GmailLabel[]) {
-  const userLabels = labels.filter((label) => label.type === "user");
-  const visibleLabels = userLabels.length ? userLabels : labels;
-
-  return visibleLabels
-    .filter((label) => label.id && label.name && !isHiddenGmailLabel(label))
-    .sort((left, right) => left.name.localeCompare(right.name));
-}
-
 function findGmailLabelByName(labels: GmailLabel[], name: string) {
   const normalizedName = normalizeGmailLabelName(name);
   return labels.find((label) => normalizeGmailLabelName(label.name) === normalizedName);
@@ -1583,27 +1481,6 @@ function findGmailLabelByName(labels: GmailLabel[], name: string) {
 
 function normalizeGmailLabelName(name: string) {
   return name.trim().toLowerCase();
-}
-
-function isHiddenGmailLabel(label: GmailLabel) {
-  const systemLabelIds = new Set([
-    "CHAT",
-    "CATEGORY_FORUMS",
-    "CATEGORY_PERSONAL",
-    "CATEGORY_PROMOTIONS",
-    "CATEGORY_SOCIAL",
-    "CATEGORY_UPDATES",
-    "DRAFT",
-    "IMPORTANT",
-    "INBOX",
-    "SENT",
-    "SPAM",
-    "STARRED",
-    "TRASH",
-    "UNREAD",
-  ]);
-
-  return label.type === "system" || systemLabelIds.has(label.id);
 }
 
 function getMessageId(message: SupportMessage | null, index: number) {
@@ -2538,6 +2415,19 @@ function getCustomerEmailsText(customer: Record<string, unknown>) {
   return emails.length ? emails.join("; ") : "-";
 }
 
+function getRelatedCustomerEmailsText(
+  customer: Record<string, unknown>,
+  context: CustomerContextResponse,
+) {
+  const customerEmails = new Set(getCustomerEmails(customer));
+  const relatedEmails = Array.from(collectEmailValues(context))
+    .filter((email) => !customerEmails.has(email))
+    .filter((email) => isUsefulRelatedEmail(email))
+    .sort((left, right) => left.localeCompare(right));
+
+  return relatedEmails.length ? relatedEmails.join("; ") : "-";
+}
+
 function getCustomerEmails(customer: Record<string, unknown>) {
   const values = customer.customerEmails;
   if (!Array.isArray(values)) {
@@ -2583,6 +2473,29 @@ function collectCustomerEmails(
     .sort((left, right) => left.localeCompare(right));
 }
 
+function collectEmailValues(value: unknown, emailSet = new Set<string>()) {
+  if (!value) {
+    return emailSet;
+  }
+
+  if (typeof value === "string") {
+    const matches = value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/gi) ?? [];
+    matches.forEach((match) => emailSet.add(match.toLowerCase()));
+    return emailSet;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectEmailValues(item, emailSet));
+    return emailSet;
+  }
+
+  if (typeof value === "object") {
+    Object.values(value).forEach((item) => collectEmailValues(item, emailSet));
+  }
+
+  return emailSet;
+}
+
 function getStringArray(value: unknown) {
   return Array.isArray(value)
     ? value
@@ -2606,6 +2519,23 @@ function addEmailCandidate(emailSet: Set<string>, value: unknown) {
 function isInternalEmail(email: string) {
   const domain = email.split("@")[1]?.toLowerCase() ?? "";
   return domain === "proveitweb.co.uk" || domain === "justproveit.co.uk";
+}
+
+function isUsefulRelatedEmail(email: string) {
+  if (!isValidEmail(email) || isInternalEmail(email)) {
+    return false;
+  }
+
+  const [localPart, domain = ""] = email.toLowerCase().split("@");
+  if (domain === "mail.gmail.com") {
+    return false;
+  }
+
+  if (localPart.length <= 3 && /^[a-z0-9+._-]+$/.test(localPart)) {
+    return false;
+  }
+
+  return true;
 }
 
 function hasPositiveDecision(customer: Record<string, unknown>) {
