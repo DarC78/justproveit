@@ -11,7 +11,6 @@ import {
   getGmailProfile,
   getMessage,
   getRecentMessages,
-  getThreadState,
   GmailProfile,
   markMessageRead,
   markThreadState,
@@ -37,14 +36,13 @@ import {
   useState,
 } from "react";
 
-type SourceMode = "cached" | "live" | "merged";
 type LoadStatus = "idle" | "loading" | "ready" | "error";
+type SourceMode = "cached" | "live" | "merged";
 
 const ACTIONABLE_MESSAGE_LIMIT = 20;
 const DEFAULT_MAILBOX_EMAIL = "oz@proveitweb.co.uk";
 const DONE_NO_REPLY_LABEL_NAME = "Done - No Reply Needed";
 const DONE_ANSWERED_LABEL_NAME = "Done - Answered";
-const THREAD_STATE_STORAGE_PREFIX = "justproveit:genericreports:thread-state";
 const POSITIVE_DECISION_STORAGE_PREFIX = "justproveit:genericreports:positive-decisions";
 const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
   {
@@ -230,7 +228,7 @@ export default function SupportInboxPage() {
   const [gmailProfile, setGmailProfile] = useState<GmailProfile | null>(null);
   const [gmailLabels, setGmailLabels] = useState<GmailLabel[]>([]);
   const [templates, setTemplates] = useState<ReplyTemplate[]>([]);
-  const [source, setSource] = useState<SourceMode>("cached");
+  const [source, setSource] = useState<SourceMode>("merged");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [searchEmail, setSearchEmail] = useState("");
@@ -243,13 +241,6 @@ export default function SupportInboxPage() {
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
   const [replyText, setReplyText] = useState("");
   const [lastSentEmailStatus, setLastSentEmailStatus] = useState("");
-  const [, setRepliedThreadKeys] = useState<Set<string>>(
-    () => new Set(),
-  );
-  const [, setSkippedThreadKeys] = useState<Set<string>>(
-    () => new Set(),
-  );
-
   const visibleMessages = useMemo(
     () => messages.slice(0, ACTIONABLE_MESSAGE_LIMIT),
     [messages],
@@ -349,14 +340,10 @@ export default function SupportInboxPage() {
           nextConfig,
           nextProfile,
           labelsResponse,
-          repliedState,
-          skippedState,
         ] = await Promise.all([
           getGenericReportsConfig(accessToken),
           getGmailProfile(accessToken),
           getGmailLabels(accessToken),
-          getThreadState(accessToken, "replied"),
-          getThreadState(accessToken, "skipped"),
         ]);
 
         if (cancelled) {
@@ -367,16 +354,6 @@ export default function SupportInboxPage() {
         setGmailProfile(nextProfile);
         setGmailLabels(labelsResponse.labels ?? []);
         setTemplates(CODE_REPLY_TEMPLATES);
-        const nextRepliedThreadKeys = mergeThreadStateKeys(
-          repliedState.threadKeys,
-          readStoredThreadStateKeys("replied", nextConfig.mailboxEmail),
-        );
-        setRepliedThreadKeys(nextRepliedThreadKeys);
-        const nextSkippedThreadKeys = mergeThreadStateKeys(
-          skippedState.threadKeys,
-          readStoredThreadStateKeys("skipped", nextConfig.mailboxEmail),
-        );
-        setSkippedThreadKeys(nextSkippedThreadKeys);
 
         const recentResponse = await getRecentMessages(accessToken, {
           source: "merged",
@@ -390,7 +367,6 @@ export default function SupportInboxPage() {
           setSelectedMessage(nextMessages[0] ?? null);
           setCustomerContext(null);
           setLoadStatus("ready");
-          setSource("merged");
           setActionStatus(formatActionableLoadStatus(recentResponse, nextMessages.length));
         }
       } catch (bootstrapError) {
@@ -565,6 +541,10 @@ export default function SupportInboxPage() {
       return;
     }
 
+    if (!confirmAction("Send this reply and move the email to Done - Answered?")) {
+      return;
+    }
+
     await runAction(`Sending reply and moving email to ${DONE_ANSWERED_LABEL_NAME}...`, async () => {
       const headers = buildReplyHeaders(selectedMessage);
       const templateKey = selectedTemplate?.key ?? "";
@@ -601,13 +581,10 @@ export default function SupportInboxPage() {
         addLabelIds: [answeredLabel.id],
         removeLabelIds: ["INBOX"],
       });
-
       await markThreadState(token, "replied", {
-        mailboxEmail: config?.mailboxEmail ?? DEFAULT_MAILBOX_EMAIL,
-        threadKey: `message:${selectedMessageId}`,
+        threadKey: selectedThreadKey || `message:${selectedMessageId}`,
         recipientEmail: recipient,
         subject,
-        repliedByEmail: user?.email ?? "",
       });
 
       if (
@@ -622,11 +599,6 @@ export default function SupportInboxPage() {
       }
 
       const stateKeys = getMessageStateKeys(selectedMessage);
-      setRepliedThreadKeys((current) => {
-        const next = addThreadStateKeys(current, stateKeys);
-        writeStoredThreadStateKeys("replied", config?.mailboxEmail, next);
-        return next;
-      });
       removeMessagesFromInbox(stateKeys);
       setReplyText("");
       return `Reply sent${result.id ? `: ${result.id}` : ""} and email moved to ${DONE_ANSWERED_LABEL_NAME}.`;
@@ -652,6 +624,10 @@ export default function SupportInboxPage() {
       return;
     }
 
+    if (!confirmAction("Mark this email as no reply needed and remove it from the inbox?")) {
+      return;
+    }
+
     await runAction(`Moving email to ${DONE_NO_REPLY_LABEL_NAME}...`, async () => {
       await markMessageRead(token, selectedMessageId);
       await updateMessageLabels(token, selectedMessageId, {
@@ -659,18 +635,11 @@ export default function SupportInboxPage() {
         removeLabelIds: ["INBOX"],
       });
       await markThreadState(token, "skipped", {
-        mailboxEmail: config?.mailboxEmail ?? DEFAULT_MAILBOX_EMAIL,
-        threadKey: `message:${selectedMessageId}`,
+        threadKey: selectedThreadKey || `message:${selectedMessageId}`,
         senderEmail: getReplyRecipient(selectedMessage),
         subject: selectedMessage.subject ?? "",
-        skippedByEmail: user?.email ?? "",
       });
       const stateKeys = getMessageStateKeys(selectedMessage);
-      setSkippedThreadKeys((current) => {
-        const next = addThreadStateKeys(current, stateKeys);
-        writeStoredThreadStateKeys("skipped", config?.mailboxEmail, next);
-        return next;
-      });
       removeMessagesFromInbox(stateKeys);
       return `Email marked read and moved to ${DONE_NO_REPLY_LABEL_NAME}.`;
     });
@@ -678,6 +647,10 @@ export default function SupportInboxPage() {
 
   async function handleTrash() {
     if (!token || !selectedMessage) {
+      return;
+    }
+
+    if (!confirmAction("Move this email thread to Gmail trash?")) {
       return;
     }
 
@@ -694,22 +667,7 @@ export default function SupportInboxPage() {
         );
       }
 
-      if (selectedThreadKey) {
-        await markThreadState(token, "skipped", {
-          mailboxEmail: config?.mailboxEmail ?? DEFAULT_MAILBOX_EMAIL,
-          threadKey: selectedThreadKey,
-          senderEmail: getReplyRecipient(selectedMessage),
-          subject: selectedMessage.subject ?? "",
-          skippedByEmail: user?.email ?? "",
-        });
-        const stateKeys = getThreadStateKeys(selectedMessage);
-        setSkippedThreadKeys((current) => {
-          const next = addThreadStateKeys(current, stateKeys);
-          writeStoredThreadStateKeys("skipped", config?.mailboxEmail, next);
-          return next;
-        });
-        removeMessagesFromInbox(stateKeys);
-      }
+      removeMessagesFromInbox(getThreadStateKeys(selectedMessage));
 
       return "Moved to Gmail trash.";
     });
@@ -746,6 +704,10 @@ export default function SupportInboxPage() {
       return;
     }
 
+    if (!confirmAction("Send the generic update email to this customer?")) {
+      return;
+    }
+
     await runAction("Sending generic update...", async () => {
       await sendGenericUpdateEmail(token, {
         to: recipient,
@@ -769,6 +731,10 @@ export default function SupportInboxPage() {
     const customerEmail = getPrimaryCustomerEmail(selectedCustomer, fallbackEmail);
     if (!customerEmail) {
       setActionStatus("No customer email found for this message.");
+      return;
+    }
+
+    if (!confirmAction("Record Decizie Pozitiva for this customer?")) {
       return;
     }
 
@@ -1536,84 +1502,6 @@ function getGmailMessageId(message: SupportMessage) {
   );
 }
 
-function normalizeThreadStateKeys(keys: string[] | undefined) {
-  const normalized = new Set<string>();
-
-  (keys ?? []).forEach((key) => {
-    const value = key.trim();
-    if (!value) {
-      return;
-    }
-
-    normalized.add(value);
-    if (value.startsWith("thread:")) {
-      normalized.add(value.slice("thread:".length));
-    } else if (value.startsWith("message:")) {
-      normalized.add(value.slice("message:".length));
-    } else {
-      normalized.add(`thread:${value}`);
-      normalized.add(`message:${value}`);
-    }
-  });
-
-  return normalized;
-}
-
-function mergeThreadStateKeys(...keyGroups: Array<string[] | undefined>) {
-  return normalizeThreadStateKeys(keyGroups.flatMap((keys) => keys ?? []));
-}
-
-function addThreadStateKeys(current: Set<string>, keys: string[]) {
-  return normalizeThreadStateKeys([...current, ...keys]);
-}
-
-function readStoredThreadStateKeys(
-  state: "replied" | "skipped",
-  mailboxEmail?: string,
-) {
-  if (typeof window === "undefined") {
-    return [];
-  }
-
-  try {
-    const raw = window.localStorage.getItem(
-      getThreadStateStorageKey(state, mailboxEmail),
-    );
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed)
-      ? parsed.filter((value): value is string => typeof value === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeStoredThreadStateKeys(
-  state: "replied" | "skipped",
-  mailboxEmail: string | undefined,
-  keys: Set<string>,
-) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(
-      getThreadStateStorageKey(state, mailboxEmail),
-      JSON.stringify(Array.from(keys)),
-    );
-  } catch {
-    // Browser storage is a fallback only; LaunchingStack remains the source of truth.
-  }
-}
-
-function getThreadStateStorageKey(
-  state: "replied" | "skipped",
-  mailboxEmail?: string,
-) {
-  return `${THREAD_STATE_STORAGE_PREFIX}:${mailboxEmail ?? DEFAULT_MAILBOX_EMAIL}:${state}`;
-}
-
 function readStoredPositiveDecisionEmails(mailboxEmail?: string) {
   if (typeof window === "undefined") {
     return [];
@@ -1685,6 +1573,14 @@ function addThreadStateKeyVariants(
 
 function hasAnyThreadStateKey(keys: string[], stateKeys: Set<string>) {
   return keys.some((key) => stateKeys.has(key));
+}
+
+function confirmAction(message: string) {
+  if (typeof window === "undefined") {
+    return true;
+  }
+
+  return window.confirm(message);
 }
 
 function getReplyRecipient(message: SupportMessage) {
