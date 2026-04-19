@@ -1133,6 +1133,8 @@ export default function SupportInboxPage() {
                   newEmail={newCustomerEmail}
                   onNewEmailChange={setNewCustomerEmail}
                   onAddEmail={handleAddCustomerEmail}
+                  onGenericUpdate={handleGenericUpdate}
+                  onPositiveDecision={handlePositiveDecision}
                 />
               </section>
 
@@ -1180,7 +1182,7 @@ export default function SupportInboxPage() {
                       Send reply
                     </ActionButton>
                     <ActionButton onClick={handleSkip} disabled={!selectedMessage}>
-                      No reply from here
+                      Ignore
                     </ActionButton>
                     <div className="rounded-md border border-slate-200 p-3">
                       <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
@@ -1225,18 +1227,6 @@ export default function SupportInboxPage() {
                       tone="danger"
                     >
                       Delete / trash
-                    </ActionButton>
-                    <ActionButton
-                      onClick={handleGenericUpdate}
-                      disabled={!selectedMessage || !selectedCustomer}
-                    >
-                      Generic update
-                    </ActionButton>
-                    <ActionButton
-                      onClick={handlePositiveDecision}
-                      disabled={!selectedMessage || !selectedCustomer}
-                    >
-                      Update Decizie Pozitiva
                     </ActionButton>
                   </div>
                 </div>
@@ -1364,6 +1354,8 @@ function CustomerPanel({
   newEmail,
   onNewEmailChange,
   onAddEmail,
+  onGenericUpdate,
+  onPositiveDecision,
 }: {
   customer: Record<string, unknown> | null;
   context: CustomerContextResponse | null;
@@ -1371,6 +1363,8 @@ function CustomerPanel({
   newEmail: string;
   onNewEmailChange: (value: string) => void;
   onAddEmail: (event: FormEvent<HTMLFormElement>) => void;
+  onGenericUpdate: () => void;
+  onPositiveDecision: () => void;
 }) {
   const email = selectedMessage ? buildContextEmail(selectedMessage) : "";
 
@@ -1429,6 +1423,20 @@ function CustomerPanel({
                 Add email
               </button>
             </form>
+            <div className="grid gap-2 rounded-md border border-slate-200 p-3">
+              <ActionButton
+                onClick={onGenericUpdate}
+                disabled={!selectedMessage || !customer}
+              >
+                Generic update
+              </ActionButton>
+              <ActionButton
+                onClick={onPositiveDecision}
+                disabled={!selectedMessage || !customer}
+              >
+                Update Decizie Pozitiva
+              </ActionButton>
+            </div>
             <CustomerMetric
               title="Number of services"
               value={getCustomerString(customer, ["numberOfCars", "numberOfServices"]) || "-"}
