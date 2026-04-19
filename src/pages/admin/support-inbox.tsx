@@ -562,10 +562,6 @@ export default function SupportInboxPage() {
       return;
     }
 
-    if (!window.confirm(`Send this reply to ${recipient}?`)) {
-      return;
-    }
-
     await runAction(`Sending reply and moving email to ${DONE_ANSWERED_LABEL_NAME}...`, async () => {
       const headers = buildReplyHeaders(selectedMessage);
       const templateKey = selectedTemplate?.key ?? "";
@@ -653,14 +649,6 @@ export default function SupportInboxPage() {
       return;
     }
 
-    if (
-      !window.confirm(
-        `Mark this email read, move it to "${DONE_NO_REPLY_LABEL_NAME}", and hide it from the inbox?`,
-      )
-    ) {
-      return;
-    }
-
     await runAction(`Moving email to ${DONE_NO_REPLY_LABEL_NAME}...`, async () => {
       await markMessageRead(token, selectedMessageId);
       await updateMessageLabels(token, selectedMessageId, {
@@ -687,10 +675,6 @@ export default function SupportInboxPage() {
 
   async function handleTrash() {
     if (!token || !selectedMessage) {
-      return;
-    }
-
-    if (!window.confirm("Move this Gmail message or thread to trash?")) {
       return;
     }
 
@@ -759,10 +743,6 @@ export default function SupportInboxPage() {
       return;
     }
 
-    if (!window.confirm(`Send a generic update email to ${recipient}?`)) {
-      return;
-    }
-
     await runAction("Sending generic update...", async () => {
       await sendGenericUpdateEmail(token, {
         to: recipient,
@@ -792,10 +772,6 @@ export default function SupportInboxPage() {
     if (hasPositiveDecision(selectedCustomer)) {
       setCustomerContext(markCustomerContextPositiveDecision(customerContext));
       setActionStatus("Customer already has Decizie Pozitiva recorded.");
-      return;
-    }
-
-    if (!window.confirm("Record Decizie Pozitiva for this customer?")) {
       return;
     }
 
@@ -2392,8 +2368,17 @@ function collectPhoneValues(value: unknown, phoneSet = new Set<string>()) {
 }
 
 function getCustomerEmailsText(customer: Record<string, unknown>) {
+  const maxVisibleEmails = 7;
   const emails = getCustomerEmails(customer);
-  return emails.length ? emails.join("; ") : "-";
+  if (!emails.length) {
+    return "-";
+  }
+
+  const visibleEmails = emails.slice(0, maxVisibleEmails);
+  const hiddenCount = emails.length - visibleEmails.length;
+  return hiddenCount > 0
+    ? `${visibleEmails.join("; ")}; ..... (${hiddenCount} more emails)`
+    : visibleEmails.join("; ");
 }
 
 function getRelatedCustomerEmailsText(
