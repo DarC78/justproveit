@@ -14,7 +14,6 @@ import {
   getThreadState,
   GmailProfile,
   markMessageRead,
-  markThreadRead,
   markThreadState,
   recordStageOneClosed,
   ReplyTemplate,
@@ -26,7 +25,6 @@ import {
   trashMessage,
   trashThread,
   updateMessageLabels,
-  updateThreadLabels,
 } from "@/lib/genericReports";
 import Head from "next/head";
 import Link from "next/link";
@@ -248,7 +246,7 @@ export default function SupportInboxPage() {
   const [, setRepliedThreadKeys] = useState<Set<string>>(
     () => new Set(),
   );
-  const [, setSkippedThreadKeys] = useState<Set<string>>(
+  const [skippedThreadKeys, setSkippedThreadKeys] = useState<Set<string>>(
     () => new Set(),
   );
 
@@ -286,7 +284,10 @@ export default function SupportInboxPage() {
         afterDate: formatDateForApi(startDate),
         beforeDate: formatExclusiveEndDateForApi(endDate),
       });
-      const nextMessages = response.messages ?? [];
+      const nextMessages = filterMessagesByStateKeys(
+        response.messages ?? [],
+        skippedThreadKeys,
+      );
       setMessages(nextMessages);
       setSelectedMessage(nextMessages[0] ?? null);
       setCustomerContext(null);
@@ -372,12 +373,11 @@ export default function SupportInboxPage() {
             readStoredThreadStateKeys("replied", nextConfig.mailboxEmail),
           ),
         );
-        setSkippedThreadKeys(
-          mergeThreadStateKeys(
-            skippedState.threadKeys,
-            readStoredThreadStateKeys("skipped", nextConfig.mailboxEmail),
-          ),
+        const nextSkippedThreadKeys = mergeThreadStateKeys(
+          skippedState.threadKeys,
+          readStoredThreadStateKeys("skipped", nextConfig.mailboxEmail),
         );
+        setSkippedThreadKeys(nextSkippedThreadKeys);
 
         const recentResponse = await getRecentMessages(accessToken, {
           source: "merged",
@@ -386,7 +386,10 @@ export default function SupportInboxPage() {
         });
 
         if (!cancelled) {
-          const nextMessages = recentResponse.messages ?? [];
+          const nextMessages = filterMessagesByStateKeys(
+            recentResponse.messages ?? [],
+            nextSkippedThreadKeys,
+          );
           setMessages(nextMessages);
           setSelectedMessage(nextMessages[0] ?? null);
           setCustomerContext(null);
@@ -618,7 +621,13 @@ export default function SupportInboxPage() {
   }
 
   async function handleSkip() {
-    if (!token || !selectedMessage || !selectedThreadKey) {
+    if (!token || !selectedMessage) {
+      return;
+    }
+
+    const selectedMessageId = getGmailMessageId(selectedMessage);
+    if (!selectedMessageId) {
+      setActionStatus("No Gmail message id found for the selected email.");
       return;
     }
 
@@ -632,33 +641,33 @@ export default function SupportInboxPage() {
 
     if (
       !window.confirm(
-        `Mark this thread read, move it to "${DONE_NO_REPLY_LABEL_NAME}", and hide it from the inbox?`,
+        `Mark this email read, move it to "${DONE_NO_REPLY_LABEL_NAME}", and hide it from the inbox?`,
       )
     ) {
       return;
     }
 
-    await runAction(`Moving thread to ${DONE_NO_REPLY_LABEL_NAME}...`, async () => {
-      await markSelectedMessageRead(token, selectedMessage);
-      await updateSelectedMessageLabels(token, selectedMessage, {
+    await runAction(`Moving email to ${DONE_NO_REPLY_LABEL_NAME}...`, async () => {
+      await markMessageRead(token, selectedMessageId);
+      await updateMessageLabels(token, selectedMessageId, {
         addLabelIds: [doneLabel.id],
         removeLabelIds: ["INBOX"],
       });
       await markThreadState(token, "skipped", {
         mailboxEmail: config?.mailboxEmail ?? DEFAULT_MAILBOX_EMAIL,
-        threadKey: selectedThreadKey,
+        threadKey: `message:${selectedMessageId}`,
         senderEmail: getReplyRecipient(selectedMessage),
         subject: selectedMessage.subject ?? "",
         skippedByEmail: user?.email ?? "",
       });
-      const stateKeys = getThreadStateKeys(selectedMessage);
+      const stateKeys = getMessageStateKeys(selectedMessage);
       setSkippedThreadKeys((current) => {
         const next = addThreadStateKeys(current, stateKeys);
         writeStoredThreadStateKeys("skipped", config?.mailboxEmail, next);
         return next;
       });
       removeMessagesFromInbox(stateKeys);
-      return `Thread marked read and moved to ${DONE_NO_REPLY_LABEL_NAME}.`;
+      return `Email marked read and moved to ${DONE_NO_REPLY_LABEL_NAME}.`;
     });
   }
 
@@ -682,35 +691,42 @@ export default function SupportInboxPage() {
       markReadWithLabel ? `Marking read and applying ${labelName}...` : `Applying ${labelName}...`,
       async () => {
         if (markReadWithLabel) {
-          await markSelectedMessageRead(token, selectedMessage);
+          const selectedMessageId = getGmailMessageId(selectedMessage);
+          if (!selectedMessageId) {
+            throw new Error("No Gmail message id found for the selected email.");
+          }
+          await markMessageRead(token, selectedMessageId);
         }
 
-        await updateSelectedMessageLabels(token, selectedMessage, {
+        const selectedMessageId = getGmailMessageId(selectedMessage);
+        if (!selectedMessageId) {
+          throw new Error("No Gmail message id found for the selected email.");
+        }
+
+        await updateMessageLabels(token, selectedMessageId, {
           addLabelIds: [selectedLabelId],
           removeLabelIds: [],
         });
 
-        if (selectedThreadKey) {
-          await markThreadState(token, "skipped", {
-            mailboxEmail: config?.mailboxEmail ?? DEFAULT_MAILBOX_EMAIL,
-            threadKey: selectedThreadKey,
-            senderEmail: getReplyRecipient(selectedMessage),
-            subject: selectedMessage.subject ?? "",
-            skippedByEmail: user?.email ?? "",
-          });
+        await markThreadState(token, "skipped", {
+          mailboxEmail: config?.mailboxEmail ?? DEFAULT_MAILBOX_EMAIL,
+          threadKey: `message:${selectedMessageId}`,
+          senderEmail: getReplyRecipient(selectedMessage),
+          subject: selectedMessage.subject ?? "",
+          skippedByEmail: user?.email ?? "",
+        });
 
-          const stateKeys = getThreadStateKeys(selectedMessage);
-          setSkippedThreadKeys((current) => {
-            const next = addThreadStateKeys(current, stateKeys);
-            writeStoredThreadStateKeys("skipped", config?.mailboxEmail, next);
-            return next;
-          });
-          removeMessagesFromInbox(stateKeys);
-        }
+        const stateKeys = getMessageStateKeys(selectedMessage);
+        setSkippedThreadKeys((current) => {
+          const next = addThreadStateKeys(current, stateKeys);
+          writeStoredThreadStateKeys("skipped", config?.mailboxEmail, next);
+          return next;
+        });
+        removeMessagesFromInbox(stateKeys);
 
         return markReadWithLabel
-          ? `Marked read, applied ${labelName}, and hid the thread.`
-          : `Applied ${labelName} and hid the thread.`;
+          ? `Marked read, applied ${labelName}, and hid the email.`
+          : `Applied ${labelName} and hid the email.`;
       },
     );
   }
@@ -1523,36 +1539,6 @@ function ActionButton({
   );
 }
 
-async function markSelectedMessageRead(token: string, message: SupportMessage) {
-  if (message.threadId || message.externalThreadId) {
-    await markThreadRead(token, message.threadId ?? message.externalThreadId ?? "");
-    return;
-  }
-
-  await markMessageRead(token, message.messageId ?? message.externalMessageId ?? "");
-}
-
-async function updateSelectedMessageLabels(
-  token: string,
-  message: SupportMessage,
-  payload: { addLabelIds: string[]; removeLabelIds: string[] },
-) {
-  if (message.threadId || message.externalThreadId) {
-    await updateThreadLabels(
-      token,
-      message.threadId ?? message.externalThreadId ?? "",
-      payload,
-    );
-    return;
-  }
-
-  await updateMessageLabels(
-    token,
-    message.messageId ?? message.externalMessageId ?? "",
-    payload,
-  );
-}
-
 function getUserGmailLabels(labels: GmailLabel[]) {
   const userLabels = labels.filter((label) => label.type === "user");
   const visibleLabels = userLabels.length ? userLabels : labels;
@@ -1634,17 +1620,41 @@ function getThreadKey(message: SupportMessage) {
 function getThreadStateKeys(message: SupportMessage) {
   const keys = new Set<string>();
   const threadId = message.threadId ?? message.externalThreadId;
-  const messageId =
-    message.messageId ??
-    message.internetMessageId ??
-    message.externalMessageId ??
-    message.id ??
-    message._id;
+  const messageId = getGmailMessageId(message) ?? message.internetMessageId;
 
   addThreadStateKeyVariants(keys, threadId, "thread");
   addThreadStateKeyVariants(keys, messageId, "message");
 
   return Array.from(keys);
+}
+
+function getMessageStateKeys(message: SupportMessage) {
+  const keys = new Set<string>();
+  addThreadStateKeyVariants(keys, getGmailMessageId(message), "message");
+  return Array.from(keys);
+}
+
+function getGmailMessageId(message: SupportMessage) {
+  return (
+    message.messageId ??
+    message.externalMessageId ??
+    message.id ??
+    message._id ??
+    ""
+  );
+}
+
+function filterMessagesByStateKeys(
+  messages: SupportMessage[],
+  stateKeys: Set<string>,
+) {
+  if (!stateKeys.size) {
+    return messages;
+  }
+
+  return messages.filter(
+    (message) => !hasAnyThreadStateKey(getThreadStateKeys(message), stateKeys),
+  );
 }
 
 function normalizeThreadStateKeys(keys: string[] | undefined) {
