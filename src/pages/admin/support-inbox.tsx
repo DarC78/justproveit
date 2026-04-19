@@ -598,7 +598,7 @@ export default function SupportInboxPage() {
         });
       }
 
-      const stateKeys = getMessageStateKeys(selectedMessage);
+      const stateKeys = getThreadStateKeys(selectedMessage);
       removeMessagesFromInbox(stateKeys);
       setReplyText("");
       return `Reply sent${result.id ? `: ${result.id}` : ""} and email moved to ${DONE_ANSWERED_LABEL_NAME}.`;
@@ -639,7 +639,7 @@ export default function SupportInboxPage() {
         senderEmail: getReplyRecipient(selectedMessage),
         subject: selectedMessage.subject ?? "",
       });
-      const stateKeys = getMessageStateKeys(selectedMessage);
+      const stateKeys = getThreadStateKeys(selectedMessage);
       removeMessagesFromInbox(stateKeys);
       return `Email marked read and moved to ${DONE_NO_REPLY_LABEL_NAME}.`;
     });
@@ -1483,12 +1483,6 @@ function getThreadStateKeys(message: SupportMessage) {
   addThreadStateKeyVariants(keys, threadId, "thread");
   addThreadStateKeyVariants(keys, messageId, "message");
 
-  return Array.from(keys);
-}
-
-function getMessageStateKeys(message: SupportMessage) {
-  const keys = new Set<string>();
-  addThreadStateKeyVariants(keys, getGmailMessageId(message), "message");
   return Array.from(keys);
 }
 
