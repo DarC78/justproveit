@@ -268,9 +268,11 @@ Required status codes:
 Add a lightweight endpoint the frontend can call to confirm admin access.
 
 ```http
-GET /admin/me
+GET /justproveit/admin/me
 Authorization: Bearer <token>
 ```
+
+On Azure Functions, do not use routes beginning with `/admin/*`; the runtime reserves admin routes and live testing returned `404` for `/api/admin/me`. Use `/api/justproveit/admin/*` instead.
 
 Successful response:
 
@@ -306,23 +308,23 @@ This endpoint gives the frontend a simple and reliable admin gate before renderi
 
 ## Admin API Namespace
 
-All future admin-only endpoints should live under:
+All future JustProveit admin-only endpoints should live under:
 
 ```text
-/admin/*
+/justproveit/admin/*
 ```
 
 Examples:
 
 ```text
-GET /admin/me
-GET /admin/users
-GET /admin/submissions
-PATCH /admin/submissions/{id}
-GET /admin/audit-log
+GET /justproveit/admin/me
+GET /justproveit/admin/users
+GET /justproveit/admin/submissions
+PATCH /justproveit/admin/submissions/{id}
+GET /justproveit/admin/audit-log
 ```
 
-Every endpoint under `/admin/*` must use the shared admin authorization helper.
+Every endpoint under `/justproveit/admin/*` must use the shared admin authorization helper.
 
 ## Admin Management Requirements
 
@@ -391,7 +393,7 @@ Content-Type
 Once LaunchingStack implements this, the JustProveit frontend will rely on:
 
 1. Login and `/auth/me` return either `roles`/`permissions` or `isAdmin`.
-2. Admin access can be confirmed with `GET /admin/me`.
+2. Admin access can be confirmed with `GET /justproveit/admin/me`.
 3. Admin-only API calls return `401` for unauthenticated users.
 4. Admin-only API calls return `403` for authenticated non-admin users.
 5. Refresh tokens issue access tokens with current role claims.
@@ -413,13 +415,13 @@ const isAdmin = user?.isAdmin === true;
 ## Acceptance Criteria
 
 - A normal JustProveit user can log in and use existing authenticated functionality.
-- A normal JustProveit user receives `403` from `GET /admin/me`.
-- A JustProveit admin receives `200` from `GET /admin/me`.
+- A normal JustProveit user receives `403` from `GET /justproveit/admin/me`.
+- A JustProveit admin receives `200` from `GET /justproveit/admin/me`.
 - Login response for an admin includes admin role/permission data.
 - `/auth/me` response for an admin includes admin role/permission data.
 - Refreshing an admin session returns a token that preserves current admin claims.
 - Removing admin access prevents future refreshed tokens from containing admin claims.
-- All `/admin/*` endpoints reject missing, invalid, expired, or non-admin tokens.
+- All `/justproveit/admin/*` endpoints reject missing, invalid, expired, or non-admin tokens.
 - Admin role grants and revocations are auditable.
 - CORS allows the JustProveit frontend domains to call auth and admin endpoints.
 
@@ -428,5 +430,5 @@ const isAdmin = user?.isAdmin === true;
 - Whether to expose `roles`, `permissions`, `isAdmin`, or a combination.
 - Whether admin roles are stored in an existing membership table or a new tenant role table.
 - Whether `/auth/refresh` returns an updated `user` object or the frontend should call `/auth/me` after refresh.
-- Which admin data endpoints JustProveit needs after the initial `/admin/me` gate.
+- Which admin data endpoints JustProveit needs after the initial `/justproveit/admin/me` gate.
 - Whether LaunchingStack wants an internal admin management UI or backend-only scripts/operations for the first release.

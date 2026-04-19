@@ -83,12 +83,14 @@ The frontend should be able to receive these as either API config or hard-coded 
 
 ## Admin Capability Endpoint
 
-The JustProveIt frontend currently expects:
+The JustProveIt frontend should use the LaunchingStack JustProveIt admin route:
 
 ```http
-GET /api/admin/me
+GET /api/justproveit/admin/me
 Authorization: Bearer <accessToken>
 ```
+
+Do not use `/api/admin/me` on Azure Functions. Routes beginning with `/api/admin/*` are not served reliably because `admin` conflicts with Azure Functions runtime admin routes; live testing returned `404` even when Azure listed the function.
 
 This endpoint should be deployed or the correct route should be confirmed.
 
@@ -102,11 +104,13 @@ This is not the GenericReports workflow itself, but it is the common admin gate 
 
 ## Recommended API Namespace
 
-Use a dedicated namespace:
+Use the dedicated LaunchingStack JustProveIt namespace:
 
 ```text
-/api/admin/generic-reports/*
+/api/justproveit/admin/generic-reports/*
 ```
+
+Do not use `/api/admin/generic-reports/*` on Azure Functions for the same `admin` route-prefix reason above.
 
 All endpoints below assume the base URL:
 
@@ -130,7 +134,7 @@ listRecentSupportMailboxMessages()
 Endpoint:
 
 ```http
-GET /admin/generic-reports/messages/recent?limit=20&afterDate=2026/04/01&beforeDate=2026/04/19
+GET /justproveit/admin/generic-reports/messages/recent?limit=20&afterDate=2026/04/01&beforeDate=2026/04/19
 Authorization: Bearer <token>
 ```
 
@@ -203,7 +207,7 @@ Replaces Gmail searches and cached support view lookups by address.
 Endpoint:
 
 ```http
-GET /admin/generic-reports/messages/search?email=customer@example.com&limit=100
+GET /justproveit/admin/generic-reports/messages/search?email=customer@example.com&limit=100
 Authorization: Bearer <token>
 ```
 
@@ -230,7 +234,7 @@ gmailGetAttachmentData(messageId, attachmentId)
 Endpoint:
 
 ```http
-GET /admin/generic-reports/messages/{messageId}/attachments/{attachmentId}
+GET /justproveit/admin/generic-reports/messages/{messageId}/attachments/{attachmentId}
 Authorization: Bearer <token>
 ```
 
@@ -265,7 +269,7 @@ getSupportCustomerSupportView(email, options)
 Endpoint:
 
 ```http
-GET /admin/generic-reports/customers/context?email=customer@example.com
+GET /justproveit/admin/generic-reports/customers/context?email=customer@example.com
 Authorization: Bearer <token>
 ```
 
@@ -337,7 +341,7 @@ getLeadByPhone(phone)
 Endpoint:
 
 ```http
-GET /admin/generic-reports/leads/by-phone?phone=07123456789
+GET /justproveit/admin/generic-reports/leads/by-phone?phone=07123456789
 Authorization: Bearer <token>
 ```
 
@@ -370,7 +374,7 @@ replyTemplates
 Endpoint:
 
 ```http
-GET /admin/generic-reports/reply-templates
+GET /justproveit/admin/generic-reports/reply-templates
 Authorization: Bearer <token>
 ```
 
@@ -434,7 +438,7 @@ gmailGetProfile()
 Endpoint:
 
 ```http
-GET /admin/generic-reports/gmail/profile
+GET /justproveit/admin/generic-reports/gmail/profile
 Authorization: Bearer <token>
 ```
 
@@ -466,7 +470,7 @@ gmailGet(messageId)
 Endpoint:
 
 ```http
-POST /admin/generic-reports/gmail/search
+POST /justproveit/admin/generic-reports/gmail/search
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
@@ -504,7 +508,7 @@ gmailSend({ to, bcc, subject, text, html, threadId, inReplyTo, references })
 Endpoint:
 
 ```http
-POST /admin/generic-reports/gmail/send
+POST /justproveit/admin/generic-reports/gmail/send
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
@@ -550,8 +554,8 @@ Requirements:
 Endpoints:
 
 ```http
-POST /admin/generic-reports/gmail/threads/{threadId}/read
-POST /admin/generic-reports/gmail/messages/{messageId}/read
+POST /justproveit/admin/generic-reports/gmail/threads/{threadId}/read
+POST /justproveit/admin/generic-reports/gmail/messages/{messageId}/read
 Authorization: Bearer <token>
 ```
 
@@ -568,8 +572,8 @@ Response:
 Endpoints:
 
 ```http
-POST /admin/generic-reports/gmail/threads/{threadId}/trash
-POST /admin/generic-reports/gmail/messages/{messageId}/trash
+POST /justproveit/admin/generic-reports/gmail/threads/{threadId}/trash
+POST /justproveit/admin/generic-reports/gmail/messages/{messageId}/trash
 Authorization: Bearer <token>
 ```
 
@@ -599,7 +603,7 @@ getRepliedSupportThreadKeys({ mailboxEmail })
 Endpoint:
 
 ```http
-GET /admin/generic-reports/thread-state/replied?mailboxEmail=oz@proveitweb.co.uk
+GET /justproveit/admin/generic-reports/thread-state/replied?mailboxEmail=oz@proveitweb.co.uk
 Authorization: Bearer <token>
 ```
 
@@ -623,7 +627,7 @@ getSkippedSupportThreadKeys({ mailboxEmail })
 Endpoint:
 
 ```http
-GET /admin/generic-reports/thread-state/skipped?mailboxEmail=oz@proveitweb.co.uk
+GET /justproveit/admin/generic-reports/thread-state/skipped?mailboxEmail=oz@proveitweb.co.uk
 Authorization: Bearer <token>
 ```
 
@@ -647,7 +651,7 @@ markSupportThreadAsReplied({ mailboxEmail, threadKey, recipientEmail, subject, r
 Endpoint:
 
 ```http
-POST /admin/generic-reports/thread-state/replied
+POST /justproveit/admin/generic-reports/thread-state/replied
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
@@ -687,7 +691,7 @@ markSupportThreadAsSkipped({ mailboxEmail, threadKey, senderEmail, subject, skip
 Endpoint:
 
 ```http
-POST /admin/generic-reports/thread-state/skipped
+POST /justproveit/admin/generic-reports/thread-state/skipped
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
@@ -727,7 +731,7 @@ recordGenericReportsStageOneClosed(...)
 Endpoint:
 
 ```http
-POST /admin/generic-reports/customers/stage-one-closed
+POST /justproveit/admin/generic-reports/customers/stage-one-closed
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
@@ -782,7 +786,7 @@ insertLeadIntoAzure(phone, 35)
 Endpoint:
 
 ```http
-POST /admin/generic-reports/azure-queue
+POST /justproveit/admin/generic-reports/azure-queue
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
@@ -818,7 +822,7 @@ sendGenericUpdateEmail({ to, customerName, customerSinceLabel, statusLabel })
 Endpoint:
 
 ```http
-POST /admin/generic-reports/emails/generic-update
+POST /justproveit/admin/generic-reports/emails/generic-update
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
@@ -1028,7 +1032,7 @@ Initial layout:
 
 ## Open Questions For LaunchingStack
 
-- Is `/api/admin/me` the intended admin capability route? It currently returns `404` in testing.
+- `/api/admin/me` returned `404` in live Azure Functions testing. Use `/api/justproveit/admin/me`.
 - Should Gmail OAuth remain tied to the existing Wix `EmailAccounts` records, or be migrated to LaunchingStack storage?
 - Should recent messages come from live Gmail, cached Azure support mailbox data, or merged live+cached results by default?
 - Where should reply templates live: database table, config file, or existing Wix collection export?
