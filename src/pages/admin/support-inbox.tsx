@@ -797,7 +797,7 @@ export default function SupportInboxPage() {
       setCustomerContext(markCustomerContextPositiveDecision(customerContext));
       const refreshedContext = await getCustomerContext(token, customerEmail).catch(() => null);
       if (refreshedContext) {
-        setCustomerContext(refreshedContext);
+        setCustomerContext(markCustomerContextPositiveDecision(refreshedContext));
       }
       return "Decizie Pozitiva recorded.";
     });
