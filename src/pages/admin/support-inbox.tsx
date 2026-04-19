@@ -242,10 +242,10 @@ export default function SupportInboxPage() {
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
   const [replyText, setReplyText] = useState("");
   const [lastSentEmailStatus, setLastSentEmailStatus] = useState("");
-  const [repliedThreadKeys, setRepliedThreadKeys] = useState<Set<string>>(
+  const [, setRepliedThreadKeys] = useState<Set<string>>(
     () => new Set(),
   );
-  const [skippedThreadKeys, setSkippedThreadKeys] = useState<Set<string>>(
+  const [, setSkippedThreadKeys] = useState<Set<string>>(
     () => new Set(),
   );
 
@@ -265,6 +265,10 @@ export default function SupportInboxPage() {
   );
   const selectedRecipient = selectedMessage ? getReplyRecipient(selectedMessage) : "";
   const selectedThreadKey = selectedMessage ? getThreadKey(selectedMessage) : "";
+  const selectedContextEmail = selectedMessage ? buildContextEmail(selectedMessage) : "";
+  const selectedContextKey = selectedMessage
+    ? `${getGmailMessageId(selectedMessage) || getMessageId(selectedMessage, 0)}:${selectedContextEmail}`
+    : "";
 
   async function loadRecent() {
     if (!token) {
@@ -282,10 +286,7 @@ export default function SupportInboxPage() {
         afterDate: formatDateForApi(startDate),
         beforeDate: formatExclusiveEndDateForApi(endDate),
       });
-      const nextMessages = filterMessagesByStateKeys(
-        response.messages ?? [],
-        combineThreadStateKeySets(repliedThreadKeys, skippedThreadKeys),
-      );
+      const nextMessages = response.messages ?? [];
       setMessages(nextMessages);
       setSelectedMessage(nextMessages[0] ?? null);
       setCustomerContext(null);
@@ -383,10 +384,7 @@ export default function SupportInboxPage() {
         });
 
         if (!cancelled) {
-          const nextMessages = filterMessagesByStateKeys(
-            recentResponse.messages ?? [],
-            combineThreadStateKeySets(nextRepliedThreadKeys, nextSkippedThreadKeys),
-          );
+          const nextMessages = recentResponse.messages ?? [];
           setMessages(nextMessages);
           setSelectedMessage(nextMessages[0] ?? null);
           setCustomerContext(null);
@@ -415,7 +413,7 @@ export default function SupportInboxPage() {
     }
 
     const accessToken = token;
-    const email = buildContextEmail(selectedMessage);
+    const email = selectedContextEmail;
     if (!email) {
       return;
     }
@@ -441,7 +439,7 @@ export default function SupportInboxPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedMessage, token]);
+  }, [selectedContextEmail, selectedContextKey, selectedMessage, token]);
 
   useEffect(() => {
     if (!token || !selectedMessage || selectedTemplateKey) {
@@ -1547,23 +1545,6 @@ function getGmailMessageId(message: SupportMessage) {
     message._id ??
     ""
   );
-}
-
-function filterMessagesByStateKeys(
-  messages: SupportMessage[],
-  stateKeys: Set<string>,
-) {
-  if (!stateKeys.size) {
-    return messages;
-  }
-
-  return messages.filter(
-    (message) => !hasAnyThreadStateKey(getThreadStateKeys(message), stateKeys),
-  );
-}
-
-function combineThreadStateKeySets(...sets: Set<string>[]) {
-  return normalizeThreadStateKeys(sets.flatMap((set) => Array.from(set)));
 }
 
 function normalizeThreadStateKeys(keys: string[] | undefined) {
