@@ -16,6 +16,14 @@ export type GmailProfile = {
   expectedMailboxEmail: string;
 };
 
+export type GmailLabel = {
+  id: string;
+  name: string;
+  type?: "system" | "user" | string;
+  messageListVisibility?: string;
+  labelListVisibility?: string;
+};
+
 export type ReplyTemplate = {
   key: string;
   label?: string;
@@ -107,6 +115,11 @@ export type SendReplyRequest = {
   metadata?: Record<string, unknown>;
 };
 
+export type GmailLabelUpdateRequest = {
+  addLabelIds: string[];
+  removeLabelIds: string[];
+};
+
 function authHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`,
@@ -134,6 +147,12 @@ export function getGenericReportsConfig(token: string) {
 
 export function getGmailProfile(token: string) {
   return fetchJson<GmailProfile>(`${BASE_PATH}/gmail/profile`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function getGmailLabels(token: string) {
+  return fetchJson<{ labels?: GmailLabel[] }>(`${BASE_PATH}/gmail/labels`, {
     headers: authHeaders(token),
   });
 }
@@ -247,6 +266,36 @@ export function markMessageRead(token: string, messageId: string) {
   return fetchJson<{ success?: boolean }>(
     `${BASE_PATH}/gmail/messages/${encodeURIComponent(messageId)}/read`,
     { method: "POST", headers: authHeaders(token) },
+  );
+}
+
+export function updateThreadLabels(
+  token: string,
+  threadId: string,
+  payload: GmailLabelUpdateRequest,
+) {
+  return fetchJson<{ success?: boolean; labelIds?: string[] }>(
+    `${BASE_PATH}/gmail/threads/${encodeURIComponent(threadId)}/labels`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function updateMessageLabels(
+  token: string,
+  messageId: string,
+  payload: GmailLabelUpdateRequest,
+) {
+  return fetchJson<{ success?: boolean; labelIds?: string[] }>(
+    `${BASE_PATH}/gmail/messages/${encodeURIComponent(messageId)}/labels`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
   );
 }
 
