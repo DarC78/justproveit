@@ -45,6 +45,7 @@ const DEFAULT_MAILBOX_EMAIL = "oz@proveitweb.co.uk";
 const DONE_NO_REPLY_LABEL_NAME = "Done - No Reply Needed";
 const DONE_ANSWERED_LABEL_NAME = "Done - Answered";
 const THREAD_STATE_STORAGE_PREFIX = "justproveit:genericreports:thread-state";
+const POSITIVE_DECISION_STORAGE_PREFIX = "justproveit:genericreports:positive-decisions";
 const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
   {
     key: "felicitari",
@@ -424,7 +425,9 @@ export default function SupportInboxPage() {
       try {
         const context = await getCustomerContext(accessToken, email);
         if (!cancelled) {
-          setCustomerContext(context);
+          setCustomerContext(
+            applyStoredPositiveDecision(context, email, config?.mailboxEmail),
+          );
         }
       } catch (contextError) {
         if (!cancelled) {
@@ -439,7 +442,7 @@ export default function SupportInboxPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedContextEmail, selectedContextKey, selectedMessage, token]);
+  }, [config?.mailboxEmail, selectedContextEmail, selectedContextKey, selectedMessage, token]);
 
   useEffect(() => {
     if (!token || !selectedMessage || selectedTemplateKey) {
@@ -770,6 +773,7 @@ export default function SupportInboxPage() {
     }
 
     if (hasPositiveDecision(selectedCustomer)) {
+      addStoredPositiveDecisionEmail(config?.mailboxEmail, customerEmail);
       setCustomerContext(markCustomerContextPositiveDecision(customerContext));
       setActionStatus("Customer already has Decizie Pozitiva recorded.");
       return;
@@ -794,10 +798,19 @@ export default function SupportInboxPage() {
           selectedSubject: selectedMessage.subject ?? "",
         },
       });
+      addStoredPositiveDecisionEmail(config?.mailboxEmail, customerEmail);
       setCustomerContext(markCustomerContextPositiveDecision(customerContext));
       const refreshedContext = await getCustomerContext(token, customerEmail).catch(() => null);
       if (refreshedContext) {
-        setCustomerContext(markCustomerContextPositiveDecision(refreshedContext));
+        setCustomerContext(
+          markCustomerContextPositiveDecision(
+            applyStoredPositiveDecision(
+              refreshedContext,
+              customerEmail,
+              config?.mailboxEmail,
+            ),
+          ),
+        );
       }
       return "Decizie Pozitiva recorded.";
     });
@@ -1601,6 +1614,61 @@ function getThreadStateStorageKey(
   return `${THREAD_STATE_STORAGE_PREFIX}:${mailboxEmail ?? DEFAULT_MAILBOX_EMAIL}:${state}`;
 }
 
+function readStoredPositiveDecisionEmails(mailboxEmail?: string) {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(
+      getPositiveDecisionStorageKey(mailboxEmail),
+    );
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter((value): value is string => typeof value === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function addStoredPositiveDecisionEmail(
+  mailboxEmail: string | undefined,
+  email: string,
+) {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) {
+    return;
+  }
+
+  const emails = new Set(readStoredPositiveDecisionEmails(mailboxEmail));
+  emails.add(normalizedEmail);
+
+  try {
+    window.localStorage.setItem(
+      getPositiveDecisionStorageKey(mailboxEmail),
+      JSON.stringify(Array.from(emails)),
+    );
+  } catch {
+    // Browser storage is a fallback only; LaunchingStack remains the source of truth.
+  }
+}
+
+function hasStoredPositiveDecisionEmail(
+  mailboxEmail: string | undefined,
+  email: string,
+) {
+  const normalizedEmail = email.trim().toLowerCase();
+  return Boolean(
+    normalizedEmail &&
+      readStoredPositiveDecisionEmails(mailboxEmail).includes(normalizedEmail),
+  );
+}
+
+function getPositiveDecisionStorageKey(mailboxEmail?: string) {
+  return `${POSITIVE_DECISION_STORAGE_PREFIX}:${mailboxEmail ?? DEFAULT_MAILBOX_EMAIL}`;
+}
+
 function addThreadStateKeyVariants(
   keys: Set<string>,
   value: string | undefined,
@@ -2096,6 +2164,16 @@ function markCustomerContextPositiveDecision(
   }
 
   return nextContext;
+}
+
+function applyStoredPositiveDecision(
+  context: CustomerContextResponse | null,
+  email: string,
+  mailboxEmail?: string,
+) {
+  return hasStoredPositiveDecisionEmail(mailboxEmail, email)
+    ? markCustomerContextPositiveDecision(context)
+    : context;
 }
 
 function addEmailsToCustomerContext(
