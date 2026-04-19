@@ -587,15 +587,61 @@ export default function SupportInboxPage() {
         subject,
       });
 
-      if (
-        templateKey === config?.stageOneTemplateKey &&
-        getCustomerPhone(selectedCustomer)
-      ) {
-        await addPhoneToAzureQueue(token, {
-          phone: getCustomerPhone(selectedCustomer),
-          queueId: config.felicitariAzureQueueId,
-          reason: "felicitari-template-sent",
-        });
+      if (templateKey === config?.stageOneTemplateKey) {
+        const customerEmail = getPrimaryCustomerEmail(
+          selectedCustomer,
+          buildContextEmail(selectedMessage),
+        );
+        const eventAt = new Date().toISOString();
+
+        if (customerEmail) {
+          if (!hasPositiveDecision(selectedCustomer)) {
+            await recordStageOneClosed(token, {
+              customerEmail,
+              customerName: getCustomerName(selectedCustomer, customerEmail),
+              eventAt,
+              sourceRecordId: `felicitari-template:${customerEmail}:${eventAt}`,
+              sourceParentId: selectedThreadKey || `message:${selectedMessageId}`,
+              sourceSystem: "genericreports_admin_felicitari",
+              sourceRecordType: "felicitari_template_sent",
+              templateKey,
+              mailboxEmail: config?.mailboxEmail ?? "oz@proveitweb.co.uk",
+              description: "Positive decision recorded after felicitari template send",
+              matchedTemplateFrom: "genericreports_admin_felicitari_template",
+              metadata: {
+                gmailMessageId: result.id ?? "",
+                threadKey: selectedThreadKey,
+                selectedSubject: selectedMessage.subject ?? "",
+              },
+            });
+          }
+
+          addStoredPositiveDecisionEmail(config?.mailboxEmail, customerEmail);
+          setCustomerContext(markCustomerContextPositiveDecision(customerContext));
+          const refreshedContext = await getCustomerContext(token, customerEmail).catch(
+            () => null,
+          );
+          if (refreshedContext) {
+            setCustomerContext(
+              markCustomerContextPositiveDecision(
+                applyStoredPositiveDecision(
+                  refreshedContext,
+                  customerEmail,
+                  config?.mailboxEmail,
+                ),
+              ),
+            );
+          }
+        }
+
+        const customerPhone = getCustomerPhone(selectedCustomer);
+        if (customerPhone) {
+          await addPhoneToAzureQueue(token, {
+            phone: customerPhone,
+            queueId: config.felicitariAzureQueueId,
+            reason: "felicitari-template-sent",
+          });
+        }
       }
 
       const stateKeys = getThreadStateKeys(selectedMessage);
