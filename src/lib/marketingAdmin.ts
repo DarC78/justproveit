@@ -26,6 +26,8 @@ export type FacebookConnection = {
   TokenExpiresAtUtc?: string | null;
   IsEnabled?: boolean;
   UpdatedAtUtc?: string;
+  PostingBriefDocument?: string | null;
+  GenerationCommand?: string | null;
   AudienceDescription?: string | null;
   DefaultLinkUrl?: string | null;
   DailyPostTarget?: number | null;
@@ -170,5 +172,20 @@ export function connectFacebookMarketingPage(
 export function getFacebookMarketingDashboard(token: string) {
   return fetchJson<FacebookDashboard>(`${BASE_PATH}/facebook/dashboard`, {
     headers: authHeaders(token),
+  });
+}
+
+export function saveFacebookContentSettings(
+  token: string,
+  payload: {
+    pageId: string;
+    postingBriefDocument?: string;
+    generationCommand?: string;
+  },
+) {
+  return fetchJson<{ success?: boolean }>(`${BASE_PATH}/facebook/pages/settings`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
   });
 }

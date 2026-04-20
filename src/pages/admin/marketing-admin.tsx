@@ -10,6 +10,7 @@ import {
   getFacebookMarketingAuthUrl,
   getFacebookMarketingDashboard,
   PublishedFacebookPost,
+  saveFacebookContentSettings,
   ScheduledFacebookPost,
 } from "@/lib/marketingAdmin";
 import Head from "next/head";
@@ -19,6 +20,65 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type GateStatus = "checking" | "allowed" | "denied";
 type LoadStatus = "idle" | "loading" | "ready" | "error";
+
+const PROVEIT_CONTEXT_BRIEF = `You are creating Facebook content for the ProveIt page.
+
+Business summary:
+ProveIt helps people in the UK understand and pursue potential car finance mis-selling claims. The page should make a complex topic feel clear, credible, and actionable for ordinary consumers.
+
+Audience:
+Adults in the UK who used PCP or HP car finance and may have been affected by hidden commissions, unfair finance structures, or unclear lender-dealer relationships. Many are not legally confident and need plain-English guidance.
+
+Objectives:
+Build trust, educate readers, explain eligibility clearly, keep the audience informed about FCA developments, and encourage qualified users to check whether they may have a valid claim.
+
+Core subjects:
+Car finance mis-selling, discretionary commission arrangements, hidden commissions, PCP and HP agreements, consumer rights, FCA updates, complaint process, and practical next steps.
+
+Secondary subjects:
+Common misconceptions, supporting documents people may need, timelines, what lenders may say, and what customers should do next.
+
+Offer / CTA:
+Encourage users to learn more, understand whether they may be eligible, and take the next step with ProveIt.
+
+Tone of voice:
+Clear, trustworthy, practical, calm, and supportive.
+
+Style rules:
+- Write for Facebook, not for a legal memo.
+- Make the content useful first and promotional second.
+- Prefer short paragraphs, strong hooks, and direct explanations.
+- Avoid hype, legal overpromises, and jargon without explanation.`;
+
+const PROVEIT_GENERATION_COMMAND = `Using the page context above, generate Facebook posts for ProveIt.
+
+Requirements:
+- Mix educational, myth-busting, trust-building, news-reaction, engagement, and soft-conversion posts.
+- Explain concepts in simple language for non-experts.
+- Avoid repeating the same hook or CTA pattern.
+- Keep each post concise, readable, and natural for Facebook.
+- Use a soft CTA only when it fits naturally.
+
+For each post, provide:
+1. Post goal
+2. Hook
+3. Final post text
+4. Suggested image idea
+5. Suggested CTA`;
+
+function getDefaultContentSettings(pageName?: string | null) {
+  if ((pageName ?? "").trim().toLowerCase() === "proveit") {
+    return {
+      postingBriefDocument: PROVEIT_CONTEXT_BRIEF,
+      generationCommand: PROVEIT_GENERATION_COMMAND,
+    };
+  }
+
+  return {
+    postingBriefDocument: "",
+    generationCommand: "",
+  };
+}
 
 export default function MarketingAdminPage() {
   const router = useRouter();
@@ -34,6 +94,9 @@ export default function MarketingAdminPage() {
   const [manualPageName, setManualPageName] = useState("");
   const [manualProfileName, setManualProfileName] = useState("");
   const [manualAccessToken, setManualAccessToken] = useState("");
+  const [contentSettings, setContentSettings] = useState<
+    Record<string, { postingBriefDocument: string; generationCommand: string }>
+  >({});
 
   const oauthPages = useMemo(
     () => (Array.isArray(oauthPayload?.pages) ? oauthPayload.pages : []),
@@ -84,6 +147,31 @@ export default function MarketingAdminPage() {
     loadDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gateStatus, token]);
+
+  useEffect(() => {
+    const connections = dashboard?.connections ?? [];
+    if (!connections.length) {
+      return;
+    }
+
+    setContentSettings((current) => {
+      const next = { ...current };
+
+      for (const connection of connections) {
+        if (next[connection.Id]) {
+          continue;
+        }
+
+        const fallback = getDefaultContentSettings(connection.ProfileName ?? connection.PageName);
+        next[connection.Id] = {
+          postingBriefDocument: connection.PostingBriefDocument ?? fallback.postingBriefDocument,
+          generationCommand: connection.GenerationCommand ?? fallback.generationCommand,
+        };
+      }
+
+      return next;
+    });
+  }, [dashboard]);
 
   useEffect(() => {
     function handleOAuthMessage(event: MessageEvent) {
@@ -196,6 +284,44 @@ export default function MarketingAdminPage() {
         connectError instanceof Error
           ? connectError.message
           : "Could not save the Facebook Page connection.",
+      );
+    }
+  }
+
+  async function handleSaveContentSettings(
+    event: FormEvent<HTMLFormElement>,
+    connectionId: string,
+    pageId: string,
+    pageName: string,
+  ) {
+    event.preventDefault();
+
+    if (!token) {
+      return;
+    }
+
+    const nextSettings = contentSettings[connectionId];
+    if (!nextSettings) {
+      return;
+    }
+
+    setActionStatus(`Saving content settings for ${pageName}...`);
+    setError("");
+
+    try {
+      await saveFacebookContentSettings(token, {
+        pageId,
+        postingBriefDocument: nextSettings.postingBriefDocument,
+        generationCommand: nextSettings.generationCommand,
+      });
+      setActionStatus(`Saved content settings for ${pageName}.`);
+      await loadDashboard();
+    } catch (saveError) {
+      setActionStatus("");
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "Could not save Facebook content settings.",
       );
     }
   }
@@ -376,8 +502,11 @@ export default function MarketingAdminPage() {
 
               <DashboardContent
                 dashboard={dashboard}
+                contentSettings={contentSettings}
                 loadStatus={loadStatus}
+                onContentSettingsChange={setContentSettings}
                 onRefresh={loadDashboard}
+                onSaveContentSettings={handleSaveContentSettings}
               />
             </section>
           ) : null}
@@ -388,13 +517,26 @@ export default function MarketingAdminPage() {
 }
 
 function DashboardContent({
+  contentSettings,
   dashboard,
   loadStatus,
+  onContentSettingsChange,
   onRefresh,
+  onSaveContentSettings,
 }: {
+  contentSettings: Record<string, { postingBriefDocument: string; generationCommand: string }>;
   dashboard: FacebookDashboard | null;
   loadStatus: LoadStatus;
+  onContentSettingsChange: React.Dispatch<
+    React.SetStateAction<Record<string, { postingBriefDocument: string; generationCommand: string }>>
+  >;
   onRefresh: () => void;
+  onSaveContentSettings: (
+    event: FormEvent<HTMLFormElement>,
+    connectionId: string,
+    pageId: string,
+    pageName: string,
+  ) => Promise<void>;
 }) {
   const summary = dashboard?.summary ?? {};
   const connections = dashboard?.connections ?? [];
@@ -450,6 +592,90 @@ function DashboardContent({
             ))
           ) : (
             <p className="text-sm text-slate-600">No Facebook Pages are linked yet.</p>
+          )}
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-extrabold">Page Content Settings</h2>
+        <div className="mt-4 space-y-6">
+          {connections.length ? (
+            connections.map((connection) => {
+              const pageId = connection.PageId ?? "";
+              const pageName = connection.ProfileName ?? connection.PageName ?? "Facebook Page";
+              const settings =
+                contentSettings[connection.Id] ??
+                getDefaultContentSettings(connection.ProfileName ?? connection.PageName);
+
+              return (
+                <form
+                  key={connection.Id}
+                  className="rounded-lg border border-slate-200 p-4"
+                  onSubmit={(event) =>
+                    onSaveContentSettings(event, connection.Id, pageId, pageName)
+                  }
+                >
+                  <div className="flex flex-col gap-1">
+                    <h3 className="font-extrabold">{pageName}</h3>
+                    <p className="text-xs font-semibold text-slate-500">{pageId || "-"}</p>
+                  </div>
+
+                  <div className="mt-4 grid gap-4">
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Broader context brief
+                      </span>
+                      <textarea
+                        value={settings.postingBriefDocument}
+                        onChange={(event) =>
+                          onContentSettingsChange((current) => ({
+                            ...current,
+                            [connection.Id]: {
+                              ...settings,
+                              postingBriefDocument: event.target.value,
+                            },
+                          }))
+                        }
+                        className="mt-1 min-h-56 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Post generation command
+                      </span>
+                      <textarea
+                        value={settings.generationCommand}
+                        onChange={(event) =>
+                          onContentSettingsChange((current) => ({
+                            ...current,
+                            [connection.Id]: {
+                              ...settings,
+                              generationCommand: event.target.value,
+                            },
+                          }))
+                        }
+                        className="mt-1 min-h-44 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-slate-500">
+                      These texts are stored per page. The broader context already plugs into the existing social profile storage, and the generation command is now saved alongside the page configuration for later use.
+                    </p>
+                    <button
+                      type="submit"
+                      className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
+                    >
+                      Save content settings
+                    </button>
+                  </div>
+                </form>
+              );
+            })
+          ) : (
+            <p className="text-sm text-slate-600">Connect a Facebook Page to configure its content brief and generation command.</p>
           )}
         </div>
       </section>
