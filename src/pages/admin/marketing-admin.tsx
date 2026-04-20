@@ -2,6 +2,8 @@ import { useAuth } from "@/context/AuthContext";
 import {
   connectFacebookMarketingPage,
   FacebookDashboard,
+  FacebookLiveConnection,
+  FacebookLivePagePost,
   FacebookOAuthPage,
   FacebookOAuthPayload,
   getApiOrigin,
@@ -284,6 +286,8 @@ function DashboardContent({
 }) {
   const summary = dashboard?.summary ?? {};
   const connections = dashboard?.connections ?? [];
+  const liveConnections = dashboard?.liveConnections ?? [];
+  const recentPagePosts = dashboard?.recentPagePosts ?? [];
   const scheduledPosts = dashboard?.scheduledPosts ?? [];
   const publishedPosts = dashboard?.publishedPosts ?? [];
 
@@ -293,8 +297,11 @@ function DashboardContent({
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
         <MetricCard title="Pages" value={summary.connectedPages ?? 0} />
+        <MetricCard title="Followers" value={summary.followers ?? 0} />
+        <MetricCard title="Fans" value={summary.fans ?? 0} />
+        <MetricCard title="Live posts" value={summary.livePosts ?? 0} />
         <MetricCard title="Scheduled" value={summary.scheduledPosts ?? 0} />
         <MetricCard title="Published" value={summary.publishedPosts ?? 0} />
         <MetricCard title="Likes" value={summary.likes ?? 0} />
@@ -335,11 +342,119 @@ function DashboardContent({
         </div>
       </section>
 
+      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 className="text-xl font-extrabold">Live Page Insights</h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {liveConnections.length ? (
+            liveConnections.map((connection) => (
+              <LiveConnectionCard key={connection.connectionId} connection={connection} />
+            ))
+          ) : (
+            <p className="text-sm text-slate-600">Connect a Facebook Page to load live follower and recent post data.</p>
+          )}
+        </div>
+      </section>
+
       <section className="grid gap-6 xl:grid-cols-2">
+        <LivePagePostList posts={recentPagePosts} />
         <PostList title="Scheduled posts" posts={scheduledPosts} mode="scheduled" />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-1">
         <PostList title="Published performance" posts={publishedPosts} mode="published" />
       </section>
     </div>
+  );
+}
+
+function LiveConnectionCard({ connection }: { connection: FacebookLiveConnection }) {
+  return (
+    <article className="rounded-lg border border-slate-200 p-4">
+      <div className="flex items-start gap-3">
+        {connection.pictureUrl ? (
+          <img
+            src={connection.pictureUrl}
+            alt={connection.profileName ?? connection.pageName ?? "Facebook page"}
+            className="h-12 w-12 rounded-md object-cover"
+          />
+        ) : (
+          <div className="flex h-12 w-12 items-center justify-center rounded-md bg-slate-100 text-sm font-bold text-slate-500">
+            FB
+          </div>
+        )}
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-extrabold">
+            {connection.profileName ?? connection.pageName ?? "Facebook Page"}
+          </h3>
+          <p className="mt-1 text-xs font-semibold text-slate-500">{connection.pageId ?? "-"}</p>
+        </div>
+      </div>
+      <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+        <StatItem label="Followers" value={connection.followersCount ?? 0} />
+        <StatItem label="Fans" value={connection.fanCount ?? 0} />
+        <StatItem label="Latest post" value={formatDate(connection.latestPostAtUtc)} />
+        <StatItem label="Status" value={connection.error ? "Attention" : "Live"} />
+      </dl>
+      {connection.error ? (
+        <p className="mt-3 text-sm text-amber-700">{connection.error}</p>
+      ) : connection.pageLink ? (
+        <a
+          href={connection.pageLink}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-flex text-sm font-bold text-emerald-700 hover:text-emerald-800"
+        >
+          Open page
+        </a>
+      ) : null}
+    </article>
+  );
+}
+
+function LivePagePostList({ posts }: { posts: FacebookLivePagePost[] }) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-extrabold">Recent Live Posts</h2>
+      <div className="mt-4 space-y-4">
+        {posts.length ? (
+          posts.map((post) => (
+            <article key={post.id} className="rounded-lg border border-slate-200 p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="font-extrabold">
+                    {post.profileName ?? post.pageName ?? "Facebook post"}
+                  </h3>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {formatDate(post.createdTimeUtc)}
+                  </p>
+                </div>
+                {post.permalinkUrl ? (
+                  <a
+                    href={post.permalinkUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="rounded-md border border-slate-300 px-3 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100"
+                  >
+                    View post
+                  </a>
+                ) : null}
+              </div>
+              <p className="mt-3 line-clamp-4 whitespace-pre-line text-sm leading-6 text-slate-700">
+                {post.message?.trim() || "This post does not include message text."}
+              </p>
+              <dl className="mt-4 grid grid-cols-4 gap-3 text-sm">
+                <StatItem label="Likes" value={post.likesCount ?? 0} />
+                <StatItem label="Reactions" value={post.reactionsCount ?? 0} />
+                <StatItem label="Comments" value={post.commentsCount ?? 0} />
+                <StatItem label="Shares" value={post.sharesCount ?? 0} />
+              </dl>
+            </article>
+          ))
+        ) : (
+          <p className="text-sm text-slate-600">No recent live Facebook posts yet.</p>
+        )}
+      </div>
+    </section>
   );
 }
 

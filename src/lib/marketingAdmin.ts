@@ -33,6 +33,36 @@ export type FacebookConnection = {
   PublishedCount?: number;
 };
 
+export type FacebookLiveConnection = {
+  connectionId: string;
+  pageId?: string | null;
+  pageName?: string | null;
+  profileName?: string | null;
+  fanCount?: number;
+  followersCount?: number;
+  pageLink?: string | null;
+  pictureUrl?: string | null;
+  latestPostAtUtc?: string | null;
+  error?: string | null;
+};
+
+export type FacebookLivePagePost = {
+  id: string;
+  connectionId?: string | null;
+  pageId?: string | null;
+  pageName?: string | null;
+  profileName?: string | null;
+  message?: string | null;
+  createdTimeUtc?: string | null;
+  permalinkUrl?: string | null;
+  pictureUrl?: string | null;
+  statusType?: string | null;
+  likesCount?: number | null;
+  commentsCount?: number | null;
+  reactionsCount?: number | null;
+  sharesCount?: number | null;
+};
+
 export type ScheduledFacebookPost = {
   Id: string;
   SocialConnectionId?: string | null;
@@ -87,8 +117,13 @@ export type FacebookDashboard = {
     shares?: number;
     engagedUsers?: number;
     mediaViews?: number;
+    followers?: number;
+    fans?: number;
+    livePosts?: number;
   };
   connections?: FacebookConnection[];
+  liveConnections?: FacebookLiveConnection[];
+  recentPagePosts?: FacebookLivePagePost[];
   scheduledPosts?: ScheduledFacebookPost[];
   publishedPosts?: PublishedFacebookPost[];
 };
