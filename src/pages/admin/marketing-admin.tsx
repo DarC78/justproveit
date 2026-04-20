@@ -95,6 +95,8 @@ export default function MarketingAdminPage() {
   const [manualProfileName, setManualProfileName] = useState("");
   const [manualAccessToken, setManualAccessToken] = useState("");
   const [manualUserAccessToken, setManualUserAccessToken] = useState("");
+  const [selectedConnectionId, setSelectedConnectionId] = useState("all");
+  const [showConnectPanel, setShowConnectPanel] = useState(false);
   const [contentSettings, setContentSettings] = useState<
     Record<string, { postingBriefDocument: string; generationCommand: string }>
   >({});
@@ -175,6 +177,20 @@ export default function MarketingAdminPage() {
   }, [dashboard]);
 
   useEffect(() => {
+    const connections = dashboard?.connections ?? [];
+    if (!connections.length) {
+      setSelectedConnectionId("all");
+      return;
+    }
+
+    setSelectedConnectionId((current) =>
+      current === "all" || connections.some((connection) => connection.Id === current)
+        ? current
+        : connections[0]?.Id ?? "all",
+    );
+  }, [dashboard]);
+
+  useEffect(() => {
     function handleOAuthMessage(event: MessageEvent) {
       if (event.origin !== getApiOrigin()) {
         return;
@@ -251,6 +267,7 @@ export default function MarketingAdminPage() {
         profileName: page.name,
       });
       setActionStatus(`${page.name} linked.`);
+      setShowConnectPanel(false);
       await loadDashboard();
     } catch (connectError) {
       setError(connectError instanceof Error ? connectError.message : "Could not link this Facebook Page.");
@@ -286,6 +303,7 @@ export default function MarketingAdminPage() {
       setActionStatus(`${manualPageName.trim() || "Facebook Page"} connected.`);
       setManualAccessToken("");
       setManualUserAccessToken("");
+      setShowConnectPanel(false);
       await loadDashboard();
     } catch (connectError) {
       setActionStatus("");
@@ -395,103 +413,135 @@ export default function MarketingAdminPage() {
                       Link Facebook Pages, review the publishing queue, and monitor published post performance.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={startFacebookConnect}
-                    className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
-                  >
-                    Connect Facebook Page
-                  </button>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <label className="block">
+                      <span className="sr-only">Selected page</span>
+                      <select
+                        value={selectedConnectionId}
+                        onChange={(event) => setSelectedConnectionId(event.target.value)}
+                        className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-600 sm:min-w-64"
+                      >
+                        <option value="all">All connected pages</option>
+                        {(dashboard?.connections ?? []).map((connection) => (
+                          <option key={connection.Id} value={connection.Id}>
+                            {connection.ProfileName ?? connection.PageName ?? connection.PageId}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowConnectPanel((current) => !current)}
+                      className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
+                    >
+                      {showConnectPanel ? "Hide connect options" : "Connect Facebook Page"}
+                    </button>
+                  </div>
                 </div>
               </div>
 
-              <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex flex-col gap-2">
-                  <h2 className="text-xl font-extrabold">Manual Page Connect</h2>
-                  <p className="text-sm text-slate-600">
-                    Paste the Facebook Page ID, page name, and either a long-lived user access token or a page access token to connect or refresh a page without using the popup flow.
-                  </p>
-                </div>
-
-                <form className="mt-4 grid gap-4 lg:grid-cols-2" onSubmit={handleManualConnect}>
-                  <label className="block">
-                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Page ID
-                    </span>
-                    <input
-                      type="text"
-                      value={manualPageId}
-                      onChange={(event) => setManualPageId(event.target.value)}
-                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
-                      placeholder="355430748880129"
-                      required
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Page name
-                    </span>
-                    <input
-                      type="text"
-                      value={manualPageName}
-                      onChange={(event) => setManualPageName(event.target.value)}
-                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
-                      placeholder="ProveIt"
-                      required
-                    />
-                  </label>
-
-                  <label className="block">
-                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Profile name
-                    </span>
-                    <input
-                      type="text"
-                      value={manualProfileName}
-                      onChange={(event) => setManualProfileName(event.target.value)}
-                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
-                      placeholder="ProveIt"
-                    />
-                  </label>
-
-                  <label className="block lg:col-span-2">
-                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Long-lived user access token
-                    </span>
-                    <textarea
-                      value={manualUserAccessToken}
-                      onChange={(event) => setManualUserAccessToken(event.target.value)}
-                      className="mt-1 min-h-28 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
-                      placeholder="EAAB... preferred when available"
-                    />
-                  </label>
-
-                  <label className="block lg:col-span-2">
-                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Page access token
-                    </span>
-                    <textarea
-                      value={manualAccessToken}
-                      onChange={(event) => setManualAccessToken(event.target.value)}
-                      className="mt-1 min-h-28 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
-                      placeholder="EAAB... optional if you use the user token above"
-                    />
-                  </label>
-
-                  <div className="lg:col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-slate-500">
-                      Saving the same page again updates the stored token and refreshes live reads. Prefer the long-lived user token when possible.
+              {showConnectPanel ? (
+                <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                  <div className="flex flex-col gap-2">
+                    <h2 className="text-xl font-extrabold">Connect a Facebook Page</h2>
+                    <p className="text-sm text-slate-600">
+                      Use the Facebook popup when it works for your app setup, or paste a long-lived user access token as the fallback path.
                     </p>
-                    <button
-                      type="submit"
-                      className="rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
-                    >
-                      Save page token
-                    </button>
                   </div>
-                </form>
-              </section>
+
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+                    <button
+                      type="button"
+                      onClick={startFacebookConnect}
+                      className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
+                    >
+                      Continue with Facebook
+                    </button>
+                    <p className="text-sm text-slate-500">
+                      The manual form below can also refresh tokens for pages that are already connected.
+                    </p>
+                  </div>
+
+                  <form className="mt-6 grid gap-4 lg:grid-cols-2" onSubmit={handleManualConnect}>
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Page ID
+                      </span>
+                      <input
+                        type="text"
+                        value={manualPageId}
+                        onChange={(event) => setManualPageId(event.target.value)}
+                        className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                        placeholder="355430748880129"
+                        required
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Page name
+                      </span>
+                      <input
+                        type="text"
+                        value={manualPageName}
+                        onChange={(event) => setManualPageName(event.target.value)}
+                        className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                        placeholder="ProveIt"
+                        required
+                      />
+                    </label>
+
+                    <label className="block">
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Profile name
+                      </span>
+                      <input
+                        type="text"
+                        value={manualProfileName}
+                        onChange={(event) => setManualProfileName(event.target.value)}
+                        className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                        placeholder="ProveIt"
+                      />
+                    </label>
+
+                    <label className="block lg:col-span-2">
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Long-lived user access token
+                      </span>
+                      <textarea
+                        value={manualUserAccessToken}
+                        onChange={(event) => setManualUserAccessToken(event.target.value)}
+                        className="mt-1 min-h-28 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                        placeholder="EAAB... preferred when available"
+                      />
+                    </label>
+
+                    <label className="block lg:col-span-2">
+                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Page access token
+                      </span>
+                      <textarea
+                        value={manualAccessToken}
+                        onChange={(event) => setManualAccessToken(event.target.value)}
+                        className="mt-1 min-h-28 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                        placeholder="EAAB... optional if you use the user token above"
+                      />
+                    </label>
+
+                    <div className="lg:col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm text-slate-500">
+                        Saving the same page again updates the stored token and refreshes live reads. Prefer the long-lived user token when possible.
+                      </p>
+                      <button
+                        type="submit"
+                        className="rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+                      >
+                        Save page token
+                      </button>
+                    </div>
+                  </form>
+                </section>
+              ) : null}
 
               {actionStatus ? <StatusPanel tone="success" message={actionStatus} compact /> : null}
               {error ? <StatusPanel tone="error" message={error} compact /> : null}
@@ -524,6 +574,7 @@ export default function MarketingAdminPage() {
                 dashboard={dashboard}
                 contentSettings={contentSettings}
                 loadStatus={loadStatus}
+                selectedConnectionId={selectedConnectionId}
                 onContentSettingsChange={setContentSettings}
                 onRefresh={loadDashboard}
                 onSaveContentSettings={handleSaveContentSettings}
@@ -540,6 +591,7 @@ function DashboardContent({
   contentSettings,
   dashboard,
   loadStatus,
+  selectedConnectionId,
   onContentSettingsChange,
   onRefresh,
   onSaveContentSettings,
@@ -547,6 +599,7 @@ function DashboardContent({
   contentSettings: Record<string, { postingBriefDocument: string; generationCommand: string }>;
   dashboard: FacebookDashboard | null;
   loadStatus: LoadStatus;
+  selectedConnectionId: string;
   onContentSettingsChange: React.Dispatch<
     React.SetStateAction<Record<string, { postingBriefDocument: string; generationCommand: string }>>
   >;
@@ -559,11 +612,43 @@ function DashboardContent({
   ) => Promise<void>;
 }) {
   const summary = dashboard?.summary ?? {};
-  const connections = dashboard?.connections ?? [];
-  const liveConnections = dashboard?.liveConnections ?? [];
-  const recentPagePosts = dashboard?.recentPagePosts ?? [];
-  const scheduledPosts = dashboard?.scheduledPosts ?? [];
-  const publishedPosts = dashboard?.publishedPosts ?? [];
+  const allConnections = dashboard?.connections ?? [];
+  const connections =
+    selectedConnectionId === "all"
+      ? allConnections
+      : allConnections.filter((connection) => connection.Id === selectedConnectionId);
+  const liveConnections =
+    (dashboard?.liveConnections ?? []).filter(
+      (connection) => selectedConnectionId === "all" || connection.connectionId === selectedConnectionId,
+    );
+  const recentPagePosts =
+    (dashboard?.recentPagePosts ?? []).filter(
+      (post) => selectedConnectionId === "all" || post.connectionId === selectedConnectionId,
+    );
+  const scheduledPosts =
+    (dashboard?.scheduledPosts ?? []).filter(
+      (post) => selectedConnectionId === "all" || post.SocialConnectionId === selectedConnectionId,
+    );
+  const publishedPosts =
+    (dashboard?.publishedPosts ?? []).filter(
+      (post) => selectedConnectionId === "all" || post.SocialConnectionId === selectedConnectionId,
+    );
+  const metricSummary =
+    selectedConnectionId === "all"
+      ? summary
+      : {
+          connectedPages: connections.length,
+          followers: liveConnections.reduce((sum, item) => sum + Number(item.followersCount ?? 0), 0),
+          fans: liveConnections.reduce((sum, item) => sum + Number(item.fanCount ?? 0), 0),
+          livePosts: recentPagePosts.length,
+          scheduledPosts: scheduledPosts.length,
+          publishedPosts: publishedPosts.length,
+          likes: publishedPosts.reduce((sum, item) => sum + Number(item.LikesCount ?? 0), 0),
+          reactions: publishedPosts.reduce((sum, item) => sum + Number(item.ReactionsCount ?? 0), 0),
+          comments: publishedPosts.reduce((sum, item) => sum + Number(item.CommentsCount ?? 0), 0),
+          shares: publishedPosts.reduce((sum, item) => sum + Number(item.SharesCount ?? 0), 0),
+          engagedUsers: publishedPosts.reduce((sum, item) => sum + Number(item.EngagedUsersCount ?? 0), 0),
+        };
 
   if (loadStatus === "loading") {
     return <StatusPanel message="Loading marketing dashboard..." />;
@@ -572,17 +657,17 @@ function DashboardContent({
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
-        <MetricCard title="Pages" value={summary.connectedPages ?? 0} />
-        <MetricCard title="Followers" value={summary.followers ?? 0} />
-        <MetricCard title="Fans" value={summary.fans ?? 0} />
-        <MetricCard title="Live posts" value={summary.livePosts ?? 0} />
-        <MetricCard title="Scheduled" value={summary.scheduledPosts ?? 0} />
-        <MetricCard title="Published" value={summary.publishedPosts ?? 0} />
-        <MetricCard title="Likes" value={summary.likes ?? 0} />
-        <MetricCard title="Reactions" value={summary.reactions ?? 0} />
-        <MetricCard title="Comments" value={summary.comments ?? 0} />
-        <MetricCard title="Shares" value={summary.shares ?? 0} />
-        <MetricCard title="Engaged" value={summary.engagedUsers ?? 0} />
+        <MetricCard title="Pages" value={metricSummary.connectedPages ?? 0} />
+        <MetricCard title="Followers" value={metricSummary.followers ?? 0} />
+        <MetricCard title="Fans" value={metricSummary.fans ?? 0} />
+        <MetricCard title="Live posts" value={metricSummary.livePosts ?? 0} />
+        <MetricCard title="Scheduled" value={metricSummary.scheduledPosts ?? 0} />
+        <MetricCard title="Published" value={metricSummary.publishedPosts ?? 0} />
+        <MetricCard title="Likes" value={metricSummary.likes ?? 0} />
+        <MetricCard title="Reactions" value={metricSummary.reactions ?? 0} />
+        <MetricCard title="Comments" value={metricSummary.comments ?? 0} />
+        <MetricCard title="Shares" value={metricSummary.shares ?? 0} />
+        <MetricCard title="Engaged" value={metricSummary.engagedUsers ?? 0} />
       </div>
 
       <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
