@@ -153,16 +153,24 @@ export default function AdminPage() {
               <div className="mt-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-extrabold">Available now</h2>
                 <p className="mt-2 text-sm text-slate-600">
-                  Admin authentication and authorization are wired. Add the
-                  first operational admin endpoint when LaunchingStack exposes
-                  the data workflow you want managed here.
+                  The first tenant admin tools are live. Use support operations
+                  for inbox work, or open marketing admin to connect Facebook
+                  Pages and review publishing performance.
                 </p>
-                <Link
-                  href="/admin/support-inbox"
-                  className="mt-5 inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
-                >
-                  Open support inbox
-                </Link>
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <Link
+                    href="/admin/support-inbox"
+                    className="inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
+                  >
+                    Open support inbox
+                  </Link>
+                  <Link
+                    href="/admin/marketing-admin"
+                    className="inline-flex rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100"
+                  >
+                    Open marketing admin
+                  </Link>
+                </div>
               </div>
             </section>
           ) : null}
