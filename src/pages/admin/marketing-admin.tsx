@@ -94,6 +94,7 @@ export default function MarketingAdminPage() {
   const [manualPageName, setManualPageName] = useState("");
   const [manualProfileName, setManualProfileName] = useState("");
   const [manualAccessToken, setManualAccessToken] = useState("");
+  const [manualUserAccessToken, setManualUserAccessToken] = useState("");
   const [contentSettings, setContentSettings] = useState<
     Record<string, { postingBriefDocument: string; generationCommand: string }>
   >({});
@@ -264,6 +265,12 @@ export default function MarketingAdminPage() {
       return;
     }
 
+    if (!manualAccessToken.trim() && !manualUserAccessToken.trim()) {
+      setActionStatus("");
+      setError("Provide either a long-lived user access token or a page access token.");
+      return;
+    }
+
     setActionStatus("Saving Facebook Page connection...");
     setError("");
 
@@ -271,12 +278,14 @@ export default function MarketingAdminPage() {
       await connectFacebookMarketingPage(token, {
         pageId: manualPageId.trim(),
         pageName: manualPageName.trim(),
-        accessToken: manualAccessToken.trim(),
+        accessToken: manualAccessToken.trim() || undefined,
+        userAccessToken: manualUserAccessToken.trim() || undefined,
         profileName: manualProfileName.trim() || manualPageName.trim(),
       });
 
       setActionStatus(`${manualPageName.trim() || "Facebook Page"} connected.`);
       setManualAccessToken("");
+      setManualUserAccessToken("");
       await loadDashboard();
     } catch (connectError) {
       setActionStatus("");
@@ -400,7 +409,7 @@ export default function MarketingAdminPage() {
                 <div className="flex flex-col gap-2">
                   <h2 className="text-xl font-extrabold">Manual Page Connect</h2>
                   <p className="text-sm text-slate-600">
-                    Paste the Facebook Page ID, page name, and a current page access token to connect or refresh a page without using the popup flow.
+                    Paste the Facebook Page ID, page name, and either a long-lived user access token or a page access token to connect or refresh a page without using the popup flow.
                   </p>
                 </div>
 
@@ -448,20 +457,31 @@ export default function MarketingAdminPage() {
 
                   <label className="block lg:col-span-2">
                     <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Long-lived user access token
+                    </span>
+                    <textarea
+                      value={manualUserAccessToken}
+                      onChange={(event) => setManualUserAccessToken(event.target.value)}
+                      className="mt-1 min-h-28 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                      placeholder="EAAB... preferred when available"
+                    />
+                  </label>
+
+                  <label className="block lg:col-span-2">
+                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
                       Page access token
                     </span>
                     <textarea
                       value={manualAccessToken}
                       onChange={(event) => setManualAccessToken(event.target.value)}
                       className="mt-1 min-h-28 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
-                      placeholder="EAAB..."
-                      required
+                      placeholder="EAAB... optional if you use the user token above"
                     />
                   </label>
 
                   <div className="lg:col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-slate-500">
-                      Saving the same page again updates the stored token and refreshes live reads.
+                      Saving the same page again updates the stored token and refreshes live reads. Prefer the long-lived user token when possible.
                     </p>
                     <button
                       type="submit"
