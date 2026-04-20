@@ -15,7 +15,7 @@ import {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type GateStatus = "checking" | "allowed" | "denied";
 type LoadStatus = "idle" | "loading" | "ready" | "error";
@@ -30,6 +30,10 @@ export default function MarketingAdminPage() {
   const [error, setError] = useState("");
   const [dashboard, setDashboard] = useState<FacebookDashboard | null>(null);
   const [oauthPayload, setOauthPayload] = useState<FacebookOAuthPayload | null>(null);
+  const [manualPageId, setManualPageId] = useState("");
+  const [manualPageName, setManualPageName] = useState("");
+  const [manualProfileName, setManualProfileName] = useState("");
+  const [manualAccessToken, setManualAccessToken] = useState("");
 
   const oauthPages = useMemo(
     () => (Array.isArray(oauthPayload?.pages) ? oauthPayload.pages : []),
@@ -165,6 +169,37 @@ export default function MarketingAdminPage() {
     }
   }
 
+  async function handleManualConnect(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!token) {
+      return;
+    }
+
+    setActionStatus("Saving Facebook Page connection...");
+    setError("");
+
+    try {
+      await connectFacebookMarketingPage(token, {
+        pageId: manualPageId.trim(),
+        pageName: manualPageName.trim(),
+        accessToken: manualAccessToken.trim(),
+        profileName: manualProfileName.trim() || manualPageName.trim(),
+      });
+
+      setActionStatus(`${manualPageName.trim() || "Facebook Page"} connected.`);
+      setManualAccessToken("");
+      await loadDashboard();
+    } catch (connectError) {
+      setActionStatus("");
+      setError(
+        connectError instanceof Error
+          ? connectError.message
+          : "Could not save the Facebook Page connection.",
+      );
+    }
+  }
+
   async function handleLogout() {
     await logout();
     await router.push("/login");
@@ -234,6 +269,83 @@ export default function MarketingAdminPage() {
                   </button>
                 </div>
               </div>
+
+              <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                <div className="flex flex-col gap-2">
+                  <h2 className="text-xl font-extrabold">Manual Page Connect</h2>
+                  <p className="text-sm text-slate-600">
+                    Paste the Facebook Page ID, page name, and a current page access token to connect or refresh a page without using the popup flow.
+                  </p>
+                </div>
+
+                <form className="mt-4 grid gap-4 lg:grid-cols-2" onSubmit={handleManualConnect}>
+                  <label className="block">
+                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Page ID
+                    </span>
+                    <input
+                      type="text"
+                      value={manualPageId}
+                      onChange={(event) => setManualPageId(event.target.value)}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                      placeholder="355430748880129"
+                      required
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Page name
+                    </span>
+                    <input
+                      type="text"
+                      value={manualPageName}
+                      onChange={(event) => setManualPageName(event.target.value)}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                      placeholder="ProveIt"
+                      required
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Profile name
+                    </span>
+                    <input
+                      type="text"
+                      value={manualProfileName}
+                      onChange={(event) => setManualProfileName(event.target.value)}
+                      className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                      placeholder="ProveIt"
+                    />
+                  </label>
+
+                  <label className="block lg:col-span-2">
+                    <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Page access token
+                    </span>
+                    <textarea
+                      value={manualAccessToken}
+                      onChange={(event) => setManualAccessToken(event.target.value)}
+                      className="mt-1 min-h-28 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                      placeholder="EAAB..."
+                      required
+                    />
+                  </label>
+
+                  <div className="lg:col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-slate-500">
+                      Saving the same page again updates the stored token and refreshes live reads.
+                    </p>
+                    <button
+                      type="submit"
+                      className="rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+                    >
+                      Save page token
+                    </button>
+                  </div>
+                </form>
+              </section>
 
               {actionStatus ? <StatusPanel tone="success" message={actionStatus} compact /> : null}
               {error ? <StatusPanel tone="error" message={error} compact /> : null}

@@ -152,7 +152,8 @@ export function connectFacebookMarketingPage(
   payload: {
     pageId: string;
     pageName: string;
-    userAccessToken: string;
+    userAccessToken?: string;
+    accessToken?: string;
     profileName?: string;
     audienceDescription?: string;
     defaultLinkUrl?: string;
