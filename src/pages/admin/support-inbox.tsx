@@ -1286,7 +1286,7 @@ function CustomerPanel({
             disabled={!selectedMessage || !customer}
             tone="danger"
           >
-            Update DB zie pozitiva
+            Update DB Decizie Pozitiva
           </ActionButton>
         </div>
       </div>
