@@ -1116,7 +1116,11 @@ export default function SupportInboxPage() {
                     <ActionButton onClick={handleSendReply} disabled={!selectedMessage}>
                       Send reply
                     </ActionButton>
-                    <ActionButton onClick={handleSkip} disabled={!selectedMessage}>
+                    <ActionButton
+                      onClick={handleSkip}
+                      disabled={!selectedMessage}
+                      tone="warning"
+                    >
                       Ignore
                     </ActionButton>
                     <ActionButton
@@ -1455,18 +1459,21 @@ function ActionButton({
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
-  tone?: "default" | "danger";
+  tone?: "default" | "danger" | "warning";
 }) {
+  const toneClass =
+    tone === "danger"
+      ? "bg-red-900 text-white hover:bg-red-950"
+      : tone === "warning"
+        ? "border border-amber-500 bg-amber-100 text-amber-900 hover:bg-amber-200"
+        : "bg-emerald-700 text-white hover:bg-emerald-800";
+
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-md px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 ${
-        tone === "danger"
-          ? "bg-red-900 text-white hover:bg-red-950"
-          : "bg-emerald-700 text-white hover:bg-emerald-800"
-      }`}
+      className={`rounded-md px-4 py-2 text-sm font-bold disabled:cursor-not-allowed disabled:border-transparent disabled:bg-slate-200 disabled:text-slate-500 ${toneClass}`}
     >
       {children}
     </button>
