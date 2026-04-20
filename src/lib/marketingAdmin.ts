@@ -31,6 +31,7 @@ export type FacebookConnection = {
   AudienceDescription?: string | null;
   DefaultLinkUrl?: string | null;
   DailyPostTarget?: number | null;
+  CreatedCount?: number;
   ScheduledCount?: number;
   PublishedCount?: number;
 };
@@ -75,6 +76,7 @@ export type ScheduledFacebookPost = {
   PostText?: string;
   LinkUrl?: string | null;
   ImageUrl?: string | null;
+  CreatedAtUtc?: string | null;
   ScheduledForUtc?: string | null;
   PublishStatus?: string;
   ApprovalStatus?: string;
@@ -111,6 +113,7 @@ export type FacebookDashboard = {
   };
   summary?: {
     connectedPages?: number;
+    createdPosts?: number;
     scheduledPosts?: number;
     publishedPosts?: number;
     likes?: number;
@@ -126,6 +129,7 @@ export type FacebookDashboard = {
   connections?: FacebookConnection[];
   liveConnections?: FacebookLiveConnection[];
   recentPagePosts?: FacebookLivePagePost[];
+  createdPosts?: ScheduledFacebookPost[];
   scheduledPosts?: ScheduledFacebookPost[];
   publishedPosts?: PublishedFacebookPost[];
 };
@@ -184,6 +188,20 @@ export function saveFacebookContentSettings(
   },
 ) {
   return fetchJson<{ success?: boolean }>(`${BASE_PATH}/facebook/pages/settings`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function generateFacebookDrafts(
+  token: string,
+  payload: {
+    pageId: string;
+    draftCount: number;
+  },
+) {
+  return fetchJson<{ success?: boolean; drafted?: number }>(`${BASE_PATH}/facebook/drafts/generate`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(payload),

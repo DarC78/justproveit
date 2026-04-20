@@ -9,6 +9,7 @@ import {
   getApiOrigin,
   getFacebookMarketingAuthUrl,
   getFacebookMarketingDashboard,
+  generateFacebookDrafts,
   PublishedFacebookPost,
   saveFacebookContentSettings,
   ScheduledFacebookPost,
@@ -95,6 +96,7 @@ export default function MarketingAdminPage() {
   const [manualProfileName, setManualProfileName] = useState("");
   const [manualAccessToken, setManualAccessToken] = useState("");
   const [manualUserAccessToken, setManualUserAccessToken] = useState("");
+  const [draftCount, setDraftCount] = useState(1);
   const [selectedConnectionId, setSelectedConnectionId] = useState("all");
   const [showConnectPanel, setShowConnectPanel] = useState(false);
   const [contentSettings, setContentSettings] = useState<
@@ -353,6 +355,46 @@ export default function MarketingAdminPage() {
     }
   }
 
+  async function handleGenerateDrafts() {
+    if (!token || selectedConnectionId === "all") {
+      return;
+    }
+
+    const selectedConnection = (dashboard?.connections ?? []).find(
+      (connection) => connection.Id === selectedConnectionId,
+    );
+    const pageId = selectedConnection?.PageId;
+    const pageName =
+      selectedConnection?.ProfileName ?? selectedConnection?.PageName ?? "selected page";
+
+    if (!pageId) {
+      setActionStatus("");
+      setError("Select a connected page before generating drafts.");
+      return;
+    }
+
+    setActionStatus(`Generating ${draftCount} post draft${draftCount === 1 ? "" : "s"} for ${pageName}...`);
+    setError("");
+
+    try {
+      const result = await generateFacebookDrafts(token, {
+        pageId,
+        draftCount,
+      });
+      setActionStatus(
+        `Created ${result.drafted ?? 0} post draft${result.drafted === 1 ? "" : "s"} for ${pageName}.`,
+      );
+      await loadDashboard();
+    } catch (generationError) {
+      setActionStatus("");
+      setError(
+        generationError instanceof Error
+          ? generationError.message
+          : "Could not generate Facebook drafts.",
+      );
+    }
+  }
+
   async function handleLogout() {
     await logout();
     await router.push("/login");
@@ -429,6 +471,31 @@ export default function MarketingAdminPage() {
                         ))}
                       </select>
                     </label>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                      <label className="block">
+                        <span className="sr-only">Draft count</span>
+                        <select
+                          value={String(draftCount)}
+                          onChange={(event) => setDraftCount(Number(event.target.value))}
+                          className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-600 sm:min-w-28"
+                          disabled={selectedConnectionId === "all"}
+                        >
+                          <option value="1">Create 1</option>
+                          <option value="2">Create 2</option>
+                          <option value="3">Create 3</option>
+                          <option value="4">Create 4</option>
+                          <option value="5">Create 5</option>
+                        </select>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleGenerateDrafts}
+                        disabled={selectedConnectionId === "all"}
+                        className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Generate drafts now
+                      </button>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setShowConnectPanel((current) => !current)}
@@ -625,6 +692,10 @@ function DashboardContent({
     (dashboard?.recentPagePosts ?? []).filter(
       (post) => selectedConnectionId === "all" || post.connectionId === selectedConnectionId,
     );
+  const createdPosts =
+    (dashboard?.createdPosts ?? []).filter(
+      (post) => selectedConnectionId === "all" || post.SocialConnectionId === selectedConnectionId,
+    );
   const scheduledPosts =
     (dashboard?.scheduledPosts ?? []).filter(
       (post) => selectedConnectionId === "all" || post.SocialConnectionId === selectedConnectionId,
@@ -638,6 +709,7 @@ function DashboardContent({
       ? summary
       : {
           connectedPages: connections.length,
+          createdPosts: createdPosts.length,
           followers: liveConnections.reduce((sum, item) => sum + Number(item.followersCount ?? 0), 0),
           fans: liveConnections.reduce((sum, item) => sum + Number(item.fanCount ?? 0), 0),
           livePosts: recentPagePosts.length,
@@ -658,11 +730,12 @@ function DashboardContent({
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-4">
         <MetricCard title="Pages" value={metricSummary.connectedPages ?? 0} />
+        <MetricCard title="Created" value={metricSummary.createdPosts ?? 0} />
         <MetricCard title="Followers" value={metricSummary.followers ?? 0} />
         <MetricCard title="Fans" value={metricSummary.fans ?? 0} />
         <MetricCard title="Live posts" value={metricSummary.livePosts ?? 0} />
         <MetricCard title="Scheduled" value={metricSummary.scheduledPosts ?? 0} />
-        <MetricCard title="Published" value={metricSummary.publishedPosts ?? 0} />
+        <MetricCard title="Live" value={metricSummary.publishedPosts ?? 0} />
         <MetricCard title="Likes" value={metricSummary.likes ?? 0} />
         <MetricCard title="Reactions" value={metricSummary.reactions ?? 0} />
         <MetricCard title="Comments" value={metricSummary.comments ?? 0} />
@@ -688,8 +761,9 @@ function DashboardContent({
                 <h3 className="font-extrabold">{connection.ProfileName ?? connection.PageName ?? "Facebook Page"}</h3>
                 <p className="mt-1 text-xs font-semibold text-slate-500">{connection.PageId}</p>
                 <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                  <StatItem label="Created" value={connection.CreatedCount ?? 0} />
                   <StatItem label="Scheduled" value={connection.ScheduledCount ?? 0} />
-                  <StatItem label="Published" value={connection.PublishedCount ?? 0} />
+                  <StatItem label="Live" value={connection.PublishedCount ?? 0} />
                   <StatItem label="Status" value={connection.IsEnabled ? "Enabled" : "Disabled"} />
                   <StatItem label="Updated" value={formatDate(connection.UpdatedAtUtc)} />
                 </dl>
@@ -799,12 +873,16 @@ function DashboardContent({
       </section>
 
       <section className="grid gap-6 xl:grid-cols-2">
+        <PostList title="Created posts" posts={createdPosts} mode="created" />
         <LivePagePostList posts={recentPagePosts} />
+      </section>
+
+      <section className="grid gap-6 xl:grid-cols-2">
         <PostList title="Scheduled posts" posts={scheduledPosts} mode="scheduled" />
       </section>
 
       <section className="grid gap-6 xl:grid-cols-1">
-        <PostList title="Published performance" posts={publishedPosts} mode="published" />
+        <PostList title="Live posts" posts={publishedPosts} mode="published" />
       </section>
     </div>
   );
@@ -908,7 +986,7 @@ function PostList({
 }: {
   title: string;
   posts: ScheduledFacebookPost[] | PublishedFacebookPost[];
-  mode: "scheduled" | "published";
+  mode: "created" | "scheduled" | "published";
 }) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
@@ -925,9 +1003,11 @@ function PostList({
                       : post.SocialProfileName ?? post.PageName ?? "Facebook post"}
                   </h3>
                   <p className="mt-1 text-xs font-semibold text-slate-500">
-                    {mode === "scheduled"
-                      ? `Scheduled ${formatDate((post as ScheduledFacebookPost).ScheduledForUtc)}`
-                      : `Published ${formatDate((post as PublishedFacebookPost).PublishedAtUtc)}`}
+                    {mode === "created"
+                      ? `Created ${formatDate((post as ScheduledFacebookPost).CreatedAtUtc)}`
+                      : mode === "scheduled"
+                        ? `Scheduled ${formatDate((post as ScheduledFacebookPost).ScheduledForUtc)}`
+                        : `Live ${formatDate((post as PublishedFacebookPost).PublishedAtUtc)}`}
                   </p>
                 </div>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
