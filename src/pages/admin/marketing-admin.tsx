@@ -1472,7 +1472,7 @@ function SelectableDraftList({
                 onChange={() => onToggleDraft(post.Id)}
                 className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
               />
-              <div className="min-w-0 flex-1">
+              <div className="min-w-0 flex-1 space-y-3">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <h3 className="font-extrabold">
@@ -1486,6 +1486,15 @@ function SelectableDraftList({
                     {post.PageName ?? post.SocialProfileName ?? "Facebook"}
                   </span>
                 </div>
+                {post.ImageUrl ? (
+                  <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                    <img
+                      src={post.ImageUrl}
+                      alt={post.CustomTitle || post.SocialProfileName || post.PageName || "Facebook draft image"}
+                      className="h-auto w-full object-cover"
+                    />
+                  </div>
+                ) : null}
                 <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">
                   {post.PostText}
                 </p>
