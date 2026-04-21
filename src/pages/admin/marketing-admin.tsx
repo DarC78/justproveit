@@ -14,7 +14,9 @@ import {
   getFacebookMarketingComments,
   getFacebookMarketingDashboard,
   generateFacebookDrafts,
+  generateManualFacebookDrafts,
   PublishedFacebookPost,
+  queueManualFacebookDrafts,
   saveFacebookContentSettings,
   ScheduledFacebookPost,
   syncFacebookAdPosts,
@@ -103,12 +105,15 @@ export default function MarketingAdminPage() {
   const [manualAccessToken, setManualAccessToken] = useState("");
   const [manualUserAccessToken, setManualUserAccessToken] = useState("");
   const [draftCount, setDraftCount] = useState(1);
+  const [manualDraftCount, setManualDraftCount] = useState(1);
+  const [manualPostSpecs, setManualPostSpecs] = useState("");
   const [selectedConnectionId, setSelectedConnectionId] = useState("all");
   const [showConnectPanel, setShowConnectPanel] = useState(false);
   const [showPublishingSection, setShowPublishingSection] = useState(true);
   const [showCommentsSection, setShowCommentsSection] = useState(false);
   const [syncAction, setSyncAction] = useState("");
   const [comments, setComments] = useState<FacebookComment[]>([]);
+  const [selectedManualDraftIds, setSelectedManualDraftIds] = useState<string[]>([]);
   const [contentSettings, setContentSettings] = useState<
     Record<string, { postingBriefDocument: string; generationCommand: string }>
   >({});
@@ -200,6 +205,10 @@ export default function MarketingAdminPage() {
       return next;
     });
   }, [dashboard]);
+
+  useEffect(() => {
+    setSelectedManualDraftIds([]);
+  }, [selectedConnectionId, dashboard]);
 
   useEffect(() => {
     const connections = dashboard?.connections ?? [];
@@ -455,6 +464,104 @@ export default function MarketingAdminPage() {
           : "Could not generate Facebook drafts.",
       );
     }
+  }
+
+  async function handleGenerateManualDrafts() {
+    if (!token || selectedConnectionId === "all") {
+      return;
+    }
+
+    const selectedConnection = (dashboard?.connections ?? []).find(
+      (connection) => connection.Id === selectedConnectionId,
+    );
+    const pageId = selectedConnection?.PageId;
+    const pageName =
+      selectedConnection?.ProfileName ?? selectedConnection?.PageName ?? "selected page";
+
+    if (!pageId) {
+      setActionStatus("");
+      setError("Select a connected page before generating manual posts.");
+      return;
+    }
+
+    if (!manualPostSpecs.trim()) {
+      setActionStatus("");
+      setError("Add operator specs before generating manual posts.");
+      return;
+    }
+
+    setActionStatus(`Generating ${manualDraftCount} manual post draft${manualDraftCount === 1 ? "" : "s"} for ${pageName}...`);
+    setError("");
+
+    try {
+      const result = await generateManualFacebookDrafts(token, {
+        pageId,
+        draftCount: manualDraftCount,
+        operatorSpecs: manualPostSpecs.trim(),
+      });
+      setActionStatus(
+        `Created ${result.drafted ?? 0} manual post draft${result.drafted === 1 ? "" : "s"} for ${pageName}.`,
+      );
+      await loadDashboard();
+    } catch (generationError) {
+      setActionStatus("");
+      setError(
+        generationError instanceof Error
+          ? generationError.message
+          : "Could not generate manual Facebook posts.",
+      );
+    }
+  }
+
+  async function handleQueueManualDrafts() {
+    if (!token || selectedConnectionId === "all") {
+      return;
+    }
+
+    const selectedConnection = (dashboard?.connections ?? []).find(
+      (connection) => connection.Id === selectedConnectionId,
+    );
+    const pageId = selectedConnection?.PageId;
+    const pageName =
+      selectedConnection?.ProfileName ?? selectedConnection?.PageName ?? "selected page";
+
+    if (!pageId) {
+      setActionStatus("");
+      setError("Select a connected page before queueing posts.");
+      return;
+    }
+
+    if (!selectedManualDraftIds.length) {
+      setActionStatus("");
+      setError("Select at least one manual post draft to queue.");
+      return;
+    }
+
+    setActionStatus(`Queueing ${selectedManualDraftIds.length} post${selectedManualDraftIds.length === 1 ? "" : "s"} for ${pageName}...`);
+    setError("");
+
+    try {
+      const result = await queueManualFacebookDrafts(token, {
+        pageId,
+        draftIds: selectedManualDraftIds,
+      });
+      setActionStatus(
+        `Queued ${result.queued ?? 0} post${result.queued === 1 ? "" : "s"} for ${pageName} with randomized spacing.`,
+      );
+      setSelectedManualDraftIds([]);
+      await loadDashboard();
+    } catch (queueError) {
+      setActionStatus("");
+      setError(
+        queueError instanceof Error ? queueError.message : "Could not queue manual Facebook posts.",
+      );
+    }
+  }
+
+  function handleToggleManualDraftSelection(draftId: string) {
+    setSelectedManualDraftIds((current) =>
+      current.includes(draftId) ? current.filter((item) => item !== draftId) : [...current, draftId],
+    );
   }
 
   async function handleImportAdPosts() {
@@ -790,6 +897,14 @@ export default function MarketingAdminPage() {
                 onContentSettingsChange={setContentSettings}
                 onRefresh={loadDashboard}
                 onSaveContentSettings={handleSaveContentSettings}
+                manualDraftCount={manualDraftCount}
+                manualPostSpecs={manualPostSpecs}
+                onManualDraftCountChange={setManualDraftCount}
+                onManualPostSpecsChange={setManualPostSpecs}
+                onGenerateManualDrafts={handleGenerateManualDrafts}
+                selectedManualDraftIds={selectedManualDraftIds}
+                onToggleManualDraftSelection={handleToggleManualDraftSelection}
+                onQueueManualDrafts={handleQueueManualDrafts}
                 onImportAdPosts={handleImportAdPosts}
                 onSyncComments={handleSyncComments}
                 comments={comments}
@@ -815,6 +930,14 @@ function DashboardContent({
   onContentSettingsChange,
   onRefresh,
   onSaveContentSettings,
+  manualDraftCount,
+  manualPostSpecs,
+  onManualDraftCountChange,
+  onManualPostSpecsChange,
+  onGenerateManualDrafts,
+  selectedManualDraftIds,
+  onToggleManualDraftSelection,
+  onQueueManualDrafts,
   onImportAdPosts,
   onSyncComments,
   comments,
@@ -838,6 +961,14 @@ function DashboardContent({
     pageId: string,
     pageName: string,
   ) => Promise<void>;
+  manualDraftCount: number;
+  manualPostSpecs: string;
+  onManualDraftCountChange: React.Dispatch<React.SetStateAction<number>>;
+  onManualPostSpecsChange: React.Dispatch<React.SetStateAction<string>>;
+  onGenerateManualDrafts: () => Promise<void>;
+  selectedManualDraftIds: string[];
+  onToggleManualDraftSelection: (draftId: string) => void;
+  onQueueManualDrafts: () => Promise<void>;
   onImportAdPosts: () => Promise<void>;
   onSyncComments: () => Promise<void>;
   comments: FacebookComment[];
@@ -871,6 +1002,9 @@ function DashboardContent({
     (dashboard?.publishedPosts ?? []).filter(
       (post) => selectedConnectionId === "all" || post.SocialConnectionId === selectedConnectionId,
     );
+  const manualCreatedPosts = createdPosts.filter((post) =>
+    (post.SourceTitle ?? "").toLowerCase().includes("manual prompt draft"),
+  );
   const metricSummary =
     selectedConnectionId === "all"
       ? summary
@@ -948,6 +1082,84 @@ function DashboardContent({
         isOpen={showPublishingSection}
         onToggle={onTogglePublishingSection}
       >
+        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-extrabold">Manual Post Studio</h2>
+            <p className="text-sm text-slate-600">
+              Work with Codex inline: describe the campaign angle, audience, CTA, exclusions, or any one-off brief here, and generate posts straight into the draft table for the selected page.
+            </p>
+          </div>
+          <div className="mt-4 grid gap-4">
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Operator specs
+              </span>
+              <textarea
+                value={manualPostSpecs}
+                onChange={(event) => onManualPostSpecsChange(event.target.value)}
+                className="mt-1 min-h-40 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                placeholder="Example: Create 3 posts for drivers who are unsure whether PCP hidden commission applies to them. Keep the tone calm and practical. One myth-busting post, one trust-building post, one short CTA-led post. Avoid legal jargon and avoid mentioning refunds or guaranteed outcomes."
+              />
+            </label>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label className="block">
+                  <span className="sr-only">Manual draft count</span>
+                  <select
+                    value={String(manualDraftCount)}
+                    onChange={(event) => onManualDraftCountChange(Number(event.target.value))}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-600 sm:min-w-28"
+                    disabled={selectedConnectionId === "all"}
+                  >
+                    <option value="1">Create 1</option>
+                    <option value="2">Create 2</option>
+                    <option value="3">Create 3</option>
+                    <option value="4">Create 4</option>
+                    <option value="5">Create 5</option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  onClick={onGenerateManualDrafts}
+                  disabled={selectedConnectionId === "all"}
+                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Generate manual posts
+                </button>
+              </div>
+              <p className="text-sm text-slate-500">
+                These posts go directly into the draft DB state first, so your teammate can review and choose exactly which ones to queue.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-extrabold">Manual Generated Posts</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                Select the drafts you want to place into the page queue. They will be scheduled with randomized spacing between 30 and 90 minutes apart.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onQueueManualDrafts}
+              disabled={!selectedManualDraftIds.length || selectedConnectionId === "all"}
+              className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Queue selected posts
+            </button>
+          </div>
+          <div className="mt-4">
+            <SelectableDraftList
+              posts={manualCreatedPosts}
+              selectedDraftIds={selectedManualDraftIds}
+              onToggleDraft={onToggleManualDraftSelection}
+            />
+          </div>
+        </section>
+
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-extrabold">Page Content Settings</h2>
           <div className="mt-4 space-y-6">
@@ -1099,6 +1311,58 @@ function DashboardContent({
           <LivePagePostList posts={recentPagePosts} />
         </section>
       </CollapsibleSection>
+    </div>
+  );
+}
+
+function SelectableDraftList({
+  posts,
+  selectedDraftIds,
+  onToggleDraft,
+}: {
+  posts: ScheduledFacebookPost[];
+  selectedDraftIds: string[];
+  onToggleDraft: (draftId: string) => void;
+}) {
+  if (!posts.length) {
+    return <p className="text-sm text-slate-600">No manual post drafts yet.</p>;
+  }
+
+  return (
+    <div className="space-y-4">
+      {posts.map((post) => {
+        const checked = selectedDraftIds.includes(post.Id);
+        return (
+          <article key={post.Id} className="rounded-lg border border-slate-200 p-4">
+            <label className="flex items-start gap-3">
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => onToggleDraft(post.Id)}
+                className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <h3 className="font-extrabold">
+                      {post.CustomTitle || post.SocialProfileName || post.PageName || "Facebook draft"}
+                    </h3>
+                    <p className="mt-1 text-xs font-semibold text-slate-500">
+                      Created {formatDate(post.CreatedAtUtc)}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                    {post.PageName ?? post.SocialProfileName ?? "Facebook"}
+                  </span>
+                </div>
+                <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">
+                  {post.PostText}
+                </p>
+              </div>
+            </label>
+          </article>
+        );
+      })}
     </div>
   );
 }

@@ -275,6 +275,41 @@ export function generateFacebookDrafts(
   });
 }
 
+export function generateManualFacebookDrafts(
+  token: string,
+  payload: {
+    pageId: string;
+    draftCount: number;
+    operatorSpecs: string;
+  },
+) {
+  return fetchJson<{ success?: boolean; drafted?: number }>(
+    `${BASE_PATH}/facebook/drafts/manual-generate`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function queueManualFacebookDrafts(
+  token: string,
+  payload: {
+    pageId: string;
+    draftIds: string[];
+  },
+) {
+  return fetchJson<{ success?: boolean; queued?: number }>(
+    `${BASE_PATH}/facebook/drafts/queue-random`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export function syncFacebookAdPosts(token: string) {
   return fetchJson<{
     success?: boolean;
