@@ -310,6 +310,31 @@ export function queueManualFacebookDrafts(
   );
 }
 
+export function importManualFacebookDrafts(
+  token: string,
+  payload: {
+    pageId: string;
+    sourceLabel?: string;
+    promptContextSummary?: string;
+    posts: Array<{
+      customTitle?: string;
+      postText: string;
+      linkUrl?: string;
+      reasoning?: string;
+      modelName?: string;
+    }>;
+  },
+) {
+  return fetchJson<{ success?: boolean; imported?: number }>(
+    `${BASE_PATH}/facebook/drafts/import`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export function syncFacebookAdPosts(token: string) {
   return fetchJson<{
     success?: boolean;
