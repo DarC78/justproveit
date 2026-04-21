@@ -38,6 +38,32 @@ export type FacebookConnectedAdAccount = {
   UpdatedAtUtc?: string | null;
 };
 
+export type FacebookComment = {
+  Id: string;
+  SocialConnectionId?: string | null;
+  ProviderCommentId?: string | null;
+  ParentProviderCommentId?: string | null;
+  CommentText?: string | null;
+  CommenterName?: string | null;
+  CommenterProviderUserId?: string | null;
+  CommenterProfilePictureUrl?: string | null;
+  CommentUrl?: string | null;
+  IsHidden?: boolean | null;
+  LikeCount?: number | null;
+  ReplyCount?: number | null;
+  CreatedAtProviderUtc?: string | null;
+  LastSyncedAtUtc?: string | null;
+  ReplyStatus?: string | null;
+  RepliedAtUtc?: string | null;
+  LastReplyError?: string | null;
+  ProviderPostId?: string | null;
+  PublishedAtUtc?: string | null;
+  PublishedPostExcerpt?: string | null;
+  SocialProfileName?: string | null;
+  TenantKey?: string | null;
+  TenantName?: string | null;
+};
+
 export type FacebookConnection = {
   Id: string;
   PageId?: string;
@@ -270,4 +296,32 @@ export function syncFacebookComments(token: string) {
     method: "POST",
     headers: authHeaders(token),
   });
+}
+
+export function getFacebookMarketingComments(
+  token: string,
+  options?: {
+    socialConnectionId?: string;
+    replyStatus?: string;
+    limit?: number;
+  },
+) {
+  const params = new URLSearchParams();
+  if (options?.socialConnectionId) {
+    params.set("socialConnectionId", options.socialConnectionId);
+  }
+  if (options?.replyStatus) {
+    params.set("replyStatus", options.replyStatus);
+  }
+  if (options?.limit) {
+    params.set("limit", String(options.limit));
+  }
+
+  const suffix = params.size ? `?${params.toString()}` : "";
+  return fetchJson<{ success?: boolean; comments?: FacebookComment[] }>(
+    `${BASE_PATH}/facebook/comments${suffix}`,
+    {
+      headers: authHeaders(token),
+    },
+  );
 }

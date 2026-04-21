@@ -2,6 +2,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   connectFacebookMarketingPage,
   connectFacebookMarketingAdAccount,
+  FacebookComment,
   FacebookAdAccountOption,
   FacebookDashboard,
   FacebookLiveConnection,
@@ -10,6 +11,7 @@ import {
   FacebookOAuthPayload,
   getApiOrigin,
   getFacebookMarketingAuthUrl,
+  getFacebookMarketingComments,
   getFacebookMarketingDashboard,
   generateFacebookDrafts,
   PublishedFacebookPost,
@@ -106,6 +108,7 @@ export default function MarketingAdminPage() {
   const [showPublishingSection, setShowPublishingSection] = useState(true);
   const [showCommentsSection, setShowCommentsSection] = useState(false);
   const [syncAction, setSyncAction] = useState("");
+  const [comments, setComments] = useState<FacebookComment[]>([]);
   const [contentSettings, setContentSettings] = useState<
     Record<string, { postingBriefDocument: string; generationCommand: string }>
   >({});
@@ -163,6 +166,15 @@ export default function MarketingAdminPage() {
     loadDashboard();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gateStatus, token]);
+
+  useEffect(() => {
+    if (gateStatus !== "allowed" || !token) {
+      return;
+    }
+
+    loadComments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gateStatus, token, selectedConnectionId]);
 
   useEffect(() => {
     const connections = dashboard?.connections ?? [];
@@ -234,6 +246,22 @@ export default function MarketingAdminPage() {
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Could not load marketing dashboard.");
       setLoadStatus("error");
+    }
+  }
+
+  async function loadComments() {
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response = await getFacebookMarketingComments(token, {
+        socialConnectionId: selectedConnectionId === "all" ? undefined : selectedConnectionId,
+        limit: 150,
+      });
+      setComments(response.comments ?? []);
+    } catch {
+      setComments([]);
     }
   }
 
@@ -444,6 +472,7 @@ export default function MarketingAdminPage() {
         `Imported ${result.importedPosts ?? 0} ad-linked post${result.importedPosts === 1 ? "" : "s"} across ${result.processedAccounts ?? 0} ad account${result.processedAccounts === 1 ? "" : "s"}.`,
       );
       await loadDashboard();
+      await loadComments();
     } catch (syncError) {
       setActionStatus("");
       setError(
@@ -473,6 +502,7 @@ export default function MarketingAdminPage() {
         `Synced ${syncedComments} comment${syncedComments === 1 ? "" : "s"} across ${result.processedPosts ?? 0} tracked post${result.processedPosts === 1 ? "" : "s"}.`,
       );
       await loadDashboard();
+      await loadComments();
     } catch (syncError) {
       setActionStatus("");
       setError(syncError instanceof Error ? syncError.message : "Could not sync Facebook comments.");
@@ -762,6 +792,7 @@ export default function MarketingAdminPage() {
                 onSaveContentSettings={handleSaveContentSettings}
                 onImportAdPosts={handleImportAdPosts}
                 onSyncComments={handleSyncComments}
+                comments={comments}
                 onTogglePublishingSection={() => setShowPublishingSection((current) => !current)}
                 onToggleCommentsSection={() => setShowCommentsSection((current) => !current)}
                 syncAction={syncAction}
@@ -786,6 +817,7 @@ function DashboardContent({
   onSaveContentSettings,
   onImportAdPosts,
   onSyncComments,
+  comments,
   onTogglePublishingSection,
   onToggleCommentsSection,
   syncAction,
@@ -808,6 +840,7 @@ function DashboardContent({
   ) => Promise<void>;
   onImportAdPosts: () => Promise<void>;
   onSyncComments: () => Promise<void>;
+  comments: FacebookComment[];
   onTogglePublishingSection: () => void;
   onToggleCommentsSection: () => void;
   syncAction: string;
@@ -1058,10 +1091,92 @@ function DashboardContent({
         </section>
 
         <section className="grid gap-6 xl:grid-cols-2">
+          <TrackedPostMessagesList posts={publishedPosts} />
+          <CommentInboxList comments={comments} />
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-2">
           <LivePagePostList posts={recentPagePosts} />
         </section>
       </CollapsibleSection>
     </div>
+  );
+}
+
+function CommentInboxList({ comments }: { comments: FacebookComment[] }) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-extrabold">Comments</h2>
+      <div className="mt-4 space-y-4">
+        {comments.length ? (
+          comments.map((comment) => (
+            <article key={comment.Id} className="rounded-lg border border-slate-200 p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="font-extrabold">
+                    {comment.CommenterName?.trim() || "Facebook user"}
+                  </h3>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {(comment.SocialProfileName ?? "Facebook Page") + " | " + formatDate(comment.CreatedAtProviderUtc)}
+                  </p>
+                </div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                  {comment.ReplyStatus ?? "Unreplied"}
+                </span>
+              </div>
+              <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">
+                {comment.CommentText?.trim() || "No comment text returned."}
+              </p>
+              {comment.PublishedPostExcerpt ? (
+                <div className="mt-4 rounded-md bg-slate-50 p-3 text-sm text-slate-600">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">On post</p>
+                  <p className="mt-2 whitespace-pre-line">{comment.PublishedPostExcerpt}</p>
+                </div>
+              ) : null}
+              <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
+                <StatItem label="Likes" value={comment.LikeCount ?? 0} />
+                <StatItem label="Replies" value={comment.ReplyCount ?? 0} />
+                <StatItem label="Hidden" value={comment.IsHidden ? "Yes" : "No"} />
+              </dl>
+            </article>
+          ))
+        ) : (
+          <p className="text-sm text-slate-600">No synced comments yet.</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function TrackedPostMessagesList({ posts }: { posts: PublishedFacebookPost[] }) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <h2 className="text-xl font-extrabold">Tracked Post Messages</h2>
+      <div className="mt-4 space-y-4">
+        {posts.length ? (
+          posts.map((post) => (
+            <article key={post.Id} className="rounded-lg border border-slate-200 p-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <h3 className="font-extrabold">{post.SocialProfileName ?? post.PageName ?? "Facebook post"}</h3>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {formatDate(post.PublishedAtUtc)}{post.ProviderPostId ? ` | ${post.ProviderPostId}` : ""}
+                  </p>
+                </div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                  {post.CommentsCount ?? 0} comments
+                </span>
+              </div>
+              <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">
+                {post.PublishedText?.trim() || "No post text returned."}
+              </p>
+            </article>
+          ))
+        ) : (
+          <p className="text-sm text-slate-600">No tracked post messages yet.</p>
+        )}
+      </div>
+    </section>
   );
 }
 
