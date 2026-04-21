@@ -99,6 +99,8 @@ export default function MarketingAdminPage() {
   const [draftCount, setDraftCount] = useState(1);
   const [selectedConnectionId, setSelectedConnectionId] = useState("all");
   const [showConnectPanel, setShowConnectPanel] = useState(false);
+  const [showPublishingSection, setShowPublishingSection] = useState(true);
+  const [showCommentsSection, setShowCommentsSection] = useState(false);
   const [contentSettings, setContentSettings] = useState<
     Record<string, { postingBriefDocument: string; generationCommand: string }>
   >({});
@@ -642,9 +644,13 @@ export default function MarketingAdminPage() {
                 contentSettings={contentSettings}
                 loadStatus={loadStatus}
                 selectedConnectionId={selectedConnectionId}
+                showPublishingSection={showPublishingSection}
+                showCommentsSection={showCommentsSection}
                 onContentSettingsChange={setContentSettings}
                 onRefresh={loadDashboard}
                 onSaveContentSettings={handleSaveContentSettings}
+                onTogglePublishingSection={() => setShowPublishingSection((current) => !current)}
+                onToggleCommentsSection={() => setShowCommentsSection((current) => !current)}
               />
             </section>
           ) : null}
@@ -659,14 +665,20 @@ function DashboardContent({
   dashboard,
   loadStatus,
   selectedConnectionId,
+  showPublishingSection,
+  showCommentsSection,
   onContentSettingsChange,
   onRefresh,
   onSaveContentSettings,
+  onTogglePublishingSection,
+  onToggleCommentsSection,
 }: {
   contentSettings: Record<string, { postingBriefDocument: string; generationCommand: string }>;
   dashboard: FacebookDashboard | null;
   loadStatus: LoadStatus;
   selectedConnectionId: string;
+  showPublishingSection: boolean;
+  showCommentsSection: boolean;
   onContentSettingsChange: React.Dispatch<
     React.SetStateAction<Record<string, { postingBriefDocument: string; generationCommand: string }>>
   >;
@@ -677,6 +689,8 @@ function DashboardContent({
     pageId: string,
     pageName: string,
   ) => Promise<void>;
+  onTogglePublishingSection: () => void;
+  onToggleCommentsSection: () => void;
 }) {
   const summary = dashboard?.summary ?? {};
   const allConnections = dashboard?.connections ?? [];
@@ -775,116 +789,163 @@ function DashboardContent({
         </div>
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-extrabold">Page Content Settings</h2>
-        <div className="mt-4 space-y-6">
-          {connections.length ? (
-            connections.map((connection) => {
-              const pageId = connection.PageId ?? "";
-              const pageName = connection.ProfileName ?? connection.PageName ?? "Facebook Page";
-              const settings =
-                contentSettings[connection.Id] ??
-                getDefaultContentSettings(connection.ProfileName ?? connection.PageName);
+      <CollapsibleSection
+        title="Post Scheduling"
+        description="Create drafts, refine page instructions, and work through the created, scheduled, and live post lifecycle."
+        isOpen={showPublishingSection}
+        onToggle={onTogglePublishingSection}
+      >
+        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-extrabold">Page Content Settings</h2>
+          <div className="mt-4 space-y-6">
+            {connections.length ? (
+              connections.map((connection) => {
+                const pageId = connection.PageId ?? "";
+                const pageName = connection.ProfileName ?? connection.PageName ?? "Facebook Page";
+                const settings =
+                  contentSettings[connection.Id] ??
+                  getDefaultContentSettings(connection.ProfileName ?? connection.PageName);
 
-              return (
-                <form
-                  key={connection.Id}
-                  className="rounded-lg border border-slate-200 p-4"
-                  onSubmit={(event) =>
-                    onSaveContentSettings(event, connection.Id, pageId, pageName)
-                  }
-                >
-                  <div className="flex flex-col gap-1">
-                    <h3 className="font-extrabold">{pageName}</h3>
-                    <p className="text-xs font-semibold text-slate-500">{pageId || "-"}</p>
-                  </div>
+                return (
+                  <form
+                    key={connection.Id}
+                    className="rounded-lg border border-slate-200 p-4"
+                    onSubmit={(event) =>
+                      onSaveContentSettings(event, connection.Id, pageId, pageName)
+                    }
+                  >
+                    <div className="flex flex-col gap-1">
+                      <h3 className="font-extrabold">{pageName}</h3>
+                      <p className="text-xs font-semibold text-slate-500">{pageId || "-"}</p>
+                    </div>
 
-                  <div className="mt-4 grid gap-4">
-                    <label className="block">
-                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                        Broader context brief
-                      </span>
-                      <textarea
-                        value={settings.postingBriefDocument}
-                        onChange={(event) =>
-                          onContentSettingsChange((current) => ({
-                            ...current,
-                            [connection.Id]: {
-                              ...settings,
-                              postingBriefDocument: event.target.value,
-                            },
-                          }))
-                        }
-                        className="mt-1 min-h-56 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
-                      />
-                    </label>
+                    <div className="mt-4 grid gap-4">
+                      <label className="block">
+                        <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          Broader context brief
+                        </span>
+                        <textarea
+                          value={settings.postingBriefDocument}
+                          onChange={(event) =>
+                            onContentSettingsChange((current) => ({
+                              ...current,
+                              [connection.Id]: {
+                                ...settings,
+                                postingBriefDocument: event.target.value,
+                              },
+                            }))
+                          }
+                          className="mt-1 min-h-56 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                        />
+                      </label>
 
-                    <label className="block">
-                      <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-                        Post generation command
-                      </span>
-                      <textarea
-                        value={settings.generationCommand}
-                        onChange={(event) =>
-                          onContentSettingsChange((current) => ({
-                            ...current,
-                            [connection.Id]: {
-                              ...settings,
-                              generationCommand: event.target.value,
-                            },
-                          }))
-                        }
-                        className="mt-1 min-h-44 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
-                      />
-                    </label>
-                  </div>
+                      <label className="block">
+                        <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                          Post generation command
+                        </span>
+                        <textarea
+                          value={settings.generationCommand}
+                          onChange={(event) =>
+                            onContentSettingsChange((current) => ({
+                              ...current,
+                              [connection.Id]: {
+                                ...settings,
+                                generationCommand: event.target.value,
+                              },
+                            }))
+                          }
+                          className="mt-1 min-h-44 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                        />
+                      </label>
+                    </div>
 
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-slate-500">
-                      These texts are stored per page. The broader context already plugs into the existing social profile storage, and the generation command is now saved alongside the page configuration for later use.
-                    </p>
-                    <button
-                      type="submit"
-                      className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
-                    >
-                      Save content settings
-                    </button>
-                  </div>
-                </form>
-              );
-            })
-          ) : (
-            <p className="text-sm text-slate-600">Connect a Facebook Page to configure its content brief and generation command.</p>
-          )}
-        </div>
-      </section>
+                    <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className="text-sm text-slate-500">
+                        These texts are stored per page. The broader context already plugs into the existing social profile storage, and the generation command is now saved alongside the page configuration for later use.
+                      </p>
+                      <button
+                        type="submit"
+                        className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
+                      >
+                        Save content settings
+                      </button>
+                    </div>
+                  </form>
+                );
+              })
+            ) : (
+              <p className="text-sm text-slate-600">Connect a Facebook Page to configure its content brief and generation command.</p>
+            )}
+          </div>
+        </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-extrabold">Live Page Insights</h2>
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {liveConnections.length ? (
-            liveConnections.map((connection) => (
-              <LiveConnectionCard key={connection.connectionId} connection={connection} />
-            ))
-          ) : (
-            <p className="text-sm text-slate-600">Connect a Facebook Page to load live follower and recent post data.</p>
-          )}
-        </div>
-      </section>
+        <section className="grid gap-6 xl:grid-cols-2">
+          <PostList title="Created posts" posts={createdPosts} mode="created" />
+          <PostList title="Scheduled posts" posts={scheduledPosts} mode="scheduled" />
+        </section>
 
-      <section className="grid gap-6 xl:grid-cols-2">
-        <PostList title="Created posts" posts={createdPosts} mode="created" />
-        <LivePagePostList posts={recentPagePosts} />
-      </section>
+        <section className="grid gap-6 xl:grid-cols-1">
+          <PostList title="Live posts" posts={publishedPosts} mode="published" />
+        </section>
+      </CollapsibleSection>
 
-      <section className="grid gap-6 xl:grid-cols-2">
-        <PostList title="Scheduled posts" posts={scheduledPosts} mode="scheduled" />
-      </section>
+      <CollapsibleSection
+        title="Comments & Engagement"
+        description="Keep the post context visible while you review comment activity. This is where the comment-reply inbox will live."
+        isOpen={showCommentsSection}
+        onToggle={onToggleCommentsSection}
+      >
+        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-xl font-extrabold">Live Page Insights</h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {liveConnections.length ? (
+              liveConnections.map((connection) => (
+                <LiveConnectionCard key={connection.connectionId} connection={connection} />
+              ))
+            ) : (
+              <p className="text-sm text-slate-600">Connect a Facebook Page to load live follower and recent post data.</p>
+            )}
+          </div>
+        </section>
 
-      <section className="grid gap-6 xl:grid-cols-1">
-        <PostList title="Live posts" posts={publishedPosts} mode="published" />
-      </section>
+        <section className="grid gap-6 xl:grid-cols-2">
+          <LivePagePostList posts={recentPagePosts} />
+        </section>
+      </CollapsibleSection>
     </div>
+  );
+}
+
+function CollapsibleSection({
+  title,
+  description,
+  isOpen,
+  onToggle,
+  children,
+}: {
+  title: string;
+  description: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-start justify-between gap-4 px-6 py-5 text-left hover:bg-slate-50"
+      >
+        <div>
+          <h2 className="text-xl font-extrabold text-slate-950">{title}</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">{description}</p>
+        </div>
+        <span className="rounded-md border border-slate-300 px-3 py-1 text-xs font-bold uppercase tracking-wide text-slate-700">
+          {isOpen ? "Collapse" : "Expand"}
+        </span>
+      </button>
+      {isOpen ? <div className="space-y-6 border-t border-slate-200 p-6">{children}</div> : null}
+    </section>
   );
 }
 
@@ -1014,7 +1075,7 @@ function PostList({
                   {post.PageName ?? post.SocialProfileName ?? "Facebook"}
                 </span>
               </div>
-              <p className="mt-3 line-clamp-4 whitespace-pre-line text-sm leading-6 text-slate-700">
+              <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">
                 {"PostText" in post ? post.PostText : (post as PublishedFacebookPost).PublishedText}
               </p>
               {mode === "published" ? (
