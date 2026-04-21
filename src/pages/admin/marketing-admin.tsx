@@ -13,6 +13,8 @@ import {
   PublishedFacebookPost,
   saveFacebookContentSettings,
   ScheduledFacebookPost,
+  syncFacebookAdPosts,
+  syncFacebookComments,
 } from "@/lib/marketingAdmin";
 import Head from "next/head";
 import Link from "next/link";
@@ -101,6 +103,7 @@ export default function MarketingAdminPage() {
   const [showConnectPanel, setShowConnectPanel] = useState(false);
   const [showPublishingSection, setShowPublishingSection] = useState(true);
   const [showCommentsSection, setShowCommentsSection] = useState(false);
+  const [syncAction, setSyncAction] = useState("");
   const [contentSettings, setContentSettings] = useState<
     Record<string, { postingBriefDocument: string; generationCommand: string }>
   >({});
@@ -397,6 +400,58 @@ export default function MarketingAdminPage() {
     }
   }
 
+  async function handleImportAdPosts() {
+    if (!token) {
+      return;
+    }
+
+    setSyncAction("importing-ad-posts");
+    setActionStatus("Importing Facebook ad-linked posts...");
+    setError("");
+
+    try {
+      const result = await syncFacebookAdPosts(token);
+      setActionStatus(
+        `Imported ${result.importedPosts ?? 0} ad-linked post${result.importedPosts === 1 ? "" : "s"} across ${result.processedAccounts ?? 0} ad account${result.processedAccounts === 1 ? "" : "s"}.`,
+      );
+      await loadDashboard();
+    } catch (syncError) {
+      setActionStatus("");
+      setError(
+        syncError instanceof Error ? syncError.message : "Could not import Facebook ad-linked posts.",
+      );
+    } finally {
+      setSyncAction("");
+    }
+  }
+
+  async function handleSyncComments() {
+    if (!token) {
+      return;
+    }
+
+    setSyncAction("syncing-comments");
+    setActionStatus("Syncing Facebook comments...");
+    setError("");
+
+    try {
+      const result = await syncFacebookComments(token);
+      const syncedComments = (result.items ?? []).reduce(
+        (sum, item) => sum + Number(item.syncedComments ?? 0),
+        0,
+      );
+      setActionStatus(
+        `Synced ${syncedComments} comment${syncedComments === 1 ? "" : "s"} across ${result.processedPosts ?? 0} tracked post${result.processedPosts === 1 ? "" : "s"}.`,
+      );
+      await loadDashboard();
+    } catch (syncError) {
+      setActionStatus("");
+      setError(syncError instanceof Error ? syncError.message : "Could not sync Facebook comments.");
+    } finally {
+      setSyncAction("");
+    }
+  }
+
   async function handleLogout() {
     await logout();
     await router.push("/login");
@@ -649,8 +704,11 @@ export default function MarketingAdminPage() {
                 onContentSettingsChange={setContentSettings}
                 onRefresh={loadDashboard}
                 onSaveContentSettings={handleSaveContentSettings}
+                onImportAdPosts={handleImportAdPosts}
+                onSyncComments={handleSyncComments}
                 onTogglePublishingSection={() => setShowPublishingSection((current) => !current)}
                 onToggleCommentsSection={() => setShowCommentsSection((current) => !current)}
+                syncAction={syncAction}
               />
             </section>
           ) : null}
@@ -670,8 +728,11 @@ function DashboardContent({
   onContentSettingsChange,
   onRefresh,
   onSaveContentSettings,
+  onImportAdPosts,
+  onSyncComments,
   onTogglePublishingSection,
   onToggleCommentsSection,
+  syncAction,
 }: {
   contentSettings: Record<string, { postingBriefDocument: string; generationCommand: string }>;
   dashboard: FacebookDashboard | null;
@@ -689,8 +750,11 @@ function DashboardContent({
     pageId: string,
     pageName: string,
   ) => Promise<void>;
+  onImportAdPosts: () => Promise<void>;
+  onSyncComments: () => Promise<void>;
   onTogglePublishingSection: () => void;
   onToggleCommentsSection: () => void;
+  syncAction: string;
 }) {
   const summary = dashboard?.summary ?? {};
   const allConnections = dashboard?.connections ?? [];
@@ -895,6 +959,35 @@ function DashboardContent({
         isOpen={showCommentsSection}
         onToggle={onToggleCommentsSection}
       >
+        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <h2 className="text-xl font-extrabold">Comment Sync Tools</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                Pull in Facebook ad-linked posts first, then sync comments so the upcoming reply inbox has fresh material to work with.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={onImportAdPosts}
+                disabled={syncAction !== ""}
+                className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {syncAction === "importing-ad-posts" ? "Importing ad posts..." : "Import ad posts"}
+              </button>
+              <button
+                type="button"
+                onClick={onSyncComments}
+                disabled={syncAction !== ""}
+                className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {syncAction === "syncing-comments" ? "Syncing comments..." : "Sync comments"}
+              </button>
+            </div>
+          </div>
+        </section>
+
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-extrabold">Live Page Insights</h2>
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">

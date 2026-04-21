@@ -207,3 +207,26 @@ export function generateFacebookDrafts(
     body: JSON.stringify(payload),
   });
 }
+
+export function syncFacebookAdPosts(token: string) {
+  return fetchJson<{
+    success?: boolean;
+    processedAccounts?: number;
+    matchedAds?: number;
+    importedPosts?: number;
+  }>(`${BASE_PATH}/facebook/ads/posts/sync`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+}
+
+export function syncFacebookComments(token: string) {
+  return fetchJson<{
+    success?: boolean;
+    processedPosts?: number;
+    items?: Array<{ status?: string; syncedComments?: number }>;
+  }>(`${BASE_PATH}/facebook/comments/sync`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+}
