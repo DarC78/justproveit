@@ -15,6 +15,27 @@ export type FacebookOAuthPayload = {
   tokenExpiresAtUtc?: string | null;
   scopes?: string[];
   pages?: FacebookOAuthPage[];
+  adAccounts?: FacebookAdAccountOption[];
+};
+
+export type FacebookAdAccountOption = {
+  id: string;
+  name: string;
+  accountStatus?: string | number | null;
+  currency?: string | null;
+  timeZoneName?: string | null;
+};
+
+export type FacebookConnectedAdAccount = {
+  Id: string;
+  TenantId?: string;
+  AccountId?: string;
+  AccountName?: string;
+  Currency?: string | null;
+  TimeZoneName?: string | null;
+  TokenExpiresAtUtc?: string | null;
+  IsEnabled?: boolean;
+  UpdatedAtUtc?: string | null;
 };
 
 export type FacebookConnection = {
@@ -113,6 +134,7 @@ export type FacebookDashboard = {
   };
   summary?: {
     connectedPages?: number;
+    connectedAdAccounts?: number;
     createdPosts?: number;
     scheduledPosts?: number;
     publishedPosts?: number;
@@ -127,6 +149,7 @@ export type FacebookDashboard = {
     livePosts?: number;
   };
   connections?: FacebookConnection[];
+  adAccounts?: FacebookConnectedAdAccount[];
   liveConnections?: FacebookLiveConnection[];
   recentPagePosts?: FacebookLivePagePost[];
   createdPosts?: ScheduledFacebookPost[];
@@ -167,6 +190,24 @@ export function connectFacebookMarketingPage(
   },
 ) {
   return fetchJson<{ success?: boolean }>(`${BASE_PATH}/facebook/pages/connect`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function connectFacebookMarketingAdAccount(
+  token: string,
+  payload: {
+    accountId: string;
+    accountName: string;
+    userAccessToken?: string;
+    accessToken?: string;
+    currency?: string;
+    timeZoneName?: string;
+  },
+) {
+  return fetchJson<{ success?: boolean }>(`${BASE_PATH}/facebook/ad-accounts/connect`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(payload),

@@ -1,6 +1,8 @@
 import { useAuth } from "@/context/AuthContext";
 import {
   connectFacebookMarketingPage,
+  connectFacebookMarketingAdAccount,
+  FacebookAdAccountOption,
   FacebookDashboard,
   FacebookLiveConnection,
   FacebookLivePagePost,
@@ -112,6 +114,10 @@ export default function MarketingAdminPage() {
     () => (Array.isArray(oauthPayload?.pages) ? oauthPayload.pages : []),
     [oauthPayload],
   );
+  const oauthAdAccounts = useMemo(
+    () => (Array.isArray(oauthPayload?.adAccounts) ? oauthPayload.adAccounts : []),
+    [oauthPayload],
+  );
 
   useEffect(() => {
     if (status === "loading") {
@@ -208,7 +214,7 @@ export default function MarketingAdminPage() {
       }
 
       setOauthPayload(event.data.payload ?? null);
-      setActionStatus("Facebook account connected. Select one or more pages to link.");
+      setActionStatus("Facebook account connected. Select the pages and ad accounts you want to link.");
     }
 
     window.addEventListener("message", handleOAuthMessage);
@@ -278,6 +284,29 @@ export default function MarketingAdminPage() {
       await loadDashboard();
     } catch (connectError) {
       setError(connectError instanceof Error ? connectError.message : "Could not link this Facebook Page.");
+      setActionStatus("");
+    }
+  }
+
+  async function connectAdAccount(adAccount: FacebookAdAccountOption) {
+    if (!token || !oauthPayload?.userAccessToken) {
+      return;
+    }
+
+    setActionStatus(`Linking ad account ${adAccount.name}...`);
+    setError("");
+    try {
+      await connectFacebookMarketingAdAccount(token, {
+        accountId: adAccount.id,
+        accountName: adAccount.name,
+        userAccessToken: oauthPayload.userAccessToken,
+        currency: adAccount.currency ?? undefined,
+        timeZoneName: adAccount.timeZoneName ?? undefined,
+      });
+      setActionStatus(`${adAccount.name} ad account linked.`);
+      await loadDashboard();
+    } catch (connectError) {
+      setError(connectError instanceof Error ? connectError.message : "Could not link this Facebook Ads account.");
       setActionStatus("");
     }
   }
@@ -687,6 +716,33 @@ export default function MarketingAdminPage() {
                           className="mt-4 rounded-md bg-slate-900 px-3 py-2 text-sm font-bold text-white hover:bg-slate-800"
                         >
                           Link page
+                        </button>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+
+              {oauthAdAccounts.length ? (
+                <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+                  <h2 className="text-xl font-extrabold">Ad Accounts from Meta</h2>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Link the Business Manager ad account that is running the campaigns for these pages so ad posts and comments can be imported into the workspace.
+                  </p>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {oauthAdAccounts.map((adAccount) => (
+                      <article key={adAccount.id} className="rounded-lg border border-slate-200 p-4">
+                        <h3 className="font-extrabold">{adAccount.name}</h3>
+                        <p className="mt-1 text-xs font-semibold text-slate-500">{adAccount.id}</p>
+                        <p className="mt-3 min-h-10 text-sm text-slate-600">
+                          {[adAccount.currency, adAccount.timeZoneName].filter(Boolean).join(" | ") || "No account metadata returned."}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => connectAdAccount(adAccount)}
+                          className="mt-4 rounded-md bg-slate-900 px-3 py-2 text-sm font-bold text-white hover:bg-slate-800"
+                        >
+                          Link ad account
                         </button>
                       </article>
                     ))}
