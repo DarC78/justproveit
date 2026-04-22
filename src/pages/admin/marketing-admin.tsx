@@ -4,6 +4,7 @@ import {
   connectFacebookMarketingAdAccount,
   FacebookComment,
   FacebookAdAccountOption,
+  FacebookConnection,
   FacebookDashboard,
   FacebookLiveConnection,
   FacebookLivePagePost,
@@ -16,7 +17,7 @@ import {
   generateFacebookDrafts,
   generateManualFacebookDrafts,
   PublishedFacebookPost,
-  queueManualFacebookDrafts,
+  scheduleManualFacebookDrafts,
   saveFacebookContentSettings,
   ScheduledFacebookPost,
   syncFacebookAdPosts,
@@ -116,6 +117,9 @@ export default function MarketingAdminPage() {
   const [syncAction, setSyncAction] = useState("");
   const [comments, setComments] = useState<FacebookComment[]>([]);
   const [selectedManualDraftIds, setSelectedManualDraftIds] = useState<string[]>([]);
+  const [draftPageSelections, setDraftPageSelections] = useState<Record<string, string>>({});
+  const [manualScheduleMode, setManualScheduleMode] = useState<"queue" | "fixed">("queue");
+  const [manualScheduleAt, setManualScheduleAt] = useState("");
   const [contentSettings, setContentSettings] = useState<
     Record<string, { postingBriefDocument: string; generationCommand: string }>
   >({});
@@ -211,6 +215,27 @@ export default function MarketingAdminPage() {
   useEffect(() => {
     setSelectedManualDraftIds([]);
   }, [selectedConnectionId, dashboard]);
+
+  useEffect(() => {
+    const createdPosts = dashboard?.createdPosts ?? [];
+    if (!createdPosts.length) {
+      return;
+    }
+
+    setDraftPageSelections((current) => {
+      const next = { ...current };
+
+      for (const post of createdPosts) {
+        if (!post.Id || next[post.Id]) {
+          continue;
+        }
+
+        next[post.Id] = post.PageId ?? "";
+      }
+
+      return next;
+    });
+  }, [dashboard]);
 
   useEffect(() => {
     const connections = dashboard?.connections ?? [];
@@ -516,20 +541,7 @@ export default function MarketingAdminPage() {
   }
 
   async function handleQueueManualDrafts() {
-    if (!token || selectedConnectionId === "all") {
-      return;
-    }
-
-    const selectedConnection = (dashboard?.connections ?? []).find(
-      (connection) => connection.Id === selectedConnectionId,
-    );
-    const pageId = selectedConnection?.PageId;
-    const pageName =
-      selectedConnection?.ProfileName ?? selectedConnection?.PageName ?? "selected page";
-
-    if (!pageId) {
-      setActionStatus("");
-      setError("Select a connected page before queueing posts.");
+    if (!token) {
       return;
     }
 
@@ -539,16 +551,43 @@ export default function MarketingAdminPage() {
       return;
     }
 
-    setActionStatus(`Queueing ${selectedManualDraftIds.length} post${selectedManualDraftIds.length === 1 ? "" : "s"} for ${pageName}...`);
+    const createdPosts = dashboard?.createdPosts ?? [];
+    const selectedItems = selectedManualDraftIds
+      .map((draftId) => {
+        const draft = createdPosts.find((item) => item.Id === draftId);
+        const pageId = draftPageSelections[draftId] || draft?.PageId || "";
+        return draft && pageId ? { draftId, pageId } : null;
+      })
+      .filter((item): item is { draftId: string; pageId: string } => Boolean(item));
+
+    if (!selectedItems.length || selectedItems.length !== selectedManualDraftIds.length) {
+      setActionStatus("");
+      setError("Choose a target page for each selected draft before scheduling.");
+      return;
+    }
+
+    if (manualScheduleMode === "fixed" && !manualScheduleAt) {
+      setActionStatus("");
+      setError("Choose a future date and time before scheduling with the fixed option.");
+      return;
+    }
+
+    setActionStatus(
+      `${manualScheduleMode === "queue" ? "Queueing" : "Scheduling"} ${selectedManualDraftIds.length} post${selectedManualDraftIds.length === 1 ? "" : "s"}...`,
+    );
     setError("");
 
     try {
-      const result = await queueManualFacebookDrafts(token, {
-        pageId,
-        draftIds: selectedManualDraftIds,
+      const result = await scheduleManualFacebookDrafts(token, {
+        scheduleMode: manualScheduleMode,
+        scheduledForUtc:
+          manualScheduleMode === "fixed" ? new Date(manualScheduleAt).toISOString() : undefined,
+        items: selectedItems,
       });
       setActionStatus(
-        `Queued ${result.queued ?? 0} post${result.queued === 1 ? "" : "s"} for ${pageName} with randomized spacing.`,
+        manualScheduleMode === "queue"
+          ? `Queued ${result.scheduled ?? 0} post${result.scheduled === 1 ? "" : "s"} using the smart queue.`
+          : `Scheduled ${result.scheduled ?? 0} post${result.scheduled === 1 ? "" : "s"} from the chosen date and time.`,
       );
       setSelectedManualDraftIds([]);
       await loadDashboard();
@@ -564,6 +603,13 @@ export default function MarketingAdminPage() {
     setSelectedManualDraftIds((current) =>
       current.includes(draftId) ? current.filter((item) => item !== draftId) : [...current, draftId],
     );
+  }
+
+  function handleDraftPageSelection(draftId: string, pageId: string) {
+    setDraftPageSelections((current) => ({
+      ...current,
+      [draftId]: pageId,
+    }));
   }
 
   async function handleImportAdPosts() {
@@ -734,6 +780,12 @@ export default function MarketingAdminPage() {
                 selectedManualDraftIds={selectedManualDraftIds}
                 onToggleManualDraftSelection={handleToggleManualDraftSelection}
                 onQueueManualDrafts={handleQueueManualDrafts}
+                draftPageSelections={draftPageSelections}
+                onDraftPageSelectionChange={handleDraftPageSelection}
+                manualScheduleMode={manualScheduleMode}
+                onManualScheduleModeChange={setManualScheduleMode}
+                manualScheduleAt={manualScheduleAt}
+                onManualScheduleAtChange={setManualScheduleAt}
                 onImportAdPosts={handleImportAdPosts}
                 onSyncComments={handleSyncComments}
                 comments={comments}
@@ -793,6 +845,12 @@ function DashboardContent({
   selectedManualDraftIds,
   onToggleManualDraftSelection,
   onQueueManualDrafts,
+  draftPageSelections,
+  onDraftPageSelectionChange,
+  manualScheduleMode,
+  onManualScheduleModeChange,
+  manualScheduleAt,
+  onManualScheduleAtChange,
   onImportAdPosts,
   onSyncComments,
   comments,
@@ -850,6 +908,12 @@ function DashboardContent({
   selectedManualDraftIds: string[];
   onToggleManualDraftSelection: (draftId: string) => void;
   onQueueManualDrafts: () => Promise<void>;
+  draftPageSelections: Record<string, string>;
+  onDraftPageSelectionChange: (draftId: string, pageId: string) => void;
+  manualScheduleMode: "queue" | "fixed";
+  onManualScheduleModeChange: React.Dispatch<React.SetStateAction<"queue" | "fixed">>;
+  manualScheduleAt: string;
+  onManualScheduleAtChange: React.Dispatch<React.SetStateAction<string>>;
   onImportAdPosts: () => Promise<void>;
   onSyncComments: () => Promise<void>;
   comments: FacebookComment[];
@@ -1284,23 +1348,69 @@ function DashboardContent({
             <div>
               <h2 className="text-xl font-extrabold">Manual Generated Posts</h2>
               <p className="mt-2 text-sm text-slate-600">
-                Select the drafts you want to place into the page queue. They will be scheduled with randomized spacing between 30 and 90 minutes apart.
+                Select the drafts you want to schedule, choose the destination page for each one, then either use the smart queue or set a fixed future time.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={onQueueManualDrafts}
-              disabled={!selectedManualDraftIds.length || selectedConnectionId === "all"}
-              className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Queue selected posts
-            </button>
+            <div className="flex flex-col gap-3 sm:items-end">
+              <div className="flex flex-wrap gap-2 rounded-md border border-slate-200 bg-slate-50 p-1">
+                <button
+                  type="button"
+                  onClick={() => onManualScheduleModeChange("queue")}
+                  className={`rounded-md px-3 py-2 text-sm font-bold ${
+                    manualScheduleMode === "queue"
+                      ? "bg-slate-900 text-white"
+                      : "bg-transparent text-slate-700 hover:bg-white"
+                  }`}
+                >
+                  Queue mode
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onManualScheduleModeChange("fixed")}
+                  className={`rounded-md px-3 py-2 text-sm font-bold ${
+                    manualScheduleMode === "fixed"
+                      ? "bg-slate-900 text-white"
+                      : "bg-transparent text-slate-700 hover:bg-white"
+                  }`}
+                >
+                  Fixed date/time
+                </button>
+              </div>
+              {manualScheduleMode === "fixed" ? (
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">
+                    First post time
+                  </span>
+                  <input
+                    type="datetime-local"
+                    value={manualScheduleAt}
+                    onChange={(event) => onManualScheduleAtChange(event.target.value)}
+                    className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-600"
+                  />
+                </label>
+              ) : (
+                <p className="max-w-md text-xs font-semibold text-slate-500">
+                  Queue mode places the next post 30-90 minutes after the last scheduled post, or inside the first gap larger than 3 hours.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={onQueueManualDrafts}
+                disabled={!selectedManualDraftIds.length || (manualScheduleMode === "fixed" && !manualScheduleAt)}
+                className="rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Schedule selected posts
+              </button>
+            </div>
           </div>
           <div className="mt-4">
             <SelectableDraftList
               posts={manualCreatedPosts}
+              connections={allConnections}
               selectedDraftIds={selectedManualDraftIds}
+              draftPageSelections={draftPageSelections}
               onToggleDraft={onToggleManualDraftSelection}
+              onDraftPageSelectionChange={onDraftPageSelectionChange}
             />
           </div>
         </section>
@@ -1449,12 +1559,18 @@ function DashboardContent({
 
 function SelectableDraftList({
   posts,
+  connections,
   selectedDraftIds,
+  draftPageSelections,
   onToggleDraft,
+  onDraftPageSelectionChange,
 }: {
   posts: ScheduledFacebookPost[];
+  connections: FacebookConnection[];
   selectedDraftIds: string[];
+  draftPageSelections: Record<string, string>;
   onToggleDraft: (draftId: string) => void;
+  onDraftPageSelectionChange: (draftId: string, pageId: string) => void;
 }) {
   if (!posts.length) {
     return <p className="text-sm text-slate-600">No manual post drafts yet.</p>;
@@ -1490,6 +1606,23 @@ function SelectableDraftList({
                     {post.PageName ?? post.SocialProfileName ?? "Facebook"}
                   </span>
                 </div>
+                <label className="block">
+                  <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Target page
+                  </span>
+                  <select
+                    value={draftPageSelections[post.Id] || post.PageId || ""}
+                    onChange={(event) => onDraftPageSelectionChange(post.Id, event.target.value)}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-600"
+                  >
+                    <option value="">Choose page</option>
+                    {connections.map((connection) => (
+                      <option key={connection.Id} value={connection.PageId ?? ""}>
+                        {connection.ProfileName ?? connection.PageName ?? connection.PageId ?? "Facebook Page"}
+                      </option>
+                    ))}
+                  </select>
+                </label>
                 {post.ImageUrl ? (
                   <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                     <img

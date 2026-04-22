@@ -310,6 +310,27 @@ export function queueManualFacebookDrafts(
   );
 }
 
+export function scheduleManualFacebookDrafts(
+  token: string,
+  payload: {
+    scheduleMode: "queue" | "fixed";
+    scheduledForUtc?: string;
+    items: Array<{
+      draftId: string;
+      pageId: string;
+    }>;
+  },
+) {
+  return fetchJson<{ success?: boolean; scheduled?: number }>(
+    `${BASE_PATH}/facebook/drafts/schedule`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export function importManualFacebookDrafts(
   token: string,
   payload: {
