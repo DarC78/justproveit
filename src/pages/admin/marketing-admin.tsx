@@ -2,6 +2,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   connectFacebookMarketingPage,
   connectFacebookMarketingAdAccount,
+  deleteFacebookDraft,
   FacebookComment,
   FacebookAdAccountOption,
   FacebookConnection,
@@ -22,6 +23,7 @@ import {
   ScheduledFacebookPost,
   syncFacebookAdPosts,
   syncFacebookComments,
+  unscheduleFacebookDraft,
 } from "@/lib/marketingAdmin";
 import Head from "next/head";
 import Link from "next/link";
@@ -117,6 +119,7 @@ export default function MarketingAdminPage() {
   const [syncAction, setSyncAction] = useState("");
   const [comments, setComments] = useState<FacebookComment[]>([]);
   const [selectedManualDraftIds, setSelectedManualDraftIds] = useState<string[]>([]);
+  const [selectedAutoDraftIds, setSelectedAutoDraftIds] = useState<string[]>([]);
   const [draftPageSelections, setDraftPageSelections] = useState<Record<string, string>>({});
   const [manualScheduleMode, setManualScheduleMode] = useState<"queue" | "fixed">("queue");
   const [manualScheduleAt, setManualScheduleAt] = useState("");
@@ -214,6 +217,7 @@ export default function MarketingAdminPage() {
 
   useEffect(() => {
     setSelectedManualDraftIds([]);
+    setSelectedAutoDraftIds([]);
   }, [selectedConnectionId, dashboard]);
 
   useEffect(() => {
@@ -605,11 +609,122 @@ export default function MarketingAdminPage() {
     );
   }
 
+  function handleToggleAutoDraftSelection(draftId: string) {
+    setSelectedAutoDraftIds((current) =>
+      current.includes(draftId) ? current.filter((item) => item !== draftId) : [...current, draftId],
+    );
+  }
+
   function handleDraftPageSelection(draftId: string, pageId: string) {
     setDraftPageSelections((current) => ({
       ...current,
       [draftId]: pageId,
     }));
+  }
+
+  async function handleQueueAutoDrafts() {
+    if (!token) {
+      return;
+    }
+
+    if (!selectedAutoDraftIds.length) {
+      setActionStatus("");
+      setError("Select at least one auto generated post draft to schedule.");
+      return;
+    }
+
+    const createdPosts = dashboard?.createdPosts ?? [];
+    const selectedItems = selectedAutoDraftIds
+      .map((draftId) => {
+        const draft = createdPosts.find((item) => item.Id === draftId);
+        const pageId = draftPageSelections[draftId] || draft?.PageId || "";
+        return draft && pageId ? { draftId, pageId } : null;
+      })
+      .filter((item): item is { draftId: string; pageId: string } => Boolean(item));
+
+    if (!selectedItems.length || selectedItems.length !== selectedAutoDraftIds.length) {
+      setActionStatus("");
+      setError("Choose a target page for each selected auto generated draft before scheduling.");
+      return;
+    }
+
+    if (manualScheduleMode === "fixed" && !manualScheduleAt) {
+      setActionStatus("");
+      setError("Choose a future date and time before scheduling with the fixed option.");
+      return;
+    }
+
+    setActionStatus(
+      `${manualScheduleMode === "queue" ? "Queueing" : "Scheduling"} ${selectedAutoDraftIds.length} auto generated post${selectedAutoDraftIds.length === 1 ? "" : "s"}...`,
+    );
+    setError("");
+
+    try {
+      const result = await scheduleManualFacebookDrafts(token, {
+        scheduleMode: manualScheduleMode,
+        scheduledForUtc:
+          manualScheduleMode === "fixed" ? new Date(manualScheduleAt).toISOString() : undefined,
+        items: selectedItems,
+      });
+      setActionStatus(
+        manualScheduleMode === "queue"
+          ? `Queued ${result.scheduled ?? 0} auto generated post${result.scheduled === 1 ? "" : "s"} using the smart queue.`
+          : `Scheduled ${result.scheduled ?? 0} auto generated post${result.scheduled === 1 ? "" : "s"} from the chosen date and time.`,
+      );
+      setSelectedAutoDraftIds([]);
+      await loadDashboard();
+    } catch (queueError) {
+      setActionStatus("");
+      setError(
+        queueError instanceof Error ? queueError.message : "Could not schedule auto generated Facebook posts.",
+      );
+    }
+  }
+
+  async function handleDeleteDraft(draftId: string) {
+    if (!token) {
+      return;
+    }
+
+    setActionStatus("Deleting draft...");
+    setError("");
+
+    try {
+      const result = await deleteFacebookDraft(token, draftId);
+      if (!result.success) {
+        throw new Error("Draft was not deleted.");
+      }
+      setSelectedManualDraftIds((current) => current.filter((item) => item !== draftId));
+      setSelectedAutoDraftIds((current) => current.filter((item) => item !== draftId));
+      setActionStatus("Draft deleted.");
+      await loadDashboard();
+    } catch (deleteError) {
+      setActionStatus("");
+      setError(deleteError instanceof Error ? deleteError.message : "Could not delete the draft.");
+    }
+  }
+
+  async function handleUnscheduleDraft(draftId: string) {
+    if (!token) {
+      return;
+    }
+
+    setActionStatus("Unscheduling post...");
+    setError("");
+
+    try {
+      const result = await unscheduleFacebookDraft(token, draftId);
+      if (!result.success) {
+        throw new Error("Post was not unscheduled.");
+      }
+      setActionStatus("Post moved back to Draft.");
+      await loadDashboard();
+    } catch (unscheduleError) {
+      setActionStatus("");
+      setError(
+        unscheduleError instanceof Error ? unscheduleError.message : "Could not unschedule the post.",
+      );
+    }
   }
 
   async function handleImportAdPosts() {
@@ -780,12 +895,17 @@ export default function MarketingAdminPage() {
                 selectedManualDraftIds={selectedManualDraftIds}
                 onToggleManualDraftSelection={handleToggleManualDraftSelection}
                 onQueueManualDrafts={handleQueueManualDrafts}
+                selectedAutoDraftIds={selectedAutoDraftIds}
+                onToggleAutoDraftSelection={handleToggleAutoDraftSelection}
+                onQueueAutoDrafts={handleQueueAutoDrafts}
                 draftPageSelections={draftPageSelections}
                 onDraftPageSelectionChange={handleDraftPageSelection}
                 manualScheduleMode={manualScheduleMode}
                 onManualScheduleModeChange={setManualScheduleMode}
                 manualScheduleAt={manualScheduleAt}
                 onManualScheduleAtChange={setManualScheduleAt}
+                onDeleteDraft={handleDeleteDraft}
+                onUnscheduleDraft={handleUnscheduleDraft}
                 onImportAdPosts={handleImportAdPosts}
                 onSyncComments={handleSyncComments}
                 comments={comments}
@@ -845,12 +965,17 @@ function DashboardContent({
   selectedManualDraftIds,
   onToggleManualDraftSelection,
   onQueueManualDrafts,
+  selectedAutoDraftIds,
+  onToggleAutoDraftSelection,
+  onQueueAutoDrafts,
   draftPageSelections,
   onDraftPageSelectionChange,
   manualScheduleMode,
   onManualScheduleModeChange,
   manualScheduleAt,
   onManualScheduleAtChange,
+  onDeleteDraft,
+  onUnscheduleDraft,
   onImportAdPosts,
   onSyncComments,
   comments,
@@ -908,12 +1033,17 @@ function DashboardContent({
   selectedManualDraftIds: string[];
   onToggleManualDraftSelection: (draftId: string) => void;
   onQueueManualDrafts: () => Promise<void>;
+  selectedAutoDraftIds: string[];
+  onToggleAutoDraftSelection: (draftId: string) => void;
+  onQueueAutoDrafts: () => Promise<void>;
   draftPageSelections: Record<string, string>;
   onDraftPageSelectionChange: (draftId: string, pageId: string) => void;
   manualScheduleMode: "queue" | "fixed";
   onManualScheduleModeChange: React.Dispatch<React.SetStateAction<"queue" | "fixed">>;
   manualScheduleAt: string;
   onManualScheduleAtChange: React.Dispatch<React.SetStateAction<string>>;
+  onDeleteDraft: (draftId: string) => Promise<void>;
+  onUnscheduleDraft: (draftId: string) => Promise<void>;
   onImportAdPosts: () => Promise<void>;
   onSyncComments: () => Promise<void>;
   comments: FacebookComment[];
@@ -954,6 +1084,7 @@ function DashboardContent({
     const sourceTitle = (post.SourceTitle ?? "").toLowerCase();
     return sourceTitle.includes("manual prompt draft") || Boolean(post.CustomTitle?.trim());
   });
+  const autoCreatedPosts = createdPosts.filter((post) => !manualCreatedPosts.some((item) => item.Id === post.Id));
   const metricSummary =
     selectedConnectionId === "all"
       ? summary
@@ -1411,6 +1542,37 @@ function DashboardContent({
               draftPageSelections={draftPageSelections}
               onToggleDraft={onToggleManualDraftSelection}
               onDraftPageSelectionChange={onDraftPageSelectionChange}
+              onDeleteDraft={onDeleteDraft}
+            />
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-extrabold">Auto Generated Posts</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                These are the remaining draft posts for the selected page. You can assign a page, schedule them, or delete them.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onQueueAutoDrafts}
+              disabled={!selectedAutoDraftIds.length || (manualScheduleMode === "fixed" && !manualScheduleAt)}
+              className="rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Schedule selected auto posts
+            </button>
+          </div>
+          <div className="mt-4">
+            <SelectableDraftList
+              posts={autoCreatedPosts}
+              connections={allConnections}
+              selectedDraftIds={selectedAutoDraftIds}
+              draftPageSelections={draftPageSelections}
+              onToggleDraft={onToggleAutoDraftSelection}
+              onDraftPageSelectionChange={onDraftPageSelectionChange}
+              onDeleteDraft={onDeleteDraft}
             />
           </div>
         </section>
@@ -1499,9 +1661,8 @@ function DashboardContent({
           </div>
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-2">
-          <PostList title="Created posts" posts={createdPosts} mode="created" />
-          <PostList title="Scheduled posts" posts={scheduledPosts} mode="scheduled" />
+        <section className="grid gap-6 xl:grid-cols-1">
+          <PostList title="Scheduled posts" posts={scheduledPosts} mode="scheduled" onUnscheduleDraft={onUnscheduleDraft} />
         </section>
 
         <section className="grid gap-6 xl:grid-cols-1">
@@ -1564,6 +1725,7 @@ function SelectableDraftList({
   draftPageSelections,
   onToggleDraft,
   onDraftPageSelectionChange,
+  onDeleteDraft,
 }: {
   posts: ScheduledFacebookPost[];
   connections: FacebookConnection[];
@@ -1571,6 +1733,7 @@ function SelectableDraftList({
   draftPageSelections: Record<string, string>;
   onToggleDraft: (draftId: string) => void;
   onDraftPageSelectionChange: (draftId: string, pageId: string) => void;
+  onDeleteDraft: (draftId: string) => Promise<void>;
 }) {
   if (!posts.length) {
     return <p className="text-sm text-slate-600">No manual post drafts yet.</p>;
@@ -1650,6 +1813,15 @@ function SelectableDraftList({
                 <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">
                   {post.PostText}
                 </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onDeleteDraft(post.Id)}
+                    className="rounded-md border border-rose-300 px-3 py-2 text-xs font-bold text-rose-700 hover:bg-rose-50"
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </label>
           </article>
@@ -1864,10 +2036,12 @@ function PostList({
   title,
   posts,
   mode,
+  onUnscheduleDraft,
 }: {
   title: string;
   posts: ScheduledFacebookPost[] | PublishedFacebookPost[];
   mode: "created" | "scheduled" | "published";
+  onUnscheduleDraft?: (draftId: string) => Promise<void>;
 }) {
   return (
     <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
@@ -1898,6 +2072,17 @@ function PostList({
               <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">
                 {"PostText" in post ? post.PostText : (post as PublishedFacebookPost).PublishedText}
               </p>
+              {mode === "scheduled" && onUnscheduleDraft ? (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onUnscheduleDraft(post.Id)}
+                    className="rounded-md border border-amber-300 px-3 py-2 text-xs font-bold text-amber-700 hover:bg-amber-50"
+                  >
+                    Unschedule
+                  </button>
+                </div>
+              ) : null}
               {mode === "published" ? (
                 <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
                   <StatItem label="Reactions" value={(post as PublishedFacebookPost).ReactionsCount ?? 0} />

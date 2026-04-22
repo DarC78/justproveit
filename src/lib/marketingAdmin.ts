@@ -331,6 +331,23 @@ export function scheduleManualFacebookDrafts(
   );
 }
 
+export function deleteFacebookDraft(token: string, draftId: string) {
+  return fetchJson<{ success?: boolean }>(`${BASE_PATH}/facebook/drafts/${encodeURIComponent(draftId)}/delete`, {
+    method: "POST",
+    headers: authHeaders(token),
+  });
+}
+
+export function unscheduleFacebookDraft(token: string, draftId: string) {
+  return fetchJson<{ success?: boolean }>(
+    `${BASE_PATH}/facebook/drafts/${encodeURIComponent(draftId)}/unschedule`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+    },
+  );
+}
+
 export function importManualFacebookDrafts(
   token: string,
   payload: {
