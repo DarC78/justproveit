@@ -1481,6 +1481,9 @@ function SelectableDraftList({
                     <p className="mt-1 text-xs font-semibold text-slate-500">
                       Created {formatDate(post.CreatedAtUtc)}
                     </p>
+                    <p className="mt-1 break-all font-mono text-[11px] text-slate-500">
+                      Post ID: {post.Id}
+                    </p>
                   </div>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
                     {post.PageName ?? post.SocialProfileName ?? "Facebook"}
@@ -1491,10 +1494,25 @@ function SelectableDraftList({
                     <img
                       src={post.ImageUrl}
                       alt={post.CustomTitle || post.SocialProfileName || post.PageName || "Facebook draft image"}
+                      loading="lazy"
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
                       className="h-auto w-full object-cover"
                     />
                   </div>
                 ) : null}
+                {post.ImageUrl ? (
+                  <a
+                    href={post.ImageUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block break-all text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
+                  >
+                    Open image in new tab
+                  </a>
+                ) : (
+                  <p className="text-xs font-semibold text-amber-700">No image attached to this draft.</p>
+                )}
                 <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">
                   {post.PostText}
                 </p>
