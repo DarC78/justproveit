@@ -886,9 +886,10 @@ function DashboardContent({
     (dashboard?.publishedPosts ?? []).filter(
       (post) => selectedConnectionId === "all" || post.SocialConnectionId === selectedConnectionId,
     );
-  const manualCreatedPosts = createdPosts.filter((post) =>
-    (post.SourceTitle ?? "").toLowerCase().includes("manual prompt draft"),
-  );
+  const manualCreatedPosts = createdPosts.filter((post) => {
+    const sourceTitle = (post.SourceTitle ?? "").toLowerCase();
+    return sourceTitle.includes("manual prompt draft") || Boolean(post.CustomTitle?.trim());
+  });
   const metricSummary =
     selectedConnectionId === "all"
       ? summary
