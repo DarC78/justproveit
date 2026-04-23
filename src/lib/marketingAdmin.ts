@@ -154,9 +154,9 @@ export type MarketingMediaAsset = {
 };
 
 export type MarketingMediaUploadPayload = {
-  title: string;
+  title?: string;
   mediaType: "image" | "video";
-  file: File;
+  files: File[];
   thumbnailUrl?: string;
   description?: string;
   tags?: string;
@@ -442,9 +442,13 @@ export function saveMarketingMediaAsset(
 
 export async function uploadMarketingMediaAsset(token: string, payload: MarketingMediaUploadPayload) {
   const formData = new FormData();
-  formData.set("title", payload.title);
+  if (payload.title?.trim()) {
+    formData.set("title", payload.title.trim());
+  }
   formData.set("mediaType", payload.mediaType);
-  formData.set("file", payload.file);
+  payload.files.forEach((file) => {
+    formData.append("files", file);
+  });
   if (payload.thumbnailUrl) {
     formData.set("thumbnailUrl", payload.thumbnailUrl);
   }
@@ -476,7 +480,7 @@ export async function uploadMarketingMediaAsset(token: string, payload: Marketin
     throw new Error(errorMessage || response.statusText || "Upload failed.");
   }
 
-  return data as { success?: boolean; asset?: MarketingMediaAsset };
+  return data as { success?: boolean; uploaded?: number; asset?: MarketingMediaAsset; assets?: MarketingMediaAsset[] };
 }
 
 export function syncFacebookAdPosts(token: string) {

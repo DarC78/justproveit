@@ -131,7 +131,7 @@ export default function MarketingAdminPage() {
   const [mediaSearchTag, setMediaSearchTag] = useState("");
   const [newMediaTitle, setNewMediaTitle] = useState("");
   const [newMediaType, setNewMediaType] = useState<"image" | "video">("image");
-  const [newMediaFile, setNewMediaFile] = useState<File | null>(null);
+  const [newMediaFiles, setNewMediaFiles] = useState<File[]>([]);
   const [newMediaTags, setNewMediaTags] = useState("");
   const [contentSettings, setContentSettings] = useState<
     Record<string, { postingBriefDocument: string; generationCommand: string }>
@@ -509,31 +509,34 @@ export default function MarketingAdminPage() {
       return;
     }
 
-    if (!newMediaTitle.trim() || !newMediaFile) {
+    if (!newMediaFiles.length) {
       setActionStatus("");
-      setError("Add a title and upload a file before saving to the media library.");
+      setError("Upload at least one file before saving to the media library.");
       return;
     }
 
-    setActionStatus("Saving media library asset...");
+    setActionStatus(`Uploading ${newMediaFiles.length} media asset${newMediaFiles.length === 1 ? "" : "s"}...`);
     setError("");
 
     try {
       const response = await uploadMarketingMediaAsset(token, {
-        title: newMediaTitle.trim(),
+        title: newMediaTitle.trim() || undefined,
         mediaType: newMediaType,
-        file: newMediaFile,
+        files: newMediaFiles,
         tags: newMediaTags.trim() || undefined,
       });
 
-      if (!response.asset?.Id) {
-        throw new Error("The media asset was not returned.");
+      const uploadedAssets = response.assets ?? (response.asset ? [response.asset] : []);
+      if (!uploadedAssets.length) {
+        throw new Error("The uploaded media assets were not returned.");
       }
 
-      setActionStatus("Media asset saved.");
-      setSelectedMediaAssetId(response.asset.Id);
+      setActionStatus(
+        `Uploaded ${uploadedAssets.length} media asset${uploadedAssets.length === 1 ? "" : "s"}.`,
+      );
+      setSelectedMediaAssetId(uploadedAssets[0]?.Id ?? "");
       setNewMediaTitle("");
-      setNewMediaFile(null);
+      setNewMediaFiles([]);
       setNewMediaTags("");
       setNewMediaType("image");
       await loadMediaAssets();
@@ -990,8 +993,8 @@ export default function MarketingAdminPage() {
                 onNewMediaTitleChange={setNewMediaTitle}
                 newMediaType={newMediaType}
                 onNewMediaTypeChange={setNewMediaType}
-                newMediaFile={newMediaFile}
-                onNewMediaFileChange={setNewMediaFile}
+                newMediaFiles={newMediaFiles}
+                onNewMediaFilesChange={setNewMediaFiles}
                 newMediaTags={newMediaTags}
                 onNewMediaTagsChange={setNewMediaTags}
                 onSaveMediaAsset={handleSaveMediaAsset}
@@ -1075,8 +1078,8 @@ function DashboardContent({
   onNewMediaTitleChange,
   newMediaType,
   onNewMediaTypeChange,
-  newMediaFile,
-  onNewMediaFileChange,
+  newMediaFiles,
+  onNewMediaFilesChange,
   newMediaTags,
   onNewMediaTagsChange,
   onSaveMediaAsset,
@@ -1158,8 +1161,8 @@ function DashboardContent({
   onNewMediaTitleChange: React.Dispatch<React.SetStateAction<string>>;
   newMediaType: "image" | "video";
   onNewMediaTypeChange: React.Dispatch<React.SetStateAction<"image" | "video">>;
-  newMediaFile: File | null;
-  onNewMediaFileChange: React.Dispatch<React.SetStateAction<File | null>>;
+  newMediaFiles: File[];
+  onNewMediaFilesChange: React.Dispatch<React.SetStateAction<File[]>>;
   newMediaTags: string;
   onNewMediaTagsChange: React.Dispatch<React.SetStateAction<string>>;
   onSaveMediaAsset: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -1565,13 +1568,13 @@ function DashboardContent({
 
           <form className="mt-5 grid gap-4 lg:grid-cols-2" onSubmit={onSaveMediaAsset}>
             <label className="block">
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Title</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Title prefix (optional)</span>
               <input
                 type="text"
                 value={newMediaTitle}
                 onChange={(event) => onNewMediaTitleChange(event.target.value)}
                 className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
-                placeholder="FCA steering wheel visual"
+                placeholder="FCA visuals"
               />
             </label>
 
@@ -1588,15 +1591,20 @@ function DashboardContent({
             </label>
 
             <label className="block lg:col-span-2">
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Upload file</span>
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Upload files</span>
               <input
                 type="file"
+                multiple
                 accept={newMediaType === "image" ? "image/*" : "video/*"}
-                onChange={(event) => onNewMediaFileChange(event.target.files?.[0] ?? null)}
+                onChange={(event) => onNewMediaFilesChange(Array.from(event.target.files ?? []))}
                 className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
               />
               <p className="mt-2 text-xs font-semibold text-slate-500">
-                {newMediaFile ? `Selected file: ${newMediaFile.name}` : "Upload the source file that should live in the media library."}
+                {newMediaFiles.length
+                  ? `Selected ${newMediaFiles.length} file${newMediaFiles.length === 1 ? "" : "s"}: ${newMediaFiles
+                      .map((file) => file.name)
+                      .join(", ")}`
+                  : "Upload one or more source files that should live in the media library."}
               </p>
             </label>
 
