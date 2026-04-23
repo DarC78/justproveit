@@ -463,7 +463,17 @@ export async function uploadMarketingMediaAsset(token: string, payload: Marketin
   const data = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error((data && typeof data === "object" && "error" in data && typeof data.error === "string" ? data.error : null) || response.statusText || "Upload failed.");
+    const errorMessage =
+      data &&
+      typeof data === "object" &&
+      "error" in data &&
+      data.error &&
+      typeof data.error === "object" &&
+      "message" in data.error &&
+      typeof data.error.message === "string"
+        ? data.error.message
+        : null;
+    throw new Error(errorMessage || response.statusText || "Upload failed.");
   }
 
   return data as { success?: boolean; asset?: MarketingMediaAsset };
