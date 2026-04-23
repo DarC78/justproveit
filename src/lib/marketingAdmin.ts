@@ -123,12 +123,43 @@ export type ScheduledFacebookPost = {
   PostText?: string;
   LinkUrl?: string | null;
   ImageUrl?: string | null;
+  VideoUrl?: string | null;
+  MediaAssetId?: string | null;
   CreatedAtUtc?: string | null;
   ScheduledForUtc?: string | null;
   PublishStatus?: string;
   ApprovalStatus?: string;
   SourceTitle?: string | null;
   SourceUrl?: string | null;
+};
+
+export type MarketingMediaTag = {
+  id: string;
+  key: string;
+  label: string;
+};
+
+export type MarketingMediaAsset = {
+  Id: string;
+  TenantId?: string;
+  Title: string;
+  MediaType: "image" | "video";
+  AssetUrl: string;
+  ThumbnailUrl?: string | null;
+  Description?: string | null;
+  IsActive?: boolean;
+  CreatedAtUtc?: string | null;
+  UpdatedAtUtc?: string | null;
+  Tags?: MarketingMediaTag[];
+};
+
+export type MarketingMediaUploadPayload = {
+  title: string;
+  mediaType: "image" | "video";
+  file: File;
+  thumbnailUrl?: string;
+  description?: string;
+  tags?: string;
 };
 
 export type PublishedFacebookPost = {
@@ -266,6 +297,7 @@ export function generateFacebookDrafts(
   payload: {
     pageId: string;
     draftCount: number;
+    mediaAssetId?: string;
   },
 ) {
   return fetchJson<{ success?: boolean; drafted?: number }>(`${BASE_PATH}/facebook/drafts/generate`, {
@@ -281,6 +313,7 @@ export function generateManualFacebookDrafts(
     pageId: string;
     draftCount: number;
     operatorSpecs: string;
+    mediaAssetId?: string;
   },
 ) {
   return fetchJson<{ success?: boolean; drafted?: number }>(
@@ -358,9 +391,12 @@ export function importManualFacebookDrafts(
       customTitle?: string;
       postText: string;
       linkUrl?: string;
+      imageUrl?: string;
+      mediaAssetId?: string;
       reasoning?: string;
       modelName?: string;
     }>;
+    mediaAssetId?: string;
   },
 ) {
   return fetchJson<{ success?: boolean; imported?: number }>(
@@ -371,6 +407,66 @@ export function importManualFacebookDrafts(
       body: JSON.stringify(payload),
     },
   );
+}
+
+export function getMarketingMediaAssets(token: string, mediaType?: "image" | "video") {
+  const suffix = mediaType ? `?mediaType=${encodeURIComponent(mediaType)}` : "";
+  return fetchJson<{ success?: boolean; assets?: MarketingMediaAsset[] }>(
+    `${BASE_PATH}/media-library/assets${suffix}`,
+    {
+      headers: authHeaders(token),
+    },
+  );
+}
+
+export function saveMarketingMediaAsset(
+  token: string,
+  payload: {
+    title: string;
+    mediaType: "image" | "video";
+    assetUrl: string;
+    thumbnailUrl?: string;
+    description?: string;
+    tagNames?: string[];
+  },
+) {
+  return fetchJson<{ success?: boolean; asset?: MarketingMediaAsset }>(
+    `${BASE_PATH}/media-library/assets`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export async function uploadMarketingMediaAsset(token: string, payload: MarketingMediaUploadPayload) {
+  const formData = new FormData();
+  formData.set("title", payload.title);
+  formData.set("mediaType", payload.mediaType);
+  formData.set("file", payload.file);
+  if (payload.thumbnailUrl) {
+    formData.set("thumbnailUrl", payload.thumbnailUrl);
+  }
+  if (payload.description) {
+    formData.set("description", payload.description);
+  }
+  if (payload.tags) {
+    formData.set("tags", payload.tags);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${BASE_PATH}/media-library/assets/upload`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: formData,
+  });
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error((data && typeof data === "object" && "error" in data && typeof data.error === "string" ? data.error : null) || response.statusText || "Upload failed.");
+  }
+
+  return data as { success?: boolean; asset?: MarketingMediaAsset };
 }
 
 export function syncFacebookAdPosts(token: string) {

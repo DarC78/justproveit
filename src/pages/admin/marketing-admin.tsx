@@ -9,6 +9,7 @@ import {
   FacebookDashboard,
   FacebookLiveConnection,
   FacebookLivePagePost,
+  getMarketingMediaAssets,
   FacebookOAuthPage,
   FacebookOAuthPayload,
   getApiOrigin,
@@ -17,13 +18,16 @@ import {
   getFacebookMarketingDashboard,
   generateFacebookDrafts,
   generateManualFacebookDrafts,
+  MarketingMediaAsset,
   PublishedFacebookPost,
+  saveMarketingMediaAsset,
   scheduleManualFacebookDrafts,
   saveFacebookContentSettings,
   ScheduledFacebookPost,
   syncFacebookAdPosts,
   syncFacebookComments,
   unscheduleFacebookDraft,
+  uploadMarketingMediaAsset,
 } from "@/lib/marketingAdmin";
 import Head from "next/head";
 import Link from "next/link";
@@ -123,6 +127,16 @@ export default function MarketingAdminPage() {
   const [draftPageSelections, setDraftPageSelections] = useState<Record<string, string>>({});
   const [manualScheduleMode, setManualScheduleMode] = useState<"queue" | "fixed">("queue");
   const [manualScheduleAt, setManualScheduleAt] = useState("");
+  const [mediaAssets, setMediaAssets] = useState<MarketingMediaAsset[]>([]);
+  const [selectedMediaAssetId, setSelectedMediaAssetId] = useState("");
+  const [mediaSearchTag, setMediaSearchTag] = useState("");
+  const [newMediaTitle, setNewMediaTitle] = useState("");
+  const [newMediaType, setNewMediaType] = useState<"image" | "video">("image");
+  const [newMediaFile, setNewMediaFile] = useState<File | null>(null);
+  const [newMediaAssetUrl, setNewMediaAssetUrl] = useState("");
+  const [newMediaThumbnailUrl, setNewMediaThumbnailUrl] = useState("");
+  const [newMediaDescription, setNewMediaDescription] = useState("");
+  const [newMediaTags, setNewMediaTags] = useState("");
   const [contentSettings, setContentSettings] = useState<
     Record<string, { postingBriefDocument: string; generationCommand: string }>
   >({});
@@ -135,6 +149,19 @@ export default function MarketingAdminPage() {
     () => (Array.isArray(oauthPayload?.adAccounts) ? oauthPayload.adAccounts : []),
     [oauthPayload],
   );
+  const filteredMediaAssets = useMemo(() => {
+    const tagFilter = mediaSearchTag.trim().toLowerCase();
+    if (!tagFilter) {
+      return mediaAssets;
+    }
+
+    return mediaAssets.filter((asset) =>
+      (asset.Tags ?? []).some(
+        (tag) =>
+          tag.label.toLowerCase().includes(tagFilter) || tag.key.toLowerCase().includes(tagFilter),
+      ),
+    );
+  }, [mediaAssets, mediaSearchTag]);
 
   useEffect(() => {
     if (status === "loading") {
@@ -178,6 +205,7 @@ export default function MarketingAdminPage() {
     }
 
     loadDashboard();
+    loadMediaAssets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gateStatus, token]);
 
@@ -286,6 +314,27 @@ export default function MarketingAdminPage() {
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Could not load marketing dashboard.");
       setLoadStatus("error");
+    }
+  }
+
+  async function loadMediaAssets() {
+    if (!token) {
+      return;
+    }
+
+    try {
+      const response = await getMarketingMediaAssets(token);
+      setMediaAssets(response.assets ?? []);
+      setSelectedMediaAssetId((current) => {
+        if (current && (response.assets ?? []).some((asset) => asset.Id === current)) {
+          return current;
+        }
+
+        return response.assets?.[0]?.Id ?? "";
+      });
+    } catch {
+      setMediaAssets([]);
+      setSelectedMediaAssetId("");
     }
   }
 
@@ -457,6 +506,64 @@ export default function MarketingAdminPage() {
     }
   }
 
+  async function handleSaveMediaAsset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!token) {
+      return;
+    }
+
+    if (!newMediaTitle.trim() || (!newMediaFile && !newMediaAssetUrl.trim())) {
+      setActionStatus("");
+      setError("Add a title and either upload a file or provide a site-hosted asset URL before saving to the media library.");
+      return;
+    }
+
+    setActionStatus("Saving media library asset...");
+    setError("");
+
+    try {
+      const response = newMediaFile
+        ? await uploadMarketingMediaAsset(token, {
+            title: newMediaTitle.trim(),
+            mediaType: newMediaType,
+            file: newMediaFile,
+            thumbnailUrl: newMediaThumbnailUrl.trim() || undefined,
+            description: newMediaDescription.trim() || undefined,
+            tags: newMediaTags.trim() || undefined,
+          })
+        : await saveMarketingMediaAsset(token, {
+            title: newMediaTitle.trim(),
+            mediaType: newMediaType,
+            assetUrl: newMediaAssetUrl.trim(),
+            thumbnailUrl: newMediaThumbnailUrl.trim() || undefined,
+            description: newMediaDescription.trim() || undefined,
+            tagNames: newMediaTags
+              .split(",")
+              .map((value) => value.trim())
+              .filter(Boolean),
+          });
+
+      if (!response.asset?.Id) {
+        throw new Error("The media asset was not returned.");
+      }
+
+      setActionStatus("Media asset saved.");
+      setSelectedMediaAssetId(response.asset.Id);
+      setNewMediaTitle("");
+      setNewMediaFile(null);
+      setNewMediaAssetUrl("");
+      setNewMediaThumbnailUrl("");
+      setNewMediaDescription("");
+      setNewMediaTags("");
+      setNewMediaType("image");
+      await loadMediaAssets();
+    } catch (saveError) {
+      setActionStatus("");
+      setError(saveError instanceof Error ? saveError.message : "Could not save the media asset.");
+    }
+  }
+
   async function handleGenerateDrafts() {
     if (!token || selectedConnectionId === "all") {
       return;
@@ -482,6 +589,7 @@ export default function MarketingAdminPage() {
       const result = await generateFacebookDrafts(token, {
         pageId,
         draftCount,
+        mediaAssetId: selectedMediaAssetId || undefined,
       });
       setActionStatus(
         `Created ${result.drafted ?? 0} post draft${result.drafted === 1 ? "" : "s"} for ${pageName}.`,
@@ -529,6 +637,7 @@ export default function MarketingAdminPage() {
         pageId,
         draftCount: manualDraftCount,
         operatorSpecs: manualPostSpecs.trim(),
+        mediaAssetId: selectedMediaAssetId || undefined,
       });
       setActionStatus(
         `Created ${result.drafted ?? 0} manual post draft${result.drafted === 1 ? "" : "s"} for ${pageName}.`,
@@ -892,6 +1001,27 @@ export default function MarketingAdminPage() {
                 onManualDraftCountChange={setManualDraftCount}
                 onManualPostSpecsChange={setManualPostSpecs}
                 onGenerateManualDrafts={handleGenerateManualDrafts}
+                mediaAssets={mediaAssets}
+                filteredMediaAssets={filteredMediaAssets}
+                selectedMediaAssetId={selectedMediaAssetId}
+                onSelectedMediaAssetIdChange={setSelectedMediaAssetId}
+                mediaSearchTag={mediaSearchTag}
+                onMediaSearchTagChange={setMediaSearchTag}
+                newMediaTitle={newMediaTitle}
+                onNewMediaTitleChange={setNewMediaTitle}
+                newMediaType={newMediaType}
+                onNewMediaTypeChange={setNewMediaType}
+                newMediaFile={newMediaFile}
+                onNewMediaFileChange={setNewMediaFile}
+                newMediaAssetUrl={newMediaAssetUrl}
+                onNewMediaAssetUrlChange={setNewMediaAssetUrl}
+                newMediaThumbnailUrl={newMediaThumbnailUrl}
+                onNewMediaThumbnailUrlChange={setNewMediaThumbnailUrl}
+                newMediaDescription={newMediaDescription}
+                onNewMediaDescriptionChange={setNewMediaDescription}
+                newMediaTags={newMediaTags}
+                onNewMediaTagsChange={setNewMediaTags}
+                onSaveMediaAsset={handleSaveMediaAsset}
                 selectedManualDraftIds={selectedManualDraftIds}
                 onToggleManualDraftSelection={handleToggleManualDraftSelection}
                 onQueueManualDrafts={handleQueueManualDrafts}
@@ -962,6 +1092,27 @@ function DashboardContent({
   onManualDraftCountChange,
   onManualPostSpecsChange,
   onGenerateManualDrafts,
+  mediaAssets,
+  filteredMediaAssets,
+  selectedMediaAssetId,
+  onSelectedMediaAssetIdChange,
+  mediaSearchTag,
+  onMediaSearchTagChange,
+  newMediaTitle,
+  onNewMediaTitleChange,
+  newMediaType,
+  onNewMediaTypeChange,
+  newMediaFile,
+  onNewMediaFileChange,
+  newMediaAssetUrl,
+  onNewMediaAssetUrlChange,
+  newMediaThumbnailUrl,
+  onNewMediaThumbnailUrlChange,
+  newMediaDescription,
+  onNewMediaDescriptionChange,
+  newMediaTags,
+  onNewMediaTagsChange,
+  onSaveMediaAsset,
   selectedManualDraftIds,
   onToggleManualDraftSelection,
   onQueueManualDrafts,
@@ -1030,6 +1181,27 @@ function DashboardContent({
   onManualDraftCountChange: React.Dispatch<React.SetStateAction<number>>;
   onManualPostSpecsChange: React.Dispatch<React.SetStateAction<string>>;
   onGenerateManualDrafts: () => Promise<void>;
+  mediaAssets: MarketingMediaAsset[];
+  filteredMediaAssets: MarketingMediaAsset[];
+  selectedMediaAssetId: string;
+  onSelectedMediaAssetIdChange: React.Dispatch<React.SetStateAction<string>>;
+  mediaSearchTag: string;
+  onMediaSearchTagChange: React.Dispatch<React.SetStateAction<string>>;
+  newMediaTitle: string;
+  onNewMediaTitleChange: React.Dispatch<React.SetStateAction<string>>;
+  newMediaType: "image" | "video";
+  onNewMediaTypeChange: React.Dispatch<React.SetStateAction<"image" | "video">>;
+  newMediaFile: File | null;
+  onNewMediaFileChange: React.Dispatch<React.SetStateAction<File | null>>;
+  newMediaAssetUrl: string;
+  onNewMediaAssetUrlChange: React.Dispatch<React.SetStateAction<string>>;
+  newMediaThumbnailUrl: string;
+  onNewMediaThumbnailUrlChange: React.Dispatch<React.SetStateAction<string>>;
+  newMediaDescription: string;
+  onNewMediaDescriptionChange: React.Dispatch<React.SetStateAction<string>>;
+  newMediaTags: string;
+  onNewMediaTagsChange: React.Dispatch<React.SetStateAction<string>>;
+  onSaveMediaAsset: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   selectedManualDraftIds: string[];
   onToggleManualDraftSelection: (draftId: string) => void;
   onQueueManualDrafts: () => Promise<void>;
@@ -1424,9 +1596,192 @@ function DashboardContent({
 
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <div className="flex flex-col gap-2">
+            <h2 className="text-xl font-extrabold">Media Library</h2>
+            <p className="text-sm text-slate-600">
+              Register only site-hosted image and video assets from <span className="font-semibold">justproveit.co.uk</span>, tag them once, and reuse them when generating posts.
+            </p>
+          </div>
+
+          <form className="mt-5 grid gap-4 lg:grid-cols-2" onSubmit={onSaveMediaAsset}>
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Title</span>
+              <input
+                type="text"
+                value={newMediaTitle}
+                onChange={(event) => onNewMediaTitleChange(event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
+                placeholder="FCA steering wheel visual"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Media type</span>
+              <select
+                value={newMediaType}
+                onChange={(event) => onNewMediaTypeChange(event.target.value as "image" | "video")}
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-600"
+              >
+                <option value="image">Image</option>
+                <option value="video">Video</option>
+              </select>
+            </label>
+
+            <label className="block lg:col-span-2">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Upload file</span>
+              <input
+                type="file"
+                accept={newMediaType === "image" ? "image/*" : "video/*"}
+                onChange={(event) => onNewMediaFileChange(event.target.files?.[0] ?? null)}
+                className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
+              />
+              <p className="mt-2 text-xs font-semibold text-slate-500">
+                {newMediaFile ? `Selected file: ${newMediaFile.name}` : "Optional if you prefer to register an already hosted site URL below."}
+              </p>
+            </label>
+
+            <label className="block lg:col-span-2">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Asset URL</span>
+              <input
+                type="url"
+                value={newMediaAssetUrl}
+                onChange={(event) => onNewMediaAssetUrlChange(event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
+                placeholder="https://www.justproveit.co.uk/marketing-assets/your-asset.jpg"
+              />
+            </label>
+
+            <label className="block lg:col-span-2">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Thumbnail URL (optional)</span>
+              <input
+                type="url"
+                value={newMediaThumbnailUrl}
+                onChange={(event) => onNewMediaThumbnailUrlChange(event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
+                placeholder="Use this mainly for videos."
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Tags</span>
+              <input
+                type="text"
+                value={newMediaTags}
+                onChange={(event) => onNewMediaTagsChange(event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
+                placeholder="fca, update, steering wheel"
+              />
+            </label>
+
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Description (optional)</span>
+              <input
+                type="text"
+                value={newMediaDescription}
+                onChange={(event) => onNewMediaDescriptionChange(event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
+                placeholder="Use for FCA news or guidance posts."
+              />
+            </label>
+
+            <div className="lg:col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm text-slate-500">
+                The library stores references only to assets already hosted on the site, so post generation never needs to fetch media from third-party websites.
+              </p>
+              <button
+                type="submit"
+                className="rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+              >
+                Save media asset
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Filter by tag</span>
+              <input
+                type="text"
+                value={mediaSearchTag}
+                onChange={(event) => onMediaSearchTagChange(event.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600 sm:min-w-64"
+                placeholder="fca"
+              />
+            </label>
+            <p className="text-sm text-slate-500">
+              Selected asset for the next generated drafts:{" "}
+              <span className="font-semibold">
+                {mediaAssets.find((asset) => asset.Id === selectedMediaAssetId)?.Title ?? "random active asset"}
+              </span>
+            </p>
+          </div>
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {filteredMediaAssets.length ? (
+              filteredMediaAssets.map((asset) => {
+                const isSelected = asset.Id === selectedMediaAssetId;
+                return (
+                  <article
+                    key={asset.Id}
+                    className={`rounded-lg border p-4 ${isSelected ? "border-emerald-500 bg-emerald-50/40" : "border-slate-200"}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-extrabold">{asset.Title}</h3>
+                        <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          {asset.MediaType}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onSelectedMediaAssetIdChange(asset.Id)}
+                        className={`rounded-md px-3 py-2 text-xs font-bold ${
+                          isSelected
+                            ? "bg-emerald-700 text-white"
+                            : "border border-slate-300 bg-white text-slate-800 hover:bg-slate-100"
+                        }`}
+                      >
+                        {isSelected ? "Selected" : "Use next"}
+                      </button>
+                    </div>
+                    <div className="mt-3 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                      {asset.MediaType === "video" ? (
+                        <video
+                          src={asset.AssetUrl}
+                          poster={asset.ThumbnailUrl ?? undefined}
+                          controls
+                          className="h-auto w-full"
+                        />
+                      ) : (
+                        <img src={asset.AssetUrl} alt={asset.Title} loading="lazy" className="h-auto w-full object-cover" />
+                      )}
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(asset.Tags ?? []).map((tag) => (
+                        <span key={`${asset.Id}-${tag.key}`} className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                          {tag.label}
+                        </span>
+                      ))}
+                    </div>
+                    {asset.Description ? (
+                      <p className="mt-3 text-sm leading-6 text-slate-600">{asset.Description}</p>
+                    ) : null}
+                  </article>
+                );
+              })
+            ) : (
+              <p className="text-sm text-slate-600">No media library assets saved yet.</p>
+            )}
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex flex-col gap-2">
             <h2 className="text-xl font-extrabold">Manual Post Studio</h2>
             <p className="text-sm text-slate-600">
               Work with Codex inline: describe the campaign angle, audience, CTA, exclusions, or any one-off brief here, and generate posts straight into the draft table for the selected page.
+            </p>
+            <p className="text-sm font-semibold text-slate-500">
+              The selected media asset above will be attached to the generated drafts. If none is selected, the system falls back to a random active asset from the media library.
             </p>
           </div>
           <div className="mt-4 grid gap-4">
@@ -1786,6 +2141,11 @@ function SelectableDraftList({
                     ))}
                   </select>
                 </label>
+                {post.VideoUrl ? (
+                  <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                    <video src={post.VideoUrl} controls className="h-auto w-full" />
+                  </div>
+                ) : null}
                 {post.ImageUrl ? (
                   <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
                     <img
@@ -1798,6 +2158,16 @@ function SelectableDraftList({
                     />
                   </div>
                 ) : null}
+                {post.VideoUrl ? (
+                  <a
+                    href={post.VideoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="block break-all text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
+                  >
+                    Open video in new tab
+                  </a>
+                ) : null}
                 {post.ImageUrl ? (
                   <a
                     href={post.ImageUrl}
@@ -1807,9 +2177,9 @@ function SelectableDraftList({
                   >
                     Open image in new tab
                   </a>
-                ) : (
+                ) : !post.VideoUrl ? (
                   <p className="text-xs font-semibold text-amber-700">No image attached to this draft.</p>
-                )}
+                ) : null}
                 <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">
                   {post.PostText}
                 </p>
@@ -2072,6 +2442,16 @@ function PostList({
               <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">
                 {"PostText" in post ? post.PostText : (post as PublishedFacebookPost).PublishedText}
               </p>
+              {"VideoUrl" in post && post.VideoUrl ? (
+                <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                  <video src={post.VideoUrl} controls className="h-auto w-full" />
+                </div>
+              ) : null}
+              {"ImageUrl" in post && post.ImageUrl ? (
+                <div className="mt-4 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                  <img src={post.ImageUrl} alt="Draft media preview" loading="lazy" className="h-auto w-full object-cover" />
+                </div>
+              ) : null}
               {mode === "scheduled" && onUnscheduleDraft ? (
                 <div className="mt-4 flex flex-wrap gap-2">
                   <button
