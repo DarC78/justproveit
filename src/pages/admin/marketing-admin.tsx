@@ -20,7 +20,6 @@ import {
   generateManualFacebookDrafts,
   MarketingMediaAsset,
   PublishedFacebookPost,
-  saveMarketingMediaAsset,
   scheduleManualFacebookDrafts,
   saveFacebookContentSettings,
   ScheduledFacebookPost,
@@ -133,9 +132,6 @@ export default function MarketingAdminPage() {
   const [newMediaTitle, setNewMediaTitle] = useState("");
   const [newMediaType, setNewMediaType] = useState<"image" | "video">("image");
   const [newMediaFile, setNewMediaFile] = useState<File | null>(null);
-  const [newMediaAssetUrl, setNewMediaAssetUrl] = useState("");
-  const [newMediaThumbnailUrl, setNewMediaThumbnailUrl] = useState("");
-  const [newMediaDescription, setNewMediaDescription] = useState("");
   const [newMediaTags, setNewMediaTags] = useState("");
   const [contentSettings, setContentSettings] = useState<
     Record<string, { postingBriefDocument: string; generationCommand: string }>
@@ -513,9 +509,9 @@ export default function MarketingAdminPage() {
       return;
     }
 
-    if (!newMediaTitle.trim() || (!newMediaFile && !newMediaAssetUrl.trim())) {
+    if (!newMediaTitle.trim() || !newMediaFile) {
       setActionStatus("");
-      setError("Add a title and either upload a file or provide a site-hosted asset URL before saving to the media library.");
+      setError("Add a title and upload a file before saving to the media library.");
       return;
     }
 
@@ -523,26 +519,12 @@ export default function MarketingAdminPage() {
     setError("");
 
     try {
-      const response = newMediaFile
-        ? await uploadMarketingMediaAsset(token, {
-            title: newMediaTitle.trim(),
-            mediaType: newMediaType,
-            file: newMediaFile,
-            thumbnailUrl: newMediaThumbnailUrl.trim() || undefined,
-            description: newMediaDescription.trim() || undefined,
-            tags: newMediaTags.trim() || undefined,
-          })
-        : await saveMarketingMediaAsset(token, {
-            title: newMediaTitle.trim(),
-            mediaType: newMediaType,
-            assetUrl: newMediaAssetUrl.trim(),
-            thumbnailUrl: newMediaThumbnailUrl.trim() || undefined,
-            description: newMediaDescription.trim() || undefined,
-            tagNames: newMediaTags
-              .split(",")
-              .map((value) => value.trim())
-              .filter(Boolean),
-          });
+      const response = await uploadMarketingMediaAsset(token, {
+        title: newMediaTitle.trim(),
+        mediaType: newMediaType,
+        file: newMediaFile,
+        tags: newMediaTags.trim() || undefined,
+      });
 
       if (!response.asset?.Id) {
         throw new Error("The media asset was not returned.");
@@ -552,9 +534,6 @@ export default function MarketingAdminPage() {
       setSelectedMediaAssetId(response.asset.Id);
       setNewMediaTitle("");
       setNewMediaFile(null);
-      setNewMediaAssetUrl("");
-      setNewMediaThumbnailUrl("");
-      setNewMediaDescription("");
       setNewMediaTags("");
       setNewMediaType("image");
       await loadMediaAssets();
@@ -1013,12 +992,6 @@ export default function MarketingAdminPage() {
                 onNewMediaTypeChange={setNewMediaType}
                 newMediaFile={newMediaFile}
                 onNewMediaFileChange={setNewMediaFile}
-                newMediaAssetUrl={newMediaAssetUrl}
-                onNewMediaAssetUrlChange={setNewMediaAssetUrl}
-                newMediaThumbnailUrl={newMediaThumbnailUrl}
-                onNewMediaThumbnailUrlChange={setNewMediaThumbnailUrl}
-                newMediaDescription={newMediaDescription}
-                onNewMediaDescriptionChange={setNewMediaDescription}
                 newMediaTags={newMediaTags}
                 onNewMediaTagsChange={setNewMediaTags}
                 onSaveMediaAsset={handleSaveMediaAsset}
@@ -1104,12 +1077,6 @@ function DashboardContent({
   onNewMediaTypeChange,
   newMediaFile,
   onNewMediaFileChange,
-  newMediaAssetUrl,
-  onNewMediaAssetUrlChange,
-  newMediaThumbnailUrl,
-  onNewMediaThumbnailUrlChange,
-  newMediaDescription,
-  onNewMediaDescriptionChange,
   newMediaTags,
   onNewMediaTagsChange,
   onSaveMediaAsset,
@@ -1193,12 +1160,6 @@ function DashboardContent({
   onNewMediaTypeChange: React.Dispatch<React.SetStateAction<"image" | "video">>;
   newMediaFile: File | null;
   onNewMediaFileChange: React.Dispatch<React.SetStateAction<File | null>>;
-  newMediaAssetUrl: string;
-  onNewMediaAssetUrlChange: React.Dispatch<React.SetStateAction<string>>;
-  newMediaThumbnailUrl: string;
-  onNewMediaThumbnailUrlChange: React.Dispatch<React.SetStateAction<string>>;
-  newMediaDescription: string;
-  onNewMediaDescriptionChange: React.Dispatch<React.SetStateAction<string>>;
   newMediaTags: string;
   onNewMediaTagsChange: React.Dispatch<React.SetStateAction<string>>;
   onSaveMediaAsset: (event: FormEvent<HTMLFormElement>) => Promise<void>;
@@ -1598,7 +1559,7 @@ function DashboardContent({
           <div className="flex flex-col gap-2">
             <h2 className="text-xl font-extrabold">Media Library</h2>
             <p className="text-sm text-slate-600">
-              Register only site-hosted image and video assets from <span className="font-semibold">justproveit.co.uk</span>, tag them once, and reuse them when generating posts.
+              Upload image and video assets once, tag them, and reuse them when generating posts.
             </p>
           </div>
 
@@ -1635,30 +1596,8 @@ function DashboardContent({
                 className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
               />
               <p className="mt-2 text-xs font-semibold text-slate-500">
-                {newMediaFile ? `Selected file: ${newMediaFile.name}` : "Optional if you prefer to register an already hosted site URL below."}
+                {newMediaFile ? `Selected file: ${newMediaFile.name}` : "Upload the source file that should live in the media library."}
               </p>
-            </label>
-
-            <label className="block lg:col-span-2">
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Asset URL</span>
-              <input
-                type="url"
-                value={newMediaAssetUrl}
-                onChange={(event) => onNewMediaAssetUrlChange(event.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
-                placeholder="https://www.justproveit.co.uk/marketing-assets/your-asset.jpg"
-              />
-            </label>
-
-            <label className="block lg:col-span-2">
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Thumbnail URL (optional)</span>
-              <input
-                type="url"
-                value={newMediaThumbnailUrl}
-                onChange={(event) => onNewMediaThumbnailUrlChange(event.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
-                placeholder="Use this mainly for videos."
-              />
             </label>
 
             <label className="block">
@@ -1672,20 +1611,9 @@ function DashboardContent({
               />
             </label>
 
-            <label className="block">
-              <span className="text-xs font-bold uppercase tracking-wide text-slate-500">Description (optional)</span>
-              <input
-                type="text"
-                value={newMediaDescription}
-                onChange={(event) => onNewMediaDescriptionChange(event.target.value)}
-                className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-600"
-                placeholder="Use for FCA news or guidance posts."
-              />
-            </label>
-
             <div className="lg:col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-sm text-slate-500">
-                The library stores references only to assets already hosted on the site, so post generation never needs to fetch media from third-party websites.
+                Uploaded assets are stored in the ProveIt media library so post generation never needs to fetch media from third-party websites.
               </p>
               <button
                 type="submit"
