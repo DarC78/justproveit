@@ -66,6 +66,7 @@ export type FacebookComment = {
 
 export type FacebookConnection = {
   Id: string;
+  ProviderKey?: "facebook" | "instagram" | string;
   PageId?: string;
   PageName?: string;
   ProfileKey?: string;
@@ -117,8 +118,10 @@ export type ScheduledFacebookPost = {
   Id: string;
   SocialConnectionId?: string | null;
   SocialProfileName?: string | null;
+  ProviderKey?: string | null;
   PageId?: string | null;
   PageName?: string | null;
+  Channel?: string | null;
   CustomTitle?: string | null;
   PostText?: string;
   LinkUrl?: string | null;
@@ -166,8 +169,10 @@ export type PublishedFacebookPost = {
   Id: string;
   SocialConnectionId?: string | null;
   SocialProfileName?: string | null;
+  ProviderKey?: string | null;
   PageId?: string | null;
   PageName?: string | null;
+  Channel?: string | null;
   ProviderPostId?: string | null;
   PublishedText?: string;
   PublishedAtUtc?: string;
@@ -192,6 +197,7 @@ export type FacebookDashboard = {
   summary?: {
     connectedPages?: number;
     connectedAdAccounts?: number;
+    connectedInstagramAccounts?: number;
     createdPosts?: number;
     scheduledPosts?: number;
     publishedPosts?: number;
@@ -206,6 +212,7 @@ export type FacebookDashboard = {
     livePosts?: number;
   };
   connections?: FacebookConnection[];
+  instagramAccounts?: FacebookConnection[];
   adAccounts?: FacebookConnectedAdAccount[];
   liveConnections?: FacebookLiveConnection[];
   recentPagePosts?: FacebookLivePagePost[];
@@ -247,6 +254,26 @@ export function connectFacebookMarketingPage(
   },
 ) {
   return fetchJson<{ success?: boolean }>(`${BASE_PATH}/facebook/pages/connect`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function connectInstagramMarketingAccount(
+  token: string,
+  payload: {
+    igUserId?: string;
+    username?: string;
+    facebookPageId?: string;
+    accessToken: string;
+    profileName?: string;
+    audienceDescription?: string;
+    defaultLinkUrl?: string;
+    dailyPostTarget?: number;
+  },
+) {
+  return fetchJson<{ success?: boolean }>(`${BASE_PATH}/instagram/accounts/connect`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(payload),
@@ -307,6 +334,21 @@ export function generateFacebookDrafts(
   });
 }
 
+export function generateInstagramDrafts(
+  token: string,
+  payload: {
+    igUserId: string;
+    draftCount: number;
+    mediaAssetId?: string;
+  },
+) {
+  return fetchJson<{ success?: boolean; drafted?: number }>(`${BASE_PATH}/instagram/drafts/generate`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
 export function generateManualFacebookDrafts(
   token: string,
   payload: {
@@ -318,6 +360,25 @@ export function generateManualFacebookDrafts(
 ) {
   return fetchJson<{ success?: boolean; drafted?: number }>(
     `${BASE_PATH}/facebook/drafts/manual-generate`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export function generateManualInstagramDrafts(
+  token: string,
+  payload: {
+    igUserId: string;
+    draftCount: number;
+    operatorSpecs: string;
+    mediaAssetId?: string;
+  },
+) {
+  return fetchJson<{ success?: boolean; drafted?: number }>(
+    `${BASE_PATH}/instagram/drafts/manual-generate`,
     {
       method: "POST",
       headers: authHeaders(token),

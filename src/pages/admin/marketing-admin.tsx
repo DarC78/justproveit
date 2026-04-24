@@ -2,6 +2,7 @@ import { useAuth } from "@/context/AuthContext";
 import {
   connectFacebookMarketingPage,
   connectFacebookMarketingAdAccount,
+  connectInstagramMarketingAccount,
   deleteFacebookDraft,
   FacebookComment,
   FacebookAdAccountOption,
@@ -17,7 +18,9 @@ import {
   getFacebookMarketingComments,
   getFacebookMarketingDashboard,
   generateFacebookDrafts,
+  generateInstagramDrafts,
   generateManualFacebookDrafts,
+  generateManualInstagramDrafts,
   MarketingMediaAsset,
   PublishedFacebookPost,
   scheduleManualFacebookDrafts,
@@ -110,6 +113,10 @@ export default function MarketingAdminPage() {
   const [manualProfileName, setManualProfileName] = useState("");
   const [manualAccessToken, setManualAccessToken] = useState("");
   const [manualUserAccessToken, setManualUserAccessToken] = useState("");
+  const [manualInstagramId, setManualInstagramId] = useState("");
+  const [manualInstagramUsername, setManualInstagramUsername] = useState("");
+  const [manualInstagramPageId, setManualInstagramPageId] = useState("");
+  const [manualInstagramToken, setManualInstagramToken] = useState("");
   const [draftCount, setDraftCount] = useState(1);
   const [manualDraftCount, setManualDraftCount] = useState(1);
   const [manualPostSpecs, setManualPostSpecs] = useState("");
@@ -464,6 +471,53 @@ export default function MarketingAdminPage() {
     }
   }
 
+  async function handleInstagramConnect(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!token) {
+      return;
+    }
+
+    if (!manualInstagramToken.trim()) {
+      setActionStatus("");
+      setError("Provide an Instagram/Facebook Page access token.");
+      return;
+    }
+
+    if (!manualInstagramId.trim() && !manualInstagramPageId.trim()) {
+      setActionStatus("");
+      setError("Provide either an Instagram user ID or the linked Facebook Page ID.");
+      return;
+    }
+
+    setActionStatus("Saving Instagram account connection...");
+    setError("");
+
+    try {
+      await connectInstagramMarketingAccount(token, {
+        igUserId: manualInstagramId.trim() || undefined,
+        username: manualInstagramUsername.trim() || undefined,
+        facebookPageId: manualInstagramPageId.trim() || undefined,
+        accessToken: manualInstagramToken.trim(),
+        profileName: manualInstagramUsername.trim() || undefined,
+      });
+
+      setActionStatus(`${manualInstagramUsername.trim() || "Instagram account"} connected.`);
+      setManualInstagramId("");
+      setManualInstagramUsername("");
+      setManualInstagramPageId("");
+      setManualInstagramToken("");
+      await loadDashboard();
+    } catch (connectError) {
+      setActionStatus("");
+      setError(
+        connectError instanceof Error
+          ? connectError.message
+          : "Could not save the Instagram account connection.",
+      );
+    }
+  }
+
   async function handleSaveContentSettings(
     event: FormEvent<HTMLFormElement>,
     connectionId: string,
@@ -557,6 +611,7 @@ export default function MarketingAdminPage() {
     const pageId = selectedConnection?.PageId;
     const pageName =
       selectedConnection?.ProfileName ?? selectedConnection?.PageName ?? "selected page";
+    const isInstagram = selectedConnection?.ProviderKey === "instagram";
 
     if (!pageId) {
       setActionStatus("");
@@ -568,11 +623,17 @@ export default function MarketingAdminPage() {
     setError("");
 
     try {
-      const result = await generateFacebookDrafts(token, {
-        pageId,
-        draftCount,
-        mediaAssetId: selectedMediaAssetId || undefined,
-      });
+      const result = isInstagram
+        ? await generateInstagramDrafts(token, {
+            igUserId: pageId,
+            draftCount,
+            mediaAssetId: selectedMediaAssetId || undefined,
+          })
+        : await generateFacebookDrafts(token, {
+            pageId,
+            draftCount,
+            mediaAssetId: selectedMediaAssetId || undefined,
+          });
       setActionStatus(
         `Created ${result.drafted ?? 0} post draft${result.drafted === 1 ? "" : "s"} for ${pageName}.`,
       );
@@ -582,7 +643,7 @@ export default function MarketingAdminPage() {
       setError(
         generationError instanceof Error
           ? generationError.message
-          : "Could not generate Facebook drafts.",
+          : `Could not generate ${isInstagram ? "Instagram" : "Facebook"} drafts.`,
       );
     }
   }
@@ -598,6 +659,7 @@ export default function MarketingAdminPage() {
     const pageId = selectedConnection?.PageId;
     const pageName =
       selectedConnection?.ProfileName ?? selectedConnection?.PageName ?? "selected page";
+    const isInstagram = selectedConnection?.ProviderKey === "instagram";
 
     if (!pageId) {
       setActionStatus("");
@@ -615,12 +677,19 @@ export default function MarketingAdminPage() {
     setError("");
 
     try {
-      const result = await generateManualFacebookDrafts(token, {
-        pageId,
-        draftCount: manualDraftCount,
-        operatorSpecs: manualPostSpecs.trim(),
-        mediaAssetId: selectedMediaAssetId || undefined,
-      });
+      const result = isInstagram
+        ? await generateManualInstagramDrafts(token, {
+            igUserId: pageId,
+            draftCount: manualDraftCount,
+            operatorSpecs: manualPostSpecs.trim(),
+            mediaAssetId: selectedMediaAssetId || undefined,
+          })
+        : await generateManualFacebookDrafts(token, {
+            pageId,
+            draftCount: manualDraftCount,
+            operatorSpecs: manualPostSpecs.trim(),
+            mediaAssetId: selectedMediaAssetId || undefined,
+          });
       setActionStatus(
         `Created ${result.drafted ?? 0} manual post draft${result.drafted === 1 ? "" : "s"} for ${pageName}.`,
       );
@@ -630,7 +699,7 @@ export default function MarketingAdminPage() {
       setError(
         generationError instanceof Error
           ? generationError.message
-          : "Could not generate manual Facebook posts.",
+          : `Could not generate manual ${isInstagram ? "Instagram" : "Facebook"} posts.`,
       );
     }
   }
@@ -964,6 +1033,7 @@ export default function MarketingAdminPage() {
                 onConnectPage={connectPage}
                 onConnectAdAccount={connectAdAccount}
                 onManualConnect={handleManualConnect}
+                onInstagramConnect={handleInstagramConnect}
                 onSaveContentSettings={handleSaveContentSettings}
                 manualPageId={manualPageId}
                 manualPageName={manualPageName}
@@ -975,6 +1045,14 @@ export default function MarketingAdminPage() {
                 onManualProfileNameChange={setManualProfileName}
                 onManualAccessTokenChange={setManualAccessToken}
                 onManualUserAccessTokenChange={setManualUserAccessToken}
+                manualInstagramId={manualInstagramId}
+                manualInstagramUsername={manualInstagramUsername}
+                manualInstagramPageId={manualInstagramPageId}
+                manualInstagramToken={manualInstagramToken}
+                onManualInstagramIdChange={setManualInstagramId}
+                onManualInstagramUsernameChange={setManualInstagramUsername}
+                onManualInstagramPageIdChange={setManualInstagramPageId}
+                onManualInstagramTokenChange={setManualInstagramToken}
                 draftCount={draftCount}
                 onDraftCountChange={setDraftCount}
                 onGenerateDrafts={handleGenerateDrafts}
@@ -1049,6 +1127,7 @@ function DashboardContent({
   onConnectPage,
   onConnectAdAccount,
   onManualConnect,
+  onInstagramConnect,
   onSaveContentSettings,
   manualPageId,
   manualPageName,
@@ -1060,6 +1139,14 @@ function DashboardContent({
   onManualProfileNameChange,
   onManualAccessTokenChange,
   onManualUserAccessTokenChange,
+  manualInstagramId,
+  manualInstagramUsername,
+  manualInstagramPageId,
+  manualInstagramToken,
+  onManualInstagramIdChange,
+  onManualInstagramUsernameChange,
+  onManualInstagramPageIdChange,
+  onManualInstagramTokenChange,
   draftCount,
   onDraftCountChange,
   onGenerateDrafts,
@@ -1127,6 +1214,7 @@ function DashboardContent({
   onConnectPage: (page: FacebookOAuthPage) => Promise<void>;
   onConnectAdAccount: (adAccount: FacebookAdAccountOption) => Promise<void>;
   onManualConnect: (event: FormEvent<HTMLFormElement>) => Promise<void>;
+  onInstagramConnect: (event: FormEvent<HTMLFormElement>) => Promise<void>;
   onSaveContentSettings: (
     event: FormEvent<HTMLFormElement>,
     connectionId: string,
@@ -1143,6 +1231,14 @@ function DashboardContent({
   onManualProfileNameChange: React.Dispatch<React.SetStateAction<string>>;
   onManualAccessTokenChange: React.Dispatch<React.SetStateAction<string>>;
   onManualUserAccessTokenChange: React.Dispatch<React.SetStateAction<string>>;
+  manualInstagramId: string;
+  manualInstagramUsername: string;
+  manualInstagramPageId: string;
+  manualInstagramToken: string;
+  onManualInstagramIdChange: React.Dispatch<React.SetStateAction<string>>;
+  onManualInstagramUsernameChange: React.Dispatch<React.SetStateAction<string>>;
+  onManualInstagramPageIdChange: React.Dispatch<React.SetStateAction<string>>;
+  onManualInstagramTokenChange: React.Dispatch<React.SetStateAction<string>>;
   draftCount: number;
   onDraftCountChange: React.Dispatch<React.SetStateAction<number>>;
   onGenerateDrafts: () => Promise<void>;
@@ -1282,9 +1378,11 @@ function DashboardContent({
               allConnections.map((connection) => (
                 <article key={connection.Id} className="rounded-lg border border-slate-200 p-4">
                   <h3 className="font-extrabold">
-                    {connection.ProfileName ?? connection.PageName ?? "Facebook Page"}
+                    {connection.ProfileName ?? connection.PageName ?? "Social profile"}
                   </h3>
-                  <p className="mt-1 text-xs font-semibold text-slate-500">{connection.PageId}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">
+                    {(connection.ProviderKey === "instagram" ? "Instagram" : "Facebook") + " | " + (connection.PageId ?? "-")}
+                  </p>
                   <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
                     <StatItem label="Created" value={connection.CreatedCount ?? 0} />
                     <StatItem label="Scheduled" value={connection.ScheduledCount ?? 0} />
@@ -1397,6 +1495,79 @@ function DashboardContent({
                   className="rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
                 >
                   Save page token
+                </button>
+              </div>
+            </form>
+
+            <form className="mt-8 grid gap-4 border-t border-slate-200 pt-6 lg:grid-cols-2" onSubmit={onInstagramConnect}>
+              <div className="lg:col-span-2">
+                <h3 className="text-lg font-extrabold">Connect an Instagram Account</h3>
+                <p className="mt-1 text-sm text-slate-600">
+                  Use an Instagram Professional account linked to a Facebook Page. Provide either the Instagram user ID directly or the linked Facebook Page ID so the backend can discover it.
+                </p>
+              </div>
+
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Instagram user ID
+                </span>
+                <input
+                  type="text"
+                  value={manualInstagramId}
+                  onChange={(event) => onManualInstagramIdChange(event.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                  placeholder="17841400000000000"
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Instagram username
+                </span>
+                <input
+                  type="text"
+                  value={manualInstagramUsername}
+                  onChange={(event) => onManualInstagramUsernameChange(event.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                  placeholder="proveit"
+                />
+              </label>
+
+              <label className="block lg:col-span-2">
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Linked Facebook Page ID
+                </span>
+                <input
+                  type="text"
+                  value={manualInstagramPageId}
+                  onChange={(event) => onManualInstagramPageIdChange(event.target.value)}
+                  className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                  placeholder="Optional if Instagram user ID and username are provided"
+                />
+              </label>
+
+              <label className="block lg:col-span-2">
+                <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                  Access token
+                </span>
+                <textarea
+                  value={manualInstagramToken}
+                  onChange={(event) => onManualInstagramTokenChange(event.target.value)}
+                  className="mt-1 min-h-28 w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-0 focus:border-emerald-600"
+                  placeholder="Page token or Instagram Graph token with instagram_content_publish"
+                  required
+                />
+              </label>
+
+              <div className="lg:col-span-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-slate-500">
+                  Instagram posts require an image or video asset from the media library before publishing.
+                </p>
+                <button
+                  type="submit"
+                  className="rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white hover:bg-slate-800"
+                >
+                  Save Instagram token
                 </button>
               </div>
             </form>
@@ -1523,7 +1694,8 @@ function DashboardContent({
                 <option value="all">All connected pages</option>
                 {allConnections.map((connection) => (
                   <option key={connection.Id} value={connection.Id}>
-                    {connection.ProfileName ?? connection.PageName ?? connection.PageId}
+                    {(connection.ProviderKey === "instagram" ? "Instagram: " : "Facebook: ") +
+                      (connection.ProfileName ?? connection.PageName ?? connection.PageId)}
                   </option>
                 ))}
               </select>
@@ -1874,7 +2046,7 @@ function DashboardContent({
             {connections.length ? (
               connections.map((connection) => {
                 const pageId = connection.PageId ?? "";
-                const pageName = connection.ProfileName ?? connection.PageName ?? "Facebook Page";
+                const pageName = connection.ProfileName ?? connection.PageName ?? "Social profile";
                 const settings =
                   contentSettings[connection.Id] ??
                   getDefaultContentSettings(connection.ProfileName ?? connection.PageName);
@@ -2047,7 +2219,7 @@ function SelectableDraftList({
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <h3 className="font-extrabold">
-                      {post.CustomTitle || post.SocialProfileName || post.PageName || "Facebook draft"}
+                      {post.CustomTitle || post.SocialProfileName || post.PageName || "Social draft"}
                     </h3>
                     <p className="mt-1 text-xs font-semibold text-slate-500">
                       Created {formatDate(post.CreatedAtUtc)}
@@ -2057,22 +2229,25 @@ function SelectableDraftList({
                     </p>
                   </div>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                    {post.PageName ?? post.SocialProfileName ?? "Facebook"}
+                    {post.ProviderKey === "instagram" || post.Channel === "instagram"
+                      ? "Instagram"
+                      : post.PageName ?? post.SocialProfileName ?? "Facebook"}
                   </span>
                 </div>
                 <label className="block">
                   <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Target page
+                    Target profile
                   </span>
                   <select
                     value={draftPageSelections[post.Id] || post.PageId || ""}
                     onChange={(event) => onDraftPageSelectionChange(post.Id, event.target.value)}
                     className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-600"
                   >
-                    <option value="">Choose page</option>
+                    <option value="">Choose profile</option>
                     {connections.map((connection) => (
                       <option key={connection.Id} value={connection.PageId ?? ""}>
-                        {connection.ProfileName ?? connection.PageName ?? connection.PageId ?? "Facebook Page"}
+                        {(connection.ProviderKey === "instagram" ? "Instagram: " : "Facebook: ") +
+                          (connection.ProfileName ?? connection.PageName ?? connection.PageId ?? "Social profile")}
                       </option>
                     ))}
                   </select>
