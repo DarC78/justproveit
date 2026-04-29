@@ -43,6 +43,7 @@ const ACTIONABLE_MESSAGE_LIMIT = 20;
 const DEFAULT_MAILBOX_EMAIL = "oz@proveitweb.co.uk";
 const DONE_NO_REPLY_LABEL_NAME = "Done - No Reply Needed";
 const DONE_ANSWERED_LABEL_NAME = "Done - Answered";
+const PRIORITY_FIVE_DAYS_LABEL_NAME = "priority-5-days";
 const POSITIVE_DECISION_STORAGE_PREFIX = "justproveit:genericreports:positive-decisions";
 const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
   {
@@ -691,6 +692,40 @@ export default function SupportInboxPage() {
     });
   }
 
+  async function handlePriorityFiveDays() {
+    if (!token || !selectedMessage) {
+      return;
+    }
+
+    const selectedMessageId = getGmailMessageId(selectedMessage);
+    if (!selectedMessageId) {
+      setActionStatus("No Gmail message id found for the selected email.");
+      return;
+    }
+
+    const priorityLabel = findGmailLabelByName(gmailLabels, PRIORITY_FIVE_DAYS_LABEL_NAME);
+    if (!priorityLabel) {
+      setActionStatus(
+        `Gmail label "${PRIORITY_FIVE_DAYS_LABEL_NAME}" was not found. Refresh the inbox after creating it in Gmail.`,
+      );
+      return;
+    }
+
+    if (!confirmAction("Move this email to Priority 5 and remove it from the inbox?")) {
+      return;
+    }
+
+    await runAction(`Moving email to ${PRIORITY_FIVE_DAYS_LABEL_NAME}...`, async () => {
+      await markMessageRead(token, selectedMessageId);
+      await updateMessageLabels(token, selectedMessageId, {
+        addLabelIds: [priorityLabel.id],
+        removeLabelIds: ["INBOX"],
+      });
+      removeMessagesFromInbox(getThreadStateKeys(selectedMessage));
+      return `Email moved to ${PRIORITY_FIVE_DAYS_LABEL_NAME}.`;
+    });
+  }
+
   async function handleTrash() {
     if (!token || !selectedMessage) {
       return;
@@ -1124,6 +1159,13 @@ export default function SupportInboxPage() {
                       Ignore
                     </ActionButton>
                     <ActionButton
+                      onClick={handlePriorityFiveDays}
+                      disabled={!selectedMessage}
+                      tone="priority"
+                    >
+                      Priority 5
+                    </ActionButton>
+                    <ActionButton
                       onClick={handleTrash}
                       disabled={!selectedMessage}
                       tone="danger"
@@ -1459,13 +1501,15 @@ function ActionButton({
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
-  tone?: "default" | "danger" | "warning";
+  tone?: "default" | "danger" | "warning" | "priority";
 }) {
   const toneClass =
     tone === "danger"
       ? "bg-red-900 text-white hover:bg-red-950"
       : tone === "warning"
         ? "border border-amber-500 bg-amber-100 text-amber-900 hover:bg-amber-200"
+        : tone === "priority"
+          ? "bg-blue-700 text-white hover:bg-blue-800"
         : "bg-emerald-700 text-white hover:bg-emerald-800";
 
   return (
