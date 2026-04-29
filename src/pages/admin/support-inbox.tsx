@@ -43,7 +43,7 @@ const ACTIONABLE_MESSAGE_LIMIT = 20;
 const DEFAULT_MAILBOX_EMAIL = "oz@proveitweb.co.uk";
 const DONE_NO_REPLY_LABEL_NAME = "Done - No Reply Needed";
 const DONE_ANSWERED_LABEL_NAME = "Done - Answered";
-const PRIORITY_FIVE_DAYS_LABEL_NAME = "priority-5-days";
+const PRIORITY_FIVE_DAYS_LABEL_NAME = "Priority 5 days";
 const POSITIVE_DECISION_STORAGE_PREFIX = "justproveit:genericreports:positive-decisions";
 const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
   {
@@ -711,7 +711,7 @@ export default function SupportInboxPage() {
       return;
     }
 
-    if (!confirmAction("Move this email to Priority 5 and remove it from the inbox?")) {
+    if (!confirmAction("Move this email to Priority 5 days and remove it from the inbox?")) {
       return;
     }
 
@@ -1163,7 +1163,7 @@ export default function SupportInboxPage() {
                       disabled={!selectedMessage}
                       tone="priority"
                     >
-                      Priority 5
+                      Priority 5 days
                     </ActionButton>
                     <ActionButton
                       onClick={handleTrash}
