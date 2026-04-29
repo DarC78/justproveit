@@ -45,6 +45,9 @@ const DONE_NO_REPLY_LABEL_NAME = "Done - No Reply Needed";
 const DONE_ANSWERED_LABEL_NAME = "Done - Answered";
 const PRIORITY_FIVE_DAYS_LABEL_NAME = "Priority 5 days";
 const POSITIVE_DECISION_STORAGE_PREFIX = "justproveit:genericreports:positive-decisions";
+const GENERIC_UPDATE_SUBJECT = "Actualizare dosar Proveit";
+const GENERIC_UPDATE_PREHEADER =
+  "Informatii despre schema FCA si despre dosarul pe care il aveti cu noi.";
 const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
   {
     key: "felicitari",
@@ -790,14 +793,25 @@ export default function SupportInboxPage() {
     }
 
     await runAction("Sending generic update...", async () => {
+      const customerName = getCustomerName(selectedCustomer, recipient);
+      const customerSinceLabel = getCustomerString(selectedCustomer, [
+        "customerSinceLabel",
+        "customerSince",
+      ]);
+      const genericUpdateEmail = buildGenericUpdateEmail({
+        customerName,
+        customerSinceLabel,
+      });
+
       await sendGenericUpdateEmail(token, {
         to: recipient,
-        customerName: getCustomerName(selectedCustomer, recipient),
-        customerSinceLabel: getCustomerString(selectedCustomer, [
-          "customerSinceLabel",
-          "customerSince",
-        ]),
+        customerName,
+        customerSinceLabel,
         statusLabel: getCustomerString(selectedCustomer, ["statusLabel", "status"]),
+        subject: genericUpdateEmail.subject,
+        preheader: genericUpdateEmail.preheader,
+        plainText: genericUpdateEmail.plainText,
+        html: genericUpdateEmail.html,
       });
       return "Generic update sent.";
     });
@@ -2018,6 +2032,66 @@ function getTemplateLabel(template: ReplyTemplate) {
 
 function stripHtml(value: string) {
   return value.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, " ").trim();
+}
+
+function buildGenericUpdateEmail({
+  customerName,
+  customerSinceLabel,
+}: {
+  customerName: string;
+  customerSinceLabel: string;
+}) {
+  const safeCustomerName = customerName.trim() || "Client Proveit";
+  const safeCustomerSinceLabel = customerSinceLabel.trim() || "-";
+  const sentDateLabel = formatRomanianDate(new Date());
+  const plainText = `Actualizare dosar Proveit
+Stadiul procesului de recuperare
+Informatii despre schema FCA si despre dosarul pe care il aveti cu noi.
+
+Client
+${safeCustomerName}
+Data: ${sentDateLabel}
+
+1. Informatii generale
+Buna ziua,
+
+Acesta este un email prin care va explicam stadiul procesului de recuperare, dosarul pe care il aveti cu noi, si ce aveti de facut in continuare.
+
+Pe 30 Martie FCA a demarat schema de recuperare.
+
+Toti cei care au demarat procesul de recuperare, vor intra in primul val de recuperare si vor primi deciziile intre Iunie si Septembrie 2026.
+
+Toti clientii Proveit (ca si dumneavoastra) au demarat procesul, prin urmare vor fi in primul val de recuperare, care vor primi deciziile intre Iunie si Septembrie 2026. Tinem sa mentionam ca, conform cu FCA, acesta este termenul maximal. Unii finantatori vor raspunde chiar mai devreme.
+
+2. Despre dosarul dvs.
+Dumneavoastra ne sunteti client din data de ${safeCustomerSinceLabel}. In acest moment va rugam sa asteptati urmatoarea comunicare de la finantator, iar cand o primiti sa ne-o trimiteti pentru verificare.
+
+In acest moment nu mai aveti nimic de facut.
+
+Asigurati-va ca nu ati semnat fara sa stiti si cu o firma de avocatura!
+Multe firme de avocatura au niste website-uri foarte inselatoare. Pare ca verificaiti ceva gratuit dar in realitate le semnati o imputernicire sa va reprezinte si sa va ia aproape 50% din ce se recupereaza. Aveti aici un video in care dl. Adrian explica cat de usor puteti cadea in capcana si cat de mult va poate costa:
+
+https://youtu.be/3wwhwmA1MdY
+
+Daca ati semnat cu o astfel de firma, va rugam sa ne spuneti numele firmei si vom incerca sa va scoatem din contract fara sa platiti ceva.
+
+O zi buna,
+Echipa Proveit`;
+
+  return {
+    subject: GENERIC_UPDATE_SUBJECT,
+    preheader: GENERIC_UPDATE_PREHEADER,
+    plainText,
+    html: plainTextToHtml(plainText),
+  };
+}
+
+function formatRomanianDate(value: Date) {
+  return value.toLocaleDateString("ro-RO", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }
 
 function plainTextToHtml(value: string) {

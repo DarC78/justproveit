@@ -356,7 +356,11 @@ Request:
   "to": "customer@example.com",
   "customerName": "Customer Name",
   "customerSinceLabel": "18/04/2026",
-  "statusLabel": "Customer"
+  "statusLabel": "Customer",
+  "subject": "Actualizare dosar Proveit",
+  "preheader": "Informatii despre schema FCA si despre dosarul pe care il aveti cu noi.",
+  "plainText": "Actualizare dosar Proveit\n...",
+  "html": "<p>Actualizare dosar Proveit</p>..."
 }
 ```
 

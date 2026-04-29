@@ -834,7 +834,11 @@ Request:
   "to": "customer@example.com",
   "customerName": "Customer Name",
   "customerSinceLabel": "18/04/2026",
-  "statusLabel": "Customer"
+  "statusLabel": "Customer",
+  "subject": "Actualizare dosar Proveit",
+  "preheader": "Informatii despre schema FCA si despre dosarul pe care il aveti cu noi.",
+  "plainText": "Actualizare dosar Proveit\n...",
+  "html": "<p>Actualizare dosar Proveit</p>..."
 }
 ```
 
@@ -852,6 +856,7 @@ Requirements:
 
 - Use backend-side `RESEND_API_KEY`.
 - Do not expose email provider secrets.
+- Prefer the supplied `subject`, `plainText`, and `html` fields when present so the admin inbox button can send the canonical Romanian generic update template.
 - Audit every send.
 
 ## Audit Logging Requirements

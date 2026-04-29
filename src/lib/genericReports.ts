@@ -357,6 +357,10 @@ export function sendGenericUpdateEmail(
     customerName: string;
     customerSinceLabel: string;
     statusLabel: string;
+    subject?: string;
+    preheader?: string;
+    plainText?: string;
+    html?: string;
   },
 ) {
   return fetchJson<{ success?: boolean; provider?: string; messageId?: string }>(
