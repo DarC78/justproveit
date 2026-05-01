@@ -53,6 +53,8 @@ export type SupportMessage = {
   cc?: string;
   bcc?: string;
   replyTo?: string;
+  labelIds?: string[];
+  labels?: string[];
   subject?: string;
   date?: string;
   sentAtUtc?: string;
@@ -83,6 +85,7 @@ export type MessagesResponse = {
   actionableOnly?: boolean;
   messageCount?: number;
   scannedCount?: number;
+  skippedByMailboxCount?: number;
   skippedByStateCount?: number;
   duplicateThreadCount?: number;
   hasMore?: boolean;

@@ -282,7 +282,7 @@ export default function SupportInboxPage() {
         afterDate: formatDateForApi(startDate),
         beforeDate: formatExclusiveEndDateForApi(endDate),
       });
-      const nextMessages = response.messages ?? [];
+      const nextMessages = filterInboxMessages(response.messages);
       setMessages(nextMessages);
       setSelectedMessage(nextMessages[0] ?? null);
       setCustomerContext(null);
@@ -366,7 +366,7 @@ export default function SupportInboxPage() {
         });
 
         if (!cancelled) {
-          const nextMessages = recentResponse.messages ?? [];
+          const nextMessages = filterInboxMessages(recentResponse.messages);
           setMessages(nextMessages);
           setSelectedMessage(nextMessages[0] ?? null);
           setCustomerContext(null);
@@ -1545,6 +1545,33 @@ function findGmailLabelByName(labels: GmailLabel[], name: string) {
 
 function normalizeGmailLabelName(name: string) {
   return name.trim().toLowerCase();
+}
+
+function normalizeLabelIds(value: unknown) {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item ?? "").trim()).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    return value.split(",").map((item) => item.trim()).filter(Boolean);
+  }
+
+  return [];
+}
+
+function isInboxMessage(message: SupportMessage) {
+  const labelIds = [
+    ...normalizeLabelIds(message.labelIds),
+    ...normalizeLabelIds(message.labels),
+    ...normalizeLabelIds(message.rawJson?.labelIds),
+    ...normalizeLabelIds(message.rawJson?.labels),
+  ];
+
+  return labelIds.some((labelId) => labelId.toUpperCase() === "INBOX");
+}
+
+function filterInboxMessages(messages: SupportMessage[] = []) {
+  return messages.filter(isInboxMessage);
 }
 
 function getMessageId(message: SupportMessage | null, index: number) {
