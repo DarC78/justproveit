@@ -148,6 +148,7 @@ export type MarketingMediaAsset = {
   Title: string;
   MediaType: "image" | "video";
   AssetUrl: string;
+  FolderId?: string | null;
   ThumbnailUrl?: string | null;
   Description?: string | null;
   IsActive?: boolean;
@@ -156,10 +157,29 @@ export type MarketingMediaAsset = {
   Tags?: MarketingMediaTag[];
 };
 
+export type MarketingMediaFolder = {
+  Id: string;
+  TenantId?: string;
+  ParentFolderId?: string | null;
+  Name: string;
+  IsActive?: boolean;
+  CreatedAtUtc?: string | null;
+  UpdatedAtUtc?: string | null;
+};
+
+export type MarketingMediaFolderContents = {
+  success?: boolean;
+  folderId?: string | null;
+  folders?: MarketingMediaFolder[];
+  assets?: MarketingMediaAsset[];
+  breadcrumbs?: MarketingMediaFolder[];
+};
+
 export type MarketingMediaUploadPayload = {
   title?: string;
   mediaType: "image" | "video";
   files: File[];
+  folderId?: string | null;
   thumbnailUrl?: string;
   description?: string;
   tags?: string;
@@ -480,12 +500,52 @@ export function getMarketingMediaAssets(token: string, mediaType?: "image" | "vi
   );
 }
 
+export function getMarketingMediaFolderContents(
+  token: string,
+  folderId?: string | null,
+  mediaType?: "image" | "video",
+) {
+  const params = new URLSearchParams();
+  if (folderId) {
+    params.set("folderId", folderId);
+  }
+  if (mediaType) {
+    params.set("mediaType", mediaType);
+  }
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+
+  return fetchJson<MarketingMediaFolderContents>(
+    `${BASE_PATH}/media-library/folders/contents${suffix}`,
+    {
+      headers: authHeaders(token),
+    },
+  );
+}
+
+export function createMarketingMediaFolder(
+  token: string,
+  payload: {
+    name: string;
+    parentFolderId?: string | null;
+  },
+) {
+  return fetchJson<{ success?: boolean; folder?: MarketingMediaFolder }>(
+    `${BASE_PATH}/media-library/folders`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export function saveMarketingMediaAsset(
   token: string,
   payload: {
     title: string;
     mediaType: "image" | "video";
     assetUrl: string;
+    folderId?: string | null;
     thumbnailUrl?: string;
     description?: string;
     tagNames?: string[];
@@ -507,6 +567,9 @@ export async function uploadMarketingMediaAsset(token: string, payload: Marketin
     formData.set("title", payload.title.trim());
   }
   formData.set("mediaType", payload.mediaType);
+  if (payload.folderId) {
+    formData.set("folderId", payload.folderId);
+  }
   payload.files.forEach((file) => {
     formData.append("files", file);
   });

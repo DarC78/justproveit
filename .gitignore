@@ -20,6 +20,10 @@
 # production
 /build
 
+# generated deployment artifacts
+.tmp-launchingstack-func/
+launchingstack-func-dev-current.zip
+
 # misc
 .DS_Store
 *.pem

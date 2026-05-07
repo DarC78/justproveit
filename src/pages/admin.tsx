@@ -170,6 +170,12 @@ export default function AdminPage() {
                   >
                     Open marketing admin
                   </Link>
+                  <Link
+                    href="/admin/media-library"
+                    className="inline-flex rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100"
+                  >
+                    Open media library
+                  </Link>
                 </div>
               </div>
             </section>

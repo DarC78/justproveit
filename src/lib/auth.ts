@@ -183,6 +183,16 @@ function readApiError(payload: unknown, fallback: string) {
     if (typeof candidate === "string" && candidate.trim()) {
       return candidate;
     }
+
+    if (
+      candidate &&
+      typeof candidate === "object" &&
+      "message" in candidate &&
+      typeof candidate.message === "string" &&
+      candidate.message.trim()
+    ) {
+      return candidate.message;
+    }
   }
 
   return fallback || "Request failed.";
