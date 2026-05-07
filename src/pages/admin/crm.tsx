@@ -50,6 +50,43 @@ const EMAIL_SEQUENCE_OPTIONS = [
   { label: "VREA_OUT_CMC", value: "VREA_OUT_CMC" },
 ];
 
+const CMC_COMPANIES = [
+  { name: "ADG Law", domain: "adglaw.co.uk" },
+  { name: "Alawco", domain: "alawco.co.uk" },
+  { name: "Benson Goldstein", domain: "bensongoldstein.com" },
+  { name: "BMW PCP Claims", domain: "bmwpcpclaims.com" },
+  { name: "Bott & Co", domain: "bottonline.co.uk" },
+  { name: "Car Finance Claim", domain: "car-finance-claim.co.uk" },
+  { name: "Car Finance Claim", domain: "car-financeclaim.co.uk" },
+  { name: "Car Finance Claims", domain: "carfinanceclaim.co.uk" },
+  { name: "Car Finance Claims", domain: "carfinanceclaims.com" },
+  { name: "Claim-Smart", domain: "claim-smart.co.uk" },
+  { name: "Claimmate", domain: "claimmate.co.uk" },
+  { name: "Consultation Claims", domain: "consultationclaims.co.uk" },
+  { name: "Courmacs Legal", domain: "courmacslegal.co.uk" },
+  { name: "Go Claim", domain: "goclaim.co.uk" },
+  { name: "Goldbridge Solicitors", domain: "goldbridgesolicitors.co.uk" },
+  { name: "HD Law", domain: "hd-law.co.uk" },
+  { name: "Locksley Law", domain: "locksleylaw.co.uk" },
+  { name: "Mis Sold Car Finance", domain: "missoldcarfinance.com" },
+  { name: "Mis Sold PCP", domain: "mis-soldpcp.com" },
+  { name: "Motor Finance Claims", domain: "motorfinanceclaims.com" },
+  { name: "My Auto Redress", domain: "myautoredress.com" },
+  { name: "My Claims Centre", domain: "myclaimscentre.co.uk" },
+  { name: "Olton Alexander", domain: "oltonalexander.com" },
+  { name: "PCP Claim Specialist", domain: "pcpclaimspecialist.co.uk" },
+  { name: "PCP Claimback", domain: "pcp-claimback.co.uk" },
+  { name: "PCP Claims", domain: "pcpclaims.co.uk" },
+  { name: "PCP Claims", domain: "pcpclaims.com" },
+  { name: "PCP Claims Pro", domain: "pcpclaim.pro" },
+  { name: "PCP Reclaim", domain: "pcp-reclaim.com" },
+  { name: "Reclaim My Money", domain: "reclaimmymoney.co.uk" },
+  { name: "Reclaim247", domain: "reclaim247.co.uk" },
+  { name: "Right 2 Redress", domain: "right2redress.com" },
+  { name: "Slater + Gordon", domain: "slatergordon.co.uk" },
+  { name: "The PCP Claims Company", domain: "thepcpclaimscompany.co.uk" },
+];
+
 const FINANCE_COMPANIES = [
   "MotoNovo",
   "BlackHorse",
@@ -533,11 +570,15 @@ function LeadDetailsPanel({
   const [newEmail, setNewEmail] = useState("");
   const [saving, setSaving] = useState(false);
   const [smsBusy, setSmsBusy] = useState<"buy" | "skeptic" | "">("");
+  const [selectedSequence, setSelectedSequence] = useState("");
+  const [selectedCmcDomain, setSelectedCmcDomain] = useState("");
 
   useEffect(() => {
     setDraft(lead);
     setNewObservation("");
     setNewEmail("");
+    setSelectedSequence("");
+    setSelectedCmcDomain("");
   }, [lead]);
 
   async function handlePhoneLookup() {
@@ -733,7 +774,15 @@ function LeadDetailsPanel({
       </label>
 
       <div className="sequence-row">
-        <select defaultValue="">
+        <select
+          value={selectedSequence}
+          onChange={(event) => {
+            setSelectedSequence(event.target.value);
+            if (event.target.value !== "VREA_OUT_CMC") {
+              setSelectedCmcDomain("");
+            }
+          }}
+        >
           <option value="">Secventa de email</option>
           {EMAIL_SEQUENCE_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
@@ -743,6 +792,23 @@ function LeadDetailsPanel({
         </select>
         <button type="button" className="orange small">Pune Client pe secventa</button>
       </div>
+
+      {selectedSequence === "VREA_OUT_CMC" ? (
+        <label className="cmc-row">
+          Firma claims management
+          <select
+            value={selectedCmcDomain}
+            onChange={(event) => setSelectedCmcDomain(event.target.value)}
+          >
+            <option value="">Selecteaza firma CMC</option>
+            {CMC_COMPANIES.map((company) => (
+              <option key={company.domain} value={company.domain}>
+                {company.domain}
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
 
       <p className="green-label">Rezultat actiune:</p>
       <div className="sms-row">
@@ -1591,6 +1657,10 @@ const panelStyles = `
     gap: 20px;
     margin-top: 10px;
   }
+  .cmc-row {
+    width: min(420px, 100%);
+    margin-top: 12px;
+  }
   .green-label {
     color: #008a1e;
     font-size: 14px;
@@ -1660,6 +1730,7 @@ const panelStyles = `
     .form-grid.three,
     .inline-fields,
     .sequence-row,
+    .cmc-row,
     .sms-row,
     .finish-row,
     .sales-filter,
