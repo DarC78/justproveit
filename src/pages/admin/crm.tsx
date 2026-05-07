@@ -6,6 +6,7 @@ import {
   insertManualCrmLead,
   listCrmLeads,
   listCrmSales,
+  queueCrmSmsSequence,
   updateCrmLead,
 } from "@/lib/crmAdmin";
 import Head from "next/head";
@@ -27,27 +28,138 @@ const TABS: Array<{ key: TabKey; label: string }> = [
 
 const STATUS_OPTIONS = [
   "new lead",
-  "A cerut sa fie contactat",
-  "demarcat singur",
-  "fu 1",
-  "fu 2",
-  "fund",
-  "closed",
-  "not interested",
+  "FUNAEND",
+  "SALE",
+  "NOT AVAILABLE",
+  "FUEND",
+  "NU_DORESTE_SERVICIUL",
+  "ademaratsingur",
+  "OTHER",
+  "INVALID_NUMBER",
+  "NO_QUALIFY",
+  "FUNA",
+  "CLIENT EXISTENT",
+  "NOWIN_NOFEE",
+  "CallBackStabilit",
+  "MERGE_SINGUR",
+  "noqualify",
+  "donotcall",
+  "HotLead",
+  "PENSION",
+  "HOT_LEAD",
+  "DO_NOT_CALL",
+  "FU1",
+  "CALLBACK",
+  "clientexistent",
+  "CANCELLED",
+  "FU2",
+  "FUNA1",
+  "A_Demarat_CMC",
+  "nowinnofee",
+  "FUNA 2",
+  "CALENDLY",
+  "platalafinal",
+  "FUNA2",
+  "INVALID NUMBER",
+  "LE-AM DAT EMAIL | IGNORA MOMEMTAN",
+  "DORESTE_PLATA_FINAL",
+  "fu3",
+  "0",
+  "CUMPARA",
+  "FOST ASAP",
+  "FUNA 3",
 ];
 
 const LANGUAGE_OPTIONS = ["Romanian", "English", "Spanish", "Italian", "Polish", "Bulgarian"];
 
 const FINANCE_COMPANIES = [
-  "Firma de finantare",
-  "BMW Financial Services",
-  "Mercedes Finance",
-  "Volkswagen Financial Services",
-  "Black Horse",
   "MotoNovo",
-  "Santander",
+  "BlackHorse",
   "Close Brothers",
+  "Santander",
+  "Barclays Partner Finance",
   "Moneybarn",
+  "MoneyWay",
+  "Volkswagen Financial Services",
+  "Advantage Finance",
+  "Alphera",
+  "Blue Motor Finance",
+  "Vauxhall Finance",
+  "Mercedes Benz Finance",
+  "BMW Financial Services",
+  "Creation Finance",
+  "Northridge Finance",
+  "First Response",
+  "MannIsland",
+  "Oodle Car Finance",
+  "Starline Motor Finance",
+  "Toyota Financial Service",
+  "Car Finance 247",
+  "Stellantis",
+  "Billing Finance",
+  "KIA FINANCE",
+  "1st Stop Car Finance",
+  "Audi Financial Services",
+  "Hitachi Capital sau Novuna",
+  "Paragon",
+  "247 Money",
+  "Admiral",
+  "Aldermore Bank Plc",
+  "Autolend",
+  "Auto Money Motor Finance",
+  "Bamboo",
+  "Burnley Saving and Loans Finance",
+  "C A Finance",
+  "CarCashPoint",
+  "CarMoney",
+  "Carmoola",
+  "Car Loans 365",
+  "Conister Bank",
+  "Evolution Loans",
+  "Family Finance",
+  "FCA Automotive Services",
+  "FCE Bank Plc",
+  "Finio Loans",
+  "Ford Credit Europe",
+  "Go Car Credit",
+  "GMAC UK PLC",
+  "Honda Financial Services",
+  "Hyundai Financial Services",
+  "Hanwells Financial",
+  "Hartwell Financial",
+  "IN-SYNC Group Ltd",
+  "Jaguar Financial Services",
+  "JBR Capital",
+  "Kia Financial Services",
+  "Land Rover Financial Services",
+  "Lendable",
+  "Lombard Asset Finance",
+  "Lexus Financial Services",
+  "Mallard Finance",
+  "Marsh Finance",
+  "MI Finance",
+  "Mobilize",
+  "PCF Bank",
+  "PSA Finance",
+  "Premium Plan",
+  "Powerlease",
+  "Redline Finance",
+  "RateSetter",
+  "R Raphael and Sons Plc.",
+  "RCI (Mobilize)",
+  "Shawbrook Bank",
+  "Specialist Motor Finance",
+  "Startline Motor Finance",
+  "Suzuki Financial Services",
+  "Tandem",
+  "Tesla Finance",
+  "Time Finance",
+  "Unity Auto Finance",
+  "V12 Vehicle Finance",
+  "Volvo Financial Services",
+  "Zopa",
+  "Altul",
+  "Nu stiu",
 ];
 
 function blankLead(): CrmLead {
@@ -63,6 +175,15 @@ function blankLead(): CrmLead {
     year: "",
     nrInmatriculare: "",
   };
+}
+
+function mergeCurrentOption(options: string[], current?: string | null) {
+  const value = String(current || "").trim();
+  if (!value || options.some((option) => option.toLowerCase() === value.toLowerCase())) {
+    return options;
+  }
+
+  return [value, ...options];
 }
 
 export default function AdminCrmPage() {
@@ -433,6 +554,7 @@ function LeadDetailsPanel({
   const [newObservation, setNewObservation] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [saving, setSaving] = useState(false);
+  const [smsBusy, setSmsBusy] = useState<"buy" | "skeptic" | "">("");
 
   useEffect(() => {
     setDraft(lead);
@@ -495,6 +617,42 @@ function LeadDetailsPanel({
     }
   }
 
+  async function handleAddEmail() {
+    if (!newEmail.trim()) {
+      onError("Completeaza emailul nou inainte de salvare.");
+      return;
+    }
+
+    await handleSave();
+  }
+
+  async function handleSmsSequence(type: "buy" | "skeptic") {
+    const id = draft.id || draft.wixId || draft._id;
+    if (!id) {
+      onError("Selecteaza sau cauta un lead inainte de SMS.");
+      return;
+    }
+
+    setSmsBusy(type);
+    try {
+      const result = await queueCrmSmsSequence(token, id, {
+        type,
+        agent: agentName,
+      });
+      setDraft(result.lead);
+      onLeadChange(result.lead);
+      onStatus(`SMS ${type === "buy" ? "CUMPARA" : "SCEPTIC"} adaugat pe secventa.`);
+      onError("");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut adauga SMS-ul pe secventa.");
+    } finally {
+      setSmsBusy("");
+    }
+  }
+
+  const financeOptions = mergeCurrentOption(FINANCE_COMPANIES, draft.financeCompany);
+  const statusOptions = mergeCurrentOption(STATUS_OPTIONS, draft.statusOriginal);
+
   return (
     <CrmCard title="Detalii client" className="details-card">
       <div className="lookup-row">
@@ -545,7 +703,7 @@ function LeadDetailsPanel({
             onChange={(event) => setDraft({ ...draft, financeCompany: event.target.value })}
           >
             <option value="">Firma de finantare</option>
-            {FINANCE_COMPANIES.slice(1).map((company) => (
+            {financeOptions.map((company) => (
               <option key={company}>{company}</option>
             ))}
           </select>
@@ -553,21 +711,29 @@ function LeadDetailsPanel({
       </div>
 
       <div className="inline-fields">
-        <select
-          value={draft.language ?? ""}
-          onChange={(event) => setDraft({ ...draft, language: event.target.value })}
-        >
-          <option value="">Language</option>
-          {LANGUAGE_OPTIONS.map((language) => (
-            <option key={language}>{language}</option>
-          ))}
-        </select>
-        <input
-          value={newEmail}
-          onChange={(event) => setNewEmail(event.target.value)}
-          placeholder="Adauga email nou"
-        />
-        <button type="button" className="orange small">Adauga Email</button>
+        <label>
+          Limba
+          <select
+            value={draft.language ?? ""}
+            onChange={(event) => setDraft({ ...draft, language: event.target.value })}
+          >
+            <option value="">Language</option>
+            {LANGUAGE_OPTIONS.map((language) => (
+              <option key={language}>{language}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Adauga email nou
+          <input
+            value={newEmail}
+            onChange={(event) => setNewEmail(event.target.value)}
+            placeholder="Adauga email nou"
+          />
+        </label>
+        <button type="button" className="orange small" onClick={handleAddEmail} disabled={saving}>
+          Adauga Email
+        </button>
       </div>
 
       <label className="wide-label">
@@ -585,7 +751,7 @@ function LeadDetailsPanel({
 
       <label className="wide-label previous">
         Informatii precedente:
-        <textarea value={draft.observation ?? ""} readOnly />
+        <div className="previous-log">{draft.observation || "Nu exista informatii precedente."}</div>
       </label>
 
       <div className="sequence-row">
@@ -599,8 +765,22 @@ function LeadDetailsPanel({
 
       <p className="green-label">Rezultat actiune:</p>
       <div className="sms-row">
-        <button type="button" className="green">SMS - CUMPARA</button>
-        <button type="button" className="blue">SMS - SCEPTIC</button>
+        <button
+          type="button"
+          className="green"
+          onClick={() => handleSmsSequence("buy")}
+          disabled={Boolean(smsBusy)}
+        >
+          {smsBusy === "buy" ? "Se adauga..." : "SMS - CUMPARA"}
+        </button>
+        <button
+          type="button"
+          className="blue"
+          onClick={() => handleSmsSequence("skeptic")}
+          disabled={Boolean(smsBusy)}
+        >
+          {smsBusy === "skeptic" ? "Se adauga..." : "SMS - SCEPTIC"}
+        </button>
       </div>
 
       <p className="green-label">Rezultat actiune:</p>
@@ -612,7 +792,7 @@ function LeadDetailsPanel({
             onChange={(event) => setDraft({ ...draft, statusOriginal: event.target.value })}
           >
             <option value="">Status</option>
-            {STATUS_OPTIONS.map((status) => (
+            {statusOptions.map((status) => (
               <option key={status}>{status}</option>
             ))}
           </select>
@@ -1348,7 +1528,7 @@ const panelStyles = `
     gap: 24px;
   }
   .form-grid.three {
-    grid-template-columns: 150px 150px 250px;
+    grid-template-columns: 150px 150px minmax(250px, 1fr);
   }
   label {
     display: grid;
@@ -1374,9 +1554,10 @@ const panelStyles = `
   }
   .inline-fields {
     display: grid;
-    grid-template-columns: 250px 1fr 140px;
-    gap: 22px;
-    margin-top: 8px;
+    grid-template-columns: 210px minmax(260px, 1fr) 140px;
+    align-items: end;
+    gap: 16px;
+    margin-top: 14px;
   }
   .wide-label {
     margin-top: 28px;
@@ -1384,8 +1565,18 @@ const panelStyles = `
   .wide-label textarea {
     height: 86px;
   }
-  .wide-label.previous textarea {
-    height: 130px;
+  .previous-log {
+    min-height: 150px;
+    max-height: 260px;
+    overflow: auto;
+    border: 1px solid #555;
+    background: #fff;
+    color: #111;
+    padding: 12px;
+    font-size: 12px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    word-break: break-word;
   }
   .orange {
     border: 0;
@@ -1437,12 +1628,17 @@ const panelStyles = `
     color: white;
     border-radius: 5px;
     font-weight: 800;
+    cursor: pointer;
   }
   .green {
     background: #008a1e;
   }
   .blue {
     background: #0b83ff;
+  }
+  button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
   }
   .finish-row {
     display: grid;

@@ -138,6 +138,21 @@ export function updateCrmLead(token: string, id: string, payload: CrmLeadUpdateP
   );
 }
 
+export function queueCrmSmsSequence(
+  token: string,
+  id: string,
+  payload: { type: "buy" | "skeptic"; agent?: string },
+) {
+  return fetchJson<{ success: boolean; queued: number; lead: CrmLead }>(
+    `${BASE_PATH}/leads/${encodeURIComponent(id)}/sms-sequence`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
 export function insertManualCrmLead(token: string, payload: ManualCrmLeadPayload) {
   return fetchJson<{ success: boolean; lead: CrmLead }>(`${BASE_PATH}/leads`, {
     method: "POST",
