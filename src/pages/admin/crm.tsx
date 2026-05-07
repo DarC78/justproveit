@@ -72,6 +72,14 @@ const STATUS_OPTIONS = [
 
 const LANGUAGE_OPTIONS = ["Romanian", "English", "Spanish", "Italian", "Polish", "Bulgarian"];
 
+const EMAIL_SEQUENCE_OPTIONS = [
+  { label: "Vrea Sa Cumpere Acum", value: "CallBack_EmailDeSumarizare" },
+  { label: "CF_Se_Mai_Gandeste_schema", value: "CF_Se_Mai_Gandeste_schema" },
+  { label: "CF_A_DEMARAT_SINGUR", value: "CF_A_DEMARAT_SINGUR" },
+  { label: "CF_DEMARAT_CMC", value: "CF_DEMARAT_CMC" },
+  { label: "VREA_OUT_CMC", value: "VREA_OUT_CMC" },
+];
+
 const FINANCE_COMPANIES = [
   "MotoNovo",
   "BlackHorse",
@@ -757,8 +765,11 @@ function LeadDetailsPanel({
       <div className="sequence-row">
         <select defaultValue="">
           <option value="">Secventa de email</option>
-          <option>ASAP</option>
-          <option>Follow-up</option>
+          {EMAIL_SEQUENCE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
         <button type="button" className="orange small">Pune Client pe secventa</button>
       </div>
