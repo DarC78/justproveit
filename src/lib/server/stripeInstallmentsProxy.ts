@@ -81,7 +81,7 @@ async function confirmAdminAccess(authorization: string) {
       return {
         ok: false,
         status: response.status === 401 ? 401 : 403,
-        error: readApiError(payload, "Admin access was not confirmed."),
+        error: buildAdminAccessError(payload, response.status),
       };
     }
 
@@ -104,12 +104,15 @@ function isAuthorizedAdminPayload(payload: unknown) {
   }
 
   const supportAdmin =
-    "supportAdmin" in payload && payload.supportAdmin === true;
+    "supportAdmin" in payload &&
+    String(payload.supportAdmin).toLowerCase() === "true";
   const roles =
-    "roles" in payload && Array.isArray(payload.roles) ? payload.roles : [];
+    "roles" in payload && Array.isArray(payload.roles)
+      ? payload.roles.map(String)
+      : [];
   const permissions =
     "permissions" in payload && Array.isArray(payload.permissions)
-      ? payload.permissions
+      ? payload.permissions.map(String)
       : [];
 
   return (
@@ -117,6 +120,27 @@ function isAuthorizedAdminPayload(payload: unknown) {
     roles.includes("tenant-admin") ||
     permissions.includes("admin:access")
   );
+}
+
+function buildAdminAccessError(payload: unknown, authStatus: number) {
+  const fallback = readApiError(payload, "Admin access was not confirmed.");
+
+  if (!payload || typeof payload !== "object") {
+    return fallback;
+  }
+
+  const supportAdmin =
+    "supportAdmin" in payload ? String(payload.supportAdmin) : "false";
+  const roles =
+    "roles" in payload && Array.isArray(payload.roles)
+      ? payload.roles.join(",")
+      : "";
+  const permissions =
+    "permissions" in payload && Array.isArray(payload.permissions)
+      ? payload.permissions.join(",")
+      : "";
+
+  return `${fallback} authStatus=${authStatus}; supportAdmin=${supportAdmin}; roles=${roles}; permissions=${permissions}`;
 }
 
 function buildAzureUrl(
