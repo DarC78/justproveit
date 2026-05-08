@@ -70,14 +70,14 @@ export async function handleStripeInstallmentsProxy(
 async function confirmAdminAccess(authorization: string) {
   try {
     const response = await fetch(
-      `${LAUNCHINGSTACK_API_BASE_URL}/justproveit/admin/me`,
+      `${LAUNCHINGSTACK_API_BASE_URL}/auth/me`,
       {
         headers: { authorization },
       },
     );
     const payload = await response.json().catch(() => null);
 
-    if (!response.ok) {
+    if (!response.ok || !isAuthorizedAdminPayload(payload)) {
       return {
         ok: false,
         status: response.status === 401 ? 401 : 403,
@@ -96,6 +96,27 @@ async function confirmAdminAccess(authorization: string) {
           : "Could not verify admin access.",
     };
   }
+}
+
+function isAuthorizedAdminPayload(payload: unknown) {
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+
+  const supportAdmin =
+    "supportAdmin" in payload && payload.supportAdmin === true;
+  const roles =
+    "roles" in payload && Array.isArray(payload.roles) ? payload.roles : [];
+  const permissions =
+    "permissions" in payload && Array.isArray(payload.permissions)
+      ? payload.permissions
+      : [];
+
+  return (
+    supportAdmin ||
+    roles.includes("tenant-admin") ||
+    permissions.includes("admin:access")
+  );
 }
 
 function buildAzureUrl(

@@ -7,6 +7,7 @@ export type AuthUser = {
   roles: string[];
   permissions: string[];
   createdAt?: string;
+  supportAdmin?: boolean;
 };
 
 export type AdminProfile = {
@@ -40,6 +41,7 @@ export const STORAGE_KEYS = {
 
 export function isAdminUser(user: AuthUser | null | undefined) {
   return (
+    user?.supportAdmin === true ||
     user?.roles?.includes("tenant-admin") ||
     user?.permissions?.includes("admin:access") ||
     false

@@ -55,12 +55,12 @@ async function confirmAdminAccess(authorization) {
     DEFAULT_LAUNCHINGSTACK_API_BASE_URL;
 
   try {
-    const response = await fetch(`${baseUrl}/justproveit/admin/me`, {
+    const response = await fetch(`${baseUrl}/auth/me`, {
       headers: { authorization },
     });
     const payload = await response.json().catch(() => null);
 
-    if (!response.ok) {
+    if (!response.ok || !isAuthorizedAdminPayload(payload)) {
       return {
         ok: false,
         status: response.status === 401 ? 401 : 403,
@@ -79,6 +79,21 @@ async function confirmAdminAccess(authorization) {
           : "Could not verify admin access.",
     };
   }
+}
+
+function isAuthorizedAdminPayload(payload) {
+  if (!payload || typeof payload !== "object") {
+    return false;
+  }
+
+  const roles = Array.isArray(payload.roles) ? payload.roles : [];
+  const permissions = Array.isArray(payload.permissions) ? payload.permissions : [];
+
+  return (
+    payload.supportAdmin === true ||
+    roles.includes("tenant-admin") ||
+    permissions.includes("admin:access")
+  );
 }
 
 function buildAzureUrl(endpoint, req, allowedQueryKeys) {

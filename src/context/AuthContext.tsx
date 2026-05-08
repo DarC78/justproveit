@@ -167,6 +167,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [clearSession, token]);
 
   const requireAdmin = useCallback(async () => {
+    if (user?.supportAdmin === true) {
+      return { allowed: true };
+    }
+
     if (!token) {
       return { allowed: false, error: "No access token is stored." };
     }
@@ -180,7 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         error: error instanceof Error ? error.message : "Admin gate failed.",
       };
     }
-  }, [token]);
+  }, [token, user]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
