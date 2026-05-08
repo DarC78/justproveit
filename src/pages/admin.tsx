@@ -182,6 +182,12 @@ export default function AdminPage() {
                   >
                     Open CRM
                   </Link>
+                  <Link
+                    href="/admin/overdue-payments"
+                    className="inline-flex rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100"
+                  >
+                    Open overdue payments
+                  </Link>
                 </div>
               </div>
             </section>
