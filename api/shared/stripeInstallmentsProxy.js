@@ -126,7 +126,13 @@ function buildAzureUrl(endpoint, req, allowedQueryKeys) {
 }
 
 function getAuthorization(req) {
-  return req.headers.authorization || req.headers.Authorization || "";
+  return (
+    req.headers["x-jpi-authorization"] ||
+    req.headers["X-Jpi-Authorization"] ||
+    req.headers.authorization ||
+    req.headers.Authorization ||
+    ""
+  );
 }
 
 function json(status, body) {

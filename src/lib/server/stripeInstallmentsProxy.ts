@@ -21,7 +21,7 @@ export async function handleStripeInstallmentsProxy(
     return;
   }
 
-  const authorization = req.headers.authorization;
+  const authorization = readAuthorizationHeader(req);
 
   if (!authorization) {
     res.status(401).json({ error: "Admin session required." });
@@ -159,6 +159,16 @@ function buildAzureUrl(
   }
 
   return url.toString();
+}
+
+function readAuthorizationHeader(req: NextApiRequest) {
+  const jpiAuthorization = req.headers["x-jpi-authorization"];
+
+  if (typeof jpiAuthorization === "string") {
+    return jpiAuthorization;
+  }
+
+  return req.headers.authorization;
 }
 
 function readApiError(payload: unknown, fallback: string) {

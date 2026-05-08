@@ -92,7 +92,7 @@ function toQuery(filters: OverdueCustomersFilters) {
 async function getAdminJson<T>(path: string, token: string) {
   const response = await fetch(path, {
     headers: {
-      Authorization: `Bearer ${token}`,
+      "x-jpi-authorization": `Bearer ${token}`,
     },
   });
   const payload = await response.json().catch(() => null);
