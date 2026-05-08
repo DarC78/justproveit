@@ -93,7 +93,7 @@ export default function OverduePaymentsPage() {
         email: nextEmail,
         limit,
       });
-      setCustomers(result.rows ?? []);
+      setCustomers(result.rows ?? result.records ?? []);
       setCustomersStatus("ready");
     } catch (loadError) {
       setCustomers([]);
@@ -152,7 +152,7 @@ export default function OverduePaymentsPage() {
         email: customerEmail,
         limit: 250,
       });
-      setPayments(result.rows ?? []);
+      setPayments(result.rows ?? result.records ?? []);
       setPaymentsStatus("ready");
     } catch (loadError) {
       setPayments([]);
@@ -328,18 +328,18 @@ export default function OverduePaymentsPage() {
                       <tbody>
                         {customers.map((customer) => (
                           <tr
-                            key={`${customer.stripeAccountName}-${customer.email}`}
+                            key={`${customer.stripeAccountName}-${getCustomerEmail(customer)}`}
                             className={`cursor-pointer border-t border-slate-100 hover:bg-emerald-50 ${
-                              selectedEmail === customer.email ? "bg-emerald-50" : ""
+                              selectedEmail === getCustomerEmail(customer) ? "bg-emerald-50" : ""
                             }`}
-                            onClick={() => loadPayments(customer.email)}
+                            onClick={() => loadPayments(getCustomerEmail(customer))}
                           >
                             <td className="px-4 py-3">
                               <p className="font-extrabold text-slate-950">
                                 {customer.customerName || "Unknown"}
                               </p>
                               <p className="break-all text-xs font-semibold text-slate-500">
-                                {customer.email}
+                                {getCustomerEmail(customer)}
                               </p>
                             </td>
                             <td className="px-4 py-3 font-semibold">
@@ -355,7 +355,7 @@ export default function OverduePaymentsPage() {
                               {customer.maxDaysOverdue}
                             </td>
                             <td className="px-4 py-3 font-semibold">
-                              {formatDate(customer.lastFailedAt)}
+                              {formatDate(customer.lastFailedAt || customer.latestFailedAtUtc)}
                             </td>
                           </tr>
                         ))}
@@ -400,7 +400,7 @@ export default function OverduePaymentsPage() {
 
                     {payments.map((payment) => (
                       <div
-                        key={payment.id}
+                        key={payment.id ?? payment.stripeEventId}
                         className="border-b border-slate-100 px-4 py-4 last:border-b-0"
                       >
                         <div className="flex items-start justify-between gap-4">
@@ -409,11 +409,24 @@ export default function OverduePaymentsPage() {
                               {payment.status}
                             </p>
                             <p className="mt-1 text-xs font-semibold text-slate-500">
-                              {formatDate(payment.transactionDate || payment.createdDate)}
+                              {formatDate(
+                                payment.transactionDate ||
+                                  payment.failedAtUtc ||
+                                  payment.dueAtUtc ||
+                                  payment.eventCreatedAtUtc ||
+                                  payment.createdDate ||
+                                  payment.createdAtUtc ||
+                                  null,
+                              )}
                             </p>
                           </div>
                           <p className="text-right text-sm font-extrabold text-slate-950">
-                            {formatMoney(payment.amountRemaining || payment.amount)}
+                            {formatMoney(
+                              payment.amountRemaining ||
+                                payment.amount ||
+                                payment.amountDue ||
+                                0,
+                            )}
                           </p>
                         </div>
                         {payment.description ? (
@@ -492,7 +505,11 @@ function formatMoney(value: number) {
   }).format((value || 0) / 100);
 }
 
-function formatDate(value: string | null) {
+function getCustomerEmail(customer: OverdueCustomer) {
+  return customer.email || customer.customerEmail || customer.customerKey || "";
+}
+
+function formatDate(value: string | null | undefined) {
   if (!value) {
     return "-";
   }

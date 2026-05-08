@@ -8,15 +8,20 @@ export type OverdueCustomersFilters = {
 };
 
 export type OverdueCustomer = {
+  customerKey?: string;
   email: string;
+  customerEmail?: string;
   customerName: string | null;
+  customerPhone?: string | null;
   stripeCustomerId: string | null;
   stripeAccountName: string | null;
   failedPaymentCount: number;
   paidPaymentCount: number;
-  lastFailedAt: string | null;
-  lastPaidAt: string | null;
-  oldestFailedAt: string | null;
+  lastFailedAt?: string | null;
+  latestFailedAtUtc?: string | null;
+  lastPaidAt?: string | null;
+  oldestFailedAt?: string | null;
+  oldestDueAtUtc?: string | null;
   maxDaysOverdue: number;
   totalAmountRemaining: number;
 };
@@ -24,11 +29,13 @@ export type OverdueCustomer = {
 export type OverdueCustomersResponse = {
   filters?: Record<string, unknown>;
   count: number;
-  rows: OverdueCustomer[];
+  rows?: OverdueCustomer[];
+  records?: OverdueCustomer[];
 };
 
 export type OverduePayment = {
-  id: number;
+  id?: number;
+  stripeEventId?: string;
   stripeAccountName: string | null;
   customerEmail: string;
   customerName: string | null;
@@ -36,12 +43,17 @@ export type OverduePayment = {
   paymentIntentId: string | null;
   chargeId: string | null;
   status: string;
-  amount: number;
-  amountRefunded: number;
+  amount?: number;
+  amountDue?: number;
+  amountRefunded?: number;
   amountRemaining: number;
   currency: string;
-  transactionDate: string | null;
-  createdDate: string | null;
+  transactionDate?: string | null;
+  failedAtUtc?: string | null;
+  dueAtUtc?: string | null;
+  eventCreatedAtUtc?: string | null;
+  createdDate?: string | null;
+  createdAtUtc?: string | null;
   daysOverdue: number;
   description: string | null;
 };
@@ -49,7 +61,8 @@ export type OverduePayment = {
 export type OverduePaymentsResponse = {
   filters?: Record<string, unknown>;
   count: number;
-  rows: OverduePayment[];
+  rows?: OverduePayment[];
+  records?: OverduePayment[];
 };
 
 export async function getOverdueCustomers(
