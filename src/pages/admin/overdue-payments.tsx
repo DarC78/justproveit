@@ -127,7 +127,7 @@ export default function OverduePaymentsPage() {
         shortfall: totals.shortfall + (customer.paymentDifference ?? 0),
         estimated: totals.estimated + (customer.estimatedPaymentDue ?? 0),
         actual: totals.actual + (customer.actualPaymentDone ?? 0),
-        failed: totals.failed + customer.failedPaymentCount,
+        failed: totals.failed + getFailedAttemptCount(customer),
         worstDays: Math.max(totals.worstDays, customer.maxDaysOverdue),
       }),
       { amount: 0, shortfall: 0, estimated: 0, actual: 0, failed: 0, worstDays: 0 },
@@ -375,7 +375,7 @@ export default function OverduePaymentsPage() {
                               {formatMoney(customer.paymentDifference ?? 0)}
                             </td>
                             <td className="px-4 py-3 text-right font-semibold">
-                              {customer.failedPaymentCount}
+                              {getFailedAttemptCount(customer)}
                             </td>
                             <td className="px-4 py-3 text-right font-semibold">
                               {customer.maxDaysOverdue}
@@ -538,6 +538,10 @@ function formatMoney(value: number) {
 
 function getCustomerEmail(customer: OverdueCustomer) {
   return customer.email || customer.customerEmail || customer.customerKey || "";
+}
+
+function getFailedAttemptCount(customer: OverdueCustomer) {
+  return customer.failedPaymentCount + (customer.inferredFailedFollowUpCount ?? 0);
 }
 
 function formatDate(value: string | null | undefined) {

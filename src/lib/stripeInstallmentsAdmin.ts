@@ -28,6 +28,7 @@ export type OverdueCustomer = {
   paymentDifference?: number;
   inferredPlanCount?: number;
   inferredInitialPaymentCount?: number;
+  inferredFailedFollowUpCount?: number;
   oldestPlanStartAtUtc?: string | null;
   latestPlanEndAtUtc?: string | null;
   maxDaysOverdue: number;
