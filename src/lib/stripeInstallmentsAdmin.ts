@@ -23,6 +23,13 @@ export type OverdueCustomer = {
   lastPaidAt?: string | null;
   oldestFailedAt?: string | null;
   oldestDueAtUtc?: string | null;
+  estimatedPaymentDue?: number;
+  actualPaymentDone?: number;
+  paymentDifference?: number;
+  inferredPlanCount?: number;
+  inferredInitialPaymentCount?: number;
+  oldestPlanStartAtUtc?: string | null;
+  latestPlanEndAtUtc?: string | null;
   maxDaysOverdue: number;
   totalAmountRemaining: number;
 };

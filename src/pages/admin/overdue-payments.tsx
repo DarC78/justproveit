@@ -124,10 +124,13 @@ export default function OverduePaymentsPage() {
     return customers.reduce(
       (totals, customer) => ({
         amount: totals.amount + customer.totalAmountRemaining,
+        shortfall: totals.shortfall + (customer.paymentDifference ?? 0),
+        estimated: totals.estimated + (customer.estimatedPaymentDue ?? 0),
+        actual: totals.actual + (customer.actualPaymentDone ?? 0),
         failed: totals.failed + customer.failedPaymentCount,
         worstDays: Math.max(totals.worstDays, customer.maxDaysOverdue),
       }),
-      { amount: 0, failed: 0, worstDays: 0 },
+      { amount: 0, shortfall: 0, estimated: 0, actual: 0, failed: 0, worstDays: 0 },
     );
   }, [customers]);
 
@@ -298,6 +301,7 @@ export default function OverduePaymentsPage() {
               <div className="mt-4 grid gap-3 md:grid-cols-4">
                 <Metric label="Overdue customers" value={customers.length} />
                 <Metric label="Open amount" value={formatMoney(summary.amount)} />
+                <Metric label="Installment gap" value={formatMoney(summary.shortfall)} />
                 <Metric label="Failed attempts" value={summary.failed} />
                 <Metric label="Worst delay" value={`${summary.worstDays} days`} />
               </div>
@@ -315,12 +319,15 @@ export default function OverduePaymentsPage() {
                     </p>
                   </div>
                   <div className="overflow-x-auto">
-                    <table className="min-w-[900px] w-full border-collapse text-left text-sm">
+                    <table className="min-w-[1120px] w-full border-collapse text-left text-sm">
                       <thead className="bg-slate-100 text-xs uppercase text-slate-600">
                         <tr>
                           <th className="px-4 py-3">Customer</th>
                           <th className="px-4 py-3">Account</th>
                           <th className="px-4 py-3 text-right">Open</th>
+                          <th className="px-4 py-3 text-right">Estimated</th>
+                          <th className="px-4 py-3 text-right">Actual</th>
+                          <th className="px-4 py-3 text-right">Difference</th>
                           <th className="px-4 py-3 text-right">Failed</th>
                           <th className="px-4 py-3 text-right">Days</th>
                           <th className="px-4 py-3">Last failed</th>
@@ -342,6 +349,15 @@ export default function OverduePaymentsPage() {
                               <p className="break-all text-xs font-semibold text-slate-500">
                                 {getCustomerEmail(customer)}
                               </p>
+                              {customer.inferredPlanCount ? (
+                                <p className="mt-1 text-xs font-semibold text-emerald-700">
+                                  {customer.inferredPlanCount} inferred plan
+                                  {customer.inferredPlanCount === 1 ? "" : "s"}
+                                  {" / "}
+                                  {customer.inferredInitialPaymentCount ?? 0} initial payment
+                                  {(customer.inferredInitialPaymentCount ?? 0) === 1 ? "" : "s"}
+                                </p>
+                              ) : null}
                             </td>
                             <td className="px-4 py-3 font-semibold">
                               {customer.stripeAccountName || "-"}
@@ -350,20 +366,34 @@ export default function OverduePaymentsPage() {
                               {formatMoney(customer.totalAmountRemaining)}
                             </td>
                             <td className="px-4 py-3 text-right font-semibold">
+                              {formatMoney(customer.estimatedPaymentDue ?? 0)}
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold">
+                              {formatMoney(customer.actualPaymentDone ?? 0)}
+                            </td>
+                            <td className="px-4 py-3 text-right font-extrabold text-rose-700">
+                              {formatMoney(customer.paymentDifference ?? 0)}
+                            </td>
+                            <td className="px-4 py-3 text-right font-semibold">
                               {customer.failedPaymentCount}
                             </td>
                             <td className="px-4 py-3 text-right font-semibold">
                               {customer.maxDaysOverdue}
                             </td>
                             <td className="px-4 py-3 font-semibold">
-                              {formatDate(customer.lastFailedAt || customer.latestFailedAtUtc)}
+                              {formatDate(
+                                customer.lastFailedAt ||
+                                  customer.latestFailedAtUtc ||
+                                  customer.latestPlanEndAtUtc ||
+                                  null,
+                              )}
                             </td>
                           </tr>
                         ))}
                         {customersStatus === "ready" && customers.length === 0 ? (
                           <tr>
                             <td
-                              colSpan={6}
+                              colSpan={9}
                               className="px-4 py-8 text-center text-sm font-semibold text-slate-500"
                             >
                               No overdue customers match these filters.
