@@ -151,6 +151,7 @@ export default function OverduePaymentsPage() {
         daysLate,
         email: customerEmail,
         limit: 250,
+        status: "all",
       });
       setPayments(result.rows ?? result.records ?? []);
       setPaymentsStatus("ready");

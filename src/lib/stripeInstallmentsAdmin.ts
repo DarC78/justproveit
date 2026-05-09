@@ -5,6 +5,7 @@ export type OverdueCustomersFilters = {
   daysLate: number;
   email: string;
   limit: number;
+  status?: string;
 };
 
 export type OverdueCustomer = {
@@ -97,6 +98,10 @@ function toQuery(filters: OverdueCustomersFilters) {
 
   if (filters.email.trim()) {
     params.set("email", filters.email.trim());
+  }
+
+  if (filters.status?.trim()) {
+    params.set("status", filters.status.trim());
   }
 
   return params.toString();
