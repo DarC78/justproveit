@@ -1,0 +1,112 @@
+import { API_BASE_URL, TENANT_KEY } from "@/lib/auth";
+
+export type AgeYM = {
+  years: number;
+  months: number;
+};
+
+export type PensionScenario = {
+  type: string;
+  label: string;
+  retirementAge: AgeYM;
+  retirementDate: string;
+  eligible: boolean;
+  eligibleNow: boolean;
+  ineligibilityReasons: string[];
+  legalReferences: string[];
+};
+
+export type PensionCalculatorResult = {
+  calculatorVersion: string;
+  lawVersion: string;
+  anexa: {
+    standardAge: AgeYM;
+    fullStagiu: AgeYM;
+    minimumStagiu: AgeYM;
+  };
+  stagiu: {
+    ro: AgeYM;
+    roContributiv: AgeYM;
+    foreign: AgeYM;
+    asimilat: AgeYM;
+    total: AgeYM;
+    totalContributiv: AgeYM;
+    grupaI_plus_speciale: AgeYM;
+    grupaII_plus_deosebite: AgeYM;
+  };
+  scenarios: PensionScenario[];
+  recommended: PensionScenario | null;
+  warnings: string[];
+  disclaimer: string;
+};
+
+export type PensionCalculatorResponse = {
+  success: boolean;
+  resultId: string;
+  leadId: string;
+  emailSent: boolean;
+  emailError?: string | null;
+  result: PensionCalculatorResult;
+};
+
+export type PensionCalculatorPayload = {
+  fullName: string;
+  email: string;
+  phone: string;
+  birthYearMonth: string;
+  gender: "M" | "F";
+  applicationDate?: string;
+  periods: Record<string, number>;
+  childrenRaised?: number;
+  handicapType?: string;
+  handicapYears?: number;
+  handicapMonths?: number;
+  tenantKey?: string;
+  domain?: string;
+  source?: string;
+  pageUrl?: string;
+  referrer?: string;
+};
+
+export async function submitPensionCalculator(payload: PensionCalculatorPayload) {
+  const response = await fetch(
+    `${API_BASE_URL}/justproveit/pension-calculator/calculate`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        tenantKey: TENANT_KEY,
+        source: "ro-pension-calculator",
+        ...payload,
+      }),
+    },
+  );
+
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(readApiError(body, response.statusText));
+  }
+
+  return body as PensionCalculatorResponse;
+}
+
+function readApiError(payload: unknown, fallback: string) {
+  if (payload && typeof payload === "object") {
+    const error = "error" in payload ? payload.error : null;
+    if (typeof error === "string") {
+      return error;
+    }
+    if (
+      error &&
+      typeof error === "object" &&
+      "message" in error &&
+      typeof error.message === "string"
+    ) {
+      return error.message;
+    }
+  }
+
+  return fallback || "Cererea nu a putut fi procesata.";
+}

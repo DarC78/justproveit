@@ -47,6 +47,14 @@ export default function RomanianIndex() {
                 Car finance mis-selling în UK →
               </Link>
             </li>
+            <li>
+              <Link
+                href="/ro/calculator-varsta-pensionare"
+                className="font-semibold text-emerald-700 hover:underline"
+              >
+                Calculator varsta de pensionare Romania →
+              </Link>
+            </li>
           </ul>
         </section>
 
