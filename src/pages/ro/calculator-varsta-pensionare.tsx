@@ -1,8 +1,9 @@
 import Head from "next/head";
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   PensionCalculatorResponse,
+  sendPensionCalculatorEmail,
   submitPensionCalculator,
   type AgeYM,
 } from "@/lib/pensionCalculator";
@@ -66,6 +67,8 @@ export default function RomanianPensionCalculatorPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [response, setResponse] = useState<PensionCalculatorResponse | null>(null);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailMessage, setEmailMessage] = useState("");
 
   const jsonLd = useMemo(
     () => ({
@@ -85,13 +88,40 @@ export default function RomanianPensionCalculatorPage() {
     [],
   );
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const fullName =
+      params.get("name") ??
+      params.get("fullName") ??
+      params.get("nume") ??
+      "";
+    const email = params.get("email") ?? "";
+    const phone =
+      params.get("phone") ??
+      params.get("telefon") ??
+      params.get("tel") ??
+      "";
+
+    if (!fullName && !email && !phone) {
+      return;
+    }
+
+    setForm((current) => ({
+      ...current,
+      fullName: fullName || current.fullName,
+      email: email || current.email,
+      phone: phone || current.phone,
+    }));
+  }, []);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
+    setEmailMessage("");
     setResponse(null);
 
     if (!form.consent) {
-      setError("Te rugam sa confirmi ca putem salva datele si trimite rezultatul pe email.");
+      setError("Te rugam sa confirmi ca putem salva datele introduse.");
       return;
     }
 
@@ -133,6 +163,39 @@ export default function RomanianPensionCalculatorPage() {
     }
   }
 
+  async function handleSendEmail() {
+    if (!response?.resultId) {
+      return;
+    }
+
+    setSendingEmail(true);
+    setEmailMessage("");
+    setError("");
+
+    try {
+      const emailResult = await sendPensionCalculatorEmail(response.resultId);
+      setResponse((current) =>
+        current
+          ? {
+              ...current,
+              emailSent: emailResult.emailSent,
+              emailError: emailResult.emailError ?? null,
+            }
+          : current,
+      );
+      setEmailMessage("Rezultatul a fost trimis pe email.");
+    } catch (sendError) {
+      setEmailMessage(
+        sendError instanceof Error
+          ? sendError.message
+          : "Emailul nu a putut fi trimis.",
+      );
+    } finally {
+      setSendingEmail(false);
+    }
+  }
+
+
   return (
     <>
       <Head>
@@ -172,7 +235,8 @@ export default function RomanianPensionCalculatorPage() {
             </h1>
             <p className="mt-3 max-w-3xl text-base leading-7 text-slate-700">
               Completeaza datele principale, iar noi calculam scenariile de pensionare dupa
-              Legea 360/2023. Rezultatul complet se salveaza si se trimite pe email.
+              Legea 360/2023. Rezultatul complet se salveaza, iar trimiterea pe email se face
+              doar cand apesi butonul dedicat.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-6 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -276,8 +340,8 @@ export default function RomanianPensionCalculatorPage() {
                   className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
                 />
                 <span>
-                  Sunt de acord ca JustProveIt sa salveze datele introduse si sa imi trimita
-                  rezultatul calculatorului pe email.
+                  Sunt de acord ca JustProveIt sa salveze datele introduse si rezultatul
+                  calculatorului.
                 </span>
               </label>
 
@@ -292,13 +356,18 @@ export default function RomanianPensionCalculatorPage() {
                 disabled={submitting}
                 className="inline-flex w-full items-center justify-center rounded-md bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400 md:w-auto"
               >
-                {submitting ? "Calculez..." : "Calculeaza si trimite rezultatul"}
+                {submitting ? "Calculez..." : "Calculeaza variantele"}
               </button>
             </form>
           </section>
 
           <aside className="space-y-4">
-            <ResultPanel response={response} />
+            <ResultPanel
+              emailMessage={emailMessage}
+              onSendEmail={handleSendEmail}
+              response={response}
+              sendingEmail={sendingEmail}
+            />
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-base font-bold">Ce acopera versiunea simplificata</h2>
               <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-700">
@@ -379,14 +448,24 @@ function PeriodRow({
   );
 }
 
-function ResultPanel({ response }: { response: PensionCalculatorResponse | null }) {
+function ResultPanel({
+  emailMessage,
+  onSendEmail,
+  response,
+  sendingEmail,
+}: {
+  emailMessage: string;
+  onSendEmail: () => void;
+  response: PensionCalculatorResponse | null;
+  sendingEmail: boolean;
+}) {
   if (!response) {
     return (
       <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-base font-bold">Rezultatul apare aici</h2>
         <p className="mt-2 text-sm leading-6 text-slate-700">
-          Dupa calcul, vei vedea recomandarea principala, scenariile si statusul trimiterii pe
-          email.
+          Dupa calcul, vei vedea recomandarea principala si scenariile. Daca vrei, trimiti apoi
+          rezultatul pe email.
         </p>
       </section>
     );
@@ -452,9 +531,22 @@ function ResultPanel({ response }: { response: PensionCalculatorResponse | null 
         </div>
       ) : null}
 
-      <p className="mt-4 text-sm font-semibold text-slate-700">
-        Email: {response.emailSent ? "trimis" : "nu a fost trimis automat"}
-      </p>
+      <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <p className="text-sm font-semibold text-slate-700">
+          Email: {response.emailSent ? "trimis" : "netrimis"}
+        </p>
+        <button
+          type="button"
+          disabled={sendingEmail || response.emailSent}
+          onClick={onSendEmail}
+          className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        >
+          {sendingEmail ? "Trimit..." : response.emailSent ? "Email trimis" : "Trimite rezultatul pe email"}
+        </button>
+        {emailMessage ? (
+          <p className="mt-2 text-sm font-semibold text-slate-700">{emailMessage}</p>
+        ) : null}
+      </div>
     </section>
   );
 }

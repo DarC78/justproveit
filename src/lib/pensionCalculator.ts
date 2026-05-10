@@ -49,6 +49,13 @@ export type PensionCalculatorResponse = {
   result: PensionCalculatorResult;
 };
 
+export type PensionCalculatorEmailResponse = {
+  success: boolean;
+  resultId: string;
+  emailSent: boolean;
+  emailError?: string | null;
+};
+
 export type PensionCalculatorPayload = {
   fullName: string;
   email: string;
@@ -90,6 +97,26 @@ export async function submitPensionCalculator(payload: PensionCalculatorPayload)
   }
 
   return body as PensionCalculatorResponse;
+}
+
+export async function sendPensionCalculatorEmail(resultId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/justproveit/pension-calculator/results/${encodeURIComponent(resultId)}/email`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ tenantKey: TENANT_KEY }),
+    },
+  );
+
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(readApiError(body, response.statusText));
+  }
+
+  return body as PensionCalculatorEmailResponse;
 }
 
 function readApiError(payload: unknown, fallback: string) {
