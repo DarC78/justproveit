@@ -185,12 +185,26 @@ export default function RomanianPensionCalculatorPage() {
       return;
     }
 
+    if (!form.fullName.trim() || !form.email.trim() || !form.phone.trim()) {
+      setEmailMessage("Completeaza numele, emailul si telefonul inainte de trimiterea rezultatului.");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      setEmailMessage("Completeaza o adresa de email valida inainte de trimiterea rezultatului.");
+      return;
+    }
+
     setSendingEmail(true);
     setEmailMessage("");
     setError("");
 
     try {
-      const emailResult = await sendPensionCalculatorEmail(response.resultId);
+      const emailResult = await sendPensionCalculatorEmail(response.resultId, {
+        fullName: form.fullName,
+        email: form.email,
+        phone: form.phone,
+      });
       setResponse((current) =>
         current
           ? {
@@ -252,16 +266,16 @@ export default function RomanianPensionCalculatorPage() {
             </h1>
             <p className="mt-3 max-w-3xl text-base leading-7 text-slate-700">
               Completeaza datele principale, iar noi calculam scenariile de pensionare dupa
-              Legea 360/2023. Rezultatul complet se salveaza, iar trimiterea pe email se face
-              doar cand apesi butonul dedicat.
+              Legea 360/2023. Datele de contact sunt necesare doar daca vrei sa trimiti
+              rezultatul pe email.
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-6 rounded-lg border border-slate-200 bg-slate-100/80 p-5 shadow-sm">
               <fieldset className="grid gap-4 md:grid-cols-3">
                 <legend className="mb-2 text-base font-bold md:col-span-3">Date de contact</legend>
-                <TextInput label="Nume complet" value={form.fullName} onChange={(value) => update("fullName", value)} required />
-                <TextInput label="Email" type="email" value={form.email} onChange={(value) => update("email", value)} required />
-                <TextInput label="Telefon" type="tel" value={form.phone} onChange={(value) => update("phone", value)} required />
+                <TextInput label="Nume complet" value={form.fullName} onChange={(value) => update("fullName", value)} />
+                <TextInput label="Email" type="email" value={form.email} onChange={(value) => update("email", value)} />
+                <TextInput label="Telefon" type="tel" value={form.phone} onChange={(value) => update("phone", value)} />
               </fieldset>
 
               <fieldset className="grid gap-4 md:grid-cols-3">
@@ -618,17 +632,6 @@ function ResultPanel({
           </tbody>
         </table>
       </div>
-
-      {result.warnings.length > 0 ? (
-        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3">
-          <p className="text-sm font-bold text-amber-900">Note</p>
-          <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-amber-900">
-            {result.warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
 
       <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
         <p className="text-sm font-semibold text-slate-700">

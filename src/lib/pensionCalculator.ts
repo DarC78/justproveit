@@ -59,9 +59,9 @@ export type PensionCalculatorEmailResponse = {
 };
 
 export type PensionCalculatorPayload = {
-  fullName: string;
-  email: string;
-  phone: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
   birthYearMonth: string;
   gender: "M" | "F";
   applicationDate?: string;
@@ -101,7 +101,10 @@ export async function submitPensionCalculator(payload: PensionCalculatorPayload)
   return body as PensionCalculatorResponse;
 }
 
-export async function sendPensionCalculatorEmail(resultId: string) {
+export async function sendPensionCalculatorEmail(
+  resultId: string,
+  contact: Pick<PensionCalculatorPayload, "fullName" | "email" | "phone">,
+) {
   const response = await fetch(
     `${API_BASE_URL}/justproveit/pension-calculator/results/${encodeURIComponent(resultId)}/email`,
     {
@@ -109,7 +112,7 @@ export async function sendPensionCalculatorEmail(resultId: string) {
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify({ tenantKey: TENANT_KEY }),
+      body: JSON.stringify({ tenantKey: TENANT_KEY, ...contact }),
     },
   );
 
