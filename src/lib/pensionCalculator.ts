@@ -12,6 +12,7 @@ export type PensionScenario = {
   retirementDate: string;
   eligible: boolean;
   eligibleNow: boolean;
+  eligibilityReasons: string[];
   ineligibilityReasons: string[];
   legalReferences: string[];
 };
@@ -24,6 +25,7 @@ export type PensionCalculatorResult = {
     fullStagiu: AgeYM;
     minimumStagiu: AgeYM;
   };
+  currentAge: AgeYM;
   stagiu: {
     ro: AgeYM;
     roContributiv: AgeYM;

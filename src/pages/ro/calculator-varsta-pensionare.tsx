@@ -546,6 +546,9 @@ function ResultPanel({
   }
 
   const { result } = response;
+  const standardScenario = result.scenarios.find(
+    (scenario) => scenario.type === "limita_varsta_standard",
+  );
 
   return (
     <section className="rounded-lg border border-emerald-200 bg-white p-5 shadow-sm">
@@ -565,7 +568,15 @@ function ResultPanel({
       )}
 
       <div className="mt-4 grid gap-2 text-sm">
-        <Metric label="Varsta standard" value={formatAge(result.anexa.standardAge)} />
+        <Metric label="Varsta acum" value={formatAge(result.currentAge)} />
+        <Metric
+          label="Varsta standard"
+          value={
+            standardScenario
+              ? `${formatAge(result.anexa.standardAge)} (${standardScenario.retirementDate})`
+              : formatAge(result.anexa.standardAge)
+          }
+        />
         <Metric label="Stagiu complet" value={formatAge(result.anexa.fullStagiu)} />
         <Metric label="Stagiu minim" value={formatAge(result.anexa.minimumStagiu)} />
         <Metric label="Stagiu total contributiv" value={formatAge(result.stagiu.totalContributiv)} />
@@ -595,6 +606,16 @@ function ResultPanel({
                         <li key={reason}>{reason}</li>
                       ))}
                     </ul>
+                  ) : null}
+                  {scenario.eligible && scenario.eligibilityReasons.length > 0 ? (
+                    <div className="mt-2">
+                      <p className="text-xs font-semibold text-emerald-700">Conditii indeplinite:</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4 text-xs leading-5 text-slate-600">
+                        {scenario.eligibilityReasons.map((reason) => (
+                          <li key={reason}>{reason}</li>
+                        ))}
+                      </ul>
+                    </div>
                   ) : null}
                 </td>
               </tr>
