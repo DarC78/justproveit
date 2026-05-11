@@ -11,12 +11,30 @@ import {
 const SITE_URL = "https://www.justproveit.co.uk";
 const PAGE_PATH = "/ro/calculator-varsta-pensionare";
 const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
+const BIRTH_YEARS = Array.from({ length: 1980 - 1945 + 1 }, (_, index) =>
+  String(1945 + index),
+);
+const BIRTH_MONTHS = [
+  { value: "01", label: "Jan" },
+  { value: "02", label: "Feb" },
+  { value: "03", label: "Mar" },
+  { value: "04", label: "Apr" },
+  { value: "05", label: "May" },
+  { value: "06", label: "Jun" },
+  { value: "07", label: "Jul" },
+  { value: "08", label: "Aug" },
+  { value: "09", label: "Sep" },
+  { value: "10", label: "Oct" },
+  { value: "11", label: "Nov" },
+  { value: "12", label: "Dec" },
+];
 
 type FormState = {
   fullName: string;
   email: string;
   phone: string;
-  birthYearMonth: string;
+  birthYear: string;
+  birthMonth: string;
   gender: "F" | "M";
   normalRoYears: string;
   normalRoMonths: string;
@@ -41,7 +59,8 @@ const initialForm: FormState = {
   fullName: "",
   email: "",
   phone: "",
-  birthYearMonth: "",
+  birthYear: "",
+  birthMonth: "",
   gender: "F",
   normalRoYears: "",
   normalRoMonths: "",
@@ -125,13 +144,18 @@ export default function RomanianPensionCalculatorPage() {
       return;
     }
 
+    if (!form.birthYear || !form.birthMonth) {
+      setError("Te rugam sa alegi luna si anul nasterii.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const result = await submitPensionCalculator({
         fullName: form.fullName,
         email: form.email,
         phone: form.phone,
-        birthYearMonth: form.birthYearMonth,
+        birthYearMonth: `${form.birthYear}-${form.birthMonth}`,
         gender: form.gender,
         periods: {
           normalRoYears: asNumber(form.normalRoYears),
@@ -249,7 +273,22 @@ export default function RomanianPensionCalculatorPage() {
 
               <fieldset className="grid gap-4 md:grid-cols-3">
                 <legend className="mb-2 text-base font-bold md:col-span-3">Date personale</legend>
-                <TextInput label="Luna nasterii" type="month" value={form.birthYearMonth} onChange={(value) => update("birthYearMonth", value)} required />
+                <SelectInput
+                  label="Luna nasterii"
+                  value={form.birthMonth}
+                  onChange={(value) => update("birthMonth", value)}
+                  options={BIRTH_MONTHS}
+                  placeholder="Alege luna"
+                  required
+                />
+                <SelectInput
+                  label="Anul nasterii"
+                  value={form.birthYear}
+                  onChange={(value) => update("birthYear", value)}
+                  options={BIRTH_YEARS.map((year) => ({ value: year, label: year }))}
+                  placeholder="Alege anul"
+                  required
+                />
                 <label className="block">
                   <span className="text-sm font-semibold text-slate-700">Sex</span>
                   <select
@@ -422,6 +461,41 @@ function TextInput({
         onChange={(event) => onChange(event.target.value)}
         className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
       />
+    </label>
+  );
+}
+
+function SelectInput({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  required = false,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  placeholder: string;
+  required?: boolean;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-semibold text-slate-700">{label}</span>
+      <select
+        value={value}
+        required={required}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }
