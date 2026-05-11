@@ -529,8 +529,7 @@ function ResultPanel({
   const standardScenario = result.scenarios.find(
     (scenario) => scenario.type === "limita_varsta_standard",
   );
-  const earliestFutureScenario =
-    result.recommended ?? findEarliestFutureRetirementScenario(result);
+  const earliestFutureScenario = findEarliestFutureRetirementScenario(result);
 
   return (
     <section className="rounded-lg border border-emerald-200 bg-white p-5 shadow-sm">
@@ -683,7 +682,6 @@ function findEarliestFutureRetirementScenario(
   result: PensionCalculatorResponse["result"],
 ) {
   return result.scenarios
-    .filter((scenario) => scenario.eligible || isOnlyAgePending(scenario))
     .sort((left, right) => compareYearMonth(left.retirementDate, right.retirementDate))[0] ?? null;
 }
 
