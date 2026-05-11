@@ -136,6 +136,26 @@ export type ScheduledFacebookPost = {
   SourceUrl?: string | null;
 };
 
+export type PostizScheduledPost = {
+  Id: string;
+  TenantId?: string;
+  PostizPostId?: string | null;
+  PostizIntegrationId?: string | null;
+  PostizMediaId?: string | null;
+  ProviderKey?: string | null;
+  ProfileName?: string | null;
+  Product?: string | null;
+  Audience?: string | null;
+  PostTheme?: string | null;
+  Content?: string | null;
+  MediaUrl?: string | null;
+  ScheduledAtUtc?: string | null;
+  ScheduledForUtc?: string | null;
+  Status?: string | null;
+  CreatedAtUtc?: string | null;
+  UpdatedAtUtc?: string | null;
+};
+
 export type MarketingMediaTag = {
   id: string;
   key: string;
@@ -652,6 +672,34 @@ export function getFacebookMarketingComments(
   const suffix = params.size ? `?${params.toString()}` : "";
   return fetchJson<{ success?: boolean; comments?: FacebookComment[] }>(
     `${BASE_PATH}/facebook/comments${suffix}`,
+    {
+      headers: authHeaders(token),
+    },
+  );
+}
+
+export function getPostizScheduledPosts(
+  token: string,
+  options?: {
+    providerKey?: string;
+    status?: string;
+    limit?: number;
+  },
+) {
+  const params = new URLSearchParams();
+  if (options?.providerKey) {
+    params.set("providerKey", options.providerKey);
+  }
+  if (options?.status) {
+    params.set("status", options.status);
+  }
+  if (options?.limit) {
+    params.set("limit", String(options.limit));
+  }
+
+  const suffix = params.size ? `?${params.toString()}` : "";
+  return fetchJson<{ success?: boolean; posts?: PostizScheduledPost[] }>(
+    `${BASE_PATH}/postiz/scheduled-posts${suffix}`,
     {
       headers: authHeaders(token),
     },

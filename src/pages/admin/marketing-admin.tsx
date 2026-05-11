@@ -17,11 +17,13 @@ import {
   getFacebookMarketingAuthUrl,
   getFacebookMarketingComments,
   getFacebookMarketingDashboard,
+  getPostizScheduledPosts,
   generateFacebookDrafts,
   generateInstagramDrafts,
   generateManualFacebookDrafts,
   generateManualInstagramDrafts,
   MarketingMediaAsset,
+  PostizScheduledPost,
   PublishedFacebookPost,
   scheduleManualFacebookDrafts,
   saveFacebookContentSettings,
@@ -125,9 +127,12 @@ export default function MarketingAdminPage() {
   const [showConnectionsSection, setShowConnectionsSection] = useState(false);
   const [showPageStatsSection, setShowPageStatsSection] = useState(false);
   const [showPublishingSection, setShowPublishingSection] = useState(false);
+  const [showPostizSection, setShowPostizSection] = useState(false);
   const [showCommentsSection, setShowCommentsSection] = useState(false);
   const [syncAction, setSyncAction] = useState("");
   const [comments, setComments] = useState<FacebookComment[]>([]);
+  const [postizPosts, setPostizPosts] = useState<PostizScheduledPost[]>([]);
+  const [postizLoadStatus, setPostizLoadStatus] = useState<LoadStatus>("idle");
   const [selectedManualDraftIds, setSelectedManualDraftIds] = useState<string[]>([]);
   const [selectedAutoDraftIds, setSelectedAutoDraftIds] = useState<string[]>([]);
   const [draftPageSelections, setDraftPageSelections] = useState<Record<string, string>>({});
@@ -209,6 +214,7 @@ export default function MarketingAdminPage() {
 
     loadDashboard();
     loadMediaAssets();
+    loadPostizPosts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gateStatus, token]);
 
@@ -354,6 +360,23 @@ export default function MarketingAdminPage() {
       setComments(response.comments ?? []);
     } catch {
       setComments([]);
+    }
+  }
+
+  async function loadPostizPosts() {
+    if (!token) {
+      return;
+    }
+
+    setPostizLoadStatus("loading");
+
+    try {
+      const response = await getPostizScheduledPosts(token, { limit: 150 });
+      setPostizPosts(response.posts ?? []);
+      setPostizLoadStatus("ready");
+    } catch {
+      setPostizPosts([]);
+      setPostizLoadStatus("error");
     }
   }
 
@@ -1023,6 +1046,7 @@ export default function MarketingAdminPage() {
                 showConnectionsSection={showConnectionsSection}
                 showPageStatsSection={showPageStatsSection}
                 showPublishingSection={showPublishingSection}
+                showPostizSection={showPostizSection}
                 showCommentsSection={showCommentsSection}
                 showConnectPanel={showConnectPanel}
                 oauthPages={oauthPages}
@@ -1093,10 +1117,14 @@ export default function MarketingAdminPage() {
                 onImportAdPosts={handleImportAdPosts}
                 onSyncComments={handleSyncComments}
                 comments={comments}
+                postizPosts={postizPosts}
+                postizLoadStatus={postizLoadStatus}
+                onRefreshPostizPosts={loadPostizPosts}
                 onToggleConnectionsSection={() => setShowConnectionsSection((current) => !current)}
                 onTogglePageStatsSection={() => setShowPageStatsSection((current) => !current)}
                 onToggleConnectPanel={() => setShowConnectPanel((current) => !current)}
                 onTogglePublishingSection={() => setShowPublishingSection((current) => !current)}
+                onTogglePostizSection={() => setShowPostizSection((current) => !current)}
                 onToggleCommentsSection={() => setShowCommentsSection((current) => !current)}
                 syncAction={syncAction}
               />
@@ -1117,6 +1145,7 @@ function DashboardContent({
   showConnectionsSection,
   showPageStatsSection,
   showPublishingSection,
+  showPostizSection,
   showCommentsSection,
   showConnectPanel,
   oauthPages,
@@ -1187,10 +1216,14 @@ function DashboardContent({
   onImportAdPosts,
   onSyncComments,
   comments,
+  postizPosts,
+  postizLoadStatus,
+  onRefreshPostizPosts,
   onToggleConnectionsSection,
   onTogglePageStatsSection,
   onToggleConnectPanel,
   onTogglePublishingSection,
+  onTogglePostizSection,
   onToggleCommentsSection,
   syncAction,
 }: {
@@ -1202,6 +1235,7 @@ function DashboardContent({
   showConnectionsSection: boolean;
   showPageStatsSection: boolean;
   showPublishingSection: boolean;
+  showPostizSection: boolean;
   showCommentsSection: boolean;
   showConnectPanel: boolean;
   oauthPages: FacebookOAuthPage[];
@@ -1279,10 +1313,14 @@ function DashboardContent({
   onImportAdPosts: () => Promise<void>;
   onSyncComments: () => Promise<void>;
   comments: FacebookComment[];
+  postizPosts: PostizScheduledPost[];
+  postizLoadStatus: LoadStatus;
+  onRefreshPostizPosts: () => Promise<void>;
   onToggleConnectionsSection: () => void;
   onTogglePageStatsSection: () => void;
   onToggleConnectPanel: () => void;
   onTogglePublishingSection: () => void;
+  onTogglePostizSection: () => void;
   onToggleCommentsSection: () => void;
   syncAction: string;
 }) {
@@ -2163,6 +2201,19 @@ function DashboardContent({
       </CollapsibleSection>
 
       <CollapsibleSection
+        title="Postiz Scheduled Posts"
+        description="Review posts scheduled through Postiz and recorded in LaunchingStack for reporting."
+        isOpen={showPostizSection}
+        onToggle={onTogglePostizSection}
+      >
+        <PostizScheduledPostList
+          posts={postizPosts}
+          loadStatus={postizLoadStatus}
+          onRefresh={onRefreshPostizPosts}
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection
         title="Comments & Engagement"
         description="Keep the post context visible while you review comment activity. This is where the comment-reply inbox will live."
         isOpen={showCommentsSection}
@@ -2615,6 +2666,131 @@ function PostList({
         ) : (
           <p className="text-sm text-slate-600">No posts to show yet.</p>
         )}
+      </div>
+    </section>
+  );
+}
+
+function PostizScheduledPostList({
+  posts,
+  loadStatus,
+  onRefresh,
+}: {
+  posts: PostizScheduledPost[];
+  loadStatus: LoadStatus;
+  onRefresh: () => Promise<void>;
+}) {
+  const [now] = useState(() => Date.now());
+  const upcomingPosts = posts.filter((post) => {
+    const scheduledFor = post.ScheduledForUtc ? new Date(post.ScheduledForUtc).getTime() : Number.NaN;
+    return Number.isNaN(scheduledFor) || scheduledFor >= now;
+  });
+  const pastPosts = posts.length - upcomingPosts.length;
+
+  return (
+    <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="text-xl font-extrabold">Postiz scheduled posts</h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+            This list comes from LaunchingStack&apos;s Postiz tracking table, separate from the Facebook/Instagram draft scheduler above.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onRefresh}
+          className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100"
+        >
+          Refresh Postiz posts
+        </button>
+      </div>
+
+      <div className="mt-4 grid gap-4 md:grid-cols-3">
+        <MetricCard title="Tracked" value={posts.length} />
+        <MetricCard title="Upcoming" value={upcomingPosts.length} />
+        <MetricCard title="Past" value={pastPosts} />
+      </div>
+
+      {loadStatus === "loading" ? (
+        <p className="mt-4 text-sm font-semibold text-slate-600">Loading Postiz scheduled posts...</p>
+      ) : null}
+      {loadStatus === "error" ? (
+        <p className="mt-4 text-sm font-semibold text-rose-700">Could not load Postiz scheduled posts.</p>
+      ) : null}
+
+      <div className="mt-6 overflow-hidden rounded-lg border border-slate-200">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-200 text-sm">
+            <thead className="bg-slate-50 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Scheduled for</th>
+                <th className="px-4 py-3">Channel</th>
+                <th className="px-4 py-3">Theme</th>
+                <th className="px-4 py-3">Content</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Postiz ID</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 bg-white">
+              {posts.length ? (
+                posts.map((post) => (
+                  <tr key={post.Id} className="align-top">
+                    <td className="whitespace-nowrap px-4 py-3 font-semibold text-slate-900">
+                      {formatDate(post.ScheduledForUtc)}
+                      <div className="mt-1 text-xs font-normal text-slate-500">
+                        Created {formatDate(post.ScheduledAtUtc)}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-slate-900">
+                        {post.ProfileName || post.ProviderKey || "Postiz"}
+                      </div>
+                      <div className="mt-1 text-xs text-slate-500">{post.ProviderKey || "-"}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="font-semibold text-slate-900">{post.PostTheme || "-"}</div>
+                      <div className="mt-1 text-xs text-slate-500">
+                        {[post.Product, post.Audience].filter(Boolean).join(" | ") || "-"}
+                      </div>
+                    </td>
+                    <td className="max-w-md px-4 py-3">
+                      <p className="line-clamp-3 whitespace-pre-line text-slate-700">
+                        {post.Content?.trim() || "No content snapshot recorded."}
+                      </p>
+                      {post.MediaUrl ? (
+                        <a
+                          href={post.MediaUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-2 block truncate text-xs font-semibold text-emerald-700 hover:text-emerald-800 hover:underline"
+                        >
+                          Open media
+                        </a>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
+                        {post.Status || "Scheduled"}
+                      </span>
+                    </td>
+                    <td className="max-w-48 break-all px-4 py-3 font-mono text-xs text-slate-500">
+                      {post.PostizPostId || "-"}
+                      {post.PostizMediaId ? (
+                        <div className="mt-2">Media: {post.PostizMediaId}</div>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={6} className="px-4 py-6 text-sm text-slate-600">
+                    No Postiz scheduled posts have been recorded yet.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   );
