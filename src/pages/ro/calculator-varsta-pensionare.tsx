@@ -587,7 +587,16 @@ function ResultPanel({
                 <td className="px-3 py-2 font-semibold">{scenario.label}</td>
                 <td className="px-3 py-2">{formatAge(scenario.retirementAge)}</td>
                 <td className="px-3 py-2">{scenario.retirementDate}</td>
-                <td className="px-3 py-2">{scenario.eligibleNow ? "Eligibil acum" : scenario.eligible ? "Eligibil la data indicata" : "Nu acum"}</td>
+                <td className="px-3 py-2">
+                  <p className="font-semibold">{formatScenarioStatus(scenario)}</p>
+                  {!scenario.eligibleNow && scenario.ineligibilityReasons.length > 0 ? (
+                    <ul className="mt-1 list-disc space-y-1 pl-4 text-xs leading-5 text-slate-600">
+                      {scenario.ineligibilityReasons.map((reason) => (
+                        <li key={reason}>{reason}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -639,6 +648,18 @@ function formatAge(age: AgeYM) {
     return `${age.years} ani`;
   }
   return `${age.years} ani si ${age.months} luni`;
+}
+
+function formatScenarioStatus(
+  scenario: PensionCalculatorResponse["result"]["scenarios"][number],
+) {
+  if (scenario.eligibleNow) {
+    return "Eligibil acum";
+  }
+  if (scenario.eligible) {
+    return "Eligibil la data indicata";
+  }
+  return "Nu acum";
 }
 
 function asNumber(value: string) {
