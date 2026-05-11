@@ -52,7 +52,6 @@ type FormState = {
   handicapType: string;
   handicapYears: string;
   handicapMonths: string;
-  consent: boolean;
 };
 
 const initialForm: FormState = {
@@ -78,7 +77,6 @@ const initialForm: FormState = {
   handicapType: "none",
   handicapYears: "",
   handicapMonths: "",
-  consent: false,
 };
 
 export default function RomanianPensionCalculatorPage() {
@@ -138,11 +136,6 @@ export default function RomanianPensionCalculatorPage() {
     setError("");
     setEmailMessage("");
     setResponse(null);
-
-    if (!form.consent) {
-      setError("Te rugam sa confirmi ca putem salva datele introduse.");
-      return;
-    }
 
     if (!form.birthYear || !form.birthMonth) {
       setError("Te rugam sa alegi luna si anul nasterii.");
@@ -370,19 +363,6 @@ export default function RomanianPensionCalculatorPage() {
                 <TextInput label="Ani in conditii de handicap" type="number" min="0" value={form.handicapYears} onChange={(value) => update("handicapYears", value)} />
                 <TextInput label="Luni" type="number" min="0" max="11" value={form.handicapMonths} onChange={(value) => update("handicapMonths", value)} />
               </fieldset>
-
-              <label className="flex gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={form.consent}
-                  onChange={(event) => update("consent", event.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
-                />
-                <span>
-                  Sunt de acord ca JustProveIt sa salveze datele introduse si rezultatul
-                  calculatorului.
-                </span>
-              </label>
 
               {error ? (
                 <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-800">
