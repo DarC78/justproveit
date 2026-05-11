@@ -249,7 +249,7 @@ export default function RomanianPensionCalculatorPage() {
           </div>
         </header>
 
-        <main className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 lg:grid-cols-2">
+        <main className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,0.3fr)_minmax(0,0.7fr)]">
           <section>
             <p className="text-sm font-semibold tracking-wide text-emerald-700">
               Calculator informativ
