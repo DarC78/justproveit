@@ -549,18 +549,31 @@ function ResultPanel({
   const standardScenario = result.scenarios.find(
     (scenario) => scenario.type === "limita_varsta_standard",
   );
+  const earliestFutureScenario =
+    result.recommended ?? findEarliestFutureRetirementScenario(result);
 
   return (
     <section className="rounded-lg border border-emerald-200 bg-white p-5 shadow-sm">
       <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
         Rezultat salvat
       </p>
-      {result.recommended ? (
+      {result.recommended?.eligibleNow ? (
         <>
           <h2 className="mt-2 text-xl font-extrabold">{result.recommended.label}</h2>
           <p className="mt-2 text-sm text-slate-700">
             Varsta: <strong>{formatAge(result.recommended.retirementAge)}</strong>
             {" "}| Data estimata: <strong>{result.recommended.retirementDate}</strong>
+          </p>
+        </>
+      ) : earliestFutureScenario ? (
+        <>
+          <h2 className="mt-2 text-xl font-extrabold">
+            Cel mai devreme va puteti pensiona la data de{" "}
+            <strong>{earliestFutureScenario.retirementDate}</strong>.
+          </h2>
+          <p className="mt-2 text-sm text-slate-700">
+            Varianta: <strong>{earliestFutureScenario.label}</strong>
+            {" "}| Varsta: <strong>{formatAge(earliestFutureScenario.retirementAge)}</strong>
           </p>
         </>
       ) : (
@@ -680,10 +693,41 @@ function formatScenarioStatus(
   if (scenario.eligibleNow) {
     return "Eligibil acum";
   }
-  if (scenario.eligible) {
+  if (scenario.eligible || isOnlyAgePending(scenario)) {
     return "Eligibil la data indicata";
   }
   return "Nu acum";
+}
+
+function findEarliestFutureRetirementScenario(
+  result: PensionCalculatorResponse["result"],
+) {
+  return result.scenarios
+    .filter((scenario) => scenario.eligible || isOnlyAgePending(scenario))
+    .sort((left, right) => compareYearMonth(left.retirementDate, right.retirementDate))[0] ?? null;
+}
+
+function isOnlyAgePending(
+  scenario: PensionCalculatorResponse["result"]["scenarios"][number],
+) {
+  return (
+    scenario.ineligibilityReasons.length > 0 &&
+    scenario.ineligibilityReasons.every((reason) =>
+      reason.trim().toLowerCase().startsWith("varsta"),
+    )
+  );
+}
+
+function compareYearMonth(left: string, right: string) {
+  return yearMonthIndex(left) - yearMonthIndex(right);
+}
+
+function yearMonthIndex(value: string) {
+  const match = /^(\d{4})-(\d{2})$/.exec(value);
+  if (!match) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  return Number(match[1]) * 12 + Number(match[2]);
 }
 
 function asNumber(value: string) {
