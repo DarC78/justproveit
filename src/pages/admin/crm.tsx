@@ -6,7 +6,9 @@ import {
   insertManualCrmLead,
   listCrmLeads,
   listCrmSales,
+  queueManualCrmSms,
   queueCrmSmsSequence,
+  scheduleManualCrmEmail,
   updateCrmLead,
 } from "@/lib/crmAdmin";
 import Head from "next/head";
@@ -358,7 +360,14 @@ export default function AdminCrmPage() {
               />
             ) : null}
 
-            {activeTab === "manual" ? <ManualEmailSmsPanel /> : null}
+            {activeTab === "manual" ? (
+              <ManualEmailSmsPanel
+                token={token}
+                agentName={agentName}
+                onStatus={setStatusMessage}
+                onError={setErrorMessage}
+              />
+            ) : null}
           </>
         ) : null}
 
@@ -1177,24 +1186,149 @@ function AllLeadsPanel({
   );
 }
 
-function ManualEmailSmsPanel() {
+function ManualEmailSmsPanel({
+  token,
+  agentName,
+  onStatus,
+  onError,
+}: {
+  token: string;
+  agentName: string;
+  onStatus: (message: string) => void;
+  onError: (message: string) => void;
+}) {
+  const [email, setEmail] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [template, setTemplate] = useState("");
+  const [params, setParams] = useState(["", "", "", "", ""]);
+  const [phone, setPhone] = useState("");
+  const [smsMessage, setSmsMessage] = useState("");
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [smsBusy, setSmsBusy] = useState(false);
+
+  function updateParam(index: number, value: string) {
+    setParams((current) => current.map((item, itemIndex) => (itemIndex === index ? value : item)));
+  }
+
+  async function handleSendEmail(event: FormEvent) {
+    event.preventDefault();
+    if (!email.trim()) {
+      onError("Completeaza emailul.");
+      return;
+    }
+    if (!template.trim()) {
+      onError("Alege sau completeaza template-ul.");
+      return;
+    }
+
+    setEmailBusy(true);
+    try {
+      await scheduleManualCrmEmail(token, {
+        email: email.trim(),
+        firstName: firstName.trim(),
+        emailtemplate: template.trim(),
+        campaign: template.trim(),
+        param1: params[0].trim(),
+        param2: params[1].trim(),
+        param3: params[2].trim(),
+        param4: params[3].trim(),
+        param5: params[4].trim(),
+        agent: agentName,
+      });
+      onStatus("Emailul a fost adaugat in coada de trimitere.");
+      onError("");
+      setEmail("");
+      setFirstName("");
+      setTemplate("");
+      setParams(["", "", "", "", ""]);
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut programa emailul.");
+    } finally {
+      setEmailBusy(false);
+    }
+  }
+
+  async function handleSendSms() {
+    if (!phone.trim()) {
+      onError("Completeaza telefonul.");
+      return;
+    }
+    if (!smsMessage.trim()) {
+      onError("Completeaza mesajul SMS.");
+      return;
+    }
+
+    setSmsBusy(true);
+    try {
+      await queueManualCrmSms(token, {
+        phone: phone.trim(),
+        message: smsMessage.trim(),
+        agent: agentName,
+      });
+      onStatus("SMS-ul a fost adaugat in coada de trimitere.");
+      onError("");
+      setPhone("");
+      setSmsMessage("");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut programa SMS-ul.");
+    } finally {
+      setSmsBusy(false);
+    }
+  }
+
   return (
     <section className="manual-panel">
       <button type="button" className="orange title-btn">Send email</button>
-      <form>
-        {["email *", "First Name *", "Template *", "Param1", "Param2", "Param3", "Param4", "Param5"].map((label) => (
-          <label key={label}>
-            {label}
-            <input placeholder={label.replace(" *", "")} />
+      <form onSubmit={handleSendEmail}>
+        <label>
+          email *
+          <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="email" />
+        </label>
+        <label>
+          First Name *
+          <input value={firstName} onChange={(event) => setFirstName(event.target.value)} placeholder="First Name" />
+        </label>
+        <label>
+          Template *
+          <input
+            value={template}
+            onChange={(event) => setTemplate(event.target.value)}
+            placeholder="Template"
+            list="crm-email-templates"
+          />
+          <datalist id="crm-email-templates">
+            {EMAIL_SEQUENCE_OPTIONS.map((item) => (
+              <option key={item.value} value={item.value}>{item.label}</option>
+            ))}
+          </datalist>
+        </label>
+        {params.map((value, index) => (
+          <label key={index}>
+            Param{index + 1}
+            <input
+              value={value}
+              onChange={(event) => updateParam(index, event.target.value)}
+              placeholder={`Param${index + 1}`}
+            />
           </label>
         ))}
+        <button type="submit" className="orange submit-btn" disabled={emailBusy}>
+          {emailBusy ? "Sending..." : "Queue email"}
+        </button>
       </form>
       <button type="button" className="orange title-btn sms">Send SMS</button>
       <label>
         Phone *
-        <input placeholder="Phone..." />
+        <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Phone..." />
       </label>
-      <textarea placeholder="How can we do better next time?" />
+      <textarea
+        value={smsMessage}
+        onChange={(event) => setSmsMessage(event.target.value)}
+        placeholder="How can we do better next time?"
+      />
+      <button type="button" className="orange submit-btn" onClick={handleSendSms} disabled={smsBusy}>
+        {smsBusy ? "Sending..." : "Queue SMS"}
+      </button>
       <style jsx>{`
         .manual-panel {
           width: min(650px, calc(100vw - 32px));
@@ -1237,6 +1371,9 @@ function ManualEmailSmsPanel() {
           background: #ff4b26;
           color: #fff;
           font-weight: 800;
+        }
+        .submit-btn {
+          border-radius: 5px;
         }
         .sms {
           margin-top: 40px;

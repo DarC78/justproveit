@@ -79,6 +79,27 @@ export type ManualCrmLeadPayload = {
   agent?: string;
 };
 
+export type ManualCrmEmailPayload = {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  emailtemplate: string;
+  campaign?: string;
+  leadid?: string;
+  param1?: string;
+  param2?: string;
+  param3?: string;
+  param4?: string;
+  param5?: string;
+  agent?: string;
+};
+
+export type ManualCrmSmsPayload = {
+  phone: string;
+  message: string;
+  agent?: string;
+};
+
 function authHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`,
@@ -155,6 +176,26 @@ export function queueCrmSmsSequence(
 
 export function insertManualCrmLead(token: string, payload: ManualCrmLeadPayload) {
   return fetchJson<{ success: boolean; lead: CrmLead }>(`${BASE_PATH}/leads`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function scheduleManualCrmEmail(token: string, payload: ManualCrmEmailPayload) {
+  return fetchJson<{ success: boolean; campaign: unknown }>(`${BASE_PATH}/email-campaigns`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({
+      status: "to_send",
+      campaign: payload.campaign || "manual-crm",
+      ...payload,
+    }),
+  });
+}
+
+export function queueManualCrmSms(token: string, payload: ManualCrmSmsPayload) {
+  return fetchJson<{ success: boolean; sms: unknown }>(`${BASE_PATH}/sms-campaigns`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(payload),
