@@ -543,30 +543,30 @@ function ResultPanel({
   const standardScenario = result.scenarios.find(
     (scenario) => scenario.type === "limita_varsta_standard",
   );
-  const earliestFutureScenario = findEarliestFutureRetirementScenario(result);
+  const recommendedScenario = result.recommended;
 
   return (
     <section className="rounded-lg border border-emerald-200 bg-white p-5 shadow-sm">
       <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
         Rezultat salvat
       </p>
-      {result.recommended?.eligibleNow ? (
+      {recommendedScenario?.eligibleNow ? (
         <>
-          <h2 className="mt-2 text-xl font-extrabold">{result.recommended.label}</h2>
+          <h2 className="mt-2 text-xl font-extrabold">{recommendedScenario.label}</h2>
           <p className="mt-2 text-sm text-slate-700">
-            Varsta: <strong>{formatAge(result.recommended.retirementAge)}</strong>
-            {" "}| Data estimata: <strong>{result.recommended.retirementDate}</strong>
+            Varsta: <strong>{formatAge(recommendedScenario.retirementAge)}</strong>
+            {" "}| Data estimata: <strong>{recommendedScenario.retirementDate}</strong>
           </p>
         </>
-      ) : earliestFutureScenario ? (
+      ) : recommendedScenario ? (
         <>
           <h2 className="mt-2 text-xl font-extrabold">
             Cel mai devreme va puteti pensiona la data de{" "}
-            <strong>{earliestFutureScenario.retirementDate}</strong>.
+            <strong>{recommendedScenario.retirementDate}</strong>.
           </h2>
           <p className="mt-2 text-sm text-slate-700">
-            Varianta: <strong>{earliestFutureScenario.label}</strong>
-            {" "}| Varsta: <strong>{formatAge(earliestFutureScenario.retirementAge)}</strong>
+            Varianta: <strong>{recommendedScenario.label}</strong>
+            {" "}| Varsta: <strong>{formatAge(recommendedScenario.retirementAge)}</strong>
           </p>
         </>
       ) : (
@@ -681,13 +681,6 @@ function formatScenarioStatus(
   return "Nu acum";
 }
 
-function findEarliestFutureRetirementScenario(
-  result: PensionCalculatorResponse["result"],
-) {
-  return result.scenarios
-    .sort((left, right) => compareYearMonth(left.retirementDate, right.retirementDate))[0] ?? null;
-}
-
 function isOnlyAgePending(
   scenario: PensionCalculatorResponse["result"]["scenarios"][number],
 ) {
@@ -697,18 +690,6 @@ function isOnlyAgePending(
       reason.trim().toLowerCase().startsWith("varsta"),
     )
   );
-}
-
-function compareYearMonth(left: string, right: string) {
-  return yearMonthIndex(left) - yearMonthIndex(right);
-}
-
-function yearMonthIndex(value: string) {
-  const match = /^(\d{4})-(\d{2})$/.exec(value);
-  if (!match) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-  return Number(match[1]) * 12 + Number(match[2]);
 }
 
 function asNumber(value: string) {
