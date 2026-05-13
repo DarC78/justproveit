@@ -1360,7 +1360,7 @@ function LeadIntentPanel({
   onError: (message: string) => void;
 }) {
   const [createdLastDays, setCreatedLastDays] = useState("30");
-  const [statusBucket, setStatusBucket] = useState("wip");
+  const [statusBucket, setStatusBucket] = useState("nocall");
   const [intent, setIntent] = useState("all");
   const [service, setService] = useState("all");
   const [language, setLanguage] = useState("all");
@@ -1415,9 +1415,9 @@ function LeadIntentPanel({
 
         <label>Status type</label>
         <select value={statusBucket} onChange={(event) => setStatusBucket(event.target.value)}>
-          <option value="wip">WIP</option>
+          <option value="nocall">NoCall</option>
+          <option value="postcallfu">PostCallFU</option>
           <option value="finished">Finished</option>
-          <option value="both">Both</option>
         </select>
 
         <label>Intent</label>
