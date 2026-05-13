@@ -1388,8 +1388,11 @@ function LeadIntentPanel({
         limit: 300,
       });
       const nextRows = result.rows || result.items || [];
+      const summary = result.statusSummary || {};
       setRows(nextRows);
-      setResultText(`${result.total} rezultate`);
+      setResultText(
+        `Total Leads Filtrate: ${result.total} | NewLeads ${summary.newLeads ?? 0} | NotConnected ${summary.notConnected ?? 0} | WIP ${summary.wip ?? 0} | ENDED ${summary.ended ?? 0}`,
+      );
       setIntentOptions(result.options?.intents || []);
       setServiceOptions(result.options?.services || []);
       setLanguageOptions(mergeOptionLists(LANGUAGE_OPTIONS, result.options?.languages || []));
@@ -1453,7 +1456,7 @@ function LeadIntentPanel({
         </button>
       </div>
 
-      <p className="green-label">{resultText ? `Rezultat actiune: ${resultText}` : "Rezultat actiune:"}</p>
+      <p className="green-label">{resultText || "Total Leads Filtrate: 0 | NewLeads 0 | NotConnected 0 | WIP 0 | ENDED 0"}</p>
       <DataTable
         columns={["Created", "Name", "Phone", "Email", "CRM Status", "Intent", "Service", "Language", "Source", "Campaign"]}
         rows={rows.map((row) => [
