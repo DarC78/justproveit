@@ -602,10 +602,15 @@ function ResultPanel({
             {result.scenarios.map((scenario) => (
               <tr key={scenario.type} className="border-b border-slate-100">
                 <td className="px-3 py-2 font-semibold">{scenario.label}</td>
-                <td className="px-3 py-2">{formatAge(scenario.retirementAge)}</td>
-                <td className="px-3 py-2">{scenario.retirementDate}</td>
+                <td className="px-3 py-2">{formatScenarioAge(scenario)}</td>
+                <td className="px-3 py-2">{formatScenarioDate(scenario)}</td>
                 <td className="px-3 py-2">
                   <p className="font-semibold">{formatScenarioStatus(scenario)}</p>
+                  {scenario.notApplicableReason ? (
+                    <p className="mt-2 text-xs leading-5 text-slate-600">
+                      {scenario.notApplicableReason}
+                    </p>
+                  ) : null}
                   {scenario.eligibilityReasons.length > 0 ? (
                     <div className="mt-2">
                       <p className="text-xs font-semibold text-emerald-700">Conditii indeplinite:</p>
@@ -672,6 +677,9 @@ function formatAge(age: AgeYM) {
 function formatScenarioStatus(
   scenario: PensionCalculatorResponse["result"]["scenarios"][number],
 ) {
+  if (scenario.notApplicable) {
+    return "Nu se aplica";
+  }
   if (scenario.eligibleNow) {
     return "Eligibil acum";
   }
@@ -681,10 +689,23 @@ function formatScenarioStatus(
   return "Nu acum";
 }
 
+function formatScenarioAge(
+  scenario: PensionCalculatorResponse["result"]["scenarios"][number],
+) {
+  return scenario.notApplicable ? "N/A" : formatAge(scenario.retirementAge);
+}
+
+function formatScenarioDate(
+  scenario: PensionCalculatorResponse["result"]["scenarios"][number],
+) {
+  return scenario.notApplicable ? "N/A" : scenario.retirementDate;
+}
+
 function isOnlyAgePending(
   scenario: PensionCalculatorResponse["result"]["scenarios"][number],
 ) {
   return (
+    !scenario.notApplicable &&
     scenario.ineligibilityReasons.length > 0 &&
     scenario.ineligibilityReasons.every((reason) =>
       reason.trim().toLowerCase().startsWith("varsta"),

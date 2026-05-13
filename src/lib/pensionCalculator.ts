@@ -12,6 +12,8 @@ export type PensionScenario = {
   retirementDate: string;
   eligible: boolean;
   eligibleNow: boolean;
+  notApplicable?: boolean;
+  notApplicableReason?: string | null;
   eligibilityReasons: string[];
   ineligibilityReasons: string[];
   legalReferences: string[];
