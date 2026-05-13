@@ -1,14 +1,21 @@
 import { useAuth } from "@/context/AuthContext";
 import {
+  CrmActivity,
   CrmLead,
+  CrmLeadIntentRow,
+  CrmMissedCall,
   CrmSale,
   findCrmLeadByPhone,
   insertManualCrmLead,
+  listCrmLeadIntents,
+  listCrmMissedCalls,
   listCrmLeads,
   listCrmSales,
   queueManualCrmSms,
+  queueCrmEmailSequence,
   queueCrmSmsSequence,
   scheduleManualCrmEmail,
+  searchCrmActivity,
   updateCrmLead,
 } from "@/lib/crmAdmin";
 import Head from "next/head";
@@ -16,7 +23,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { FormEvent, useEffect, useState } from "react";
 
-type TabKey = "details" | "new" | "sales" | "personal" | "all" | "manual";
+type TabKey = "details" | "new" | "sales" | "personal" | "all" | "intents" | "manual" | "missed";
 type GateStatus = "checking" | "allowed" | "denied";
 
 const TABS: Array<{ key: TabKey; label: string }> = [
@@ -25,7 +32,9 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "sales", label: "Arata Vanzarile" },
   { key: "personal", label: "Potentiali Clienti" },
   { key: "all", label: "All Leads CRM" },
+  { key: "intents", label: "Lead Intents" },
   { key: "manual", label: "Send Manual Email/SMS" },
+  { key: "missed", label: "Missed Calls" },
 ];
 
 const STATUS_OPTIONS = [
@@ -40,9 +49,15 @@ const STATUS_OPTIONS = [
   "HotLead",
   "SALE",
   "NuDoresteServiciul",
+  "fu1",
+  "fu2",
+  "fu3",
+  "FUEND",
+  "FUNA",
+  "FUNAEND",
 ];
 
-const LANGUAGE_OPTIONS = ["Romanian", "English", "Spanish", "Italian", "Polish", "Bulgarian"];
+const LANGUAGE_OPTIONS = ["ro", "es", "en", "it", "pl", "bg", "Romanian", "English", "Spanish", "Italian", "Polish", "Bulgarian"];
 
 const EMAIL_SEQUENCE_OPTIONS = [
   { label: "Vrea Sa Cumpere Acum", value: "CallBack_EmailDeSumarizare" },
@@ -203,6 +218,37 @@ function mergeCurrentOption(options: string[], current?: string | null) {
   return [value, ...options];
 }
 
+function mergeOptionLists(primary: string[], secondary: string[]) {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const item of [...primary, ...secondary]) {
+    const value = String(item || "").trim();
+    const key = value.toLowerCase();
+    if (!value || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    merged.push(value);
+  }
+
+  return merged;
+}
+
+function mergeServiceOptions(
+  options: Array<{ serviceKey: string; displayName?: string | null }>,
+  current?: string | null,
+) {
+  const serviceOptions = options.filter((item) => item.serviceKey);
+  const currentValue = String(current || "").trim();
+  if (!currentValue || currentValue === "all" || serviceOptions.some((item) => item.serviceKey === currentValue)) {
+    return serviceOptions;
+  }
+
+  return [{ serviceKey: currentValue, displayName: currentValue }, ...serviceOptions];
+}
+
 export default function AdminCrmPage() {
   const router = useRouter();
   const { status, user, token, isAdmin, requireAdmin } = useAuth();
@@ -360,6 +406,14 @@ export default function AdminCrmPage() {
               />
             ) : null}
 
+            {activeTab === "intents" ? (
+              <LeadIntentPanel
+                token={token}
+                onSelectLead={handleLeadSelected}
+                onError={setErrorMessage}
+              />
+            ) : null}
+
             {activeTab === "manual" ? (
               <ManualEmailSmsPanel
                 token={token}
@@ -367,6 +421,10 @@ export default function AdminCrmPage() {
                 onStatus={setStatusMessage}
                 onError={setErrorMessage}
               />
+            ) : null}
+
+            {activeTab === "missed" ? (
+              <MissedCallsPanel token={token} onError={setErrorMessage} />
             ) : null}
           </>
         ) : null}
@@ -579,8 +637,13 @@ function LeadDetailsPanel({
   const [newEmail, setNewEmail] = useState("");
   const [saving, setSaving] = useState(false);
   const [smsBusy, setSmsBusy] = useState<"buy" | "skeptic" | "">("");
+  const [emailSequenceBusy, setEmailSequenceBusy] = useState(false);
   const [selectedSequence, setSelectedSequence] = useState("");
   const [selectedCmcDomain, setSelectedCmcDomain] = useState("");
+  const [nextContactTime, setNextContactTime] = useState("");
+  const [activityEmail, setActivityEmail] = useState("");
+  const [activityRows, setActivityRows] = useState<CrmActivity[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   useEffect(() => {
     setDraft(lead);
@@ -588,6 +651,9 @@ function LeadDetailsPanel({
     setNewEmail("");
     setSelectedSequence("");
     setSelectedCmcDomain("");
+    setNextContactTime(toInputTime(lead.dataUrmatorContact));
+    setActivityEmail(lead.email || "");
+    setActivityRows([]);
   }, [lead]);
 
   async function handlePhoneLookup() {
@@ -628,7 +694,7 @@ function LeadDetailsPanel({
         language: draft.language || "",
         year: draft.year || "",
         nrInmatriculare: draft.nrInmatriculare || "",
-        dataUrmatorContact: draft.dataUrmatorContact || null,
+        dataUrmatorContact: buildDateTimeValue(draft.dataUrmatorContact, nextContactTime),
         email: payloadEmail,
         agent: agentName,
       });
@@ -678,8 +744,67 @@ function LeadDetailsPanel({
     }
   }
 
+  async function handleEmailSequence() {
+    const id = draft.id || draft.wixId || draft._id;
+    if (!id) {
+      onError("Selecteaza sau cauta un lead inainte de secventa de email.");
+      return;
+    }
+
+    if (!selectedSequence) {
+      onError("Alege secventa de email.");
+      return;
+    }
+
+    if (selectedSequence === "VREA_OUT_CMC" && !selectedCmcDomain) {
+      onError("Selecteaza firma CMC.");
+      return;
+    }
+
+    const selectedCmc = CMC_COMPANIES.find((company) => company.domain === selectedCmcDomain);
+
+    setEmailSequenceBusy(true);
+    try {
+      const result = await queueCrmEmailSequence(token, id, {
+        sequence: selectedSequence,
+        cmcDomain: selectedCmcDomain || undefined,
+        cmcName: selectedCmc?.name,
+        agent: agentName,
+      });
+      setDraft(result.lead);
+      onLeadChange(result.lead);
+      onStatus(result.message || "Clientul a fost pus pe secventa de email.");
+      onError("");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut porni secventa de email.");
+    } finally {
+      setEmailSequenceBusy(false);
+    }
+  }
+
+  async function handleActivitySearch() {
+    const email = activityEmail.trim();
+    if (!email) {
+      onError("Introdu emailul pentru activitate.");
+      return;
+    }
+
+    setActivityLoading(true);
+    try {
+      const result = await searchCrmActivity(token, email);
+      setActivityRows(result.activities || result.items || []);
+      onStatus("Activitatea a fost incarcata.");
+      onError("");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut cauta activitatea.");
+    } finally {
+      setActivityLoading(false);
+    }
+  }
+
   const financeOptions = mergeCurrentOption(FINANCE_COMPANIES, draft.financeCompany);
   const statusOptions = mergeCurrentOption(STATUS_OPTIONS, draft.statusOriginal);
+  const languageOptions = mergeCurrentOption(LANGUAGE_OPTIONS, draft.language);
 
   return (
     <CrmCard title="Detalii client" className="details-card">
@@ -746,7 +871,7 @@ function LeadDetailsPanel({
             onChange={(event) => setDraft({ ...draft, language: event.target.value })}
           >
             <option value="">Language</option>
-            {LANGUAGE_OPTIONS.map((language) => (
+            {languageOptions.map((language) => (
               <option key={language}>{language}</option>
             ))}
           </select>
@@ -799,7 +924,14 @@ function LeadDetailsPanel({
             </option>
           ))}
         </select>
-        <button type="button" className="orange small">Pune Client pe secventa</button>
+        <button
+          type="button"
+          className="orange small"
+          onClick={handleEmailSequence}
+          disabled={emailSequenceBusy}
+        >
+          {emailSequenceBusy ? "Se trimite..." : "Pune Client pe secventa"}
+        </button>
       </div>
 
       {selectedSequence === "VREA_OUT_CMC" ? (
@@ -863,12 +995,38 @@ function LeadDetailsPanel({
         </label>
         <label>
           Choose a time
-          <input type="time" />
+          <input type="time" value={nextContactTime} onChange={(event) => setNextContactTime(event.target.value)} />
         </label>
         <button type="button" className="orange small" onClick={handleSave}>
           Termina Cazul
         </button>
       </div>
+
+      <hr />
+
+      <div className="activity-search">
+        <label>
+          Cauta activitate dupa email
+          <input value={activityEmail} onChange={(event) => setActivityEmail(event.target.value)} />
+        </label>
+        <button type="button" className="orange small" onClick={handleActivitySearch} disabled={activityLoading}>
+          {activityLoading ? "Caut..." : "Cauta activitate"}
+        </button>
+      </div>
+      <DataTable
+        columns={["Timestamp", "State", "Param1", "Param2", "Param3", "Param4", "Param5"]}
+        rows={activityRows.map((item) => [
+          item.timestamp,
+          item.state,
+          item.param1,
+          item.param2,
+          item.param3,
+          item.param4,
+          item.param5,
+        ])}
+        loading={activityLoading}
+        minWidth={880}
+      />
 
       <style jsx>{panelStyles}</style>
     </CrmCard>
@@ -1075,13 +1233,17 @@ function LeadListPanel({
   async function loadLeads() {
     setLoading(true);
     try {
+      const last6 = getLast6Digits(phone);
       const result = await listCrmLeads(token, {
         status: status || "all",
         phone,
+        last6,
         mine: onlyMine,
         agent: agentName,
         overdue: true,
         limit: 100,
+        sortBy: last6 ? "" : "dataUrmatorContact",
+        sortDirection: "asc",
       });
       setLeads(result.leads);
       onError("");
@@ -1143,12 +1305,14 @@ function AllLeadsPanel({
   async function loadLeads() {
     setLoading(true);
     try {
+      const last6 = getLast6Digits(phone);
       const result = await listCrmLeads(token, {
         email,
         phone,
-        language,
+        last6,
+        language: language === "all" ? "" : language,
         status: "all",
-        limit: 100,
+        limit: 200,
       });
       setLeads(result.leads);
       setResultText(`${result.total} rezultate`);
@@ -1181,6 +1345,138 @@ function AllLeadsPanel({
       </div>
       <p className="green-label">{resultText ? `Rezultat actiune: ${resultText}` : "Rezultat actiune:"}</p>
       <LeadTable leads={leads} loading={loading} onSelectLead={onSelectLead} />
+      <style jsx>{panelStyles}</style>
+    </CrmCard>
+  );
+}
+
+function LeadIntentPanel({
+  token,
+  onSelectLead,
+  onError,
+}: {
+  token: string;
+  onSelectLead: (lead: CrmLead) => void;
+  onError: (message: string) => void;
+}) {
+  const [createdLastDays, setCreatedLastDays] = useState("30");
+  const [statusBucket, setStatusBucket] = useState("wip");
+  const [intent, setIntent] = useState("all");
+  const [service, setService] = useState("all");
+  const [language, setLanguage] = useState("all");
+  const [rows, setRows] = useState<CrmLeadIntentRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [resultText, setResultText] = useState("");
+  const [intentOptions, setIntentOptions] = useState<string[]>([]);
+  const [serviceOptions, setServiceOptions] = useState<Array<{ serviceKey: string; displayName?: string | null }>>([]);
+  const [languageOptions, setLanguageOptions] = useState<string[]>(LANGUAGE_OPTIONS);
+
+  useEffect(() => {
+    loadIntents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadIntents() {
+    setLoading(true);
+    try {
+      const result = await listCrmLeadIntents(token, {
+        createdLastDays,
+        statusBucket,
+        intent,
+        service,
+        language,
+        limit: 300,
+      });
+      const nextRows = result.rows || result.items || [];
+      setRows(nextRows);
+      setResultText(`${result.total} rezultate`);
+      setIntentOptions(result.options?.intents || []);
+      setServiceOptions(result.options?.services || []);
+      setLanguageOptions(mergeOptionLists(LANGUAGE_OPTIONS, result.options?.languages || []));
+      onError("");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut incarca lead intent.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <CrmCard title="Lead Intents" className="wide-card">
+      <div className="filter-grid intent-filter">
+        <label>Created last days</label>
+        <input
+          type="number"
+          min="1"
+          max="3650"
+          value={createdLastDays}
+          onChange={(event) => setCreatedLastDays(event.target.value)}
+        />
+
+        <label>Status type</label>
+        <select value={statusBucket} onChange={(event) => setStatusBucket(event.target.value)}>
+          <option value="wip">WIP</option>
+          <option value="finished">Finished</option>
+          <option value="both">Both</option>
+        </select>
+
+        <label>Intent</label>
+        <select value={intent} onChange={(event) => setIntent(event.target.value)}>
+          <option value="all">all</option>
+          {mergeCurrentOption(intentOptions, intent === "all" ? "" : intent).map((item) => (
+            <option key={item} value={item}>
+              {item}
+            </option>
+          ))}
+        </select>
+
+        <label>Service</label>
+        <select value={service} onChange={(event) => setService(event.target.value)}>
+          <option value="all">all</option>
+          {mergeServiceOptions(serviceOptions, service).map((item) => (
+            <option key={item.serviceKey} value={item.serviceKey}>
+              {item.displayName || item.serviceKey}
+            </option>
+          ))}
+        </select>
+
+        <label>Language</label>
+        <select value={language} onChange={(event) => setLanguage(event.target.value)}>
+          <option value="all">all</option>
+          {mergeCurrentOption(languageOptions, language === "all" ? "" : language).map((item) => (
+            <option key={item}>{item}</option>
+          ))}
+        </select>
+
+        <button type="button" className="orange small" onClick={loadIntents} disabled={loading}>
+          {loading ? "Se incarca..." : "Filter"}
+        </button>
+      </div>
+
+      <p className="green-label">{resultText ? `Rezultat actiune: ${resultText}` : "Rezultat actiune:"}</p>
+      <DataTable
+        columns={["Created", "Name", "Phone", "Email", "CRM Status", "Intent", "Service", "Language", "Source", "Campaign"]}
+        rows={rows.map((row) => [
+          formatDateTime(row.createdAtUtc),
+          row.lead?.fullName,
+          row.lead?.phoneNumber,
+          row.lead?.email,
+          row.lead?.statusOriginal,
+          row.interestType,
+          row.serviceDisplayName || row.serviceKey,
+          row.language,
+          row.source,
+          row.campaignName || row.adName,
+        ])}
+        loading={loading}
+        onRowClick={(index) => {
+          const lead = rows[index]?.lead;
+          if (lead) {
+            onSelectLead(lead);
+          }
+        }}
+        minWidth={1260}
+      />
       <style jsx>{panelStyles}</style>
     </CrmCard>
   );
@@ -1380,6 +1676,49 @@ function ManualEmailSmsPanel({
         }
       `}</style>
     </section>
+  );
+}
+
+function MissedCallsPanel({ token, onError }: { token: string; onError: (message: string) => void }) {
+  const [calls, setCalls] = useState<CrmMissedCall[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    loadCalls();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadCalls() {
+    setLoading(true);
+    try {
+      const result = await listCrmMissedCalls(token, 10);
+      setCalls(result.calls || result.items || []);
+      onError("");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut incarca missed calls.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <CrmCard title="Missed calls fara follow-up" className="wide-card">
+      <button type="button" className="orange small" onClick={loadCalls} disabled={loading}>
+        {loading ? "Se incarca..." : "Refresh"}
+      </button>
+      <DataTable
+        columns={["Phone", "Last missed", "Last connected", "Last connected campaign"]}
+        rows={calls.map((call) => [
+          call.phoneNumber || call.phonenumber || call.phone,
+          formatDateTime(call.lastMissed || call.lastmissed),
+          formatDateTime(call.lastConnected || call.lastconnected),
+          call.lastConnectedCampaign || call.lastconnectedcampaign,
+        ])}
+        loading={loading}
+        minWidth={850}
+      />
+      <style jsx>{panelStyles}</style>
+    </CrmCard>
   );
 }
 
@@ -1834,6 +2173,12 @@ const panelStyles = `
     align-items: end;
     gap: 16px;
   }
+  .activity-search {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) 150px;
+    align-items: end;
+    gap: 16px;
+  }
   .filter-grid {
     display: grid;
     align-items: center;
@@ -1851,6 +2196,10 @@ const panelStyles = `
   .all-filter {
     width: 710px;
     grid-template-columns: 70px 250px 150px;
+  }
+  .intent-filter {
+    width: min(940px, 100%);
+    grid-template-columns: 130px minmax(120px, 1fr) 100px minmax(150px, 1fr) 90px minmax(150px, 1fr);
   }
   .checkbox-label {
     display: flex;
@@ -1870,9 +2219,11 @@ const panelStyles = `
     .cmc-row,
     .sms-row,
     .finish-row,
+    .activity-search,
     .sales-filter,
     .personal-filter,
-    .all-filter {
+    .all-filter,
+    .intent-filter {
       width: 100%;
       grid-template-columns: 1fr;
     }
@@ -1890,6 +2241,23 @@ function formatDate(value?: string | null) {
   return date.toLocaleDateString("en-GB");
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return date.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function toInputDate(value?: string | null) {
   if (!value) {
     return "";
@@ -1899,6 +2267,40 @@ function toInputDate(value?: string | null) {
     return "";
   }
   return date.toISOString().slice(0, 10);
+}
+
+function toInputTime(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return date.toTimeString().slice(0, 5);
+}
+
+function buildDateTimeValue(dateValue?: string | null, timeValue?: string) {
+  const datePart = toInputDate(dateValue);
+  if (!datePart) {
+    return null;
+  }
+
+  if (!timeValue) {
+    return datePart;
+  }
+
+  const date = new Date(`${datePart}T${timeValue}`);
+  if (Number.isNaN(date.getTime())) {
+    return datePart;
+  }
+
+  return date.toISOString();
+}
+
+function getLast6Digits(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 6 ? digits.slice(-6) : "";
 }
 
 function formatMoney(value?: number | null) {
