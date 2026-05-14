@@ -58,6 +58,22 @@ const STATUS_OPTIONS = [
 ];
 
 const LANGUAGE_OPTIONS = ["ro", "es", "en", "it", "pl", "bg", "Romanian", "English", "Spanish", "Italian", "Polish", "Bulgarian"];
+const LEAD_INTENT_LANGUAGE_OPTIONS = ["Romanian", "Spanish", "English", "Italian", "Polish", "Bulgarian"];
+const LANGUAGE_LABELS: Record<string, string> = {
+  ro: "Romanian",
+  romana: "Romanian",
+  romanian: "Romanian",
+  es: "Spanish",
+  spanish: "Spanish",
+  en: "English",
+  english: "English",
+  it: "Italian",
+  italian: "Italian",
+  pl: "Polish",
+  polish: "Polish",
+  bg: "Bulgarian",
+  bulgarian: "Bulgarian",
+};
 
 const EMAIL_SEQUENCE_OPTIONS = [
   { label: "Vrea Sa Cumpere Acum", value: "CallBack_EmailDeSumarizare" },
@@ -218,11 +234,16 @@ function mergeCurrentOption(options: string[], current?: string | null) {
   return [value, ...options];
 }
 
-function mergeOptionLists(primary: string[], secondary: string[]) {
+function formatLanguage(value?: string | null) {
+  const text = String(value || "").trim();
+  return LANGUAGE_LABELS[text.toLowerCase()] || text;
+}
+
+function mergeLanguageOptions(options: string[]) {
   const seen = new Set<string>();
   const merged: string[] = [];
 
-  for (const item of [...primary, ...secondary]) {
+  for (const item of [...LEAD_INTENT_LANGUAGE_OPTIONS, ...options.map(formatLanguage)]) {
     const value = String(item || "").trim();
     const key = value.toLowerCase();
     if (!value || seen.has(key)) {
@@ -1370,7 +1391,7 @@ function LeadIntentPanel({
   const [resultText, setResultText] = useState("");
   const [intentOptions, setIntentOptions] = useState<string[]>([]);
   const [serviceOptions, setServiceOptions] = useState<Array<{ serviceKey: string; displayName?: string | null }>>([]);
-  const [languageOptions, setLanguageOptions] = useState<string[]>(LANGUAGE_OPTIONS);
+  const [languageOptions, setLanguageOptions] = useState<string[]>(LEAD_INTENT_LANGUAGE_OPTIONS);
   const showContactAt = intent.toUpperCase() !== "ASAP";
 
   useEffect(() => {
@@ -1398,7 +1419,7 @@ function LeadIntentPanel({
       );
       setIntentOptions(result.options?.intents || []);
       setServiceOptions(result.options?.services || []);
-      setLanguageOptions(mergeOptionLists(LANGUAGE_OPTIONS, result.options?.languages || []));
+      setLanguageOptions(mergeLanguageOptions(result.options?.languages || []));
       onError("");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Nu am putut incarca lead intent.");
@@ -1449,7 +1470,7 @@ function LeadIntentPanel({
         <label>Language</label>
         <select value={language} onChange={(event) => setLanguage(event.target.value)}>
           <option value="all">all</option>
-          {mergeCurrentOption(languageOptions, language === "all" ? "" : language).map((item) => (
+          {mergeLanguageOptions(mergeCurrentOption(languageOptions, language === "all" ? "" : language)).map((item) => (
             <option key={item}>{item}</option>
           ))}
         </select>
@@ -1493,7 +1514,7 @@ function LeadIntentPanel({
           row.lead?.statusOriginal,
           row.interestType,
           row.serviceDisplayName || row.serviceKey,
-          row.language,
+          formatLanguage(row.language),
           row.source,
           row.campaignName || row.adName,
         ])}
