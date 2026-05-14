@@ -1371,6 +1371,7 @@ function LeadIntentPanel({
   const [intentOptions, setIntentOptions] = useState<string[]>([]);
   const [serviceOptions, setServiceOptions] = useState<Array<{ serviceKey: string; displayName?: string | null }>>([]);
   const [languageOptions, setLanguageOptions] = useState<string[]>(LANGUAGE_OPTIONS);
+  const showContactAt = intent.toUpperCase() !== "ASAP";
 
   useEffect(() => {
     loadIntents();
@@ -1470,10 +1471,22 @@ function LeadIntentPanel({
 
       <p className="green-label">{resultText || "Total Leads: 0 | ASAP 0 | Calendly 0 | Car Finance 0 | International Pensions 0"}</p>
       <DataTable
-        columns={["Created", "Contact at", "Name", "Phone", "Email", "CRM Status", "Intent", "Service", "Language", "Source", "Campaign"]}
+        columns={[
+          "Created",
+          ...(showContactAt ? ["Contact at"] : []),
+          "Name",
+          "Phone",
+          "Email",
+          "CRM Status",
+          "Intent",
+          "Service",
+          "Language",
+          "Source",
+          "Campaign",
+        ]}
         rows={rows.map((row) => [
           formatDateTime(row.createdAtUtc),
-          formatDateTime(row.contactTimeUtc),
+          ...(showContactAt ? [formatDateTime(row.contactTimeUtc)] : []),
           row.lead?.fullName,
           row.lead?.phoneNumber,
           row.lead?.email,
