@@ -1468,6 +1468,7 @@ function LeadIntentPanel({
   const [rows, setRows] = useState<CrmLeadIntentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [resultText, setResultText] = useState("");
+  const [selectedLeadsTotal, setSelectedLeadsTotal] = useState(0);
   const [intentOptions, setIntentOptions] = useState<string[]>([]);
   const [serviceOptions, setServiceOptions] = useState<Array<{ serviceKey: string; displayName?: string | null }>>([]);
   const [languageOptions, setLanguageOptions] = useState<string[]>(LEAD_INTENT_LANGUAGE_OPTIONS);
@@ -1493,6 +1494,7 @@ function LeadIntentPanel({
       const nextRows = result.rows || result.items || [];
       const summary = result.leadSummary || {};
       setRows(nextRows);
+      setSelectedLeadsTotal(result.total ?? 0);
       setResultText(
         `Total Leads: ${summary.totalLeads ?? 0} | ASAP ${summary.asap ?? 0} | Calendly ${summary.calendly ?? 0} | Car Finance ${summary.carFinance ?? 0} | International Pensions ${summary.internationalPensions ?? 0}`,
       );
@@ -1569,7 +1571,11 @@ function LeadIntentPanel({
         </button>
       </div>
 
-      <p className="green-label">{resultText || "Total Leads: 0 | ASAP 0 | Calendly 0 | Car Finance 0 | International Pensions 0"}</p>
+      <p className="green-label">
+        {resultText || "Total Leads: 0 | ASAP 0 | Calendly 0 | Car Finance 0 | International Pensions 0"}
+        <br />
+        Total Selected Leads: {selectedLeadsTotal}
+      </p>
       <DataTable
         columns={[
           "Created",
