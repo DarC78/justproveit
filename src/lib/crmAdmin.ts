@@ -109,11 +109,12 @@ export type CrmLeadIntentResponse = {
   rows?: CrmLeadIntentRow[];
   items?: CrmLeadIntentRow[];
   total: number;
-  statusSummary?: {
-    newLeads?: number;
-    notConnected?: number;
-    wip?: number;
-    ended?: number;
+  leadSummary?: {
+    totalLeads?: number;
+    asap?: number;
+    calendly?: number;
+    carFinance?: number;
+    internationalPensions?: number;
   };
   limit: number;
   offset: number;

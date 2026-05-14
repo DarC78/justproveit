@@ -1390,10 +1390,10 @@ function LeadIntentPanel({
         limit: 300,
       });
       const nextRows = result.rows || result.items || [];
-      const summary = result.statusSummary || {};
+      const summary = result.leadSummary || {};
       setRows(nextRows);
       setResultText(
-        `Total Leads Filtrate: ${result.total} | NewLeads ${summary.newLeads ?? 0} | NotConnected ${summary.notConnected ?? 0} | WIP ${summary.wip ?? 0} | ENDED ${summary.ended ?? 0}`,
+        `Total Leads: ${summary.totalLeads ?? 0} | ASAP ${summary.asap ?? 0} | Calendly ${summary.calendly ?? 0} | Car Finance ${summary.carFinance ?? 0} | International Pensions ${summary.internationalPensions ?? 0}`,
       );
       setIntentOptions(result.options?.intents || []);
       setServiceOptions(result.options?.services || []);
@@ -1468,7 +1468,7 @@ function LeadIntentPanel({
         </button>
       </div>
 
-      <p className="green-label">{resultText || "Total Leads Filtrate: 0 | NewLeads 0 | NotConnected 0 | WIP 0 | ENDED 0"}</p>
+      <p className="green-label">{resultText || "Total Leads: 0 | ASAP 0 | Calendly 0 | Car Finance 0 | International Pensions 0"}</p>
       <DataTable
         columns={["Created", "Contact at", "Name", "Phone", "Email", "CRM Status", "Intent", "Service", "Language", "Source", "Campaign"]}
         rows={rows.map((row) => [
