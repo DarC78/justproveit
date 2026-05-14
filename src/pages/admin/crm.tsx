@@ -21,7 +21,7 @@ import {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 type TabKey = "details" | "new" | "sales" | "personal" | "all" | "intents" | "manual" | "missed";
 type GateStatus = "checking" | "allowed" | "denied";
@@ -268,6 +268,28 @@ function mergeServiceOptions(
   }
 
   return [{ serviceKey: currentValue, displayName: currentValue }, ...serviceOptions];
+}
+
+function mergeAgentOptions(
+  options: Array<{ agentId: number; agentName?: string | null }>,
+  current?: string | null,
+) {
+  const byId = new Map<number, { agentId: number; agentName?: string | null }>();
+  for (const option of options) {
+    const agentId = Number(option.agentId);
+    if (Number.isInteger(agentId) && agentId > 0) {
+      byId.set(agentId, { agentId, agentName: option.agentName });
+    }
+  }
+
+  const unique = Array.from(byId.values()).sort((a, b) => a.agentId - b.agentId);
+  const currentValue = Number.parseInt(String(current || ""), 10);
+
+  if (!Number.isInteger(currentValue) || currentValue <= 0 || byId.has(currentValue)) {
+    return unique;
+  }
+
+  return [{ agentId: currentValue, agentName: null }, ...unique];
 }
 
 function isCarFinanceIntent(row?: CrmLeadIntentRow | null) {
@@ -1490,16 +1512,26 @@ function LeadIntentPanel({
   const [intent, setIntent] = useState("all");
   const [service, setService] = useState("all");
   const [language, setLanguage] = useState("all");
+  const [lastCallAgentId, setLastCallAgentId] = useState("all");
   const [toBeContacted, setToBeContacted] = useState("oricand");
   const [closed, setClosed] = useState(false);
   const [rows, setRows] = useState<CrmLeadIntentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [resultText, setResultText] = useState("");
   const [selectedLeadsTotal, setSelectedLeadsTotal] = useState(0);
+  const [createdSortDirection, setCreatedSortDirection] = useState<"asc" | "desc">("desc");
   const [intentOptions, setIntentOptions] = useState<string[]>([]);
   const [serviceOptions, setServiceOptions] = useState<Array<{ serviceKey: string; displayName?: string | null }>>([]);
   const [languageOptions, setLanguageOptions] = useState<string[]>(LEAD_INTENT_LANGUAGE_OPTIONS);
+  const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number; agentName?: string | null }>>([]);
   const showContactAt = intent.toUpperCase() !== "ASAP";
+  const sortedRows = useMemo(() => {
+    return [...rows].sort((first, second) => {
+      const firstTime = getDateTimeValue(first.createdAtUtc);
+      const secondTime = getDateTimeValue(second.createdAtUtc);
+      return createdSortDirection === "asc" ? firstTime - secondTime : secondTime - firstTime;
+    });
+  }, [createdSortDirection, rows]);
 
   useEffect(() => {
     loadIntents();
@@ -1516,6 +1548,7 @@ function LeadIntentPanel({
         intent,
         service,
         language,
+        lastCallAgentId,
         closed,
         limit: 300,
       });
@@ -1529,6 +1562,7 @@ function LeadIntentPanel({
       setIntentOptions(result.options?.intents || []);
       setServiceOptions(result.options?.services || []);
       setLanguageOptions(mergeLanguageOptions(result.options?.languages || []));
+      setAgentOptions(result.options?.agents || []);
       onError("");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Nu am putut incarca lead intent.");
@@ -1594,6 +1628,16 @@ function LeadIntentPanel({
           <option value="oricand">Oricand</option>
         </select>
 
+        <label>Agent</label>
+        <select value={lastCallAgentId} onChange={(event) => setLastCallAgentId(event.target.value)}>
+          <option value="all">all</option>
+          {mergeAgentOptions(agentOptions, lastCallAgentId).map((item) => (
+            <option key={item.agentId} value={item.agentId}>
+              {formatAgentLabel(item.agentId, item.agentName)}
+            </option>
+          ))}
+        </select>
+
         <label>Closed</label>
         <input type="checkbox" checked={closed} onChange={(event) => setClosed(event.target.checked)} />
 
@@ -1616,13 +1660,17 @@ function LeadIntentPanel({
           "Phone",
           "Email",
           "CRM Status",
+          "Agent Name",
+          "Last Agent",
+          "Last Call",
+          "Last Callcode",
           "Intent",
           "Service",
           "Language",
           "Source",
           "Campaign",
         ]}
-        rows={rows.map((row) => [
+        rows={sortedRows.map((row) => [
           formatDateTime(row.createdAtUtc),
           formatDateTime(row.closedAtUtc),
           ...(showContactAt ? [formatDateTime(row.contactTimeUtc)] : []),
@@ -1630,6 +1678,10 @@ function LeadIntentPanel({
           row.lead?.phoneNumber,
           row.lead?.email,
           row.lead?.statusOriginal,
+          row.lastCallAgentName,
+          formatAgentLabel(row.lastCallAgentId, row.lastCallAgentName),
+          formatDateTime(row.lastCallTimeUtc),
+          row.lastCallCodeDetails || row.lastCallCode,
           row.interestType,
           row.serviceDisplayName || row.serviceKey,
           formatLanguage(row.language),
@@ -1638,7 +1690,7 @@ function LeadIntentPanel({
         ])}
         loading={loading}
         onRowDoubleClick={(index) => {
-          const row = rows[index];
+          const row = sortedRows[index];
           if (row && (isCarFinanceIntent(row) || isInternationalPensionsIntent(row))) {
             onSelectIntent(row);
             return;
@@ -1646,7 +1698,13 @@ function LeadIntentPanel({
 
           onError("Detaliile pentru acest tip de intent nu sunt implementate inca.");
         }}
-        minWidth={1260}
+        sortableColumns={{
+          Created: {
+            direction: createdSortDirection,
+            onClick: () => setCreatedSortDirection((current) => (current === "asc" ? "desc" : "asc")),
+          },
+        }}
+        minWidth={1560}
       />
       <style jsx>{panelStyles}</style>
     </CrmCard>
@@ -1942,6 +2000,7 @@ function DataTable({
   loading,
   onRowClick,
   onRowDoubleClick,
+  sortableColumns,
   minWidth,
 }: {
   columns: string[];
@@ -1949,6 +2008,7 @@ function DataTable({
   loading?: boolean;
   onRowClick?: (index: number) => void;
   onRowDoubleClick?: (index: number) => void;
+  sortableColumns?: Record<string, { direction: "asc" | "desc"; onClick: () => void }>;
   minWidth?: number;
 }) {
   return (
@@ -1956,9 +2016,21 @@ function DataTable({
       <table style={{ minWidth }}>
         <thead>
           <tr>
-            {columns.map((column) => (
-              <th key={column}>{column}</th>
-            ))}
+            {columns.map((column) => {
+              const sortable = sortableColumns?.[column];
+              return (
+                <th key={column}>
+                  {sortable ? (
+                    <button type="button" className="sort-button" onClick={sortable.onClick}>
+                      {column}
+                      <span aria-hidden="true">{sortable.direction === "asc" ? " ▲" : " ▼"}</span>
+                    </button>
+                  ) : (
+                    column
+                  )}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -2006,6 +2078,15 @@ function DataTable({
           color: #fff;
           font-weight: 700;
           border-right: 2px solid #111;
+        }
+        .sort-button {
+          width: 100%;
+          min-height: 40px;
+          border: 0;
+          background: transparent;
+          color: inherit;
+          font: inherit;
+          cursor: pointer;
         }
         td {
           height: 36px;
@@ -2430,6 +2511,23 @@ function formatDateTime(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getDateTimeValue(value?: string | null) {
+  if (!value) {
+    return 0;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function formatAgentLabel(agentId?: number | null, agentName?: string | null) {
+  if (agentId === undefined || agentId === null) {
+    return "";
+  }
+
+  return agentName ? `${agentId} - ${agentName}` : String(agentId);
 }
 
 function toInputDate(value?: string | null) {

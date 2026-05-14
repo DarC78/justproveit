@@ -86,6 +86,12 @@ export type CrmLeadIntentRow = {
   intentStatus?: string | null;
   addToDialler?: number | null;
   notes?: string | null;
+  lastCallAgentId?: number | null;
+  lastCallAgentName?: string | null;
+  lastCallTraceId?: number | null;
+  lastCallTimeUtc?: string | null;
+  lastCallCode?: number | null;
+  lastCallCodeDetails?: string | null;
   createdAtUtc?: string | null;
   closedAtUtc?: string | null;
   updatedAtUtc?: string | null;
@@ -124,6 +130,7 @@ export type CrmLeadIntentResponse = {
     intents?: string[];
     services?: CrmLeadIntentServiceOption[];
     languages?: string[];
+    agents?: Array<{ agentId: number; agentName?: string | null }>;
   };
 };
 
