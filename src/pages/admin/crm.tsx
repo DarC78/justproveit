@@ -1491,6 +1491,7 @@ function LeadIntentPanel({
   const [service, setService] = useState("all");
   const [language, setLanguage] = useState("all");
   const [toBeContacted, setToBeContacted] = useState("oricand");
+  const [closed, setClosed] = useState(false);
   const [rows, setRows] = useState<CrmLeadIntentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [resultText, setResultText] = useState("");
@@ -1515,6 +1516,7 @@ function LeadIntentPanel({
         intent,
         service,
         language,
+        closed,
         limit: 300,
       });
       const nextRows = result.rows || result.items || [];
@@ -1591,6 +1593,9 @@ function LeadIntentPanel({
           <option value="nextweek">Urmatoarea saptamana</option>
           <option value="oricand">Oricand</option>
         </select>
+
+        <label>Closed</label>
+        <input type="checkbox" checked={closed} onChange={(event) => setClosed(event.target.checked)} />
 
         <button type="button" className="orange small" onClick={loadIntents} disabled={loading}>
           {loading ? "Se incarca..." : "Filter"}
