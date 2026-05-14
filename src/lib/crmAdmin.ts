@@ -82,6 +82,7 @@ export type CrmLeadIntentRow = {
   adGroupName?: string | null;
   adName?: string | null;
   language?: string | null;
+  contactTimeUtc?: string | null;
   intentStatus?: string | null;
   addToDialler?: number | null;
   notes?: string | null;

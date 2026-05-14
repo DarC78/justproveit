@@ -1364,6 +1364,7 @@ function LeadIntentPanel({
   const [intent, setIntent] = useState("all");
   const [service, setService] = useState("all");
   const [language, setLanguage] = useState("all");
+  const [toBeContacted, setToBeContacted] = useState("oricand");
   const [rows, setRows] = useState<CrmLeadIntentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [resultText, setResultText] = useState("");
@@ -1382,6 +1383,7 @@ function LeadIntentPanel({
       const result = await listCrmLeadIntents(token, {
         createdLastDays,
         statusBucket,
+        toBeContacted,
         intent,
         service,
         language,
@@ -1451,6 +1453,16 @@ function LeadIntentPanel({
           ))}
         </select>
 
+        <label>ToBeContacted</label>
+        <select value={toBeContacted} onChange={(event) => setToBeContacted(event.target.value)}>
+          <option value="past">In trecut</option>
+          <option value="today">Azi</option>
+          <option value="tomorrow">Maine</option>
+          <option value="next3days">Urmatoarele 3 zile</option>
+          <option value="nextweek">Urmatoarea saptamana</option>
+          <option value="oricand">Oricand</option>
+        </select>
+
         <button type="button" className="orange small" onClick={loadIntents} disabled={loading}>
           {loading ? "Se incarca..." : "Filter"}
         </button>
@@ -1458,9 +1470,10 @@ function LeadIntentPanel({
 
       <p className="green-label">{resultText || "Total Leads Filtrate: 0 | NewLeads 0 | NotConnected 0 | WIP 0 | ENDED 0"}</p>
       <DataTable
-        columns={["Created", "Name", "Phone", "Email", "CRM Status", "Intent", "Service", "Language", "Source", "Campaign"]}
+        columns={["Created", "Contact at", "Name", "Phone", "Email", "CRM Status", "Intent", "Service", "Language", "Source", "Campaign"]}
         rows={rows.map((row) => [
           formatDateTime(row.createdAtUtc),
+          formatDateTime(row.contactTimeUtc),
           row.lead?.fullName,
           row.lead?.phoneNumber,
           row.lead?.email,
