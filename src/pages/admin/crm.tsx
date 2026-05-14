@@ -270,6 +270,10 @@ function mergeServiceOptions(
   return [{ serviceKey: currentValue, displayName: currentValue }, ...serviceOptions];
 }
 
+function isCarFinanceIntent(row?: CrmLeadIntentRow | null) {
+  return String(row?.serviceKey || "").toLowerCase() === "carfinance";
+}
+
 export default function AdminCrmPage() {
   const router = useRouter();
   const { status, user, token, isAdmin, requireAdmin } = useAuth();
@@ -1519,11 +1523,15 @@ function LeadIntentPanel({
           row.campaignName || row.adName,
         ])}
         loading={loading}
-        onRowClick={(index) => {
-          const lead = rows[index]?.lead;
-          if (lead) {
+        onRowDoubleClick={(index) => {
+          const row = rows[index];
+          const lead = row?.lead;
+          if (lead && isCarFinanceIntent(row)) {
             onSelectLead(lead);
+            return;
           }
+
+          onError("Detaliile pentru acest tip de intent nu sunt implementate inca.");
         }}
         minWidth={1260}
       />
@@ -1820,12 +1828,14 @@ function DataTable({
   rows,
   loading,
   onRowClick,
+  onRowDoubleClick,
   minWidth,
 }: {
   columns: string[];
   rows: Array<Array<string | number | null | undefined>>;
   loading?: boolean;
   onRowClick?: (index: number) => void;
+  onRowDoubleClick?: (index: number) => void;
   minWidth?: number;
 }) {
   return (
@@ -1848,7 +1858,8 @@ function DataTable({
               <tr
                 key={`${index}-${row[0]}`}
                 onClick={() => onRowClick?.(index)}
-                className={onRowClick ? "clickable" : undefined}
+                onDoubleClick={() => onRowDoubleClick?.(index)}
+                className={onRowClick || onRowDoubleClick ? "clickable" : undefined}
               >
                 {row.map((cell, cellIndex) => (
                   <td key={cellIndex}>{cell ?? ""}</td>
