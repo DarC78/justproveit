@@ -274,6 +274,11 @@ function isCarFinanceIntent(row?: CrmLeadIntentRow | null) {
   return String(row?.serviceKey || "").toLowerCase() === "carfinance";
 }
 
+function isInternationalPensionsIntent(row?: CrmLeadIntentRow | null) {
+  const serviceKey = String(row?.serviceKey || "").toLowerCase();
+  return serviceKey === "internationalpensions" || serviceKey === "pensiiinternationale";
+}
+
 export default function AdminCrmPage() {
   const router = useRouter();
   const { status, user, token, isAdmin, requireAdmin } = useAuth();
@@ -281,6 +286,7 @@ export default function AdminCrmPage() {
   const [gateError, setGateError] = useState("");
   const [activeTabState, setActiveTabState] = useState<TabKey>("details");
   const [selectedLead, setSelectedLead] = useState<CrmLead>(() => blankLead());
+  const [selectedIntent, setSelectedIntent] = useState<CrmLeadIntentRow | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -343,8 +349,22 @@ export default function AdminCrmPage() {
 
   function handleLeadSelected(lead: CrmLead) {
     setSelectedLead(lead);
+    setSelectedIntent(null);
     setActiveTabState("details");
     setStatusMessage("Lead incarcat.");
+    setErrorMessage("");
+  }
+
+  function handleIntentSelected(row: CrmLeadIntentRow) {
+    if (!row.lead) {
+      setErrorMessage("Intentul selectat nu are lead atasat.");
+      return;
+    }
+
+    setSelectedLead(row.lead);
+    setSelectedIntent(row);
+    setActiveTabState("details");
+    setStatusMessage("Intent incarcat.");
     setErrorMessage("");
   }
 
@@ -385,14 +405,18 @@ export default function AdminCrmPage() {
             {statusMessage ? <p className="crm-alert success">{statusMessage}</p> : null}
 
             {activeTab === "details" ? (
-              <LeadDetailsPanel
-                token={token}
-                agentName={agentName}
-                lead={selectedLead}
-                onLeadChange={setSelectedLead}
-                onStatus={setStatusMessage}
-                onError={setErrorMessage}
-              />
+              selectedIntent && isInternationalPensionsIntent(selectedIntent) ? (
+                <InternationalPensionsDetailsPanel lead={selectedLead} intent={selectedIntent} />
+              ) : (
+                <LeadDetailsPanel
+                  token={token}
+                  agentName={agentName}
+                  lead={selectedLead}
+                  onLeadChange={setSelectedLead}
+                  onStatus={setStatusMessage}
+                  onError={setErrorMessage}
+                />
+              )
             ) : null}
 
             {activeTab === "new" ? (
@@ -401,6 +425,7 @@ export default function AdminCrmPage() {
                 agentName={agentName}
                 onCreated={(lead) => {
                   setSelectedLead(lead);
+                  setSelectedIntent(null);
                   setActiveTabState("details");
                   setStatusMessage("Lead adaugat.");
                 }}
@@ -434,7 +459,7 @@ export default function AdminCrmPage() {
             {activeTab === "intents" ? (
               <LeadIntentPanel
                 token={token}
-                onSelectLead={handleLeadSelected}
+                onSelectIntent={handleIntentSelected}
                 onError={setErrorMessage}
               />
             ) : null}
@@ -1058,6 +1083,56 @@ function LeadDetailsPanel({
   );
 }
 
+function InternationalPensionsDetailsPanel({
+  lead,
+  intent,
+}: {
+  lead: CrmLead;
+  intent: CrmLeadIntentRow;
+}) {
+  return (
+    <CrmCard title="Detalii Pensii Internationale" className="details-card">
+      <div className="detail-grid">
+        <LabelValue label="Nume:" value={lead.fullName} />
+        <LabelValue label="Telefon:" value={lead.phoneNumber} />
+        <LabelValue label="Email:" value={lead.email} />
+        <LabelValue label="Status:" value={lead.statusOriginal} />
+        <LabelValue label="Intent:" value={intent.interestType} />
+        <LabelValue label="Service:" value={intent.serviceDisplayName || intent.serviceKey} />
+        <LabelValue label="Limba:" value={formatLanguage(intent.language || lead.language)} />
+        <LabelValue label="Sursa:" value={intent.source} />
+      </div>
+
+      <div className="calculator-frame-wrap">
+        <iframe
+          title="Calculator varsta pensionare"
+          src="/ro/calculator-varsta-pensionare"
+          className="calculator-frame"
+        />
+      </div>
+
+      <style jsx>{panelStyles}</style>
+      <style jsx>{`
+        .calculator-frame-wrap {
+          margin-top: 24px;
+          border: 4px solid #0c389d;
+          height: min(980px, calc(100vh - 240px));
+          min-height: 680px;
+          overflow: hidden;
+          background: #fff;
+        }
+
+        .calculator-frame {
+          width: 100%;
+          height: 100%;
+          border: 0;
+          display: block;
+        }
+      `}</style>
+    </CrmCard>
+  );
+}
+
 function NewLeadPanel({
   token,
   agentName,
@@ -1377,11 +1452,11 @@ function AllLeadsPanel({
 
 function LeadIntentPanel({
   token,
-  onSelectLead,
+  onSelectIntent,
   onError,
 }: {
   token: string;
-  onSelectLead: (lead: CrmLead) => void;
+  onSelectIntent: (row: CrmLeadIntentRow) => void;
   onError: (message: string) => void;
 }) {
   const [createdLastDays, setCreatedLastDays] = useState("30");
@@ -1525,9 +1600,8 @@ function LeadIntentPanel({
         loading={loading}
         onRowDoubleClick={(index) => {
           const row = rows[index];
-          const lead = row?.lead;
-          if (lead && isCarFinanceIntent(row)) {
-            onSelectLead(lead);
+          if (row && (isCarFinanceIntent(row) || isInternationalPensionsIntent(row))) {
+            onSelectIntent(row);
             return;
           }
 
