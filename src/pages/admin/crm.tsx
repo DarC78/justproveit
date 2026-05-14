@@ -1090,6 +1090,8 @@ function InternationalPensionsDetailsPanel({
   lead: CrmLead;
   intent: CrmLeadIntentRow;
 }) {
+  const calculatorUrl = buildPensionCalculatorUrl(lead);
+
   return (
     <CrmCard title="Detalii Pensii Internationale" className="details-card">
       <div className="detail-grid">
@@ -1106,7 +1108,7 @@ function InternationalPensionsDetailsPanel({
       <div className="calculator-frame-wrap">
         <iframe
           title="Calculator varsta pensionare"
-          src="/ro/calculator-varsta-pensionare"
+          src={calculatorUrl}
           className="calculator-frame"
         />
       </div>
@@ -1131,6 +1133,30 @@ function InternationalPensionsDetailsPanel({
       `}</style>
     </CrmCard>
   );
+}
+
+function buildPensionCalculatorUrl(lead: CrmLead) {
+  const params = new URLSearchParams();
+  const fullName = lead.fullName?.trim();
+  const email = lead.email?.trim();
+  const phone = lead.phoneNumber?.trim();
+
+  if (fullName) {
+    params.set("fullName", fullName);
+    params.set("nume", fullName);
+  }
+
+  if (email) {
+    params.set("email", email);
+  }
+
+  if (phone) {
+    params.set("phone", phone);
+    params.set("telefon", phone);
+  }
+
+  const query = params.toString();
+  return `/ro/calculator-varsta-pensionare${query ? `?${query}` : ""}`;
 }
 
 function NewLeadPanel({
