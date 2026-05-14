@@ -1605,6 +1605,7 @@ function LeadIntentPanel({
       <DataTable
         columns={[
           "Created",
+          "Closed",
           ...(showContactAt ? ["Contact at"] : []),
           "Name",
           "Phone",
@@ -1618,6 +1619,7 @@ function LeadIntentPanel({
         ]}
         rows={rows.map((row) => [
           formatDateTime(row.createdAtUtc),
+          formatDateTime(row.closedAtUtc),
           ...(showContactAt ? [formatDateTime(row.contactTimeUtc)] : []),
           row.lead?.fullName,
           row.lead?.phoneNumber,

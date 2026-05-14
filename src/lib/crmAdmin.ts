@@ -87,6 +87,7 @@ export type CrmLeadIntentRow = {
   addToDialler?: number | null;
   notes?: string | null;
   createdAtUtc?: string | null;
+  closedAtUtc?: string | null;
   updatedAtUtc?: string | null;
   lead?: CrmLead | null;
 };
