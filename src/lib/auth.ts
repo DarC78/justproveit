@@ -48,6 +48,15 @@ export function isAdminUser(user: AuthUser | null | undefined) {
   );
 }
 
+export function isCrmUser(user: AuthUser | null | undefined) {
+  return (
+    isAdminUser(user) ||
+    user?.roles?.includes("crm-admin") ||
+    user?.permissions?.includes("crm:access") ||
+    false
+  );
+}
+
 export function getStoredSession() {
   if (typeof window === "undefined") {
     return { token: null, refreshToken: null, user: null };

@@ -4,6 +4,7 @@ import {
   clearStoredSession,
   getStoredSession,
   isAdminUser,
+  isCrmUser,
   loginRequest,
   logoutRequest,
   meRequest,
@@ -27,6 +28,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   token: string | null;
   isAdmin: boolean;
+  isCrm: boolean;
   login: (email: string, password: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
@@ -192,6 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       token,
       isAdmin: isAdminUser(user),
+      isCrm: isCrmUser(user),
       login,
       logout,
       refreshSession,

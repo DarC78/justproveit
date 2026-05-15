@@ -1,5 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
-import { isAdminUser } from "@/lib/auth";
+import { AuthUser, isAdminUser, isCrmUser } from "@/lib/auth";
 import Head from "next/head";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
@@ -18,7 +18,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace(isAdminUser(user) ? "/admin" : "/");
+    router.replace(getPostLoginPath(user));
   }, [router, status, user]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -28,7 +28,7 @@ export default function LoginPage() {
 
     try {
       const loggedInUser = await login(email, password);
-      await router.push(isAdminUser(loggedInUser) ? "/admin" : "/");
+      await router.push(getPostLoginPath(loggedInUser));
     } catch (loginError) {
       setError(readLoginError(loginError));
     } finally {
@@ -107,6 +107,18 @@ export default function LoginPage() {
       </main>
     </>
   );
+}
+
+function getPostLoginPath(user: AuthUser | null | undefined) {
+  if (isAdminUser(user)) {
+    return "/admin";
+  }
+
+  if (isCrmUser(user)) {
+    return "/admin/crm";
+  }
+
+  return "/";
 }
 
 function readLoginError(error: unknown) {

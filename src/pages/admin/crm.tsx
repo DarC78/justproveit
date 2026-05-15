@@ -309,7 +309,7 @@ function isInternationalPensionsIntent(row?: CrmLeadIntentRow | null) {
 
 export default function AdminCrmPage() {
   const router = useRouter();
-  const { status, user, token, isAdmin, requireAdmin } = useAuth();
+  const { status, user, token, isCrm } = useAuth();
   const [gateStatus, setGateStatus] = useState<GateStatus>("checking");
   const [gateError, setGateError] = useState("");
   const [activeTabState, setActiveTabState] = useState<TabKey>(() => getInitialTab());
@@ -336,17 +336,15 @@ export default function AdminCrmPage() {
       setGateStatus("checking");
       setGateError("");
 
-      if (!isAdmin) {
+      if (!isCrm) {
         setGateStatus("denied");
-        setGateError("The logged-in user profile does not include tenant-admin access.");
+        setGateError("The logged-in user profile does not include CRM access.");
         return;
       }
 
-      const result = await requireAdmin();
-
       if (!cancelled) {
-        setGateStatus(result.allowed ? "allowed" : "denied");
-        setGateError(result.error ?? "");
+        setGateStatus("allowed");
+        setGateError("");
       }
     }
 
@@ -355,7 +353,7 @@ export default function AdminCrmPage() {
     return () => {
       cancelled = true;
     };
-  }, [isAdmin, requireAdmin, router, status]);
+  }, [isCrm, router, status]);
 
   const agentName = user?.name || user?.email || "";
   const activeTab = activeTabState;
