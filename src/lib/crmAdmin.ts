@@ -98,6 +98,14 @@ export type CrmLeadIntentRow = {
   lead?: CrmLead | null;
 };
 
+export type CrmPredictiveCampaignSummary = {
+  queueId?: number | null;
+  campaignName?: string | null;
+  totalLeads?: number;
+  calledToday?: number;
+  connectedToday?: number;
+};
+
 export type CrmLeadListResponse = {
   leads: CrmLead[];
   total: number;
@@ -132,6 +140,7 @@ export type CrmLeadIntentResponse = {
     languages?: string[];
     agents?: Array<{ agentId: number; agentName?: string | null }>;
   };
+  predictiveCampaignSummary?: CrmPredictiveCampaignSummary[];
 };
 
 export type CrmLeadUpdatePayload = {

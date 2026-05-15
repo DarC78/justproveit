@@ -4,6 +4,7 @@ import {
   CrmLead,
   CrmLeadIntentRow,
   CrmMissedCall,
+  CrmPredictiveCampaignSummary,
   CrmSale,
   findCrmLeadByPhone,
   insertManualCrmLead,
@@ -1535,6 +1536,7 @@ function LeadIntentPanel({
   const [rows, setRows] = useState<CrmLeadIntentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [resultText, setResultText] = useState("");
+  const [predictiveCampaignSummary, setPredictiveCampaignSummary] = useState<CrmPredictiveCampaignSummary[]>([]);
   const [selectedLeadsTotal, setSelectedLeadsTotal] = useState(0);
   const [createdSortDirection, setCreatedSortDirection] = useState<"asc" | "desc">("desc");
   const [intentOptions, setIntentOptions] = useState<string[]>([]);
@@ -1581,6 +1583,7 @@ function LeadIntentPanel({
       setServiceOptions(result.options?.services || []);
       setLanguageOptions(mergeLanguageOptions(result.options?.languages || []));
       setAgentOptions(result.options?.agents || []);
+      setPredictiveCampaignSummary(result.predictiveCampaignSummary || []);
       onError("");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Nu am putut incarca lead intent.");
@@ -1676,6 +1679,18 @@ function LeadIntentPanel({
         {resultText || "Total Leads: 0 | ASAP 0 | Calendly 0 | Car Finance 0 | International Pensions 0"}
         <br />
         Total Selected Leads: {selectedLeadsTotal}
+        {predictiveCampaignSummary.length ? (
+          <>
+            <br />
+            {predictiveCampaignSummary.map((campaign) => (
+              <span key={campaign.queueId ?? campaign.campaignName}>
+                {campaign.campaignName || `Queue ${campaign.queueId}`} Total Leads: {campaign.totalLeads ?? 0} Called Today:{" "}
+                {campaign.calledToday ?? 0} Connected Today: {campaign.connectedToday ?? 0}
+                <br />
+              </span>
+            ))}
+          </>
+        ) : null}
       </p>
       <DataTable
         columns={[
