@@ -1685,7 +1685,8 @@ function LeadIntentPanel({
             {predictiveCampaignSummary.map((campaign) => (
               <span key={campaign.queueId ?? campaign.campaignName}>
                 {campaign.campaignName || `Queue ${campaign.queueId}`} Total Leads: {campaign.totalLeads ?? 0} Called Today:{" "}
-                {campaign.calledToday ?? 0} Connected Today: {campaign.connectedToday ?? 0}
+                {campaign.calledToday ?? 0} ({campaign.calledYesterday ?? 0}) Connected Today: {campaign.connectedToday ?? 0} (
+                {campaign.connectedYesterday ?? 0})
                 <br />
               </span>
             ))}

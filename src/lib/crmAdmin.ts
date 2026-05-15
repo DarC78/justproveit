@@ -104,6 +104,8 @@ export type CrmPredictiveCampaignSummary = {
   totalLeads?: number;
   calledToday?: number;
   connectedToday?: number;
+  calledYesterday?: number;
+  connectedYesterday?: number;
 };
 
 export type CrmLeadListResponse = {
