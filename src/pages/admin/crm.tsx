@@ -1686,7 +1686,7 @@ function LeadIntentPanel({
               <span key={campaign.queueId ?? campaign.campaignName}>
                 {campaign.campaignName || `Queue ${campaign.queueId}`} Total Leads: {campaign.totalLeads ?? 0} Called Today:{" "}
                 {campaign.calledToday ?? 0} ({campaign.calledYesterday ?? 0}) Connected Today: {campaign.connectedToday ?? 0} (
-                {campaign.connectedYesterday ?? 0})
+                {campaign.connectedYesterday ?? 0}) {formatTopCallCodes(campaign.topCallCodes)}
                 <br />
               </span>
             ))}
@@ -2570,6 +2570,19 @@ function formatAgentLabel(agentId?: number | null, agentName?: string | null) {
   }
 
   return agentName ? `${agentId} - ${agentName}` : String(agentId);
+}
+
+function formatTopCallCodes(
+  callCodes?: Array<{ callCode?: number | null; label?: string | null; count?: number }>,
+) {
+  if (!callCodes?.length) {
+    return "";
+  }
+
+  return callCodes
+    .slice(0, 3)
+    .map((callCode) => `${callCode.label || `CallCode ${callCode.callCode ?? ""}`}: ${callCode.count ?? 0}`)
+    .join(" ");
 }
 
 function toInputDate(value?: string | null) {

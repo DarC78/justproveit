@@ -106,6 +106,11 @@ export type CrmPredictiveCampaignSummary = {
   connectedToday?: number;
   calledYesterday?: number;
   connectedYesterday?: number;
+  topCallCodes?: Array<{
+    callCode?: number | null;
+    label?: string | null;
+    count?: number;
+  }>;
 };
 
 export type CrmLeadListResponse = {
