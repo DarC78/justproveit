@@ -110,6 +110,7 @@ export type CrmPredictiveCampaignSummary = {
     callCode?: number | null;
     label?: string | null;
     count?: number;
+    yesterdayCount?: number;
   }>;
 };
 

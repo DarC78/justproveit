@@ -2573,7 +2573,7 @@ function formatAgentLabel(agentId?: number | null, agentName?: string | null) {
 }
 
 function formatTopCallCodes(
-  callCodes?: Array<{ callCode?: number | null; label?: string | null; count?: number }>,
+  callCodes?: Array<{ callCode?: number | null; label?: string | null; count?: number; yesterdayCount?: number }>,
 ) {
   if (!callCodes?.length) {
     return "";
@@ -2581,7 +2581,10 @@ function formatTopCallCodes(
 
   return callCodes
     .slice(0, 3)
-    .map((callCode) => `${callCode.label || `CallCode ${callCode.callCode ?? ""}`}: ${callCode.count ?? 0}`)
+    .map(
+      (callCode) =>
+        `${callCode.label || `CallCode ${callCode.callCode ?? ""}`}: ${callCode.count ?? 0} (${callCode.yesterdayCount ?? 0})`,
+    )
     .join(" ");
 }
 
