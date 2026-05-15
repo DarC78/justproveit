@@ -21,7 +21,7 @@ import {
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type TabKey = "details" | "new" | "sales" | "personal" | "all" | "intents" | "manual" | "missed";
 type GateStatus = "checking" | "allowed" | "denied";
@@ -36,6 +36,15 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "manual", label: "Send Manual Email/SMS" },
   { key: "missed", label: "Missed Calls" },
 ];
+
+function getInitialTab(): TabKey {
+  if (typeof window === "undefined") {
+    return "details";
+  }
+
+  const tab = new URLSearchParams(window.location.search).get("tab");
+  return TABS.some((item) => item.key === tab) ? (tab as TabKey) : "details";
+}
 
 const STATUS_OPTIONS = [
   "new lead",
@@ -292,10 +301,6 @@ function mergeAgentOptions(
   return [{ agentId: currentValue, agentName: null }, ...unique];
 }
 
-function isCarFinanceIntent(row?: CrmLeadIntentRow | null) {
-  return String(row?.serviceKey || "").toLowerCase() === "carfinance";
-}
-
 function isInternationalPensionsIntent(row?: CrmLeadIntentRow | null) {
   const serviceKey = String(row?.serviceKey || "").toLowerCase();
   return serviceKey === "internationalpensions" || serviceKey === "pensiiinternationale";
@@ -306,11 +311,13 @@ export default function AdminCrmPage() {
   const { status, user, token, isAdmin, requireAdmin } = useAuth();
   const [gateStatus, setGateStatus] = useState<GateStatus>("checking");
   const [gateError, setGateError] = useState("");
-  const [activeTabState, setActiveTabState] = useState<TabKey>("details");
+  const [activeTabState, setActiveTabState] = useState<TabKey>(() => getInitialTab());
   const [selectedLead, setSelectedLead] = useState<CrmLead>(() => blankLead());
   const [selectedIntent, setSelectedIntent] = useState<CrmLeadIntentRow | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const tabContentRef = useRef<HTMLDivElement | null>(null);
+  const detailsTabButtonRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
     if (status === "loading") {
@@ -350,15 +357,15 @@ export default function AdminCrmPage() {
   }, [isAdmin, requireAdmin, router, status]);
 
   const agentName = user?.name || user?.email || "";
-  const queryTab = String(router.query.tab ?? "");
-  const activeTab = TABS.some((item) => item.key === queryTab)
-    ? (queryTab as TabKey)
-    : activeTabState;
+  const activeTab = activeTabState;
 
-  function handleTabChange(nextTab: TabKey) {
+  function openTab(nextTab: TabKey) {
     setActiveTabState(nextTab);
-    setErrorMessage("");
-    setStatusMessage("");
+    if (nextTab === "details") {
+      window.requestAnimationFrame(() => {
+        tabContentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
     router.replace(
       {
         pathname: router.pathname,
@@ -369,10 +376,16 @@ export default function AdminCrmPage() {
     );
   }
 
+  function handleTabChange(nextTab: TabKey) {
+    setErrorMessage("");
+    setStatusMessage("");
+    openTab(nextTab);
+  }
+
   function handleLeadSelected(lead: CrmLead) {
     setSelectedLead(lead);
     setSelectedIntent(null);
-    setActiveTabState("details");
+    detailsTabButtonRef.current?.click();
     setStatusMessage("Lead incarcat.");
     setErrorMessage("");
   }
@@ -385,7 +398,7 @@ export default function AdminCrmPage() {
 
     setSelectedLead(row.lead);
     setSelectedIntent(row);
-    setActiveTabState("details");
+    detailsTabButtonRef.current?.click();
     setStatusMessage("Intent incarcat.");
     setErrorMessage("");
   }
@@ -404,6 +417,7 @@ export default function AdminCrmPage() {
           {TABS.map((tab) => (
             <button
               key={tab.key}
+              ref={tab.key === "details" ? detailsTabButtonRef : undefined}
               type="button"
               className={activeTab === tab.key ? "toolbar-btn active" : "toolbar-btn"}
               onClick={() => handleTabChange(tab.key)}
@@ -426,78 +440,80 @@ export default function AdminCrmPage() {
             {errorMessage ? <p className="crm-alert error">{errorMessage}</p> : null}
             {statusMessage ? <p className="crm-alert success">{statusMessage}</p> : null}
 
-            {activeTab === "details" ? (
-              selectedIntent && isInternationalPensionsIntent(selectedIntent) ? (
-                <InternationalPensionsDetailsPanel lead={selectedLead} intent={selectedIntent} />
-              ) : (
-                <LeadDetailsPanel
+            <div ref={tabContentRef}>
+              {activeTab === "details" ? (
+                selectedIntent && isInternationalPensionsIntent(selectedIntent) ? (
+                  <InternationalPensionsDetailsPanel lead={selectedLead} intent={selectedIntent} />
+                ) : (
+                  <LeadDetailsPanel
+                    token={token}
+                    agentName={agentName}
+                    lead={selectedLead}
+                    onLeadChange={setSelectedLead}
+                    onStatus={setStatusMessage}
+                    onError={setErrorMessage}
+                  />
+                )
+              ) : null}
+
+              {activeTab === "new" ? (
+                <NewLeadPanel
                   token={token}
                   agentName={agentName}
-                  lead={selectedLead}
-                  onLeadChange={setSelectedLead}
+                  onCreated={(lead) => {
+                    setSelectedLead(lead);
+                    setSelectedIntent(null);
+                    setActiveTabState("details");
+                    setStatusMessage("Lead adaugat.");
+                  }}
+                  onError={setErrorMessage}
+                />
+              ) : null}
+
+              {activeTab === "sales" ? (
+                <SalesPanel token={token} onError={setErrorMessage} />
+              ) : null}
+
+              {activeTab === "personal" ? (
+                <LeadListPanel
+                  token={token}
+                  title="Potentiali clienti - lista personala"
+                  mine
+                  agentName={agentName}
+                  onSelectLead={handleLeadSelected}
+                  onError={setErrorMessage}
+                />
+              ) : null}
+
+              {activeTab === "all" ? (
+                <AllLeadsPanel
+                  token={token}
+                  onSelectLead={handleLeadSelected}
+                  onError={setErrorMessage}
+                />
+              ) : null}
+
+              {activeTab === "intents" ? (
+                <LeadIntentPanel
+                  token={token}
+                  onSelectIntent={handleIntentSelected}
+                  onError={setErrorMessage}
+                />
+              ) : null}
+
+              {activeTab === "manual" ? (
+                <ManualEmailSmsPanel
+                  token={token}
+                  agentName={agentName}
                   onStatus={setStatusMessage}
                   onError={setErrorMessage}
                 />
-              )
-            ) : null}
+              ) : null}
 
-            {activeTab === "new" ? (
-              <NewLeadPanel
-                token={token}
-                agentName={agentName}
-                onCreated={(lead) => {
-                  setSelectedLead(lead);
-                  setSelectedIntent(null);
-                  setActiveTabState("details");
-                  setStatusMessage("Lead adaugat.");
-                }}
-                onError={setErrorMessage}
-              />
-            ) : null}
-
-            {activeTab === "sales" ? (
-              <SalesPanel token={token} onError={setErrorMessage} />
-            ) : null}
-
-            {activeTab === "personal" ? (
-              <LeadListPanel
-                token={token}
-                title="Potentiali clienti - lista personala"
-                mine
-                agentName={agentName}
-                onSelectLead={handleLeadSelected}
-                onError={setErrorMessage}
-              />
-            ) : null}
-
-            {activeTab === "all" ? (
-              <AllLeadsPanel
-                token={token}
-                onSelectLead={handleLeadSelected}
-                onError={setErrorMessage}
-              />
-            ) : null}
-
-            {activeTab === "intents" ? (
-              <LeadIntentPanel
-                token={token}
-                onSelectIntent={handleIntentSelected}
-                onError={setErrorMessage}
-              />
-            ) : null}
-
-            {activeTab === "manual" ? (
-              <ManualEmailSmsPanel
-                token={token}
-                agentName={agentName}
-                onStatus={setStatusMessage}
-                onError={setErrorMessage}
-              />
-            ) : null}
-
-            {activeTab === "missed" ? (
-              <MissedCallsPanel token={token} onError={setErrorMessage} />
-            ) : null}
+              {activeTab === "missed" ? (
+                <MissedCallsPanel token={token} onError={setErrorMessage} />
+              ) : null}
+            </div>
           </>
         ) : null}
 
@@ -1512,6 +1528,7 @@ function LeadIntentPanel({
   const [intent, setIntent] = useState("all");
   const [service, setService] = useState("all");
   const [language, setLanguage] = useState("all");
+  const [phone, setPhone] = useState("");
   const [lastCallAgentId, setLastCallAgentId] = useState("all");
   const [toBeContacted, setToBeContacted] = useState("oricand");
   const [closed, setClosed] = useState(false);
@@ -1548,6 +1565,7 @@ function LeadIntentPanel({
         intent,
         service,
         language,
+        phone,
         lastCallAgentId,
         closed,
         limit: 300,
@@ -1617,6 +1635,14 @@ function LeadIntentPanel({
             <option key={item}>{item}</option>
           ))}
         </select>
+
+        <label>Phone</label>
+        <input
+          type="search"
+          value={phone}
+          onChange={(event) => setPhone(event.target.value)}
+          placeholder="Phone or last 6"
+        />
 
         <label>ToBeContacted</label>
         <select value={toBeContacted} onChange={(event) => setToBeContacted(event.target.value)}>
@@ -1691,12 +1717,12 @@ function LeadIntentPanel({
         loading={loading}
         onRowDoubleClick={(index) => {
           const row = sortedRows[index];
-          if (row && (isCarFinanceIntent(row) || isInternationalPensionsIntent(row))) {
+          if (row?.lead) {
             onSelectIntent(row);
             return;
           }
 
-          onError("Detaliile pentru acest tip de intent nu sunt implementate inca.");
+          onError("Intentul selectat nu are lead atasat.");
         }}
         sortableColumns={{
           Created: {
