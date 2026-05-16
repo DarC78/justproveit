@@ -1,5 +1,5 @@
-const DEFAULT_LAUNCHINGSTACK_API_BASE_URL =
-  "https://launchingstack-func-dev.azurewebsites.net/api";
+const DEFAULT_ADMIN_API_BASE_URL =
+  "https://apiprocess.azurewebsites.net/api";
 
 async function handleProxy(context, req, config) {
   const authorization = getAuthorization(req);
@@ -50,9 +50,9 @@ async function handleProxy(context, req, config) {
 
 async function confirmAdminAccess(authorization) {
   const baseUrl =
-    process.env.LAUNCHINGSTACK_API_BASE_URL ||
+    process.env.JUSTPROVEIT_API_BASE_URL ||
     process.env.NEXT_PUBLIC_API_BASE_URL ||
-    DEFAULT_LAUNCHINGSTACK_API_BASE_URL;
+    DEFAULT_ADMIN_API_BASE_URL;
 
   try {
     const response = await fetch(`${baseUrl}/auth/me`, {

@@ -29,7 +29,7 @@ type SessionPayload = {
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.VITE_API_BASE_URL ??
-  "https://launchingstack-func-dev.azurewebsites.net/api";
+  "https://apiprocess.azurewebsites.net/api";
 
 export const TENANT_KEY = "justproveit";
 

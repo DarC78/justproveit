@@ -5,10 +5,10 @@ type ProxyConfig = {
   allowedQueryKeys: string[];
 };
 
-const LAUNCHINGSTACK_API_BASE_URL =
+const ADMIN_API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.VITE_API_BASE_URL ??
-  "https://launchingstack-func-dev.azurewebsites.net/api";
+  "https://apiprocess.azurewebsites.net/api";
 
 export async function handleStripeInstallmentsProxy(
   req: NextApiRequest,
@@ -70,7 +70,7 @@ export async function handleStripeInstallmentsProxy(
 async function confirmAdminAccess(authorization: string) {
   try {
     const response = await fetch(
-      `${LAUNCHINGSTACK_API_BASE_URL}/auth/me`,
+      `${ADMIN_API_BASE_URL}/auth/me`,
       {
         headers: { authorization },
       },
