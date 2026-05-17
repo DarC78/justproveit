@@ -38,6 +38,7 @@ export type ReplyTemplate = {
 };
 
 export type SupportMessage = {
+  unavailable?: boolean;
   id?: string;
   _id?: string;
   supportMessageId?: string | number;

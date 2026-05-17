@@ -1639,11 +1639,18 @@ function getGmailMessageId(message: SupportMessage) {
     message.externalMessageId,
     getStringProperty(message.rawJson, "id"),
     message.messageId,
-    message.id,
-    message._id,
   ];
 
-  return candidates.find(isLikelyGmailApiId) ?? "";
+  const explicitId = candidates.find(isLikelyGmailApiId);
+  if (explicitId) {
+    return explicitId;
+  }
+
+  if (message.supportMessageId) {
+    return "";
+  }
+
+  return [message.id, message._id].find(isLikelyGmailApiId) ?? "";
 }
 
 function getGmailThreadId(message: SupportMessage) {
