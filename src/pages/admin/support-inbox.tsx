@@ -532,13 +532,8 @@ export default function SupportInboxPage() {
       return;
     }
 
-    if (!selectedMessageId) {
-      setActionStatus("No Gmail message id found for the selected email.");
-      return;
-    }
-
     const answeredLabel = findGmailLabelByName(gmailLabels, DONE_ANSWERED_LABEL_NAME);
-    if (!answeredLabel) {
+    if (selectedMessageId && !answeredLabel) {
       setActionStatus(
         `Gmail label "${DONE_ANSWERED_LABEL_NAME}" was not found. Refresh the inbox after creating it in Gmail.`,
       );
@@ -580,13 +575,15 @@ export default function SupportInboxPage() {
         },
       });
 
-      await markMessageRead(token, selectedMessageId);
-      await updateMessageLabels(token, selectedMessageId, {
-        addLabelIds: [answeredLabel.id],
-        removeLabelIds: ["INBOX"],
-      });
+      if (selectedMessageId && answeredLabel) {
+        await markMessageRead(token, selectedMessageId);
+        await updateMessageLabels(token, selectedMessageId, {
+          addLabelIds: [answeredLabel.id],
+          removeLabelIds: ["INBOX"],
+        });
+      }
       await markThreadState(token, "replied", {
-        threadKey: selectedThreadKey || `message:${selectedMessageId}`,
+        threadKey: getSelectedMessageStateKey(selectedMessage, selectedThreadKey),
         recipientEmail: recipient,
         subject,
       });
@@ -605,7 +602,7 @@ export default function SupportInboxPage() {
               customerName: getCustomerName(selectedCustomer, customerEmail),
               eventAt,
               sourceRecordId: `felicitari-template:${customerEmail}:${eventAt}`,
-              sourceParentId: selectedThreadKey || `message:${selectedMessageId}`,
+              sourceParentId: getSelectedMessageStateKey(selectedMessage, selectedThreadKey),
               sourceSystem: "genericreports_admin_felicitari",
               sourceRecordType: "felicitari_template_sent",
               templateKey,
@@ -651,7 +648,9 @@ export default function SupportInboxPage() {
       const stateKeys = getThreadStateKeys(selectedMessage);
       removeMessagesFromInbox(stateKeys);
       setReplyText("");
-      return `Reply sent${result.id ? `: ${result.id}` : ""} and email moved to ${DONE_ANSWERED_LABEL_NAME}.`;
+      return selectedMessageId
+        ? `Reply sent${result.id ? `: ${result.id}` : ""} and email moved to ${DONE_ANSWERED_LABEL_NAME}.`
+        : `Reply sent${result.id ? `: ${result.id}` : ""}. Stored email removed from the support inbox.`;
     });
   }
 
@@ -661,13 +660,9 @@ export default function SupportInboxPage() {
     }
 
     const selectedMessageId = getGmailMessageId(selectedMessage);
-    if (!selectedMessageId) {
-      setActionStatus("No Gmail message id found for the selected email.");
-      return;
-    }
 
     const doneLabel = findGmailLabelByName(gmailLabels, DONE_NO_REPLY_LABEL_NAME);
-    if (!doneLabel) {
+    if (selectedMessageId && !doneLabel) {
       setActionStatus(
         `Gmail label "${DONE_NO_REPLY_LABEL_NAME}" was not found. Refresh the inbox after creating it in Gmail.`,
       );
@@ -679,19 +674,23 @@ export default function SupportInboxPage() {
     }
 
     await runAction(`Moving email to ${DONE_NO_REPLY_LABEL_NAME}...`, async () => {
-      await markMessageRead(token, selectedMessageId);
-      await updateMessageLabels(token, selectedMessageId, {
-        addLabelIds: [doneLabel.id],
-        removeLabelIds: ["INBOX"],
-      });
+      if (selectedMessageId && doneLabel) {
+        await markMessageRead(token, selectedMessageId);
+        await updateMessageLabels(token, selectedMessageId, {
+          addLabelIds: [doneLabel.id],
+          removeLabelIds: ["INBOX"],
+        });
+      }
       await markThreadState(token, "skipped", {
-        threadKey: selectedThreadKey || `message:${selectedMessageId}`,
+        threadKey: getSelectedMessageStateKey(selectedMessage, selectedThreadKey),
         senderEmail: getReplyRecipient(selectedMessage),
         subject: selectedMessage.subject ?? "",
       });
       const stateKeys = getThreadStateKeys(selectedMessage);
       removeMessagesFromInbox(stateKeys);
-      return `Email marked read and moved to ${DONE_NO_REPLY_LABEL_NAME}.`;
+      return selectedMessageId
+        ? `Email marked read and moved to ${DONE_NO_REPLY_LABEL_NAME}.`
+        : "Stored email removed from the support inbox.";
     });
   }
 
@@ -701,13 +700,9 @@ export default function SupportInboxPage() {
     }
 
     const selectedMessageId = getGmailMessageId(selectedMessage);
-    if (!selectedMessageId) {
-      setActionStatus("No Gmail message id found for the selected email.");
-      return;
-    }
 
     const priorityLabel = findGmailLabelByName(gmailLabels, PRIORITY_FIVE_DAYS_LABEL_NAME);
-    if (!priorityLabel) {
+    if (selectedMessageId && !priorityLabel) {
       setActionStatus(
         `Gmail label "${PRIORITY_FIVE_DAYS_LABEL_NAME}" was not found. Refresh the inbox after creating it in Gmail.`,
       );
@@ -719,13 +714,17 @@ export default function SupportInboxPage() {
     }
 
     await runAction(`Moving email to ${PRIORITY_FIVE_DAYS_LABEL_NAME}...`, async () => {
-      await markMessageRead(token, selectedMessageId);
-      await updateMessageLabels(token, selectedMessageId, {
-        addLabelIds: [priorityLabel.id],
-        removeLabelIds: ["INBOX"],
-      });
+      if (selectedMessageId && priorityLabel) {
+        await markMessageRead(token, selectedMessageId);
+        await updateMessageLabels(token, selectedMessageId, {
+          addLabelIds: [priorityLabel.id],
+          removeLabelIds: ["INBOX"],
+        });
+      }
       removeMessagesFromInbox(getThreadStateKeys(selectedMessage));
-      return `Email moved to ${PRIORITY_FIVE_DAYS_LABEL_NAME}.`;
+      return selectedMessageId
+        ? `Email moved to ${PRIORITY_FIVE_DAYS_LABEL_NAME}.`
+        : "Stored email removed from the support inbox.";
     });
   }
 
@@ -1613,8 +1612,26 @@ function getThreadStateKeys(message: SupportMessage) {
 
   addThreadStateKeyVariants(keys, threadId, "thread");
   addThreadStateKeyVariants(keys, messageId, "message");
+  addThreadStateKeyVariants(keys, getInternalMessageKey(message), "message");
 
   return Array.from(keys);
+}
+
+function getSelectedMessageStateKey(
+  message: SupportMessage,
+  selectedThreadKey: string,
+) {
+  return (
+    selectedThreadKey ||
+    getThreadKey(message) ||
+    getInternalMessageKey(message) ||
+    `sender:${getReplyRecipient(message)}`
+  );
+}
+
+function getInternalMessageKey(message: SupportMessage) {
+  const internalId = message.supportMessageId ?? message.id ?? message._id;
+  return internalId ? String(internalId) : "";
 }
 
 function getGmailMessageId(message: SupportMessage) {

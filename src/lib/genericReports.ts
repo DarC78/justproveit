@@ -40,6 +40,7 @@ export type ReplyTemplate = {
 export type SupportMessage = {
   id?: string;
   _id?: string;
+  supportMessageId?: string | number;
   messageId?: string;
   internetMessageId?: string;
   threadId?: string;
