@@ -90,6 +90,7 @@ export type MessagesResponse = {
   skippedByMailboxCount?: number;
   skippedByStateCount?: number;
   duplicateThreadCount?: number;
+  fallbackUsed?: boolean;
   hasMore?: boolean;
   resultSizeEstimate?: number;
   nextPageToken?: string;

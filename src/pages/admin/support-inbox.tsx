@@ -292,7 +292,7 @@ export default function SupportInboxPage() {
               afterDate: formatDateForApi(startDate),
               beforeDate: formatExclusiveEndDateForApi(endDate),
             });
-      const nextMessages = filterInboxMessages(effectiveResponse.messages);
+      const nextMessages = selectVisibleMessages(effectiveResponse.messages);
       setMessages(nextMessages);
       setSelectedMessage(nextMessages[0] ?? null);
       setCustomerContext(null);
@@ -300,7 +300,7 @@ export default function SupportInboxPage() {
       setActionStatus(
         (response.messages ?? []).length > 0
           ? formatActionableLoadStatus(response, nextMessages.length)
-          : `${formatActionableLoadStatus(effectiveResponse, nextMessages.length)} Actionable fallback used.`,
+          : `${formatActionableLoadStatus(effectiveResponse, nextMessages.length)} Actionable fallback used.${formatResponseDebug(effectiveResponse)}`,
       );
     } catch (loadError) {
       setLoadStatus("error");
@@ -388,7 +388,7 @@ export default function SupportInboxPage() {
                   limit: ACTIONABLE_MESSAGE_LIMIT,
                   actionableOnly: false,
                 });
-          const nextMessages = filterInboxMessages(effectiveResponse.messages);
+          const nextMessages = selectVisibleMessages(effectiveResponse.messages);
           setMessages(nextMessages);
           setSelectedMessage(nextMessages[0] ?? null);
           setCustomerContext(null);
@@ -396,7 +396,7 @@ export default function SupportInboxPage() {
           setActionStatus(
             (recentResponse.messages ?? []).length > 0
               ? formatActionableLoadStatus(recentResponse, nextMessages.length)
-              : `${formatActionableLoadStatus(effectiveResponse, nextMessages.length)} Actionable fallback used.`,
+              : `${formatActionableLoadStatus(effectiveResponse, nextMessages.length)} Actionable fallback used.${formatResponseDebug(effectiveResponse)}`,
           );
         }
       } catch (bootstrapError) {
@@ -1596,6 +1596,11 @@ function filterInboxMessages(messages: SupportMessage[] = []) {
   return messages.filter(isInboxMessage);
 }
 
+function selectVisibleMessages(messages: SupportMessage[] = []) {
+  const inboxMessages = filterInboxMessages(messages);
+  return inboxMessages.length ? inboxMessages : messages;
+}
+
 function getMessageId(message: SupportMessage | null, index: number) {
   return (
     message?.id ??
@@ -1618,6 +1623,15 @@ function formatActionableLoadStatus(
   const more = response.hasMore ? " More may be available." : "";
 
   return `Loaded ${Math.min(visibleCount, ACTIONABLE_MESSAGE_LIMIT)} actionable ${sourceLabel} messages${scanned}.${more}`;
+}
+
+function formatResponseDebug(response: {
+  messageCount?: number;
+  scannedCount?: number;
+  skippedByStateCount?: number;
+  fallbackUsed?: boolean;
+}) {
+  return ` API returned messageCount=${response.messageCount ?? "-"}, scanned=${response.scannedCount ?? "-"}, skipped=${response.skippedByStateCount ?? "-"}, backendFallback=${response.fallbackUsed ? "yes" : "no"}.`;
 }
 
 function getThreadKey(message: SupportMessage) {
