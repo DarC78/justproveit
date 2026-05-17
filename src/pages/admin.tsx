@@ -139,23 +139,20 @@ export default function AdminPage() {
                   JustProveIt Admin
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
-                  LaunchingStack confirmed this account has tenant admin access.
-                  This dashboard shell is ready for the next admin tools.
+                  This account has JustProveIt admin access.
                 </p>
               </div>
 
               <div className="mt-6 grid gap-4 md:grid-cols-3">
                 <AdminCard title="Signed in as" value={user?.name ?? "Unknown"} />
                 <AdminCard title="Email" value={user?.email ?? "Unknown"} />
-                <AdminCard title="Tenant" value={user?.tenantKey ?? "justproveit"} />
+                <AdminCard title="Access" value={(user?.roles ?? []).join(", ") || "admin"} />
               </div>
 
               <div className="mt-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
                 <h2 className="text-lg font-extrabold">Available now</h2>
                 <p className="mt-2 text-sm text-slate-600">
-                  The first tenant admin tools are live. Use support operations
-                  for inbox work, or open marketing admin to connect Facebook
-                  Pages and review publishing performance.
+                  JustProveIt admin tools are live for support, CRM, and payment follow-up work.
                 </p>
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                   <Link
@@ -163,18 +160,6 @@ export default function AdminPage() {
                     className="inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
                   >
                     Open support inbox
-                  </Link>
-                  <Link
-                    href="/admin/marketing-admin"
-                    className="inline-flex rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100"
-                  >
-                    Open marketing admin
-                  </Link>
-                  <Link
-                    href="/admin/media-library"
-                    className="inline-flex rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100"
-                  >
-                    Open media library
                   </Link>
                   <Link
                     href="/admin/crm"
