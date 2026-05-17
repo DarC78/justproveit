@@ -282,12 +282,26 @@ export default function SupportInboxPage() {
         afterDate: formatDateForApi(startDate),
         beforeDate: formatExclusiveEndDateForApi(endDate),
       });
-      const nextMessages = filterInboxMessages(response.messages);
+      const effectiveResponse =
+        (response.messages ?? []).length > 0
+          ? response
+          : await getRecentMessages(token, {
+              source: "cached",
+              limit: ACTIONABLE_MESSAGE_LIMIT,
+              actionableOnly: false,
+              afterDate: formatDateForApi(startDate),
+              beforeDate: formatExclusiveEndDateForApi(endDate),
+            });
+      const nextMessages = filterInboxMessages(effectiveResponse.messages);
       setMessages(nextMessages);
       setSelectedMessage(nextMessages[0] ?? null);
       setCustomerContext(null);
       setLoadStatus("ready");
-      setActionStatus(formatActionableLoadStatus(response, nextMessages.length));
+      setActionStatus(
+        (response.messages ?? []).length > 0
+          ? formatActionableLoadStatus(response, nextMessages.length)
+          : `${formatActionableLoadStatus(effectiveResponse, nextMessages.length)} Actionable fallback used.`,
+      );
     } catch (loadError) {
       setLoadStatus("error");
       setError(readError(loadError));
@@ -366,12 +380,24 @@ export default function SupportInboxPage() {
         });
 
         if (!cancelled) {
-          const nextMessages = filterInboxMessages(recentResponse.messages);
+          const effectiveResponse =
+            (recentResponse.messages ?? []).length > 0
+              ? recentResponse
+              : await getRecentMessages(accessToken, {
+                  source: "cached",
+                  limit: ACTIONABLE_MESSAGE_LIMIT,
+                  actionableOnly: false,
+                });
+          const nextMessages = filterInboxMessages(effectiveResponse.messages);
           setMessages(nextMessages);
           setSelectedMessage(nextMessages[0] ?? null);
           setCustomerContext(null);
           setLoadStatus("ready");
-          setActionStatus(formatActionableLoadStatus(recentResponse, nextMessages.length));
+          setActionStatus(
+            (recentResponse.messages ?? []).length > 0
+              ? formatActionableLoadStatus(recentResponse, nextMessages.length)
+              : `${formatActionableLoadStatus(effectiveResponse, nextMessages.length)} Actionable fallback used.`,
+          );
         }
       } catch (bootstrapError) {
         if (!cancelled) {
