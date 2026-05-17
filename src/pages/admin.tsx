@@ -31,7 +31,7 @@ export default function AdminPage() {
       if (!isAdmin) {
         setGateStatus("denied");
         setGateError(
-          "The logged-in user profile does not include tenant-admin or admin:access.",
+          "The logged-in user profile does not include admin access.",
         );
         return;
       }
@@ -96,8 +96,8 @@ export default function AdminPage() {
                 Admin access required
               </h1>
               <p className="mt-2 text-sm text-red-900">
-                Your account is signed in, but LaunchingStack did not confirm
-                tenant admin access for JustProveIt.
+                Your account is signed in, but JustProveIt did not confirm
+                admin access for this user.
               </p>
               {gateError ? (
                 <p className="mt-3 rounded-md border border-red-200 bg-white px-3 py-2 text-sm font-semibold text-red-950">

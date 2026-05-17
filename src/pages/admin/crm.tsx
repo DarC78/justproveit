@@ -430,7 +430,7 @@ export default function AdminCrmPage() {
         {gateStatus === "denied" ? (
           <StatusCard
             title="Admin access required"
-            message={gateError || "LaunchingStack did not confirm tenant admin access."}
+            message={gateError || "JustProveIt did not confirm CRM access for this user."}
           />
         ) : null}
 

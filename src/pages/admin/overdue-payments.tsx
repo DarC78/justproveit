@@ -56,7 +56,7 @@ export default function OverduePaymentsPage() {
       if (!isAdmin) {
         setGateStatus("denied");
         setGateError(
-          "The logged-in user profile does not include tenant-admin or admin:access.",
+          "The logged-in user profile does not include admin access.",
         );
         return;
       }
@@ -220,7 +220,7 @@ export default function OverduePaymentsPage() {
               title="Admin access required"
               detail={
                 gateError ||
-                "LaunchingStack did not confirm admin access for this account."
+                "JustProveIt did not confirm admin access for this account."
               }
             />
           ) : null}

@@ -506,7 +506,7 @@ export default function SupportInboxPage() {
   function handlePhoneSearch(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setActionStatus(
-      `Phone search is not available yet. LaunchingStack returns 501 for ${phoneSearch.trim() || "this phone number"}.`,
+      `Phone search is not available yet for ${phoneSearch.trim() || "this phone number"}.`,
     );
   }
 
@@ -1664,7 +1664,7 @@ function addStoredPositiveDecisionEmail(
       JSON.stringify(Array.from(emails)),
     );
   } catch {
-    // Browser storage is a fallback only; LaunchingStack remains the source of truth.
+    // Browser storage is a fallback only; the backend remains the source of truth.
   }
 }
 
