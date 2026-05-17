@@ -1559,6 +1559,10 @@ function isInboxMessage(message: SupportMessage) {
     ...normalizeLabelIds(message.rawJson?.labels),
   ];
 
+  if (!labelIds.length && message.supportMessageId) {
+    return (message.direction ?? "").toLowerCase() !== "outbound";
+  }
+
   return labelIds.some((labelId) => labelId.toUpperCase() === "INBOX");
 }
 
