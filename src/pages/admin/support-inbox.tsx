@@ -571,7 +571,7 @@ export default function SupportInboxPage() {
         subject,
         text: replyBodyText,
         html: replyBodyHtml,
-        threadId: selectedMessage.threadId ?? selectedMessage.externalThreadId ?? "",
+        threadId: getGmailThreadId(selectedMessage),
         inReplyTo: headers.inReplyTo,
         references: headers.references,
         metadata: {
@@ -739,16 +739,15 @@ export default function SupportInboxPage() {
     }
 
     await runAction("Moving to trash...", async () => {
-      if (selectedMessage.threadId || selectedMessage.externalThreadId) {
-        await trashThread(
-          token,
-          selectedMessage.threadId ?? selectedMessage.externalThreadId ?? "",
-        );
+      const gmailThreadId = getGmailThreadId(selectedMessage);
+      const gmailMessageId = getGmailMessageId(selectedMessage);
+
+      if (gmailThreadId) {
+        await trashThread(token, gmailThreadId);
+      } else if (gmailMessageId) {
+        await trashMessage(token, gmailMessageId);
       } else {
-        await trashMessage(
-          token,
-          selectedMessage.messageId ?? selectedMessage.externalMessageId ?? "",
-        );
+        throw new Error("No Gmail thread or message id found for the selected email.");
       }
 
       removeMessagesFromInbox(getThreadStateKeys(selectedMessage));
@@ -1619,13 +1618,46 @@ function getThreadStateKeys(message: SupportMessage) {
 }
 
 function getGmailMessageId(message: SupportMessage) {
-  return (
-    message.messageId ??
-    message.externalMessageId ??
-    message.id ??
-    message._id ??
-    ""
-  );
+  const candidates = [
+    message.externalMessageId,
+    getStringProperty(message.rawJson, "id"),
+    message.messageId,
+    message.id,
+    message._id,
+  ];
+
+  return candidates.find(isLikelyGmailApiId) ?? "";
+}
+
+function getGmailThreadId(message: SupportMessage) {
+  const candidates = [
+    message.externalThreadId,
+    getStringProperty(message.rawJson, "threadId"),
+    message.threadId,
+  ];
+
+  return candidates.find(isLikelyGmailApiId) ?? "";
+}
+
+function isLikelyGmailApiId(value: string | undefined) {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed) {
+    return false;
+  }
+
+  if (/[<>\s@]/.test(trimmed)) {
+    return false;
+  }
+
+  if (trimmed.length < 8) {
+    return false;
+  }
+
+  if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
+    return false;
+  }
+
+  return true;
 }
 
 function readStoredPositiveDecisionEmails(mailboxEmail?: string) {
@@ -1740,9 +1772,9 @@ function buildReplySubject(message: SupportMessage) {
 function buildReplyHeaders(message: SupportMessage) {
   const headers = getRawMessageHeaders(message);
   const inReplyTo =
-    message.messageId ??
     message.internetMessageId ??
     getHeaderValueCaseInsensitive(headers, "Message-ID") ??
+    message.messageId ??
     "";
   const references = buildReplyReferencesHeader(headers, inReplyTo);
 
@@ -1797,7 +1829,7 @@ async function findLastSentEmailToRecipient(token: string, recipient: string) {
     const refs = searchResult.messages ?? [];
     const fullMessages = await Promise.all(
       refs.map(async (message) => {
-        const messageId = message.id ?? message.messageId ?? message.externalMessageId;
+        const messageId = getGmailMessageId(message);
 
         if (!messageId) {
           return hasUsableMessagePreview(message) ? message : null;
@@ -2369,6 +2401,15 @@ function getRecord(source: unknown, key: string) {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
+}
+
+function getStringProperty(source: unknown, key: string) {
+  if (!source || typeof source !== "object") {
+    return "";
+  }
+
+  const value = (source as Record<string, unknown>)[key];
+  return typeof value === "string" ? value : "";
 }
 
 function getArray(source: unknown, key: string) {
