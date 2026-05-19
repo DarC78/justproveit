@@ -913,6 +913,11 @@ export default function SupportInboxPage() {
         throw new Error("No Gmail thread or message id found for the selected email.");
       }
 
+      await markThreadState(token, "skipped", {
+        threadKey: getSelectedMessageStateKey(selectedMessage, selectedThreadKey),
+        senderEmail: getReplyRecipient(selectedMessage),
+        subject: selectedMessage.subject ?? "",
+      });
       removeMessagesFromInbox(getThreadStateKeys(selectedMessage));
 
       return "Moved to Gmail trash.";
