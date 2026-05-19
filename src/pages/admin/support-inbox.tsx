@@ -885,6 +885,11 @@ export default function SupportInboxPage() {
           removeLabelIds: ["INBOX"],
         });
       }
+      await markThreadState(token, "skipped", {
+        threadKey: getSelectedMessageStateKey(selectedMessage, selectedThreadKey),
+        senderEmail: getReplyRecipient(selectedMessage),
+        subject: selectedMessage.subject ?? "",
+      });
       removeMessagesFromInbox(getThreadStateKeys(selectedMessage));
       return selectedMessageId
         ? `Email moved to ${PRIORITY_FIVE_DAYS_LABEL_NAME}.`
