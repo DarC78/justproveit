@@ -30,6 +30,7 @@ export type ReplyTemplate = {
   name?: string;
   title?: string;
   plainText?: string;
+  spanishPlainText?: string;
   text?: string;
   body?: string;
   html?: string;

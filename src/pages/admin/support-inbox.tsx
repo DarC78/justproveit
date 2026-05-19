@@ -221,6 +221,144 @@ Echipa de suport ProveIt`,
   },
 ];
 
+const SPANISH_REPLY_TEMPLATE_TEXT: Record<string, string> = {
+  felicitari: `Buenos dias,
+
+Felicidades. El financiador ha conservado su reclamacion, por lo tanto usted esta en el primer grupo que recuperara el dinero.
+
+Hay 3 situaciones por las que se recupera el dinero. Una se llama DCA. Otra es aquella en la que la comision era superior al 35% del interes. Y la tercera situacion es aquella en la que existia una relacion uno a uno entre el concesionario y el financiador.
+
+El 30 de marzo de 2026, la FCA comunico todas las formulas de calculo. Los financiadores tienen 3 meses para preparar sus sistemas informaticos (es decir, hasta el 30 de junio). Despues de esa fecha empezaran a enviar las decisiones. Tienen un maximo de 3 meses (es decir, hasta el 30 de septiembre) para resolver las reclamaciones.
+
+En su email le confirman que han conservado la reclamacion. Cuando reciba otra notificacion de ellos, le rogamos que nos lo diga.
+Es muy importante que haya superado esta etapa antes de que empiece el sistema de compensacion. Esto significa que estara en el primer grupo de reembolsos.
+
+https://www.fca.org.uk/news/statements/fca-confirms-motor-finance-redress-scheme
+
+Tenemos un programa con el que puede ganar unas cientos de libras al mes. Vamos a crear una pagina en nuestro sitio web con testimonios de nuestros clientes. Cuando alguien entra en nuestro sitio, ve su testimonio, hace clic en el y se convierte en cliente, usted recibe £35 por cada persona.
+
+Ademas, cada mes hacemos un sorteo y un testimonio ganara £50.
+
+Si desea participar, todo lo que tiene que hacer es dejarnos un testimonio escrito sobre su interaccion con nuestra empresa y adjuntar una foto de su decision (oculte sus datos personales).
+
+Sinceramente, aunque no quisiera participar, apreciariamos mucho sus comentarios honestos. Somos un equipo joven, al principio del camino, y necesitamos el apoyo de nuestros clientes.
+
+Puede dejarlo aqui: https://uk.trustpilot.com/review/proveitweb.co.uk
+
+Para cualquier otra pregunta, quedamos a su disposicion.
+
+
+Atentamente,
+Equipo de soporte ProveIt
+`,
+  atiSemnatCmc: `Buenos dias,
+
+Este email no es del financiador, sino de un despacho de abogados. Entendemos que tambien ha solicitado ayuda con otra empresa de reclamaciones? Tenga mucho cuidado, porque de esta forma podria acabar pagando a dos partes. Ademas, en estas circunstancias algunos financiadores eligen hablar directamente con el despacho de abogados y no responderle a usted por email.
+
+Aqui tiene un video en el que Adrian muestra lo facil y enganoso que es el proceso de solicitud con una firma de abogados: https://youtu.be/3wwhwmA1MdY
+
+Lo mejor es que aclare por que le han enviado este email y que entienda si tiene una reclamacion abierta tambien con ellos.
+
+Si tiene una reclamacion abierta con ellos, en general su tarifa es el 50% de lo que se recupere.
+
+Nosotros podemos ayudarle a intentar cerrar el contrato con ellos, pero primero le rogamos que aclare la situacion con ellos.
+
+Un saludo,
+Equipo Proveit`,
+  cancelCmc: `Buenos dias,
+
+Envie un email a <email CMC> con el siguiente contenido (complete sus datos):
+
+Subject: Cancellation of Contract Due to Lack of Transparency and Misleading Practices
+
+Dear sir/madam,
+I am writing to formally request the immediate cancellation of the contract I recently signed with your company regarding the recovery of extra interest related to the car finance mis selling scandal. This cancellation should happen without any penalties.
+
+After further consideration, I have identified several issues with the way the contract was presented and agreed upon:
+
+Please provide an evidence where I signed the contract with yourself. I remember signing for a FREE check. I don't recall any contract for you to represent me. I don't exclude that in your terms and conditions it might have been such a contract. However, at the point of sale where I sighed and entered my details there were only details about the free check.
+
+Lack of Transparency Regarding Commission: At no point during our initial discussions or in the documents provided was the commission your company charges communicated in a clear and transparent manner (as FCA mandates). I only became aware of the significant commission after signing the contract, which I find unacceptable. Can you provide an evidence that the commissions were clearly explained when I signed the free check. Clearly on that page I don't remember seeing any commissions.
+
+As English is not my native language, I feel like I was in a very vulnerable position when going through your website. Again, I was under the impression that I was signing for a free check. This is based on the Ad that I've seen and also the website pages. I think FCA mandates that you need to identify and treat differently vulnerable customers, such as the ones for which English is not the native language, such as in my case.
+
+Misleading Information During the Signing Process: I was under the impression that I was merely submitting an enquiry to explore the possibility of recovering extra interest. However, I later discovered that I had unwittingly signed a legally binding contract. This misrepresentation is deeply concerning and not something I would expect from a reputable company regulated by FCA and SAR.
+
+Can you present the screen where I signed the contract? I am sure on that screen it was mentioned only the fact that I am doing a free check, nothing in relation to signing of a contract.
+
+Untransparent Ways of Working: The overall approach your company has taken - ranging from the initial communication to the lack of clarity in your processes - has been opaque and far from what I consider to be good business practice. This has eroded my trust in your services.
+
+FCA mandates that a claims management company should identify if a customer signed with two or more companies. Due to your website being so misleading, and the fees not being clearly explained on the website, and the fact that I was under the impression this is a FREE check, I went through multiple companies such as yours.
+
+On their page, FCA mandates very clearly that in the process for car finance mis selling scandal one doesn't need to use a CMC. Moreover, a claims management company should identify if the user applied with multiple companies, just because is so easy and deceiving. In my case there was no verification, no question if I applied before or not! Not a single step has been taken to prevent me to apply with multiple companies.
+
+Given the above points, I believe it is in both of our interests to terminate this agreement immediately and with no penalty. I am determined to seek justice on this matter as far as the law allows me and using all authorities, including FCA, FOS and SAR.
+
+Please confirm in writing that the contract has been cancelled and that no further action will be taken by your company on my behalf. Moreover, please confirm that at any point I will not be liable for any costs to you.
+
+I would appreciate a prompt response to this email to avoid any further complications.
+
+Thank you for your understanding.
+
+
+Sincerely,
+[Nombre completo]
+[Direccion]
+[Fecha de nacimiento]`,
+  justUpdate: `Buenos dias,
+
+Esto es solo una actualizacion de la empresa de financiacion. No tiene que hacer nada por ahora.
+
+Nuestro sistema le ha enviado tambien un email de actualizacion desde nuestro sistema, con el estado de su expediente y los siguientes pasos.
+
+El email se envio desde la direccion suport@justproveit.co.uk . Le rogamos que revise tambien la carpeta de spam si no lo encuentra en la bandeja de entrada.
+
+Si tiene mas preguntas, quedamos a su disposicion.
+
+Atentamente,
+Equipo de soporte ProveIt`,
+  queryNoAnswer: `Buenos dias,
+
+La FCA aclaro el 30 de marzo todos los detalles del sistema.
+
+Por lo que entendemos, parece que el financiador no le ha respondido a ningun email.
+
+En el 99% de estos casos, nuestro cliente firmo online con un despacho de abogados, y el financiador eligio hablar solo con el despacho de abogados y no responder a los emails.
+
+No es un problema, podemos solucionarlo. Pero es importante saber si este es el caso y el nombre del despacho de abogados.
+
+Puede seguir este video y comprobar si tiene una reclamacion abierta tambien con un despacho de abogados: https://youtu.be/3wwhwmA1MdY ?
+
+Si tiene algo de este tipo, por favor diganos el nombre del despacho de abogados.
+
+Atentamente,
+Equipo de soporte ProveIt`,
+  autoACK: `Buenos dias,
+
+Gracias por la informacion. El financiador le ha enviado una respuesta automatica, lo que significa que ha confirmado que usted ha iniciado el proceso de recuperacion.
+
+Le rogamos que nos avise cuando le envien otro email.
+
+Como nota aparte, puede seguir este video y comprobar si tiene una reclamacion abierta tambien con un despacho de abogados: https://youtu.be/3wwhwmA1MdY ?
+
+A veces hay sitios web muy enganosos.
+
+Si tiene algo de este tipo, por favor diganos el nombre del despacho de abogados y nosotros intentaremos sacarle del contrato con ellos.
+
+Atentamente,
+Equipo de soporte ProveIt`,
+  statusUpdate: `Buenos dias,
+
+Deberia haber recibido un email de nuestro sistema (suport@justproveit.co.uk). Le rogamos que revise tambien la carpeta de spam.
+
+En ese email puede ver exactamente el estado de su expediente y los siguientes pasos.
+
+Si tiene preguntas, quedamos a su disposicion.
+
+Atentamente,
+Equipo de soporte ProveIt`,
+};
+
 export default function SupportInboxPage() {
   const router = useRouter();
   const { status, token, user, isAdmin, requireAdmin, logout } = useAuth();
@@ -2136,7 +2274,11 @@ function renderTemplateText(
   }
 
   const raw =
-    template.plainText ?? template.text ?? template.body ?? stripHtml(template.html ?? "");
+    getLocalizedTemplateText(template, customer, message) ??
+    template.plainText ??
+    template.text ??
+    template.body ??
+    stripHtml(template.html ?? "");
   const fallbackEmail = message ? buildContextEmail(message) : "";
   const firstName = getCustomerName(customer, fallbackEmail).split(" ")[0];
 
@@ -2145,6 +2287,75 @@ function renderTemplateText(
     .replaceAll("{firstName}", firstName)
     .replaceAll("{{customerName}}", getCustomerName(customer, firstName))
     .replaceAll("{{email}}", message ? buildContextEmail(message) : "");
+}
+
+function getLocalizedTemplateText(
+  template: ReplyTemplate,
+  customer: Record<string, unknown> | null,
+  message: SupportMessage | null,
+) {
+  if (isSpanishReplyContext(customer, message)) {
+    return template.spanishPlainText ?? SPANISH_REPLY_TEMPLATE_TEXT[template.key];
+  }
+
+  return undefined;
+}
+
+function isSpanishReplyContext(
+  customer: Record<string, unknown> | null,
+  message: SupportMessage | null,
+) {
+  const languageValues = [
+    getCustomerString(customer, [
+      "language",
+      "Language",
+      "contactLanguage",
+      "ContactLanguage",
+      "leadLanguage",
+      "LeadLanguage",
+      "preferredLanguage",
+      "PreferredLanguage",
+      "idioma",
+      "locale",
+    ]),
+    getMessageLanguageHint(message),
+  ];
+
+  return languageValues.some((value) => isSpanishLanguageValue(value));
+}
+
+function getMessageLanguageHint(message: SupportMessage | null) {
+  const rawJson = message?.rawJson;
+  if (rawJson && typeof rawJson === "object") {
+    const record = rawJson as Record<string, unknown>;
+    return getCustomerString(record, [
+      "language",
+      "Language",
+      "contactLanguage",
+      "leadLanguage",
+      "preferredLanguage",
+      "locale",
+    ]);
+  }
+
+  return "";
+}
+
+function isSpanishLanguageValue(value: string) {
+  const normalizedForSpanish = value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\s_-]/g, "");
+  if (["es", "eses", "esgb", "spanish", "espanol"].includes(normalizedForSpanish)) {
+    return true;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  return ["es", "es-es", "es_gb", "es-gb", "spanish", "espanol", "español"].includes(
+    normalized,
+  );
 }
 
 function getTemplateLabel(template: ReplyTemplate) {
