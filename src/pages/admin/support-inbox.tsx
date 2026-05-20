@@ -2762,8 +2762,7 @@ function getCustomerPhone(customer: Record<string, unknown> | null) {
 
 function getCustomerPhoneFromSources(...sources: unknown[]) {
   for (const source of sources) {
-    const phones = collectPhoneValues(source);
-    const first = Array.from(phones)[0];
+    const first = findExplicitPhoneValue(source);
     if (first) {
       return first;
     }
@@ -2772,29 +2771,47 @@ function getCustomerPhoneFromSources(...sources: unknown[]) {
   return "";
 }
 
-function collectPhoneValues(value: unknown, phoneSet = new Set<string>()) {
+function findExplicitPhoneValue(value: unknown): string {
   if (!value) {
-    return phoneSet;
-  }
-
-  if (typeof value === "string") {
-    const normalized = value.replace(/[^\d+]/g, "");
-    if (normalized.length >= 10 && normalized.length <= 14) {
-      phoneSet.add(value.trim());
-    }
-    return phoneSet;
+    return "";
   }
 
   if (Array.isArray(value)) {
-    value.forEach((item) => collectPhoneValues(item, phoneSet));
-    return phoneSet;
+    for (const item of value) {
+      const phone = findExplicitPhoneValue(item);
+      if (phone) {
+        return phone;
+      }
+    }
+
+    return "";
   }
 
   if (typeof value === "object") {
-    Object.values(value).forEach((item) => collectPhoneValues(item, phoneSet));
+    for (const [key, item] of Object.entries(value)) {
+      const normalizedKey = key.toLowerCase();
+      const isPhoneField =
+        normalizedKey.includes("phone") ||
+        normalizedKey.includes("mobile") ||
+        normalizedKey.includes("telephone");
+
+      if (isPhoneField && typeof item === "string") {
+        const normalized = item.replace(/[^\d+]/g, "");
+        if (normalized.length >= 7 && normalized.length <= 16) {
+          return item.trim();
+        }
+      }
+
+      if (typeof item === "object" && item !== null) {
+        const phone = findExplicitPhoneValue(item);
+        if (phone) {
+          return phone;
+        }
+      }
+    }
   }
 
-  return phoneSet;
+  return "";
 }
 
 function getCustomerEmailsText(customer: Record<string, unknown>) {
