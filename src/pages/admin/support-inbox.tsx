@@ -45,7 +45,7 @@ const DONE_NO_REPLY_LABEL_NAME = "Done - No Reply Needed";
 const DONE_ANSWERED_LABEL_NAME = "Done - Answered";
 const PRIORITY_FIVE_DAYS_LABEL_NAME = "Priority 5 days";
 const POSITIVE_DECISION_STORAGE_PREFIX = "justproveit:genericreports:positive-decisions";
-const GENERIC_UPDATE_SUBJECT = "Actualizare dosar Proveit";
+const GENERIC_UPDATE_SUBJECT = "Actualizare despre dosarul dvs. Proveit";
 const GENERIC_UPDATE_PREHEADER =
   "Informatii despre schema FCA si despre dosarul pe care il aveti cu noi.";
 const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
