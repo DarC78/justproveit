@@ -103,6 +103,35 @@ export async function loginRequest(email: string, password: string) {
   };
 }
 
+export async function forgotPasswordRequest(email: string) {
+  await fetchJson<{ success?: boolean }>("/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+      tenantKey: TENANT_KEY,
+      domain: getCurrentDomain(),
+      resetUrl: buildResetPasswordUrl(),
+    }),
+  });
+}
+
+export async function resetPasswordRequest(payload: {
+  email?: string;
+  token: string;
+  password: string;
+}) {
+  await fetchJson<{ success?: boolean }>("/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify({
+      email: payload.email,
+      token: payload.token,
+      password: payload.password,
+      tenantKey: TENANT_KEY,
+      domain: getCurrentDomain(),
+    }),
+  });
+}
+
 export async function meRequest(token: string) {
   const user = await fetchJson<AuthUser>("/auth/me", {
     headers: authHeaders(token),
@@ -164,6 +193,14 @@ function getCurrentDomain() {
   }
 
   return window.location.hostname || "justproveit.co.uk";
+}
+
+function buildResetPasswordUrl() {
+  if (typeof window === "undefined") {
+    return "https://www.justproveit.co.uk/reset-password";
+  }
+
+  return `${window.location.origin}/reset-password`;
 }
 
 function parseStoredUser(value: string | null) {
