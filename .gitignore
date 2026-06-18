@@ -24,6 +24,9 @@
 .tmp-launchingstack-func/
 launchingstack-func-dev-current.zip
 
+# generated lead scrape staging files
+/leads/*.csv
+
 # misc
 .DS_Store
 *.pem
