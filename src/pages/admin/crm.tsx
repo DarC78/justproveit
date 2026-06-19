@@ -465,12 +465,34 @@ export default function AdminCrmPage() {
     openTab(nextTab);
   }
 
-  function handleLeadSelected(lead: CrmLead) {
+  async function handleLeadSelected(lead: CrmLead) {
+    const phone = String(lead.phoneNumber || lead.normalizedPhone || "").trim();
     setSelectedLead(lead);
     setSelectedIntent(null);
     detailsTabButtonRef.current?.click();
-    setStatusMessage("Lead incarcat.");
-    setErrorMessage("");
+
+    if (!token || !phone) {
+      setStatusMessage("Lead incarcat.");
+      setErrorMessage("");
+      return;
+    }
+
+    try {
+      const latestIntent = await findLatestCrmLeadIntentByPhone(token, phone);
+      if (latestIntent?.lead) {
+        setSelectedLead(latestIntent.lead);
+        setSelectedIntent(latestIntent);
+        setStatusMessage("Lead incarcat dupa ultimul intent.");
+        setErrorMessage("");
+        return;
+      }
+
+      setStatusMessage("Lead incarcat.");
+      setErrorMessage("");
+    } catch (error) {
+      setStatusMessage("Lead incarcat.");
+      setErrorMessage(error instanceof Error ? error.message : "Nu am putut incarca ultimul intent.");
+    }
   }
 
   function handleIntentSelected(row: CrmLeadIntentRow) {
