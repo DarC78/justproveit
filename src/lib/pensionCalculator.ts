@@ -38,6 +38,15 @@ export type PensionCalculatorResult = {
     grupaI_plus_speciale: AgeYM;
     grupaII_plus_deosebite: AgeYM;
   };
+  ukStatePension?: {
+    label: string;
+    retirementAge: AgeYM;
+    retirementDate: string;
+    eligibleNow: boolean;
+    legalReference?: string;
+    sourceUrl?: string;
+    note?: string;
+  } | null;
   scenarios: PensionScenario[];
   recommended: PensionScenario | null;
   warnings: string[];

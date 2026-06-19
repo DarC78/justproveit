@@ -550,92 +550,127 @@ function ResultPanel({
       <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
         Rezultat salvat
       </p>
-      {recommendedScenario?.eligibleNow ? (
-        <>
-          <h2 className="mt-2 text-xl font-extrabold">{recommendedScenario.label}</h2>
-          <p className="mt-2 text-sm text-slate-700">
-            Varsta: <strong>{formatAge(recommendedScenario.retirementAge)}</strong>
-            {" "}| Data estimata: <strong>{recommendedScenario.retirementDate}</strong>
-          </p>
-        </>
-      ) : recommendedScenario ? (
-        <>
-          <h2 className="mt-2 text-xl font-extrabold">
-            Cel mai devreme va puteti pensiona la data de{" "}
-            <strong>{recommendedScenario.retirementDate}</strong>.
-          </h2>
-          <p className="mt-2 text-sm text-slate-700">
-            Varianta: <strong>{recommendedScenario.label}</strong>
-            {" "}| Varsta: <strong>{formatAge(recommendedScenario.retirementAge)}</strong>
-          </p>
-        </>
-      ) : (
-        <h2 className="mt-2 text-xl font-extrabold">Nu exista o varianta eligibila cu datele introduse.</h2>
-      )}
+      <div className="mt-3 space-y-5">
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+          <h2 className="text-lg font-extrabold">Romania</h2>
+          {recommendedScenario?.eligibleNow ? (
+            <>
+              <h3 className="mt-2 text-xl font-extrabold">{recommendedScenario.label}</h3>
+              <p className="mt-2 text-sm text-slate-700">
+                Varsta: <strong>{formatAge(recommendedScenario.retirementAge)}</strong>
+                {" "}| Data estimata: <strong>{recommendedScenario.retirementDate}</strong>
+              </p>
+            </>
+          ) : recommendedScenario ? (
+            <>
+              <h3 className="mt-2 text-xl font-extrabold">
+                Cel mai devreme va puteti pensiona la data de{" "}
+                <strong>{recommendedScenario.retirementDate}</strong>.
+              </h3>
+              <p className="mt-2 text-sm text-slate-700">
+                Varianta: <strong>{recommendedScenario.label}</strong>
+                {" "}| Varsta: <strong>{formatAge(recommendedScenario.retirementAge)}</strong>
+              </p>
+            </>
+          ) : (
+            <h3 className="mt-2 text-xl font-extrabold">Nu exista o varianta eligibila cu datele introduse.</h3>
+          )}
 
-      <div className="mt-4 grid gap-2 text-sm">
-        <Metric label="Varsta acum" value={formatAge(result.currentAge)} />
-        <Metric
-          label="Varsta standard"
-          value={
-            standardScenario
-              ? `${formatAge(result.anexa.standardAge)} (${standardScenario.retirementDate})`
-              : formatAge(result.anexa.standardAge)
-          }
-        />
-        <Metric label="Stagiu complet" value={formatAge(result.anexa.fullStagiu)} />
-        <Metric label="Stagiu minim" value={formatAge(result.anexa.minimumStagiu)} />
-        <Metric label="Stagiu total contributiv" value={formatAge(result.stagiu.totalContributiv)} />
-      </div>
+          <div className="mt-4 grid gap-2 text-sm">
+            <Metric label="Varsta acum" value={formatAge(result.currentAge)} />
+            <Metric
+              label="Varsta standard"
+              value={
+                standardScenario
+                  ? `${formatAge(result.anexa.standardAge)} (${standardScenario.retirementDate})`
+                  : formatAge(result.anexa.standardAge)
+              }
+            />
+            <Metric label="Stagiu complet" value={formatAge(result.anexa.fullStagiu)} />
+            <Metric label="Stagiu minim" value={formatAge(result.anexa.minimumStagiu)} />
+            <Metric label="Stagiu total contributiv" value={formatAge(result.stagiu.totalContributiv)} />
+          </div>
 
-      <div className="mt-5 overflow-x-auto">
-        <table className="w-full min-w-[520px] border-collapse text-left text-sm">
-          <thead>
-            <tr className="border-b border-slate-200 bg-slate-50">
-              <th className="px-3 py-2">Scenariu</th>
-              <th className="px-3 py-2">Varsta</th>
-              <th className="px-3 py-2">Data</th>
-              <th className="px-3 py-2">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {result.scenarios.map((scenario) => (
-              <tr key={scenario.type} className="border-b border-slate-100">
-                <td className="px-3 py-2 font-semibold">{scenario.label}</td>
-                <td className="px-3 py-2">{formatScenarioAge(scenario)}</td>
-                <td className="px-3 py-2">{formatScenarioDate(scenario)}</td>
-                <td className="px-3 py-2">
-                  <p className="font-semibold">{formatScenarioStatus(scenario)}</p>
-                  {scenario.notApplicableReason ? (
-                    <p className="mt-2 text-xs leading-5 text-slate-600">
-                      {scenario.notApplicableReason}
-                    </p>
-                  ) : null}
-                  {scenario.eligibilityReasons.length > 0 ? (
-                    <div className="mt-2">
-                      <p className="text-xs font-semibold text-emerald-700">Conditii indeplinite:</p>
-                      <ul className="mt-1 list-disc space-y-1 pl-4 text-xs leading-5 text-slate-600">
-                        {scenario.eligibilityReasons.map((reason) => (
-                          <li key={reason}>{reason}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                  {scenario.ineligibilityReasons.length > 0 ? (
-                    <div className="mt-2">
-                      <p className="text-xs font-semibold text-red-700">Conditii neindeplinite:</p>
-                      <ul className="mt-1 list-disc space-y-1 pl-4 text-xs leading-5 text-slate-600">
-                        {scenario.ineligibilityReasons.map((reason) => (
-                          <li key={reason}>{reason}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  ) : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          <div className="mt-5 overflow-x-auto">
+            <table className="w-full min-w-[520px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 bg-white">
+                  <th className="px-3 py-2">Scenariu</th>
+                  <th className="px-3 py-2">Varsta</th>
+                  <th className="px-3 py-2">Data</th>
+                  <th className="px-3 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.scenarios.map((scenario) => (
+                  <tr key={scenario.type} className="border-b border-slate-200 bg-white/70">
+                    <td className="px-3 py-2 font-semibold">{scenario.label}</td>
+                    <td className="px-3 py-2">{formatScenarioAge(scenario)}</td>
+                    <td className="px-3 py-2">{formatScenarioDate(scenario)}</td>
+                    <td className="px-3 py-2">
+                      <p className="font-semibold">{formatScenarioStatus(scenario)}</p>
+                      {scenario.notApplicableReason ? (
+                        <p className="mt-2 text-xs leading-5 text-slate-600">
+                          {scenario.notApplicableReason}
+                        </p>
+                      ) : null}
+                      {scenario.eligibilityReasons.length > 0 ? (
+                        <div className="mt-2">
+                          <p className="text-xs font-semibold text-emerald-700">Conditii indeplinite:</p>
+                          <ul className="mt-1 list-disc space-y-1 pl-4 text-xs leading-5 text-slate-600">
+                            {scenario.eligibilityReasons.map((reason) => (
+                              <li key={reason}>{reason}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {scenario.ineligibilityReasons.length > 0 ? (
+                        <div className="mt-2">
+                          <p className="text-xs font-semibold text-red-700">Conditii neindeplinite:</p>
+                          <ul className="mt-1 list-disc space-y-1 pl-4 text-xs leading-5 text-slate-600">
+                            {scenario.ineligibilityReasons.map((reason) => (
+                              <li key={reason}>{reason}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {result.ukStatePension ? (
+          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <h2 className="text-lg font-extrabold">UK</h2>
+            <p className="mt-2 text-xl font-extrabold">
+              Puteti primi UK State Pension de la data de{" "}
+              <strong>{result.ukStatePension.retirementDate}</strong>.
+            </p>
+            <div className="mt-4 grid gap-2 text-sm">
+              <Metric label="Varsta UK State Pension" value={formatAge(result.ukStatePension.retirementAge)} />
+              <Metric
+                label="Status"
+                value={result.ukStatePension.eligibleNow ? "Eligibil acum" : "Eligibil la data indicata"}
+              />
+            </div>
+            {result.ukStatePension.note ? (
+              <p className="mt-3 text-xs leading-5 text-slate-600">{result.ukStatePension.note}</p>
+            ) : null}
+            {result.ukStatePension.sourceUrl ? (
+              <a
+                href={result.ukStatePension.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex text-sm font-semibold text-emerald-700 hover:underline"
+              >
+                Verifica pe GOV.UK
+              </a>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
