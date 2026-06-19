@@ -102,6 +102,8 @@ export type CrmPredictiveCampaignSummary = {
   queueId?: number | null;
   campaignName?: string | null;
   totalLeads?: number;
+  finishedLeads?: number;
+  toBeDialled?: number;
   calledToday?: number;
   connectedToday?: number;
   calledYesterday?: number;
