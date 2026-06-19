@@ -1683,7 +1683,9 @@ function LeadIntentPanel({
             {predictiveCampaignSummary.map((campaign) => (
               <span key={campaign.queueId ?? campaign.campaignName}>
                 {campaign.campaignName || `Queue ${campaign.queueId}`} | Total Leads: {campaign.totalLeads ?? 0} | Finished Leads{" "}
-                {campaign.finishedLeads ?? 0} | ToBeDialled {campaign.toBeDialled ?? 0} | Called Today:{" "}
+                {campaign.finishedLeads ?? 0} | ToBeDialled {campaign.toBeDialled ?? 0} | Last CallCode 5:{" "}
+                {campaign.toBeDialledLastCallCode5 ?? 0} | Last CallCode not 5:{" "}
+                {campaign.toBeDialledLastCallCodeNot5 ?? 0} | Called Today:{" "}
                 {campaign.calledToday ?? 0} ({campaign.calledYesterday ?? 0}) Connected Today: {campaign.connectedToday ?? 0} (
                 {campaign.connectedYesterday ?? 0}) {formatTopCallCodes(campaign.topCallCodes)}
                 <br />
