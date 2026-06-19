@@ -1695,6 +1695,7 @@ function LeadIntentPanel({
           </>
         ) : null}
       </p>
+      <p className="green-label">Total: {sortedRows.length}</p>
       <DataTable
         columns={[
           "Created",
