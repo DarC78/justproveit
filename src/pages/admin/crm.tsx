@@ -1684,8 +1684,9 @@ function LeadIntentPanel({
               <span key={campaign.queueId ?? campaign.campaignName}>
                 {campaign.campaignName || `Queue ${campaign.queueId}`} | Total Leads: {campaign.totalLeads ?? 0} | Finished Leads{" "}
                 {campaign.finishedLeads ?? 0} | ToBeDialled {campaign.toBeDialled ?? 0} | Last CallCode 5:{" "}
-                {campaign.toBeDialledLastCallCode5 ?? 0} | Last CallCode not 5:{" "}
-                {campaign.toBeDialledLastCallCodeNot5 ?? 0} | Called Today:{" "}
+                {campaign.toBeDialledLastCallCode5 ?? 0} | Dialled zero times: {campaign.toBeDialledZeroTrials ?? 0} / 1-3 times:{" "}
+                {campaign.toBeDialledOneToThreeTrials ?? 0} / 4-5 times: {campaign.toBeDialledFourToFiveTrials ?? 0} / 5+ times:{" "}
+                {campaign.toBeDialledFivePlusTrials ?? 0} | Called Today:{" "}
                 {campaign.calledToday ?? 0} ({campaign.calledYesterday ?? 0}) Connected Today: {campaign.connectedToday ?? 0} (
                 {campaign.connectedYesterday ?? 0}) {formatTopCallCodes(campaign.topCallCodes)}
                 <br />

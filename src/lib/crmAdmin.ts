@@ -105,7 +105,10 @@ export type CrmPredictiveCampaignSummary = {
   finishedLeads?: number;
   toBeDialled?: number;
   toBeDialledLastCallCode5?: number;
-  toBeDialledLastCallCodeNot5?: number;
+  toBeDialledZeroTrials?: number;
+  toBeDialledOneToThreeTrials?: number;
+  toBeDialledFourToFiveTrials?: number;
+  toBeDialledFivePlusTrials?: number;
   calledToday?: number;
   connectedToday?: number;
   calledYesterday?: number;
