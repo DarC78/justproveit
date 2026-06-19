@@ -319,6 +319,9 @@ export default function AdminCrmPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const tabContentRef = useRef<HTMLDivElement | null>(null);
   const detailsTabButtonRef = useRef<HTMLButtonElement | null>(null);
+  const autoloadedPhoneRef = useRef("");
+  const agentName = user?.name || user?.email || "";
+  const activeTab = activeTabState;
 
   useEffect(() => {
     if (status === "loading") {
@@ -355,8 +358,51 @@ export default function AdminCrmPage() {
     };
   }, [isCrm, router, status]);
 
-  const agentName = user?.name || user?.email || "";
-  const activeTab = activeTabState;
+  useEffect(() => {
+    if (!router.isReady || gateStatus !== "allowed" || !token || activeTab !== "details") {
+      return;
+    }
+
+    const phoneQuery = router.query.phone ?? router.query.phoneNumber ?? router.query.telefon;
+    const phone = Array.isArray(phoneQuery) ? phoneQuery[0] : phoneQuery;
+    const cleanPhone = String(phone || "").trim();
+    if (!cleanPhone || autoloadedPhoneRef.current === cleanPhone) {
+      return;
+    }
+
+    let cancelled = false;
+    autoloadedPhoneRef.current = cleanPhone;
+
+    findCrmLeadByPhone(token, cleanPhone)
+      .then((result) => {
+        if (cancelled) {
+          return;
+        }
+
+        if (result.lead) {
+          setSelectedLead(result.lead);
+          setSelectedIntent(null);
+          setStatusMessage("Lead incarcat dupa telefon.");
+          setErrorMessage("");
+          return;
+        }
+
+        setStatusMessage("");
+        setErrorMessage("Nu am gasit lead dupa telefon.");
+      })
+      .catch((error) => {
+        if (cancelled) {
+          return;
+        }
+
+        setStatusMessage("");
+        setErrorMessage(error instanceof Error ? error.message : "Nu am putut cauta lead-ul.");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, gateStatus, router.isReady, router.query.phone, router.query.phoneNumber, router.query.telefon, token]);
 
   function openTab(nextTab: TabKey) {
     setActiveTabState(nextTab);
