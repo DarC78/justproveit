@@ -303,8 +303,42 @@ function mergeAgentOptions(
 }
 
 function isInternationalPensionsIntent(row?: CrmLeadIntentRow | null) {
-  const serviceKey = String(row?.serviceKey || "").toLowerCase();
-  return serviceKey === "internationalpensions" || serviceKey === "pensiiinternationale";
+  const serviceText = `${row?.serviceKey || ""} ${row?.serviceDisplayName || ""}`
+    .toLowerCase()
+    .replace(/[_-]+/g, " ");
+  return (
+    serviceText.includes("simulator pensie") ||
+    serviceText.includes("simulatorpensie") ||
+    serviceText.includes("pensii") ||
+    serviceText.includes("pensie") ||
+    serviceText.includes("pension")
+  );
+}
+
+async function findLatestCrmLeadIntentByPhone(token: string, phone: string) {
+  const baseParams = {
+    createdLastDays: 3650,
+    statusBucket: "both",
+    toBeContacted: "oricand",
+    intent: "all",
+    service: "all",
+    language: "all",
+    phone,
+    lastCallAgentId: "all",
+    limit: 20,
+  };
+
+  const [openResult, closedResult] = await Promise.all([
+    listCrmLeadIntents(token, { ...baseParams, closed: false }),
+    listCrmLeadIntents(token, { ...baseParams, closed: true }),
+  ]);
+
+  const rows = [
+    ...(openResult.rows || openResult.items || []),
+    ...(closedResult.rows || closedResult.items || []),
+  ];
+
+  return rows.sort((first, second) => getDateTimeValue(second.createdAtUtc) - getDateTimeValue(first.createdAtUtc))[0] || null;
 }
 
 export default function AdminCrmPage() {
@@ -373,15 +407,19 @@ export default function AdminCrmPage() {
     let cancelled = false;
     autoloadedPhoneRef.current = cleanPhone;
 
-    findCrmLeadByPhone(token, cleanPhone)
-      .then((result) => {
+    Promise.all([
+      findCrmLeadByPhone(token, cleanPhone),
+      findLatestCrmLeadIntentByPhone(token, cleanPhone).catch(() => null),
+    ])
+      .then(([result, latestIntent]) => {
         if (cancelled) {
           return;
         }
 
-        if (result.lead) {
-          setSelectedLead(result.lead);
-          setSelectedIntent(null);
+        const lead = latestIntent?.lead || result.lead;
+        if (lead) {
+          setSelectedLead(lead);
+          setSelectedIntent(latestIntent);
           setStatusMessage("Lead incarcat dupa telefon.");
           setErrorMessage("");
           return;
@@ -495,6 +533,7 @@ export default function AdminCrmPage() {
                     agentName={agentName}
                     lead={selectedLead}
                     onLeadChange={setSelectedLead}
+                    onIntentChange={setSelectedIntent}
                     onStatus={setStatusMessage}
                     onError={setErrorMessage}
                   />
@@ -755,6 +794,7 @@ function LeadDetailsPanel({
   agentName,
   lead,
   onLeadChange,
+  onIntentChange,
   onStatus,
   onError,
 }: {
@@ -762,6 +802,7 @@ function LeadDetailsPanel({
   agentName: string;
   lead: CrmLead;
   onLeadChange: (lead: CrmLead) => void;
+  onIntentChange: (intent: CrmLeadIntentRow | null) => void;
   onStatus: (message: string) => void;
   onError: (message: string) => void;
 }) {
@@ -795,10 +836,15 @@ function LeadDetailsPanel({
     }
 
     try {
-      const result = await findCrmLeadByPhone(token, draft.phoneNumber);
-      if (result.lead) {
-        setDraft(result.lead);
-        onLeadChange(result.lead);
+      const [result, latestIntent] = await Promise.all([
+        findCrmLeadByPhone(token, draft.phoneNumber),
+        findLatestCrmLeadIntentByPhone(token, draft.phoneNumber).catch(() => null),
+      ]);
+      const foundLead = latestIntent?.lead || result.lead;
+      if (foundLead) {
+        setDraft(foundLead);
+        onLeadChange(foundLead);
+        onIntentChange(latestIntent);
         onStatus("Lead gasit dupa telefon.");
         onError("");
       } else {
