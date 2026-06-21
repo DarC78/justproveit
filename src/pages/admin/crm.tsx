@@ -663,7 +663,7 @@ export default function AdminCrmPage() {
         }
 
         .crm-toolbar {
-          width: min(1030px, calc(100vw - 40px));
+          width: min(1600px, calc(100vw - 48px));
           margin: 20px auto 0;
           border-radius: 14px 14px 0 0;
           background: #0c389d;
@@ -693,7 +693,7 @@ export default function AdminCrmPage() {
         }
 
         .crm-alert {
-          width: min(760px, calc(100vw - 32px));
+          width: min(1600px, calc(100vw - 48px));
           margin: 14px auto 0;
           font-size: 14px;
           font-weight: 700;
@@ -2250,7 +2250,7 @@ function DataTable({
       <style jsx>{`
         .table-wrap {
           width: 100%;
-          max-height: 365px;
+          max-height: min(56vh, 680px);
           overflow: auto;
           border: 4px solid #ff4b26;
           margin-top: 26px;
@@ -2328,7 +2328,7 @@ function CrmCard({
           background: #fff;
         }
         .crm-card.wide-card {
-          width: min(1140px, calc(100vw - 32px));
+          width: min(1600px, calc(100vw - 48px));
         }
         .crm-card.details-card {
           width: min(810px, calc(100vw - 32px));
@@ -2346,6 +2346,11 @@ function CrmCard({
           padding: 22px 38px 28px;
         }
         @media (max-width: 760px) {
+          .crm-card,
+          .crm-card.wide-card,
+          .crm-card.details-card {
+            width: calc(100vw - 20px);
+          }
           h1 {
             font-size: 24px;
             line-height: 58px;
