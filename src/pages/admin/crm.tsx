@@ -249,6 +249,27 @@ function formatLanguage(value?: string | null) {
   return LANGUAGE_LABELS[text.toLowerCase()] || text;
 }
 
+function formatLeadIntentComposition(rows: CrmLeadIntentRow[]) {
+  const counts = new Map<string, number>();
+
+  for (const row of rows) {
+    const serviceName = String(row.serviceDisplayName || row.serviceKey || "Unknown Service").trim();
+    const intentName = String(row.interestType || "Unknown Intent").trim();
+    const key = `${serviceName} ${intentName}`;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+
+  return Array.from(counts.entries())
+    .sort(([firstLabel, firstCount], [secondLabel, secondCount]) => {
+      if (secondCount !== firstCount) {
+        return secondCount - firstCount;
+      }
+
+      return firstLabel.localeCompare(secondLabel);
+    })
+    .map(([label, count]) => `${label} ${count}`);
+}
+
 function mergeLanguageOptions(options: string[]) {
   const seen = new Set<string>();
   const merged: string[] = [];
@@ -1663,6 +1684,7 @@ function LeadIntentPanel({
       return createdSortDirection === "asc" ? firstTime - secondTime : secondTime - firstTime;
     });
   }, [createdSortDirection, rows]);
+  const intentCompositionSummary = useMemo(() => formatLeadIntentComposition(sortedRows), [sortedRows]);
 
   useEffect(() => {
     loadIntents();
@@ -1809,7 +1831,10 @@ function LeadIntentPanel({
           </>
         ) : null}
       </p>
-      <p className="green-label">Total: {sortedRows.length}</p>
+      <p className="green-label">
+        Total: {sortedRows.length}
+        {intentCompositionSummary.length ? ` | ${intentCompositionSummary.join(" | ")}` : ""}
+      </p>
       <DataTable
         columns={[
           "Created",
