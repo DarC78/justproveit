@@ -1,6 +1,14 @@
-import { fetchJson } from "@/lib/auth";
+import { API_BASE_URL, fetchJson } from "@/lib/auth";
 
 const BASE_PATH = "/justproveit/admin/crm";
+const CANONICAL_READ_API_BASE_URL =
+  process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL ??
+  process.env.VITE_JPI_CRM_READ_API_BASE_URL ??
+  "https://launchingstack-func-dev.azurewebsites.net/api";
+
+function resolveUrl(baseUrl: string, path: string) {
+  return `${baseUrl.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 export type CrmLead = {
   id?: string | null;
@@ -229,17 +237,47 @@ function buildQuery(params: Record<string, string | number | boolean | null | un
   return text ? `?${text}` : "";
 }
 
+async function fetchCanonicalCrmReadJson<T>(path: string, options: RequestInit = {}) {
+  if (CANONICAL_READ_API_BASE_URL === API_BASE_URL) {
+    return fetchJson<T>(path, options);
+  }
+
+  const headers = new Headers(options.headers);
+  if (options.body && !headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
+
+  const response = await fetch(resolveUrl(CANONICAL_READ_API_BASE_URL, path), {
+    ...options,
+    headers,
+  });
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const apiError = payload && typeof payload === "object" && "error" in payload ? payload.error : null;
+    const message =
+      typeof apiError === "string"
+        ? apiError
+        : apiError && typeof apiError === "object" && "message" in apiError
+          ? String(apiError.message)
+          : response.statusText;
+    throw new Error(message || "CRM request failed.");
+  }
+
+  return payload as T;
+}
+
 export function listCrmLeads(
   token: string,
   params: Record<string, string | number | boolean | null | undefined>,
 ) {
-  return fetchJson<CrmLeadListResponse>(`${BASE_PATH}/leads${buildQuery(params)}`, {
+  return fetchCanonicalCrmReadJson<CrmLeadListResponse>(`${BASE_PATH}/leads${buildQuery(params)}`, {
     headers: authHeaders(token),
   });
 }
 
 export function findCrmLeadByPhone(token: string, phone: string) {
-  return fetchJson<{ phone: string; lead: CrmLead | null }>(
+  return fetchCanonicalCrmReadJson<{ phone: string; lead: CrmLead | null }>(
     `${BASE_PATH}/leads/by-phone${buildQuery({ phone })}`,
     {
       headers: authHeaders(token),
@@ -260,7 +298,7 @@ export function listCrmLeadIntents(
   token: string,
   params: Record<string, string | number | boolean | null | undefined>,
 ) {
-  return fetchJson<CrmLeadIntentResponse>(`${BASE_PATH}/lead-intents${buildQuery(params)}`, {
+  return fetchCanonicalCrmReadJson<CrmLeadIntentResponse>(`${BASE_PATH}/lead-intents${buildQuery(params)}`, {
     headers: authHeaders(token),
   });
 }
