@@ -1665,7 +1665,7 @@ function LeadIntentPanel({
   const [phone, setPhone] = useState("");
   const [lastCallAgentId, setLastCallAgentId] = useState("all");
   const [toBeContacted, setToBeContacted] = useState("oricand");
-  const [closed, setClosed] = useState(false);
+  const [showMissedCalls, setShowMissedCalls] = useState(false);
   const [rows, setRows] = useState<CrmLeadIntentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [resultText, setResultText] = useState("");
@@ -1703,7 +1703,8 @@ function LeadIntentPanel({
         language,
         phone,
         lastCallAgentId,
-        closed,
+        closed: false,
+        includeMissedCalls: showMissedCalls,
         limit: 300,
       });
       const nextRows = result.rows || result.items || [];
@@ -1801,8 +1802,12 @@ function LeadIntentPanel({
           ))}
         </select>
 
-        <label>Closed</label>
-        <input type="checkbox" checked={closed} onChange={(event) => setClosed(event.target.checked)} />
+        <label>Show MissedCalls</label>
+        <input
+          type="checkbox"
+          checked={showMissedCalls}
+          onChange={(event) => setShowMissedCalls(event.target.checked)}
+        />
 
         <button type="button" className="orange small" onClick={loadIntents} disabled={loading}>
           {loading ? "Se incarca..." : "Filter"}
