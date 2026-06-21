@@ -2257,6 +2257,9 @@ function DataTable({
           text-align: center;
         }
         th {
+          position: sticky;
+          top: 0;
+          z-index: 2;
           height: 40px;
           background: #ff4b26;
           color: #fff;
