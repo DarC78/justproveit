@@ -270,6 +270,79 @@ function formatLeadIntentComposition(rows: CrmLeadIntentRow[]) {
     .map(([label, count]) => `${label} ${count}`);
 }
 
+type LeadIntentSortColumn =
+  | "Created"
+  | "Closed"
+  | "Contact at"
+  | "Name"
+  | "Phone"
+  | "Email"
+  | "Intent"
+  | "Service"
+  | "CRM Status"
+  | "Agent Name"
+  | "Last Agent"
+  | "Last Call"
+  | "Last Callcode"
+  | "Language"
+  | "Source"
+  | "Campaign";
+
+type LeadIntentSortConfig = {
+  column: LeadIntentSortColumn;
+  direction: "asc" | "desc";
+};
+
+function getLeadIntentSortValue(row: CrmLeadIntentRow, column: LeadIntentSortColumn) {
+  switch (column) {
+    case "Created":
+      return getDateTimeValue(row.createdAtUtc);
+    case "Closed":
+      return getDateTimeValue(row.closedAtUtc);
+    case "Contact at":
+      return getDateTimeValue(row.contactTimeUtc);
+    case "Name":
+      return row.lead?.fullName || "";
+    case "Phone":
+      return row.lead?.phoneNumber || "";
+    case "Email":
+      return row.lead?.email || "";
+    case "Intent":
+      return row.interestType || "";
+    case "Service":
+      return row.serviceDisplayName || row.serviceKey || "";
+    case "CRM Status":
+      return row.lead?.statusOriginal || "";
+    case "Agent Name":
+      return row.lastCallAgentName || "";
+    case "Last Agent":
+      return formatAgentLabel(row.lastCallAgentId, row.lastCallAgentName);
+    case "Last Call":
+      return getDateTimeValue(row.lastCallTimeUtc);
+    case "Last Callcode":
+      return row.lastCallCode ?? row.lastCallCodeDetails ?? "";
+    case "Language":
+      return formatLanguage(row.language);
+    case "Source":
+      return row.source || "";
+    case "Campaign":
+      return row.campaignName || row.adName || "";
+    default:
+      return "";
+  }
+}
+
+function compareLeadIntentSortValues(first: string | number, second: string | number) {
+  if (typeof first === "number" && typeof second === "number") {
+    return first - second;
+  }
+
+  return String(first || "").localeCompare(String(second || ""), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
 function mergeLanguageOptions(options: string[]) {
   const seen = new Set<string>();
   const merged: string[] = [];
@@ -1671,20 +1744,51 @@ function LeadIntentPanel({
   const [resultText, setResultText] = useState("");
   const [predictiveCampaignSummary, setPredictiveCampaignSummary] = useState<CrmPredictiveCampaignSummary[]>([]);
   const [selectedLeadsTotal, setSelectedLeadsTotal] = useState(0);
-  const [createdSortDirection, setCreatedSortDirection] = useState<"asc" | "desc">("desc");
+  const [sortConfig, setSortConfig] = useState<LeadIntentSortConfig>({ column: "Created", direction: "desc" });
   const [intentOptions, setIntentOptions] = useState<string[]>([]);
   const [serviceOptions, setServiceOptions] = useState<Array<{ serviceKey: string; displayName?: string | null }>>([]);
   const [languageOptions, setLanguageOptions] = useState<string[]>(LEAD_INTENT_LANGUAGE_OPTIONS);
   const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number; agentName?: string | null }>>([]);
   const showContactAt = intent.toUpperCase() !== "ASAP";
+  const intentTableColumns: LeadIntentSortColumn[] = [
+    "Created",
+    "Closed",
+    ...(showContactAt ? (["Contact at"] as const) : []),
+    "Name",
+    "Phone",
+    "Email",
+    "Intent",
+    "Service",
+    "CRM Status",
+    "Agent Name",
+    "Last Agent",
+    "Last Call",
+    "Last Callcode",
+    "Language",
+    "Source",
+    "Campaign",
+  ];
   const sortedRows = useMemo(() => {
     return [...rows].sort((first, second) => {
-      const firstTime = getDateTimeValue(first.createdAtUtc);
-      const secondTime = getDateTimeValue(second.createdAtUtc);
-      return createdSortDirection === "asc" ? firstTime - secondTime : secondTime - firstTime;
+      const firstValue = getLeadIntentSortValue(first, sortConfig.column);
+      const secondValue = getLeadIntentSortValue(second, sortConfig.column);
+      const result = compareLeadIntentSortValues(firstValue, secondValue);
+
+      if (result !== 0) {
+        return sortConfig.direction === "asc" ? result : -result;
+      }
+
+      return getDateTimeValue(second.createdAtUtc) - getDateTimeValue(first.createdAtUtc);
     });
-  }, [createdSortDirection, rows]);
+  }, [rows, sortConfig]);
   const intentCompositionSummary = useMemo(() => formatLeadIntentComposition(sortedRows), [sortedRows]);
+
+  function toggleSort(column: LeadIntentSortColumn) {
+    setSortConfig((current) => ({
+      column,
+      direction: current.column === column && current.direction === "asc" ? "desc" : "asc",
+    }));
+  }
 
   useEffect(() => {
     loadIntents();
@@ -1841,24 +1945,7 @@ function LeadIntentPanel({
         {intentCompositionSummary.length ? ` | ${intentCompositionSummary.join(" | ")}` : ""}
       </p>
       <DataTable
-        columns={[
-          "Created",
-          "Closed",
-          ...(showContactAt ? ["Contact at"] : []),
-          "Name",
-          "Phone",
-          "Email",
-          "Intent",
-          "Service",
-          "CRM Status",
-          "Agent Name",
-          "Last Agent",
-          "Last Call",
-          "Last Callcode",
-          "Language",
-          "Source",
-          "Campaign",
-        ]}
+        columns={intentTableColumns}
         rows={sortedRows.map((row) => [
           formatDateTime(row.createdAtUtc),
           formatDateTime(row.closedAtUtc),
@@ -1887,12 +1974,15 @@ function LeadIntentPanel({
 
           onError("Intentul selectat nu are lead atasat.");
         }}
-        sortableColumns={{
-          Created: {
-            direction: createdSortDirection,
-            onClick: () => setCreatedSortDirection((current) => (current === "asc" ? "desc" : "asc")),
-          },
-        }}
+        sortableColumns={Object.fromEntries(
+          intentTableColumns.map((column) => [
+            column,
+            {
+              direction: sortConfig.column === column ? sortConfig.direction : "desc",
+              onClick: () => toggleSort(column),
+            },
+          ]),
+        )}
         minWidth={1560}
       />
       <style jsx>{panelStyles}</style>
