@@ -1918,8 +1918,9 @@ function LeadIntentPanel({
 
         {showCalendlyOnlyToday ? (
           <>
-            <label>Only today</label>
+            <label className="calendly-only-today-label">Only today</label>
             <input
+              className="calendly-only-today-input"
               type="checkbox"
               checked={calendlyOnlyToday}
               onChange={(event) => setCalendlyOnlyToday(event.target.checked)}
@@ -2766,6 +2767,12 @@ const panelStyles = `
     width: 16px;
     height: 16px;
   }
+  .calendly-only-today-label {
+    grid-column: 5;
+  }
+  .calendly-only-today-input {
+    grid-column: 6;
+  }
   @media (max-width: 760px) {
     .lookup-row,
     .detail-grid,
@@ -2782,6 +2789,10 @@ const panelStyles = `
     .intent-filter {
       width: 100%;
       grid-template-columns: 1fr;
+    }
+    .calendly-only-today-label,
+    .calendly-only-today-input {
+      grid-column: auto;
     }
   }
 `;
