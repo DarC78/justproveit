@@ -270,6 +270,57 @@ function formatLeadIntentComposition(rows: CrmLeadIntentRow[]) {
     .map(([label, count]) => `${label} ${count}`);
 }
 
+function getLocalDateKey(value?: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function isLeadIntentContactToday(row: CrmLeadIntentRow) {
+  const todayKey = getLocalDateKey(new Date().toISOString());
+  return Boolean(todayKey && getLocalDateKey(row.contactTimeUtc) === todayKey);
+}
+
+function summarizeLeadIntentRows(rows: CrmLeadIntentRow[]) {
+  return rows.reduce(
+    (summary, row) => {
+      const intentName = String(row.interestType || "").toUpperCase();
+      const serviceKey = String(row.serviceKey || row.serviceDisplayName || "").toLowerCase();
+
+      summary.totalLeads += 1;
+      if (intentName === "ASAP") {
+        summary.asap += 1;
+      }
+      if (intentName === "CALENDLY") {
+        summary.calendly += 1;
+      }
+      if (serviceKey.includes("carfinance") || serviceKey.includes("car finance")) {
+        summary.carFinance += 1;
+      }
+      if (
+        serviceKey.includes("pensiiinternationale") ||
+        serviceKey.includes("internationalpensions") ||
+        serviceKey.includes("privatepensions") ||
+        serviceKey.includes("private pensions")
+      ) {
+        summary.internationalPensions += 1;
+      }
+
+      return summary;
+    },
+    { totalLeads: 0, asap: 0, calendly: 0, carFinance: 0, internationalPensions: 0 },
+  );
+}
+
 type LeadIntentSortColumn =
   | "Created"
   | "Closed"
@@ -1815,9 +1866,11 @@ function LeadIntentPanel({
         limit: 300,
       });
       const nextRows = result.rows || result.items || [];
-      const summary = result.leadSummary || {};
-      setRows(nextRows);
-      setSelectedLeadsTotal(result.total ?? 0);
+      const shouldFilterCalendlyToday = showCalendlyOnlyToday && calendlyOnlyToday;
+      const visibleRows = shouldFilterCalendlyToday ? nextRows.filter(isLeadIntentContactToday) : nextRows;
+      const summary = shouldFilterCalendlyToday ? summarizeLeadIntentRows(visibleRows) : result.leadSummary || {};
+      setRows(visibleRows);
+      setSelectedLeadsTotal(shouldFilterCalendlyToday ? visibleRows.length : result.total ?? 0);
       setResultText(
         `Total Leads: ${summary.totalLeads ?? 0} | ASAP ${summary.asap ?? 0} | Calendly ${summary.calendly ?? 0} | Car Finance ${summary.carFinance ?? 0} | International Pensions ${summary.internationalPensions ?? 0}`,
       );
