@@ -1739,6 +1739,7 @@ function LeadIntentPanel({
   const [lastCallAgentId, setLastCallAgentId] = useState("all");
   const [toBeContacted, setToBeContacted] = useState("oricand");
   const [showMissedCalls, setShowMissedCalls] = useState(false);
+  const [calendlyOnlyToday, setCalendlyOnlyToday] = useState(true);
   const [rows, setRows] = useState<CrmLeadIntentRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [resultText, setResultText] = useState("");
@@ -1749,6 +1750,7 @@ function LeadIntentPanel({
   const [serviceOptions, setServiceOptions] = useState<Array<{ serviceKey: string; displayName?: string | null }>>([]);
   const [languageOptions, setLanguageOptions] = useState<string[]>(LEAD_INTENT_LANGUAGE_OPTIONS);
   const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number; agentName?: string | null }>>([]);
+  const showCalendlyOnlyToday = intent.toUpperCase() === "CALENDLY";
   const showContactAt = intent.toUpperCase() !== "ASAP";
   const intentTableColumns: LeadIntentSortColumn[] = [
     "Created",
@@ -1809,6 +1811,7 @@ function LeadIntentPanel({
         lastCallAgentId,
         closed: false,
         includeMissedCalls: showMissedCalls,
+        calendlyOnlyToday: showCalendlyOnlyToday && calendlyOnlyToday,
         limit: 300,
       });
       const nextRows = result.rows || result.items || [];
@@ -1912,6 +1915,17 @@ function LeadIntentPanel({
           checked={showMissedCalls}
           onChange={(event) => setShowMissedCalls(event.target.checked)}
         />
+
+        {showCalendlyOnlyToday ? (
+          <>
+            <label>Only today</label>
+            <input
+              type="checkbox"
+              checked={calendlyOnlyToday}
+              onChange={(event) => setCalendlyOnlyToday(event.target.checked)}
+            />
+          </>
+        ) : null}
 
         <button type="button" className="orange small" onClick={loadIntents} disabled={loading}>
           {loading ? "Se incarca..." : "Filter"}
