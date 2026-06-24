@@ -48,6 +48,17 @@ export type PensionCalculatorResult = {
     sourceUrl?: string;
     note?: string;
   } | null;
+  foreignPensionSections?: Array<{
+    countryCode?: string;
+    countryName: string;
+    workedPeriod: AgeYM;
+    retirementAge?: AgeYM | null;
+    retirementDate?: string | null;
+    eligibleNow?: boolean | null;
+    legalReference?: string | null;
+    sourceUrl?: string | null;
+    note?: string | null;
+  }>;
   scenarios: PensionScenario[];
   recommended: PensionScenario | null;
   warnings: string[];
@@ -78,6 +89,12 @@ export type PensionCalculatorPayload = {
   gender: "M" | "F";
   applicationDate?: string;
   periods: Record<string, number>;
+  foreignPeriods?: Array<{
+    country: string;
+    years: number;
+    months: number;
+    monthsTotal?: number;
+  }>;
   childrenRaised?: number;
   handicapType?: string;
   handicapYears?: number;

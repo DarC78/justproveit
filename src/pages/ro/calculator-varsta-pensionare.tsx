@@ -28,6 +28,36 @@ const BIRTH_MONTHS = [
   { value: "11", label: "Nov" },
   { value: "12", label: "Dec" },
 ];
+const FOREIGN_COUNTRIES = [
+  { value: "AT", label: "Austria" },
+  { value: "BE", label: "Belgia" },
+  { value: "BG", label: "Bulgaria" },
+  { value: "HR", label: "Croatia" },
+  { value: "CY", label: "Cipru" },
+  { value: "CZ", label: "Cehia" },
+  { value: "DK", label: "Danemarca" },
+  { value: "EE", label: "Estonia" },
+  { value: "FI", label: "Finlanda" },
+  { value: "FR", label: "Franta" },
+  { value: "DE", label: "Germania" },
+  { value: "GR", label: "Grecia" },
+  { value: "HU", label: "Ungaria" },
+  { value: "IE", label: "Irlanda" },
+  { value: "IT", label: "Italia" },
+  { value: "LV", label: "Letonia" },
+  { value: "LT", label: "Lituania" },
+  { value: "LU", label: "Luxemburg" },
+  { value: "MT", label: "Malta" },
+  { value: "NL", label: "Olanda" },
+  { value: "PL", label: "Polonia" },
+  { value: "PT", label: "Portugalia" },
+  { value: "SK", label: "Slovacia" },
+  { value: "SI", label: "Slovenia" },
+  { value: "ES", label: "Spania" },
+  { value: "SE", label: "Suedia" },
+  { value: "UK", label: "Regatul Unit / UK" },
+];
+const FOREIGN_PERIOD_SLOTS = [1, 2, 3] as const;
 
 type FormState = {
   fullName: string;
@@ -38,8 +68,15 @@ type FormState = {
   gender: "F" | "M";
   normalRoYears: string;
   normalRoMonths: string;
-  foreignYears: string;
-  foreignMonths: string;
+  foreignCountry1: string;
+  foreignYears1: string;
+  foreignMonths1: string;
+  foreignCountry2: string;
+  foreignYears2: string;
+  foreignMonths2: string;
+  foreignCountry3: string;
+  foreignYears3: string;
+  foreignMonths3: string;
   deosebiteYears: string;
   deosebiteMonths: string;
   specialeYears: string;
@@ -63,8 +100,15 @@ const initialForm: FormState = {
   gender: "F",
   normalRoYears: "",
   normalRoMonths: "",
-  foreignYears: "",
-  foreignMonths: "",
+  foreignCountry1: "UK",
+  foreignYears1: "",
+  foreignMonths1: "",
+  foreignCountry2: "",
+  foreignYears2: "",
+  foreignMonths2: "",
+  foreignCountry3: "",
+  foreignYears3: "",
+  foreignMonths3: "",
   deosebiteYears: "",
   deosebiteMonths: "",
   specialeYears: "",
@@ -144,6 +188,8 @@ export default function RomanianPensionCalculatorPage() {
 
     setSubmitting(true);
     try {
+      const foreignPeriods = buildForeignPeriods(form);
+      const foreignTotalMonths = foreignPeriods.reduce((total, period) => total + (period.monthsTotal || 0), 0);
       const result = await submitPensionCalculator({
         fullName: form.fullName,
         email: form.email,
@@ -153,8 +199,8 @@ export default function RomanianPensionCalculatorPage() {
         periods: {
           normalRoYears: asNumber(form.normalRoYears),
           normalRoMonths: asNumber(form.normalRoMonths),
-          foreignYears: asNumber(form.foreignYears),
-          foreignMonths: asNumber(form.foreignMonths),
+          foreignYears: Math.floor(foreignTotalMonths / 12),
+          foreignMonths: foreignTotalMonths % 12,
           deosebiteYears: asNumber(form.deosebiteYears),
           deosebiteMonths: asNumber(form.deosebiteMonths),
           specialeYears: asNumber(form.specialeYears),
@@ -164,6 +210,7 @@ export default function RomanianPensionCalculatorPage() {
           grupaIIYears: asNumber(form.grupaIIYears),
           grupaIIMonths: asNumber(form.grupaIIMonths),
         },
+        foreignPeriods,
         childrenRaised: asNumber(form.childrenRaised),
         handicapType: form.handicapType,
         handicapYears: asNumber(form.handicapYears),
@@ -320,13 +367,18 @@ export default function RomanianPensionCalculatorPage() {
                     onYears={(value) => update("normalRoYears", value)}
                     onMonths={(value) => update("normalRoMonths", value)}
                   />
-                  <PeriodRow
-                    label="UK / strainatate"
-                    years={form.foreignYears}
-                    months={form.foreignMonths}
-                    onYears={(value) => update("foreignYears", value)}
-                    onMonths={(value) => update("foreignMonths", value)}
-                  />
+                  {FOREIGN_PERIOD_SLOTS.map((slot) => (
+                    <ForeignPeriodRow
+                      key={slot}
+                      slot={slot}
+                      country={form[`foreignCountry${slot}`]}
+                      years={form[`foreignYears${slot}`]}
+                      months={form[`foreignMonths${slot}`]}
+                      onCountry={(value) => update(`foreignCountry${slot}`, value)}
+                      onYears={(value) => update(`foreignYears${slot}`, value)}
+                      onMonths={(value) => update(`foreignMonths${slot}`, value)}
+                    />
+                  ))}
                   <PeriodRow
                     label="Conditii deosebite"
                     years={form.deosebiteYears}
@@ -516,6 +568,38 @@ function PeriodRow({
   );
 }
 
+function ForeignPeriodRow({
+  slot,
+  country,
+  years,
+  months,
+  onCountry,
+  onYears,
+  onMonths,
+}: {
+  slot: number;
+  country: string;
+  years: string;
+  months: string;
+  onCountry: (value: string) => void;
+  onYears: (value: string) => void;
+  onMonths: (value: string) => void;
+}) {
+  return (
+    <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 md:grid-cols-[1fr_110px_110px] md:items-end">
+      <SelectInput
+        label={`Tara ${slot}`}
+        value={country}
+        onChange={onCountry}
+        options={FOREIGN_COUNTRIES}
+        placeholder="Alege tara"
+      />
+      <TextInput label="Ani" type="number" min="0" value={years} onChange={onYears} />
+      <TextInput label="Luni" type="number" min="0" max="11" value={months} onChange={onMonths} />
+    </div>
+  );
+}
+
 function ResultPanel({
   emailMessage,
   onSendEmail,
@@ -642,35 +726,62 @@ function ResultPanel({
           </div>
         </div>
 
-        {result.ukStatePension ? (
-          <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <h2 className="text-lg font-extrabold">UK</h2>
-            <p className="mt-2 text-xl font-extrabold">
-              Puteti primi UK State Pension de la data de{" "}
-              <strong>{result.ukStatePension.retirementDate}</strong>.
-            </p>
+        {(result.foreignPensionSections?.length
+          ? result.foreignPensionSections
+          : result.ukStatePension
+            ? [
+                {
+                  countryName: "UK",
+                  workedPeriod: result.stagiu.foreign,
+                  retirementAge: result.ukStatePension.retirementAge,
+                  retirementDate: result.ukStatePension.retirementDate,
+                  eligibleNow: result.ukStatePension.eligibleNow,
+                  sourceUrl: result.ukStatePension.sourceUrl,
+                  note: result.ukStatePension.note,
+                },
+              ]
+            : []
+        ).map((section) => (
+          <div key={`${section.countryName}-${section.retirementDate || section.workedPeriod.years}`} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <h2 className="text-lg font-extrabold">{section.countryName}</h2>
+            {section.retirementDate ? (
+              <p className="mt-2 text-xl font-extrabold">
+                Puteti primi pensia de stat din {section.countryName} de la data de{" "}
+                <strong>{section.retirementDate}</strong>.
+              </p>
+            ) : (
+              <p className="mt-2 text-xl font-extrabold">
+                Stagiu declarat in {section.countryName}:{" "}
+                <strong>{formatAge(section.workedPeriod)}</strong>.
+              </p>
+            )}
             <div className="mt-4 grid gap-2 text-sm">
-              <Metric label="Varsta UK State Pension" value={formatAge(result.ukStatePension.retirementAge)} />
-              <Metric
-                label="Status"
-                value={result.ukStatePension.eligibleNow ? "Eligibil acum" : "Eligibil la data indicata"}
-              />
+              <Metric label="Stagiu declarat" value={formatAge(section.workedPeriod)} />
+              {section.retirementAge ? (
+                <Metric label="Varsta pensie de stat" value={formatAge(section.retirementAge)} />
+              ) : null}
+              {section.retirementDate ? (
+                <Metric
+                  label="Status"
+                  value={section.eligibleNow ? "Eligibil acum" : "Eligibil la data indicata"}
+                />
+              ) : null}
             </div>
-            {result.ukStatePension.note ? (
-              <p className="mt-3 text-xs leading-5 text-slate-600">{result.ukStatePension.note}</p>
+            {section.note ? (
+              <p className="mt-3 text-xs leading-5 text-slate-600">{section.note}</p>
             ) : null}
-            {result.ukStatePension.sourceUrl ? (
+            {section.sourceUrl ? (
               <a
-                href={result.ukStatePension.sourceUrl}
+                href={section.sourceUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="mt-3 inline-flex text-sm font-semibold text-emerald-700 hover:underline"
               >
-                Verifica pe GOV.UK
+                Verifica sursa oficiala
               </a>
             ) : null}
           </div>
-        ) : null}
+        ))}
       </div>
 
       <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
@@ -751,4 +862,29 @@ function isOnlyAgePending(
 function asNumber(value: string) {
   const numeric = Number(value);
   return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+}
+
+function buildForeignPeriods(form: FormState) {
+  return FOREIGN_PERIOD_SLOTS.map((slot) => {
+    const country = form[`foreignCountry${slot}` as keyof FormState];
+    const years = form[`foreignYears${slot}` as keyof FormState];
+    const months = form[`foreignMonths${slot}` as keyof FormState];
+
+    return {
+      country: String(country || ""),
+      years: asNumber(String(years || "")),
+      months: asNumber(String(months || "")),
+    };
+  })
+    .map((period) => ({
+      ...period,
+      totalMonths: period.years * 12 + period.months,
+    }))
+    .filter((period) => period.country && period.totalMonths > 0)
+    .map(({ country, years, months, totalMonths }) => ({
+      country,
+      years,
+      months,
+      monthsTotal: totalMonths,
+    }));
 }
