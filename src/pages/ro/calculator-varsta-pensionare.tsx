@@ -718,7 +718,7 @@ function formatScenarioStatus(
   if (scenario.eligibleNow) {
     return "Eligibil acum";
   }
-  if (scenario.eligible || isOnlyAgePending(scenario)) {
+  if (scenario.eligible || scenario.futureEligible || isOnlyAgePending(scenario)) {
     return "Eligibil la data indicata";
   }
   return "Nu acum";
