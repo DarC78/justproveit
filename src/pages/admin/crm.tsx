@@ -2903,6 +2903,10 @@ function formatTopCallCodes(
   }
 
   return callCodes
+    .filter((callCode) => {
+      const label = String(callCode.label || "").trim().toLowerCase();
+      return callCode.callCode !== 0 && label !== "default";
+    })
     .slice(0, 3)
     .map(
       (callCode) =>
