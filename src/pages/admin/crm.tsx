@@ -1607,19 +1607,19 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
         <input value={phone} onChange={(event) => setPhone(event.target.value)} />
       </div>
       <DataTable
-        columns={["Name", "Phone", "email", "Suma", "Data", "Proprietar MVP", "DialerFirst", "DialerLast"]}
+        columns={["Name", "Phone", "email", "Suma", "Data", "DialerFirst", "DialerLast"]}
         rows={sales.map((sale) => [
           sale.name,
           sale.phone,
           sale.email,
           formatMoney(sale.amountTotalMajor),
           formatDate(sale.wixCreatedDateUtc),
-          sale.storeowner || "N/A",
           sale.dialerowner || "",
           sale.dialerlast || "N/A",
         ])}
         loading={loading}
-        minWidth={1100}
+        minWidth={980}
+        className="sales-table"
       />
       <style jsx>{panelStyles}</style>
     </CrmCard>
@@ -2349,6 +2349,7 @@ function DataTable({
   onRowDoubleClick,
   sortableColumns,
   minWidth,
+  className,
 }: {
   columns: string[];
   rows: Array<Array<string | number | null | undefined>>;
@@ -2357,9 +2358,10 @@ function DataTable({
   onRowDoubleClick?: (index: number) => void;
   sortableColumns?: Record<string, { direction: "asc" | "desc"; onClick: () => void }>;
   minWidth?: number;
+  className?: string;
 }) {
   return (
-    <div className="table-wrap">
+    <div className={`table-wrap ${className ?? ""}`}>
       <table style={{ minWidth }}>
         <thead>
           <tr>
@@ -2457,6 +2459,13 @@ function DataTable({
         }
         tbody tr td:last-child {
           background: #e5e5e5;
+        }
+        .sales-table :global(th:first-child),
+        .sales-table :global(td:first-child) {
+          width: 9%;
+          max-width: 90px;
+          white-space: normal;
+          word-break: break-word;
         }
       `}</style>
     </div>
