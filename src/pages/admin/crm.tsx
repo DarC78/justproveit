@@ -1995,13 +1995,7 @@ function LeadIntentPanel({
             <br />
             {predictiveCampaignSummary.map((campaign) => (
               <span key={campaign.queueId ?? campaign.campaignName}>
-                {campaign.campaignName || `Queue ${campaign.queueId}`} | Total Leads: {campaign.totalLeads ?? 0} | Finished Leads{" "}
-                {campaign.finishedLeads ?? 0} | ToBeDialled {campaign.toBeDialled ?? 0} | Last CallCode 5:{" "}
-                {campaign.toBeDialledLastCallCode5 ?? 0} | Dialled zero times: {campaign.toBeDialledZeroTrials ?? 0} / 1-3 times:{" "}
-                {campaign.toBeDialledOneToThreeTrials ?? 0} / 4-5 times: {campaign.toBeDialledFourToFiveTrials ?? 0} / 5+ times:{" "}
-                {campaign.toBeDialledFivePlusTrials ?? 0} | Called Today:{" "}
-                {campaign.calledToday ?? 0} ({campaign.calledYesterday ?? 0}) Connected Today: {campaign.connectedToday ?? 0} (
-                {campaign.connectedYesterday ?? 0}) {formatTopCallCodes(campaign.topCallCodes)}
+                {formatPredictiveCampaignSummary(campaign)}
                 <br />
               </span>
             ))}
@@ -2904,6 +2898,37 @@ function formatAgentLabel(agentId?: number | null, agentName?: string | null) {
   return agentName ? `${agentId} - ${agentName}` : String(agentId);
 }
 
+function formatPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary) {
+  const queueName = campaign.campaignName || `Queue ${campaign.queueId}`;
+
+  return [
+    queueName,
+    `Total Leads: ${campaign.totalLeads ?? 0}`,
+    `Finished Leads To Ag ${getFinishedToAgCount(campaign)}`,
+    `Finished Not Ag ${getFinishedNotAgCount(campaign)}`,
+    `ToBeDialled ${campaign.toBeDialled ?? 0}`,
+    `VoiceMails: ${getVoiceMailCount(campaign)}`,
+    formatTopCallCodes(campaign.topCallCodes),
+    `Dialled zero times: ${campaign.toBeDialledZeroTrials ?? 0} / 1-3 times: ${campaign.toBeDialledOneToThreeTrials ?? 0} / 4-5 times: ${campaign.toBeDialledFourToFiveTrials ?? 0} / 5+ times: ${campaign.toBeDialledFivePlusTrials ?? 0}`,
+    `Called Today: ${campaign.calledToday ?? 0} (${campaign.calledYesterday ?? 0}) Connected Today: ${campaign.connectedToday ?? 0} (${campaign.connectedYesterday ?? 0})`,
+  ]
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function getFinishedToAgCount(campaign: CrmPredictiveCampaignSummary) {
+  return campaign.finishedLeadsToAg ?? campaign.finishedToAg ?? campaign.leadsToAg ?? 0;
+}
+
+function getFinishedNotAgCount(campaign: CrmPredictiveCampaignSummary) {
+  return campaign.finishedNotAg ?? campaign.noAgLeads ?? 0;
+}
+
+function getVoiceMailCount(campaign: CrmPredictiveCampaignSummary) {
+  const voiceMailCallCode = campaign.topCallCodes?.find((callCode) => callCode.callCode === 5);
+  return voiceMailCallCode?.count ?? campaign.toBeDialledLastCallCode5 ?? 0;
+}
+
 function formatTopCallCodes(
   callCodes?: Array<{ callCode?: number | null; label?: string | null; count?: number; yesterdayCount?: number }>,
 ) {
@@ -2911,17 +2936,28 @@ function formatTopCallCodes(
     return "";
   }
 
-  return callCodes
+  const topCallCodes = callCodes
     .filter((callCode) => {
       const label = String(callCode.label || "").trim().toLowerCase();
-      return callCode.callCode !== 0 && label !== "default";
+      return Boolean(callCode.callCode && callCode.callCode > 0 && callCode.callCode !== 5 && label !== "default");
     })
-    .slice(0, 3)
-    .map(
-      (callCode) =>
-        `${callCode.label || `CallCode ${callCode.callCode ?? ""}`}: ${callCode.count ?? 0} (${callCode.yesterdayCount ?? 0})`,
-    )
-    .join(" ");
+    .sort((first, second) => {
+      const countDiff = (second.count ?? 0) - (first.count ?? 0);
+      if (countDiff !== 0) {
+        return countDiff;
+      }
+
+      return (first.callCode ?? 0) - (second.callCode ?? 0);
+    })
+    .slice(0, 5);
+
+  if (!topCallCodes.length) {
+    return "";
+  }
+
+  return topCallCodes
+    .map((callCode) => `${callCode.label || `CallCode ${callCode.callCode ?? ""}`}: ${callCode.count ?? 0}`)
+    .join(" | ");
 }
 
 function toInputDate(value?: string | null) {

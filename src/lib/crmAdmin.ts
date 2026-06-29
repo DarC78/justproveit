@@ -111,6 +111,11 @@ export type CrmPredictiveCampaignSummary = {
   campaignName?: string | null;
   totalLeads?: number;
   finishedLeads?: number;
+  finishedLeadsToAg?: number;
+  finishedToAg?: number;
+  leadsToAg?: number;
+  finishedNotAg?: number;
+  noAgLeads?: number;
   toBeDialled?: number;
   toBeDialledLastCallCode5?: number;
   toBeDialledZeroTrials?: number;
