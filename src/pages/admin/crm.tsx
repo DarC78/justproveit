@@ -12,11 +12,11 @@ import {
   listCrmMissedCalls,
   listCrmLeads,
   listCrmSales,
-  queueManualCrmSms,
   queueCrmEmailSequence,
   queueCrmSmsSequence,
   scheduleManualCrmEmail,
   searchCrmActivity,
+  sendManualCrmSms,
   updateCrmLead,
 } from "@/lib/crmAdmin";
 import Head from "next/head";
@@ -2126,17 +2126,17 @@ function ManualEmailSmsPanel({
 
     setSmsBusy(true);
     try {
-      await queueManualCrmSms(token, {
+      await sendManualCrmSms(token, {
         phone: phone.trim(),
         message: smsMessage.trim(),
         agent: agentName,
       });
-      onStatus("SMS-ul a fost adaugat in coada de trimitere.");
+      onStatus("SMS-ul a fost trimis.");
       onError("");
       setPhone("");
       setSmsMessage("");
     } catch (error) {
-      onError(error instanceof Error ? error.message : "Nu am putut programa SMS-ul.");
+      onError(error instanceof Error ? error.message : "Nu am putut trimite SMS-ul.");
     } finally {
       setSmsBusy(false);
     }
@@ -2144,7 +2144,7 @@ function ManualEmailSmsPanel({
 
   return (
     <section className="manual-panel">
-      <button type="button" className="orange title-btn">Send email</button>
+      <div className="orange title-btn" role="heading" aria-level={3}>Send email</div>
       <form onSubmit={handleSendEmail}>
         <label>
           email *
@@ -2182,7 +2182,7 @@ function ManualEmailSmsPanel({
           {emailBusy ? "Sending..." : "Queue email"}
         </button>
       </form>
-      <button type="button" className="orange title-btn sms">Send SMS</button>
+      <div className="orange title-btn sms" role="heading" aria-level={3}>Send SMS</div>
       <label>
         Phone *
         <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Phone..." />
@@ -2193,7 +2193,7 @@ function ManualEmailSmsPanel({
         placeholder="How can we do better next time?"
       />
       <button type="button" className="orange submit-btn" onClick={handleSendSms} disabled={smsBusy}>
-        {smsBusy ? "Sending..." : "Queue SMS"}
+        {smsBusy ? "Sending..." : "Send SMS"}
       </button>
       <style jsx>{`
         .manual-panel {
@@ -2237,9 +2237,16 @@ function ManualEmailSmsPanel({
           background: #ff4b26;
           color: #fff;
           font-weight: 800;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
         .submit-btn {
           border-radius: 5px;
+          cursor: pointer;
+        }
+        .title-btn {
+          cursor: default;
         }
         .sms {
           margin-top: 40px;
