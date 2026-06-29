@@ -2182,7 +2182,6 @@ function ManualEmailSmsPanel({
           {emailBusy ? "Sending..." : "Queue email"}
         </button>
       </form>
-      <div className="orange title-btn sms" role="heading" aria-level={3}>Send SMS</div>
       <label>
         Phone *
         <input value={phone} onChange={(event) => setPhone(event.target.value)} placeholder="Phone..." />
@@ -2247,9 +2246,6 @@ function ManualEmailSmsPanel({
         }
         .title-btn {
           cursor: default;
-        }
-        .sms {
-          margin-top: 40px;
         }
       `}</style>
     </section>
