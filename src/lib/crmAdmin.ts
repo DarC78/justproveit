@@ -14,6 +14,8 @@ export type CrmLead = {
   id?: string | null;
   wixId?: string | null;
   _id?: string | null;
+  contactId?: string | null;
+  canonicalContactId?: string | null;
   leadDate?: string | null;
   fullName?: string | null;
   phoneNumber?: string | null;
@@ -34,6 +36,27 @@ export type CrmLead = {
   emailLeads?: string | null;
   emailAsap?: string | null;
   addToDialler?: number | null;
+  canonical?: {
+    contactId?: string | null;
+    emailCount?: number;
+    phoneCount?: number;
+    intentCount?: number;
+    legacyLeadCount?: number;
+  };
+  phones?: CrmContactPhone[];
+};
+
+export type CrmContactPhone = {
+  id?: string | null;
+  contactId?: string | null;
+  phone?: string | null;
+  normalizedPhone?: string | null;
+  phoneLast6?: string | null;
+  isPrimary?: boolean;
+  source?: string | null;
+  legacyCrmLeadId?: string | null;
+  createdAtUtc?: string | null;
+  updatedAtUtc?: string | null;
 };
 
 export type CrmActivity = {
@@ -62,6 +85,8 @@ export type CrmSale = {
   id?: string | null;
   wixId?: string | null;
   _id?: string | null;
+  contactId?: string | null;
+  canonicalContactId?: string | null;
   wixCreatedDateUtc?: string | null;
   name?: string | null;
   email?: string | null;
@@ -319,6 +344,19 @@ export function updateCrmLead(token: string, id: string, payload: CrmLeadUpdateP
   );
 }
 
+export function addCrmLeadPhone(token: string, id: string, payload: { phone: string; agent?: string }) {
+  return fetchCanonicalCrmReadJson<{
+    success: boolean;
+    phone?: CrmContactPhone | null;
+    normalizedPhone?: string | null;
+    contact?: { phones?: CrmContactPhone[] };
+    lead?: CrmLead | null;
+  }>(`${BASE_PATH}/leads/${encodeURIComponent(id)}/phones`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
 export function queueCrmSmsSequence(
   token: string,
   id: string,

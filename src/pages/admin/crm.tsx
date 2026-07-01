@@ -1,6 +1,8 @@
 import { useAuth } from "@/context/AuthContext";
 import {
+  addCrmLeadPhone,
   CrmActivity,
+  CrmContactPhone,
   CrmLead,
   CrmLeadIntentRow,
   CrmMissedCall,
@@ -976,7 +978,9 @@ function LeadDetailsPanel({
   const [draft, setDraft] = useState<CrmLead>(lead);
   const [newObservation, setNewObservation] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState("");
   const [saving, setSaving] = useState(false);
+  const [phoneSaving, setPhoneSaving] = useState(false);
   const [smsBusy, setSmsBusy] = useState<"buy" | "skeptic" | "">("");
   const [emailSequenceBusy, setEmailSequenceBusy] = useState(false);
   const [selectedSequence, setSelectedSequence] = useState("");
@@ -990,6 +994,7 @@ function LeadDetailsPanel({
     setDraft(lead);
     setNewObservation("");
     setNewEmail("");
+    setNewPhone("");
     setSelectedSequence("");
     setSelectedCmcDomain("");
     setNextContactTime(toInputTime(lead.dataUrmatorContact));
@@ -1064,6 +1069,44 @@ function LeadDetailsPanel({
     }
 
     await handleSave();
+  }
+
+  async function handleAddPhone() {
+    const phone = newPhone.trim();
+    if (!phone) {
+      onError("Completeaza telefonul nou.");
+      return;
+    }
+
+    const id =
+      draft.contactId ||
+      draft.canonicalContactId ||
+      draft.canonical?.contactId ||
+      draft.id ||
+      draft.wixId ||
+      draft._id;
+    if (!id) {
+      onError("Selecteaza sau cauta un lead inainte de a adauga telefon.");
+      return;
+    }
+
+    setPhoneSaving(true);
+    try {
+      const result = await addCrmLeadPhone(token, id, {
+        phone,
+        agent: agentName,
+      });
+      const updatedLead = mergePhoneResultIntoLead(draft, result.lead, result.contact?.phones, result.phone);
+      setDraft(updatedLead);
+      onLeadChange(updatedLead);
+      setNewPhone("");
+      onStatus("Telefonul a fost adaugat.");
+      onError("");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut adauga telefonul.");
+    } finally {
+      setPhoneSaving(false);
+    }
   }
 
   async function handleSmsSequence(type: "buy" | "skeptic") {
@@ -1151,6 +1194,7 @@ function LeadDetailsPanel({
   const financeOptions = mergeCurrentOption(FINANCE_COMPANIES, draft.financeCompany);
   const statusOptions = mergeCurrentOption(STATUS_OPTIONS, draft.statusOriginal);
   const languageOptions = mergeCurrentOption(LANGUAGE_OPTIONS, draft.language);
+  const contactPhones = getDisplayPhones(draft);
 
   return (
     <CrmCard title="Detalii client" className="details-card">
@@ -1168,7 +1212,32 @@ function LeadDetailsPanel({
       <div className="detail-grid">
         <LabelValue label="Nume:" value={draft.fullName} />
         <LabelValue label="Este client?" value={draft.isCustomer} />
-        <LabelValue label="Telefon:" value={draft.phoneNumber} />
+        <div className="phone-detail">
+          <span>Telefon:</span>
+          <div className="phone-detail-body">
+            <strong>{draft.phoneNumber || ""}</strong>
+            {contactPhones.length > 1 ? (
+              <ul className="phone-list">
+                {contactPhones.map((phone, index) => (
+                  <li key={phone.id || phone.normalizedPhone || phone.phone || index}>
+                    {phone.phone || phone.normalizedPhone}
+                    {phone.isPrimary ? " (principal)" : ""}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="add-phone-row">
+              <input
+                value={newPhone}
+                onChange={(event) => setNewPhone(event.target.value)}
+                placeholder="Telefon nou"
+              />
+              <button type="button" className="orange small" onClick={handleAddPhone} disabled={phoneSaving}>
+                {phoneSaving ? "Se adauga..." : "Adauga telefon"}
+              </button>
+            </div>
+          </div>
+        </div>
         <LabelValue label="Actiune:" value={draft.statusOriginal} />
         <LabelValue label="Email:" value={draft.email} />
         <LabelValue label="Data lead:" value={formatDate(draft.leadDate)} />
@@ -2555,6 +2624,64 @@ function LabelValue({ label, value }: { label: string; value?: string | number |
   );
 }
 
+function getPhoneKey(phone: CrmContactPhone) {
+  return String(phone.normalizedPhone || phone.phone || phone.id || "").trim();
+}
+
+function mergeContactPhones(existing: CrmContactPhone[], incoming: CrmContactPhone[]) {
+  const merged: CrmContactPhone[] = [];
+  const seen = new Set<string>();
+
+  [...existing, ...incoming].forEach((phone) => {
+    const key = getPhoneKey(phone);
+    if (!key || seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    merged.push(phone);
+  });
+
+  return merged;
+}
+
+function getDisplayPhones(lead: CrmLead) {
+  const apiPhones = Array.isArray(lead.phones) ? lead.phones : [];
+  if (!lead.phoneNumber) {
+    return apiPhones;
+  }
+
+  const primaryPhone: CrmContactPhone = {
+    phone: lead.phoneNumber,
+    normalizedPhone: lead.normalizedPhone || lead.phoneNumber,
+    isPrimary: true,
+  };
+
+  return mergeContactPhones([primaryPhone], apiPhones);
+}
+
+function mergePhoneResultIntoLead(
+  currentLead: CrmLead,
+  refreshedLead?: CrmLead | null,
+  refreshedPhones?: CrmContactPhone[],
+  addedPhone?: CrmContactPhone | null,
+) {
+  const baseLead = refreshedLead || currentLead;
+  const incomingPhones = refreshedPhones || baseLead.phones || [];
+  const phones = mergeContactPhones(
+    Array.isArray(currentLead.phones) ? currentLead.phones : [],
+    addedPhone ? [...incomingPhones, addedPhone] : incomingPhones,
+  );
+  const fallbackPhone = addedPhone?.phone || addedPhone?.normalizedPhone || currentLead.phoneNumber || null;
+
+  return {
+    ...currentLead,
+    ...baseLead,
+    phoneNumber: baseLead.phoneNumber || fallbackPhone,
+    normalizedPhone: baseLead.normalizedPhone || addedPhone?.normalizedPhone || currentLead.normalizedPhone || fallbackPhone,
+    phones,
+  };
+}
+
 function InfoBand() {
   return (
     <section className="info-band">
@@ -2656,6 +2783,40 @@ const panelStyles = `
     grid-template-columns: 1fr 1fr;
     column-gap: 48px;
     row-gap: 8px;
+  }
+  .phone-detail {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 10px;
+    min-height: 28px;
+    align-items: start;
+  }
+  .phone-detail > span {
+    font-size: 14px;
+  }
+  .phone-detail strong {
+    font-size: 14px;
+    font-weight: 800;
+    word-break: break-word;
+  }
+  .phone-detail-body {
+    display: grid;
+    gap: 8px;
+  }
+  .phone-list {
+    margin: 0;
+    padding-left: 16px;
+    font-size: 12px;
+    line-height: 1.35;
+  }
+  .phone-list li {
+    word-break: break-word;
+  }
+  .add-phone-row {
+    display: grid;
+    grid-template-columns: minmax(130px, 1fr) 132px;
+    align-items: center;
+    gap: 8px;
   }
   hr {
     border: 0;
@@ -2835,6 +2996,8 @@ const panelStyles = `
   @media (max-width: 760px) {
     .lookup-row,
     .detail-grid,
+    .phone-detail,
+    .add-phone-row,
     .form-grid.three,
     .inline-fields,
     .sequence-row,
