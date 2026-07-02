@@ -1,45 +1,215 @@
-# CRM Intents Predictive Summary Spec
+# CRM Intents Predictive Campaign Summary Backend Spec
 
-## Context
+## Objective
 
-The JustProveIt admin CRM intents tab calls:
+Update the backend for:
 
 `GET /justproveit/admin/crm/lead-intents`
 
-The response includes `predictiveCampaignSummary`, which the frontend renders underneath the lead intent filter summary.
+so every row in `predictiveCampaignSummary` includes:
 
-The route is deployed in Azure Function app `apiprocess`, script file `justproveitcrmnative.js`, from the `DarC78/proveitweb-live` repository.
+- split finished lead counts:
+  - `finishedLeadsToAg`
+  - `finishedNotAg`
+- call-code frequency rows:
+  - `topCallCodes`, including call code `5`
 
-## Required Backend Fields
+The frontend already renders these fields on:
 
-For each item in `predictiveCampaignSummary`, return:
+`https://www.justproveit.co.uk/admin/crm?tab=intents`
 
-- `finishedLeadsToAg`: number of finished leads that should be counted as "To Ag".
-- `finishedNotAg`: number of finished leads that should be counted as "Not Ag".
-- `topCallCodes`: call-code frequency rows covering call codes greater than zero, including call code `5`.
+## Important Deployment Target
 
-The frontend currently accepts fallback aliases for backwards compatibility:
+The JustProveIt frontend currently reads lead-intents from the canonical CRM read API:
 
-- To Ag: `finishedLeadsToAg`, `finishedToAg`, or `leadsToAg`.
-- Not Ag: `finishedNotAg` or `noAgLeads`.
+`NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL`
 
-## Display Rules
+In this repo, that points/defaults to:
 
-The frontend displays the queue summary as:
+`https://launchingstack-func-dev.azurewebsites.net/api`
+
+So this backend change must be deployed to the function app serving:
+
+`https://launchingstack-func-dev.azurewebsites.net/api/justproveit/admin/crm/lead-intents`
+
+There is also an `apiprocess` implementation at:
+
+`https://apiprocess.azurewebsites.net/api/justproveit/admin/crm/lead-intents`
+
+That endpoint already returned the desired fields during testing, but the live frontend did not use it for this page. Keep both implementations aligned, or change the frontend environment to read from the updated backend.
+
+## Current Problem
+
+For `SIMULATOR_PENSII_JUNE_2026_REAL_TIME`, the frontend receives this shape from `launchingstack-func-dev`:
+
+```json
+{
+  "queueId": 39,
+  "campaignName": "SIMULATOR_PENSII_JUNE_2026_REAL_TIME",
+  "totalLeads": 152,
+  "finishedLeads": 57,
+  "toBeDialled": 95,
+  "toBeDialledLastCallCode5": 10,
+  "topCallCodes": []
+}
+```
+
+Because `topCallCodes` is empty and the new finished fields are missing, the frontend shows:
+
+`Finished Leads To Ag 0 | Finished Not Ag 0 | VoiceMails: 10`
+
+with no call-code frequency list.
+
+## Required Response Contract
+
+Each `predictiveCampaignSummary[]` item must return:
+
+```json
+{
+  "queueId": 39,
+  "campaignName": "SIMULATOR_PENSII_JUNE_2026_REAL_TIME",
+  "totalLeads": 152,
+  "finishedLeads": 57,
+  "finishedLeadsToAg": 57,
+  "finishedNotAg": 0,
+  "toBeDialled": 95,
+  "toBeDialledLastCallCode5": 10,
+  "voiceMailCount": 10,
+  "toBeDialledZeroTrials": 18,
+  "toBeDialledOneToThreeTrials": 22,
+  "toBeDialledFourToFiveTrials": 55,
+  "toBeDialledFivePlusTrials": 0,
+  "calledToday": 0,
+  "connectedToday": 0,
+  "calledYesterday": 0,
+  "connectedYesterday": 0,
+  "topCallCodes": [
+    { "callCode": 5, "label": "Voice Mail", "count": 10 },
+    { "callCode": 17, "label": "SE_MAI_GANDESTE", "count": 20 },
+    { "callCode": 26, "label": "PROGRAMARE_CONSULTATIE", "count": 12 },
+    { "callCode": 20, "label": "CLAR_NU", "count": 9 },
+    { "callCode": 19, "label": "A_Inchis_Telefonul", "count": 7 },
+    { "callCode": 7, "label": "NO_QUALIFY", "count": 4 }
+  ]
+}
+```
+
+Keep existing fields unchanged for backwards compatibility:
+
+- `finishedLeads`
+- `toBeDialled`
+- `toBeDialledLastCallCode5`
+- dial attempt buckets
+- today/yesterday call stats
+
+Optional aliases are tolerated by the frontend, but the preferred canonical names are:
+
+- `finishedLeadsToAg`
+- `finishedNotAg`
+
+## Counting Rules
+
+### Finished Leads To Ag
+
+`finishedLeadsToAg` should count finished leads whose final/most relevant finished state means they should go to an agent or appointment/follow-up workflow.
+
+Use the business classification already implemented in `apiprocess` if available. During testing, `apiprocess` returned:
+
+- `SIMULATOR_PENSII_JUNE_2026_REAL_TIME`: `finishedLeadsToAg = 57`
+- `MISSED_CALLS`: `finishedLeadsToAg = 48`
+
+### Finished Not Ag
+
+`finishedNotAg` should count finished leads that are completed but should not go to an agent.
+
+During testing, `apiprocess` returned:
+
+- `SIMULATOR_PENSII_JUNE_2026_REAL_TIME`: `finishedNotAg = 0`
+- `MISSED_CALLS`: `finishedNotAg = 25`
+
+### VoiceMails
+
+`voiceMailCount` must be the frequency count for call code `5`.
+
+Also include the call code `5` row in `topCallCodes` so clients can derive the count if needed:
+
+```json
+{ "callCode": 5, "label": "Voice Mail", "count": 10 }
+```
+
+### Top Call Codes
+
+`topCallCodes` should include frequency rows for call codes found in the queue/campaign summary.
+
+Rules:
+
+- Include call codes greater than `0`.
+- Include call code `5`.
+- Exclude default/no-call rows from the frequency list.
+- Return enough rows for the frontend to display the top five non-voicemail codes after removing code `5`.
+- Sort by `count` descending. If counts tie, sort by `callCode` ascending.
+- Each row should include:
+  - `callCode`
+  - `label`
+  - `count`
+
+The frontend will display:
+
+- call code `5` as `VoiceMails`
+- the five most frequent `callCode > 0 && callCode !== 5` rows as:
+  - `<label>: <count>`
+
+## Frontend Display
+
+The deployed frontend formats each campaign like:
 
 `<queue_name> | Total Leads: <total> | Finished Leads To Ag <finishedLeadsToAg> | Finished Not Ag <finishedNotAg> | ToBeDialled <toBeDialled> | VoiceMails: <voiceMailCount> | <top1>: <count> | <top2>: <count> | <top3>: <count> | <top4>: <count> | <top5>: <count> | Dialled zero times: <zero> / 1-3 times: <oneToThree> / 4-5 times: <fourToFive> / 5+ times: <fivePlus> | Called Today: <today> (<yesterday>) Connected Today: <connectedToday> (<connectedYesterday>)`
 
-`VoiceMails` is the count for call code `5`.
+## Expected Example
 
-The top call-code list should be sorted by `count` descending and should exclude:
+For `SIMULATOR_PENSII_JUNE_2026_REAL_TIME`, the page should show something like:
 
-- call code `0`
-- call code `5`
-- default/no-call labels
+`SIMULATOR_PENSII_JUNE_2026_REAL_TIME | Total Leads: 152 | Finished Leads To Ag 57 | Finished Not Ag 0 | ToBeDialled 95 | VoiceMails: 10 | SE_MAI_GANDESTE: 20 | PROGRAMARE_CONSULTATIE: 12 | CLAR_NU: 9 | A_Inchis_Telefonul: 7 | NO_QUALIFY: 4 | Dialled zero times: 18 / 1-3 times: 22 / 4-5 times: 55 / 5+ times: 0 | Called Today: 0 (0) Connected Today: 0 (0)`
 
 ## Acceptance Criteria
 
-- Call code `5` appears only as `VoiceMails`, not in the top five call-code list.
-- The top five list contains the five most frequent call codes where `callCode > 0` and `callCode !== 5`.
-- Existing totals for `Total Leads`, `ToBeDialled`, dial attempts, and today/yesterday call stats remain unchanged.
-- If the backend omits the new finished AG fields, the frontend safely displays `0` until the API is updated.
+- `launchingstack-func-dev` returns `finishedLeadsToAg`, `finishedNotAg`, and populated `topCallCodes`.
+- `apiprocess` and `launchingstack-func-dev` return equivalent `predictiveCampaignSummary` for the same filters, unless there is a documented reason they differ.
+- `VoiceMails` equals the count for call code `5`.
+- Call code `5` does not appear in the frontend top-five frequency list because the frontend separates it into `VoiceMails`.
+- The top-five frequency list shows the most frequent non-zero, non-5 call codes.
+- Existing filters for `/lead-intents` still work:
+  - `createdLastDays`
+  - `statusBucket`
+  - `toBeContacted`
+  - `intent`
+  - `service`
+  - `language`
+  - `phone`
+  - `lastCallAgentId`
+  - `closed`
+  - `includeMissedCalls`
+  - `calendlyOnlyToday`
+  - `limit`
+
+## Verification
+
+After deployment, call:
+
+`GET https://launchingstack-func-dev.azurewebsites.net/api/justproveit/admin/crm/lead-intents?createdLastDays=30&statusBucket=nocall&toBeContacted=oricand&intent=all&service=all&language=all&lastCallAgentId=all&closed=false&includeMissedCalls=false&calendlyOnlyToday=false&limit=300`
+
+with a valid JustProveIt admin bearer token.
+
+For `SIMULATOR_PENSII_JUNE_2026_REAL_TIME`, verify:
+
+- `finishedLeadsToAg` is non-zero when applicable.
+- `finishedNotAg` is present.
+- `topCallCodes` contains at least:
+  - call code `5`
+  - the most frequent non-5 call codes.
+
+Then hard-refresh:
+
+`https://www.justproveit.co.uk/admin/crm?tab=intents`
+
+and confirm the summary line includes the call-code frequency labels and counts.
