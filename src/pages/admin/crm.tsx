@@ -3253,23 +3253,31 @@ function buildHighLevelFunnelRowsFromLeadIntents(
 ) {
   const selectedAgentId = Number.parseInt(agentId, 10);
   const hasAgentFilter = Number.isInteger(selectedAgentId) && selectedAgentId > 0;
+  const leadProfiles = buildLeadIntentProfiles(rows);
   const groups = new Map<string, CrmHighLevelFunnelRow>();
   const sourceNames = new Set<string>();
+  const countedProfiles = new Set<string>();
 
   for (const row of rows) {
-    const rowAgentId = Number(row.lastCallAgentId);
+    const profileKey = getPrimaryLeadIntentIdentityKey(row);
+    const profile = profileKey ? leadProfiles.get(profileKey) : null;
     if (
       !isSimulatorPensieIntent(row) ||
+      isCalendlyBookedIntent(row) ||
       !isDateInInputRange(row.createdAtUtc, dateBegin, dateEnd) ||
-      (hasAgentFilter && rowAgentId !== selectedAgentId)
+      (hasAgentFilter && !profile?.agentIds.has(selectedAgentId)) ||
+      (profileKey && countedProfiles.has(profileKey))
     ) {
       continue;
     }
 
     const leadSource = String(row.source || "Unknown").trim() || "Unknown";
-    const calendlyBooked = isCalendlyBookedIntent(row);
+    const calendlyBooked = profile?.calendlyBooked || false;
     const key = `${leadSource}::${calendlyBooked ? "yes" : "no"}`;
     sourceNames.add(leadSource);
+    if (profileKey) {
+      countedProfiles.add(profileKey);
+    }
 
     const current =
       groups.get(key) ||
@@ -3283,10 +3291,10 @@ function buildHighLevelFunnelRowsFromLeadIntents(
       } satisfies CrmHighLevelFunnelRow);
 
     current.numberOfLeads = getFunnelLeadCount(current) + 1;
-    if (isTalkedToAgentIntent(row)) {
+    if (profile?.talkedToAgent || isTalkedToAgentIntent(row)) {
       current.talkToAnAgent = getFunnelTalkToAgentCount(current) + 1;
     }
-    if (String(row.lead?.statusOriginal || "").trim().toUpperCase() === "SALE") {
+    if (profile?.sale || isSaleIntent(row)) {
       current.sales = getFunnelSalesCount(current) + 1;
     }
 
@@ -3321,6 +3329,98 @@ function buildHighLevelFunnelRowsFromLeadIntents(
 
     return formatCalendlyBooked(second.calendlyBooked).localeCompare(formatCalendlyBooked(first.calendlyBooked));
   });
+}
+
+function buildLeadIntentProfiles(rows: CrmLeadIntentRow[]) {
+  const profiles = new Map<
+    string,
+    {
+      calendlyBooked: boolean;
+      talkedToAgent: boolean;
+      sale: boolean;
+      agentIds: Set<number>;
+    }
+  >();
+
+  for (const row of rows) {
+    if (!isSimulatorPensieIntent(row)) {
+      continue;
+    }
+
+    const keys = getLeadIntentIdentityKeys(row);
+    if (!keys.length) {
+      continue;
+    }
+
+    const existingProfile = keys.map((key) => profiles.get(key)).find(Boolean);
+    const profile =
+      existingProfile ||
+      ({
+        calendlyBooked: false,
+        talkedToAgent: false,
+        sale: false,
+        agentIds: new Set<number>(),
+      } satisfies {
+        calendlyBooked: boolean;
+        talkedToAgent: boolean;
+        sale: boolean;
+        agentIds: Set<number>;
+      });
+
+    profile.calendlyBooked = profile.calendlyBooked || isCalendlyBookedIntent(row);
+    profile.talkedToAgent = profile.talkedToAgent || isTalkedToAgentIntent(row);
+    profile.sale = profile.sale || isSaleIntent(row);
+
+    const rowAgentId = Number(row.lastCallAgentId);
+    if (Number.isInteger(rowAgentId) && rowAgentId > 0 && rowAgentId !== 5) {
+      profile.agentIds.add(rowAgentId);
+    }
+
+    for (const key of keys) {
+      profiles.set(key, profile);
+    }
+  }
+
+  return profiles;
+}
+
+function getPrimaryLeadIntentIdentityKey(row: CrmLeadIntentRow) {
+  return getLeadIntentIdentityKeys(row)[0] || "";
+}
+
+function getLeadIntentIdentityKeys(row: CrmLeadIntentRow) {
+  const keys = new Set<string>();
+  const lead = row.lead;
+
+  addIdentityKey(keys, "canonical", lead?.canonicalContactId || lead?.canonical?.contactId);
+  addIdentityKey(keys, "contact", lead?.contactId);
+  addIdentityKey(keys, "lead", row.leadId || lead?.id || lead?.wixId || lead?._id || lead?.leadid);
+  addIdentityKey(keys, "phone", lead?.normalizedPhone || lead?.phoneNumber, normalizeIdentityPhone);
+  addIdentityKey(keys, "email", lead?.email, normalizeIdentityEmail);
+  addIdentityKey(keys, "email", lead?.secondaryemail, normalizeIdentityEmail);
+
+  return Array.from(keys);
+}
+
+function addIdentityKey(
+  keys: Set<string>,
+  prefix: string,
+  value?: string | null,
+  normalize: (value: string) => string = (item) => item.trim(),
+) {
+  const normalized = normalize(String(value || ""));
+  if (normalized) {
+    keys.add(`${prefix}:${normalized}`);
+  }
+}
+
+function normalizeIdentityPhone(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 6 ? digits.slice(-10) : "";
+}
+
+function normalizeIdentityEmail(value: string) {
+  return value.trim().toLowerCase();
 }
 
 function dedupeLeadIntentRows(rows: CrmLeadIntentRow[]) {
@@ -3376,6 +3476,10 @@ function isSimulatorPensieIntent(row: CrmLeadIntentRow) {
 
 function isCalendlyBookedIntent(row: CrmLeadIntentRow) {
   return String(row.interestType || "").trim().toUpperCase() === "CALENDLY";
+}
+
+function isSaleIntent(row: CrmLeadIntentRow) {
+  return String(row.lead?.statusOriginal || "").trim().toUpperCase() === "SALE";
 }
 
 function isTalkedToAgentIntent(row: CrmLeadIntentRow) {
