@@ -3,6 +3,7 @@ import {
   addCrmLeadPhone,
   CrmActivity,
   CrmContactPhone,
+  CrmHighLevelFunnelRow,
   CrmLead,
   CrmLeadIntentRow,
   CrmMissedCall,
@@ -11,6 +12,7 @@ import {
   findCrmLeadByPhone,
   insertManualCrmLead,
   listCrmLeadIntents,
+  listCrmHighLevelFunnels,
   listCrmMissedCalls,
   listCrmLeads,
   listCrmSales,
@@ -26,19 +28,19 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
-type TabKey = "details" | "new" | "sales" | "personal" | "all" | "intents" | "manual" | "missed";
+type TabKey = "details" | "new" | "sales" | "all" | "intents" | "manual" | "highLevelFunnels" | "missed";
 type GateStatus = "checking" | "allowed" | "denied";
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "details", label: "Detalii Lead" },
   { key: "new", label: "Lead Nou" },
   { key: "sales", label: "Arata Vanzarile" },
-  { key: "personal", label: "Potentiali Clienti" },
   { key: "all", label: "All Leads CRM" },
   { key: "intents", label: "Lead Intents" },
   { key: "manual", label: "Send Manual Email/SMS" },
-  { key: "missed", label: "Missed Calls" },
+  { key: "highLevelFunnels", label: "High Level Funnels" },
 ];
+const ROUTABLE_TABS = new Set<TabKey>([...TABS.map((item) => item.key), "missed"]);
 
 function getInitialTab(): TabKey {
   if (typeof window === "undefined") {
@@ -46,7 +48,7 @@ function getInitialTab(): TabKey {
   }
 
   const tab = new URLSearchParams(window.location.search).get("tab");
-  return TABS.some((item) => item.key === tab) ? (tab as TabKey) : "details";
+  return ROUTABLE_TABS.has(tab as TabKey) ? (tab as TabKey) : "details";
 }
 
 const STATUS_OPTIONS = [
@@ -727,17 +729,6 @@ export default function AdminCrmPage() {
                 <SalesPanel token={token} onError={setErrorMessage} />
               ) : null}
 
-              {activeTab === "personal" ? (
-                <LeadListPanel
-                  token={token}
-                  title="Potentiali clienti - lista personala"
-                  mine
-                  agentName={agentName}
-                  onSelectLead={handleLeadSelected}
-                  onError={setErrorMessage}
-                />
-              ) : null}
-
               {activeTab === "all" ? (
                 <AllLeadsPanel
                   token={token}
@@ -752,6 +743,10 @@ export default function AdminCrmPage() {
                   onSelectIntent={handleIntentSelected}
                   onError={setErrorMessage}
                 />
+              ) : null}
+
+              {activeTab === "highLevelFunnels" ? (
+                <HighLevelFunnelsPanel token={token} onError={setErrorMessage} />
               ) : null}
 
               {activeTab === "manual" ? (
@@ -1695,88 +1690,6 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
   );
 }
 
-function LeadListPanel({
-  token,
-  title,
-  mine,
-  agentName,
-  onSelectLead,
-  onError,
-}: {
-  token: string;
-  title: string;
-  mine?: boolean;
-  agentName?: string;
-  onSelectLead: (lead: CrmLead) => void;
-  onError: (message: string) => void;
-}) {
-  const [status, setStatus] = useState("");
-  const [phone, setPhone] = useState("");
-  const [onlyMine, setOnlyMine] = useState(Boolean(mine));
-  const [leads, setLeads] = useState<CrmLead[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    loadLeads();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function loadLeads() {
-    setLoading(true);
-    try {
-      const last6 = getLast6Digits(phone);
-      const result = await listCrmLeads(token, {
-        status: status || "all",
-        phone,
-        last6,
-        mine: onlyMine,
-        agent: agentName,
-        overdue: true,
-        limit: 100,
-        sortBy: last6 ? "" : "dataUrmatorContact",
-        sortDirection: "asc",
-      });
-      setLeads(result.leads);
-      onError("");
-    } catch (error) {
-      onError(error instanceof Error ? error.message : "Nu am putut incarca lead-urile.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  return (
-    <CrmCard title={title}>
-      <div className="filter-grid personal-filter">
-        <label>Status:</label>
-        <select value={status} onChange={(event) => setStatus(event.target.value)}>
-          <option value="">Status</option>
-          <option value="all">all</option>
-          {STATUS_OPTIONS.map((item) => (
-            <option key={item}>{item}</option>
-          ))}
-        </select>
-        <button type="button" className="orange small" onClick={loadLeads}>
-          Filter
-        </button>
-        <label>Telefon:</label>
-        <input value={phone} onChange={(event) => setPhone(event.target.value)} />
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={onlyMine}
-            onChange={(event) => setOnlyMine(event.target.checked)}
-          />
-          Doar lead-urile mele
-        </label>
-      </div>
-      <LeadTable leads={leads} loading={loading} onSelectLead={onSelectLead} personal />
-      <button type="button" className="orange below">Arata Vanzarile</button>
-      <style jsx>{panelStyles}</style>
-    </CrmCard>
-  );
-}
-
 function AllLeadsPanel({
   token,
   onSelectLead,
@@ -2115,6 +2028,90 @@ function LeadIntentPanel({
           ]),
         )}
         minWidth={1560}
+      />
+      <style jsx>{panelStyles}</style>
+    </CrmCard>
+  );
+}
+
+function HighLevelFunnelsPanel({ token, onError }: { token: string; onError: (message: string) => void }) {
+  const [dateBegin, setDateBegin] = useState(() => getDateInputDaysAgo(30));
+  const [dateEnd, setDateEnd] = useState(() => getDateInputDaysAgo(0));
+  const [agentId, setAgentId] = useState("all");
+  const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number; agentName?: string | null }>>([]);
+  const [rows, setRows] = useState<CrmHighLevelFunnelRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const totalLeads = rows.reduce((sum, row) => sum + getFunnelLeadCount(row), 0);
+  const totalTalked = rows.reduce((sum, row) => sum + getFunnelTalkToAgentCount(row), 0);
+  const totalSales = rows.reduce((sum, row) => sum + getFunnelSalesCount(row), 0);
+  const totalRevenue = rows.reduce((sum, row) => sum + getFunnelRevenue(row), 0);
+
+  useEffect(() => {
+    loadFunnels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadFunnels() {
+    setLoading(true);
+    try {
+      const result = await listCrmHighLevelFunnels(token, {
+        dateBegin,
+        dateEnd,
+        agentId,
+        service: "simulator pensie",
+        intent: "all",
+      });
+      setRows(result.rows || result.items || []);
+      setAgentOptions(result.options?.agents || []);
+      onError("");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut incarca high level funnels.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <CrmCard title="High Level Funnels - Simulator Pensie" className="wide-card">
+      <div className="filter-grid high-level-filter">
+        <label>Date begin</label>
+        <input type="date" value={dateBegin} onChange={(event) => setDateBegin(event.target.value)} />
+
+        <label>Date end</label>
+        <input type="date" value={dateEnd} onChange={(event) => setDateEnd(event.target.value)} />
+
+        <label>Agent</label>
+        <select value={agentId} onChange={(event) => setAgentId(event.target.value)}>
+          <option value="all">all</option>
+          {mergeAgentOptions(agentOptions, agentId).map((item) => (
+            <option key={item.agentId} value={item.agentId}>
+              {formatAgentLabel(item.agentId, item.agentName)}
+            </option>
+          ))}
+        </select>
+
+        <button type="button" className="orange small" onClick={loadFunnels} disabled={loading}>
+          {loading ? "Se incarca..." : "Filter"}
+        </button>
+      </div>
+
+      <p className="green-label">
+        Total leads: {totalLeads} | Talk to an agent: {totalTalked} | Sales: {totalSales} | Revenue:{" "}
+        {formatPounds(totalRevenue)}
+      </p>
+
+      <DataTable
+        columns={["Lead source", "Number of leads", "Calendly booked", "Talk to an agent", "Sales", "Revenue"]}
+        rows={rows.map((row) => [
+          row.leadSource || row.source,
+          getFunnelLeadCount(row),
+          formatCalendlyBooked(row.calendlyBooked),
+          getFunnelTalkToAgentCount(row),
+          getFunnelSalesCount(row),
+          formatPounds(getFunnelRevenue(row)),
+        ])}
+        loading={loading}
+        minWidth={980}
       />
       <style jsx>{panelStyles}</style>
     </CrmCard>
@@ -2978,6 +2975,10 @@ const panelStyles = `
     width: min(940px, 100%);
     grid-template-columns: 130px minmax(120px, 1fr) 100px minmax(150px, 1fr) 90px minmax(150px, 1fr);
   }
+  .high-level-filter {
+    width: min(940px, 100%);
+    grid-template-columns: 100px minmax(140px, 1fr) 80px minmax(140px, 1fr) 70px minmax(170px, 1fr) 100px;
+  }
   .checkbox-label {
     display: flex;
     align-items: center;
@@ -3008,7 +3009,8 @@ const panelStyles = `
     .sales-filter,
     .personal-filter,
     .all-filter,
-    .intent-filter {
+    .intent-filter,
+    .high-level-filter {
       width: 100%;
       grid-template-columns: 1fr;
     }
@@ -3171,6 +3173,51 @@ function getLast6Digits(value: string) {
   return digits.length >= 6 ? digits.slice(-6) : "";
 }
 
+function getDateInputDaysAgo(daysAgo: number) {
+  const date = new Date();
+  date.setDate(date.getDate() - daysAgo);
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+function getFunnelLeadCount(row: CrmHighLevelFunnelRow) {
+  return Number(row.numberOfLeads ?? row.leadCount ?? 0) || 0;
+}
+
+function getFunnelTalkToAgentCount(row: CrmHighLevelFunnelRow) {
+  return Number(row.talkToAnAgent ?? row.talkedToAgent ?? 0) || 0;
+}
+
+function getFunnelSalesCount(row: CrmHighLevelFunnelRow) {
+  return Number(row.sales ?? 0) || 0;
+}
+
+function getFunnelRevenue(row: CrmHighLevelFunnelRow) {
+  return Number(row.revenue ?? 0) || 0;
+}
+
+function formatCalendlyBooked(value?: boolean | string | number | null) {
+  if (typeof value === "boolean") {
+    return value ? "Yes" : "No";
+  }
+
+  const text = String(value ?? "").trim();
+  if (!text) {
+    return "";
+  }
+
+  if (["1", "true", "yes", "y"].includes(text.toLowerCase())) {
+    return "Yes";
+  }
+
+  if (["0", "false", "no", "n"].includes(text.toLowerCase())) {
+    return "No";
+  }
+
+  return text;
+}
+
 function formatMoney(value?: number | null) {
   if (value === null || value === undefined || Number.isNaN(value)) {
     return "";
@@ -3179,4 +3226,9 @@ function formatMoney(value?: number | null) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   });
+}
+
+function formatPounds(value?: number | null) {
+  const amount = formatMoney(value);
+  return amount ? `£${amount}` : "";
 }

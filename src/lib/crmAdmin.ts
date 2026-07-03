@@ -159,6 +159,28 @@ export type CrmPredictiveCampaignSummary = {
   }>;
 };
 
+export type CrmHighLevelFunnelRow = {
+  leadSource?: string | null;
+  source?: string | null;
+  numberOfLeads?: number | null;
+  leadCount?: number | null;
+  calendlyBooked?: boolean | string | number | null;
+  talkToAnAgent?: number | null;
+  talkedToAgent?: number | null;
+  sales?: number | null;
+  revenue?: number | null;
+};
+
+export type CrmHighLevelFunnelResponse = {
+  rows?: CrmHighLevelFunnelRow[];
+  items?: CrmHighLevelFunnelRow[];
+  total?: number;
+  filters?: Record<string, string | number | null>;
+  options?: {
+    agents?: Array<{ agentId: number; agentName?: string | null }>;
+  };
+};
+
 export type CrmLeadListResponse = {
   leads: CrmLead[];
   total: number;
@@ -331,6 +353,18 @@ export function listCrmLeadIntents(
   return fetchCanonicalCrmReadJson<CrmLeadIntentResponse>(`${BASE_PATH}/lead-intents${buildQuery(params)}`, {
     headers: authHeaders(token),
   });
+}
+
+export function listCrmHighLevelFunnels(
+  token: string,
+  params: Record<string, string | number | boolean | null | undefined>,
+) {
+  return fetchCanonicalCrmReadJson<CrmHighLevelFunnelResponse>(
+    `${BASE_PATH}/high-level-funnels${buildQuery(params)}`,
+    {
+      headers: authHeaders(token),
+    },
+  );
 }
 
 export function updateCrmLead(token: string, id: string, payload: CrmLeadUpdatePayload) {
