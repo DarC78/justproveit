@@ -2041,6 +2041,7 @@ function HighLevelFunnelsPanel({ token, onError }: { token: string; onError: (me
   const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number; agentName?: string | null }>>([]);
   const [rows, setRows] = useState<CrmHighLevelFunnelRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [dataSourceMessage, setDataSourceMessage] = useState("");
   const totalLeads = rows.reduce((sum, row) => sum + getFunnelLeadCount(row), 0);
   const totalTalked = rows.reduce((sum, row) => sum + getFunnelTalkToAgentCount(row), 0);
   const totalSales = rows.reduce((sum, row) => sum + getFunnelSalesCount(row), 0);
@@ -2063,9 +2064,27 @@ function HighLevelFunnelsPanel({ token, onError }: { token: string; onError: (me
       });
       setRows(result.rows || result.items || []);
       setAgentOptions(result.options?.agents || []);
+      setDataSourceMessage("");
       onError("");
     } catch (error) {
-      onError(error instanceof Error ? error.message : "Nu am putut incarca high level funnels.");
+      if (!isNotFoundError(error)) {
+        onError(error instanceof Error ? error.message : "Nu am putut incarca high level funnels.");
+        return;
+      }
+
+      try {
+        const fallback = await loadHighLevelFunnelsFromLeadIntents(token, dateBegin, dateEnd, agentId);
+        setRows(fallback.rows);
+        setAgentOptions(fallback.agents);
+        setDataSourceMessage("Using lead-intents fallback until the high-level funnels API is deployed.");
+        onError("");
+      } catch (fallbackError) {
+        onError(
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : "Nu am putut incarca high level funnels din lead-intents.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -2098,6 +2117,12 @@ function HighLevelFunnelsPanel({ token, onError }: { token: string; onError: (me
       <p className="green-label">
         Total leads: {totalLeads} | Talk to an agent: {totalTalked} | Sales: {totalSales} | Revenue:{" "}
         {formatPounds(totalRevenue)}
+        {dataSourceMessage ? (
+          <>
+            <br />
+            {dataSourceMessage}
+          </>
+        ) : null}
       </p>
 
       <DataTable
@@ -3179,6 +3204,187 @@ function getDateInputDaysAgo(daysAgo: number) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${month}-${day}`;
+}
+
+async function loadHighLevelFunnelsFromLeadIntents(
+  token: string,
+  dateBegin: string,
+  dateEnd: string,
+  agentId: string,
+) {
+  const createdLastDays = getCreatedLastDaysForDateBegin(dateBegin);
+  const params = {
+    createdLastDays,
+    statusBucket: "both",
+    toBeContacted: "oricand",
+    intent: "all",
+    service: "all",
+    language: "all",
+    phone: "",
+    lastCallAgentId: "all",
+    includeMissedCalls: false,
+    calendlyOnlyToday: false,
+    limit: 2000,
+  };
+  const [openResult, closedResult] = await Promise.all([
+    listCrmLeadIntents(token, { ...params, closed: false }),
+    listCrmLeadIntents(token, { ...params, closed: true }),
+  ]);
+  const allRows = dedupeLeadIntentRows([
+    ...(openResult.rows || openResult.items || []),
+    ...(closedResult.rows || closedResult.items || []),
+  ]);
+  const agents = [
+    ...(openResult.options?.agents || []),
+    ...(closedResult.options?.agents || []),
+  ];
+
+  return {
+    rows: buildHighLevelFunnelRowsFromLeadIntents(allRows, dateBegin, dateEnd, agentId),
+    agents: mergeAgentOptions(agents, agentId),
+  };
+}
+
+function buildHighLevelFunnelRowsFromLeadIntents(
+  rows: CrmLeadIntentRow[],
+  dateBegin: string,
+  dateEnd: string,
+  agentId: string,
+) {
+  const selectedAgentId = Number.parseInt(agentId, 10);
+  const hasAgentFilter = Number.isInteger(selectedAgentId) && selectedAgentId > 0;
+  const groups = new Map<string, CrmHighLevelFunnelRow>();
+  const sourceNames = new Set<string>();
+
+  for (const row of rows) {
+    const rowAgentId = Number(row.lastCallAgentId);
+    if (
+      !isSimulatorPensieIntent(row) ||
+      !isDateInInputRange(row.createdAtUtc, dateBegin, dateEnd) ||
+      (hasAgentFilter && rowAgentId !== selectedAgentId)
+    ) {
+      continue;
+    }
+
+    const leadSource = String(row.source || "Unknown").trim() || "Unknown";
+    const calendlyBooked = isCalendlyBookedIntent(row);
+    const key = `${leadSource}::${calendlyBooked ? "yes" : "no"}`;
+    sourceNames.add(leadSource);
+
+    const current =
+      groups.get(key) ||
+      ({
+        leadSource,
+        numberOfLeads: 0,
+        calendlyBooked,
+        talkToAnAgent: 0,
+        sales: 0,
+        revenue: null,
+      } satisfies CrmHighLevelFunnelRow);
+
+    current.numberOfLeads = getFunnelLeadCount(current) + 1;
+    if (isTalkedToAgentIntent(row)) {
+      current.talkToAnAgent = getFunnelTalkToAgentCount(current) + 1;
+    }
+    if (String(row.lead?.statusOriginal || "").trim().toUpperCase() === "SALE") {
+      current.sales = getFunnelSalesCount(current) + 1;
+    }
+
+    groups.set(key, current);
+  }
+
+  for (const leadSource of sourceNames) {
+    for (const calendlyBooked of [true, false]) {
+      const key = `${leadSource}::${calendlyBooked ? "yes" : "no"}`;
+      if (!groups.has(key)) {
+        groups.set(key, {
+          leadSource,
+          numberOfLeads: 0,
+          calendlyBooked,
+          talkToAnAgent: 0,
+          sales: 0,
+          revenue: null,
+        });
+      }
+    }
+  }
+
+  return Array.from(groups.values()).sort((first, second) => {
+    const sourceSort = String(first.leadSource || first.source || "").localeCompare(
+      String(second.leadSource || second.source || ""),
+      undefined,
+      { sensitivity: "base" },
+    );
+    if (sourceSort !== 0) {
+      return sourceSort;
+    }
+
+    return formatCalendlyBooked(second.calendlyBooked).localeCompare(formatCalendlyBooked(first.calendlyBooked));
+  });
+}
+
+function dedupeLeadIntentRows(rows: CrmLeadIntentRow[]) {
+  const seen = new Set<string>();
+  return rows.filter((row, index) => {
+    const key = row.interestId || `${row.leadId || ""}-${row.serviceId || ""}-${row.createdAtUtc || ""}-${index}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function getCreatedLastDaysForDateBegin(dateBegin: string) {
+  const begin = getDateRangeBoundary(dateBegin, "start");
+  if (!begin) {
+    return 30;
+  }
+
+  const diffMs = Date.now() - begin.getTime();
+  return Math.max(1, Math.ceil(diffMs / 86400000) + 1);
+}
+
+function isDateInInputRange(value: string | null | undefined, dateBegin: string, dateEnd: string) {
+  const date = value ? new Date(value) : null;
+  if (!date || Number.isNaN(date.getTime())) {
+    return false;
+  }
+
+  const begin = getDateRangeBoundary(dateBegin, "start");
+  const end = getDateRangeBoundary(dateEnd, "end");
+
+  return (!begin || date >= begin) && (!end || date <= end);
+}
+
+function getDateRangeBoundary(value: string, side: "start" | "end") {
+  if (!value) {
+    return null;
+  }
+
+  const suffix = side === "start" ? "T00:00:00" : "T23:59:59.999";
+  const date = new Date(`${value}${suffix}`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isSimulatorPensieIntent(row: CrmLeadIntentRow) {
+  const serviceText = `${row.serviceKey || ""} ${row.serviceDisplayName || ""}`
+    .toLowerCase()
+    .replace(/[_-]+/g, " ");
+  return serviceText.includes("simulator pensie") || serviceText.includes("simulatorpensie");
+}
+
+function isCalendlyBookedIntent(row: CrmLeadIntentRow) {
+  return String(row.interestType || "").trim().toUpperCase() === "CALENDLY";
+}
+
+function isTalkedToAgentIntent(row: CrmLeadIntentRow) {
+  const agentId = Number(row.lastCallAgentId);
+  return Number.isInteger(agentId) && agentId > 0 && agentId !== 5;
+}
+
+function isNotFoundError(error: unknown) {
+  return error instanceof Error && /not found|404/i.test(error.message);
 }
 
 function getFunnelLeadCount(row: CrmHighLevelFunnelRow) {
