@@ -9,7 +9,10 @@ import {
   CrmMissedCall,
   CrmPredictiveCampaignSummary,
   CrmSale,
+  CrmSaleHistoryEvent,
+  CrmSaleHistoryResponse,
   findCrmLeadByPhone,
+  getCrmSaleHistory,
   insertManualCrmLead,
   listCrmLeadIntents,
   listCrmHighLevelFunnels,
@@ -1640,6 +1643,9 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
   const [phone, setPhone] = useState("");
   const [sales, setSales] = useState<CrmSale[]>([]);
   const [loading, setLoading] = useState(false);
+  const [historyLoadingKey, setHistoryLoadingKey] = useState("");
+  const [selectedHistory, setSelectedHistory] = useState<CrmSaleHistoryResponse | null>(null);
+  const [selectedHistorySaleKey, setSelectedHistorySaleKey] = useState("");
 
   useEffect(() => {
     loadSales();
@@ -1659,6 +1665,22 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
     }
   }
 
+  async function loadSaleHistory(sale: CrmSale) {
+    const saleKey = getSaleKey(sale);
+    setHistoryLoadingKey(saleKey);
+    setSelectedHistorySaleKey(saleKey);
+    try {
+      const result = await getCrmSaleHistory(token, buildSaleHistoryParams(sale));
+      setSelectedHistory(result);
+      onError("");
+    } catch (error) {
+      setSelectedHistory(null);
+      onError(error instanceof Error ? error.message : "Nu am putut incarca istoricul vanzarii.");
+    } finally {
+      setHistoryLoadingKey("");
+    }
+  }
+
   return (
     <CrmCard title="Clienti - ultimele 50 de vanzari" className="wide-card">
       <div className="filter-grid sales-filter">
@@ -1671,7 +1693,7 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
         <input value={phone} onChange={(event) => setPhone(event.target.value)} />
       </div>
       <DataTable
-        columns={["Name", "Phone", "email", "Suma", "Data", "DialerFirst", "DialerLast"]}
+        columns={["Name", "Phone", "email", "Suma", "Data", "DialerFirst", "DialerLast", "History"]}
         rows={sales.map((sale) => [
           sale.name,
           sale.phone,
@@ -1680,13 +1702,248 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
           formatDate(sale.wixCreatedDateUtc),
           sale.dialerowner || "",
           sale.dialerlast || "N/A",
+          <button
+            key={`history-${getSaleKey(sale)}`}
+            type="button"
+            className="history-btn"
+            onClick={() => loadSaleHistory(sale)}
+            disabled={historyLoadingKey === getSaleKey(sale)}
+          >
+            {historyLoadingKey === getSaleKey(sale) ? "Loading" : "History"}
+          </button>,
         ])}
         loading={loading}
-        minWidth={980}
+        minWidth={1080}
         className="sales-table"
       />
+      {selectedHistory ? (
+        <SaleHistoryPanel
+          history={selectedHistory}
+          selectedSale={sales.find((sale) => getSaleKey(sale) === selectedHistorySaleKey) || null}
+          onClose={() => {
+            setSelectedHistory(null);
+            setSelectedHistorySaleKey("");
+          }}
+        />
+      ) : null}
       <style jsx>{panelStyles}</style>
+      <style jsx>{`
+        .history-btn {
+          min-width: 82px;
+          height: 28px;
+          border: 0;
+          border-radius: 5px;
+          background: #0c389d;
+          color: #fff;
+          font-weight: 800;
+          cursor: pointer;
+        }
+        .history-btn:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+        }
+      `}</style>
     </CrmCard>
+  );
+}
+
+function SaleHistoryPanel({
+  history,
+  selectedSale,
+  onClose,
+}: {
+  history: CrmSaleHistoryResponse;
+  selectedSale: CrmSale | null;
+  onClose: () => void;
+}) {
+  const sale = history.sale || selectedSale;
+  const contact = history.contact;
+  const events = history.events || [];
+
+  return (
+    <section className="sale-history-panel" aria-label="Sale history">
+      <div className="history-header">
+        <div>
+          <h2>History</h2>
+          <p>
+            {sale?.name || contact?.displayName || "Sale"} {sale?.phone ? `| ${sale.phone}` : ""}
+            {sale?.email ? ` | ${sale.email}` : ""}
+          </p>
+        </div>
+        <button type="button" onClick={onClose} aria-label="Close sale history">
+          Close
+        </button>
+      </div>
+
+      <div className="history-summary">
+        <LabelValue label="Sale ID" value={sale?.id || sale?.wixId || sale?._id} />
+        <LabelValue label="Amount" value={formatPounds(sale?.amountTotalMajor)} />
+        <LabelValue label="Service" value={sale?.serviceKey} />
+        <LabelValue label="Source" value={formatSourceRecord(sale?.sourceSystem, sale?.sourceRecordId)} />
+        <LabelValue label="Contact" value={contact?.displayName || contact?.id} />
+        <LabelValue label="Status" value={contact?.status} />
+      </div>
+
+      <div className="history-events">
+        {events.length ? (
+          events.map((event, index) => (
+            <article key={event.eventId || `${event.eventType}-${event.occurredAtUtc}-${index}`} className="event-row">
+              <span className={`event-type ${getSaleHistoryEventClass(event.eventType)}`}>
+                {getSaleHistoryEventIcon(event.eventType)}
+              </span>
+              <div className="event-body">
+                <div className="event-title-row">
+                  <strong>{event.title || formatEventType(event.eventType)}</strong>
+                  <time>{formatDateTime(event.occurredAtUtc)}</time>
+                </div>
+                {event.description ? <p>{event.description}</p> : null}
+                <div className="metadata-row">
+                  {formatSaleHistoryMetadata(event).map((item) => (
+                    <span key={item}>{item}</span>
+                  ))}
+                </div>
+              </div>
+            </article>
+          ))
+        ) : (
+          <p className="empty-history">No history events returned.</p>
+        )}
+      </div>
+
+      <style jsx>{`
+        .sale-history-panel {
+          margin-top: 22px;
+          border: 4px solid #0c389d;
+          background: #fff;
+        }
+        .history-header {
+          display: flex;
+          justify-content: space-between;
+          gap: 18px;
+          align-items: center;
+          padding: 16px 18px;
+          background: #f6f8ff;
+          border-bottom: 1px solid #cdd8ff;
+        }
+        h2 {
+          margin: 0 0 4px;
+          font-size: 22px;
+          color: #111;
+        }
+        .history-header p {
+          margin: 0;
+          font-size: 13px;
+          color: #333;
+        }
+        .history-header button {
+          min-width: 82px;
+          height: 30px;
+          border: 0;
+          border-radius: 5px;
+          background: #ff4b26;
+          color: #fff;
+          font-weight: 800;
+          cursor: pointer;
+        }
+        .history-summary {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px 18px;
+          padding: 16px 18px;
+          border-bottom: 1px solid #e4e8f4;
+        }
+        .history-events {
+          display: grid;
+          gap: 0;
+        }
+        .event-row {
+          display: grid;
+          grid-template-columns: 44px 1fr;
+          gap: 12px;
+          padding: 16px 18px;
+          border-bottom: 1px solid #e4e8f4;
+        }
+        .event-row:last-child {
+          border-bottom: 0;
+        }
+        .event-type {
+          width: 34px;
+          height: 34px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          font-size: 11px;
+          font-weight: 900;
+        }
+        .type-lead {
+          background: #0c389d;
+        }
+        .type-intent {
+          background: #6f2dbd;
+        }
+        .type-service {
+          background: #007a5a;
+        }
+        .type-sale {
+          background: #008a1e;
+        }
+        .type-call {
+          background: #b45f00;
+        }
+        .type-default {
+          background: #555;
+        }
+        .event-body {
+          min-width: 0;
+        }
+        .event-title-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: baseline;
+        }
+        .event-title-row strong {
+          font-size: 15px;
+        }
+        time {
+          flex: 0 0 auto;
+          font-size: 12px;
+          color: #555;
+        }
+        .event-body p {
+          margin: 7px 0 0;
+          line-height: 1.45;
+        }
+        .metadata-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          margin-top: 10px;
+        }
+        .metadata-row span {
+          border: 1px solid #cbd5e1;
+          background: #f8fafc;
+          border-radius: 999px;
+          padding: 4px 9px;
+          font-size: 12px;
+        }
+        .empty-history {
+          margin: 0;
+          padding: 16px 18px;
+        }
+        @media (max-width: 760px) {
+          .history-header,
+          .event-title-row {
+            display: grid;
+          }
+          .history-summary {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+    </section>
   );
 }
 
@@ -2415,7 +2672,7 @@ function DataTable({
   className,
 }: {
   columns: string[];
-  rows: Array<Array<string | number | null | undefined>>;
+  rows: Array<Array<React.ReactNode>>;
   loading?: boolean;
   onRowClick?: (index: number) => void;
   onRowDoubleClick?: (index: number) => void;
@@ -3171,6 +3428,109 @@ function buildDateTimeValue(dateValue?: string | null, timeValue?: string) {
 function getLast6Digits(value: string) {
   const digits = value.replace(/\D/g, "");
   return digits.length >= 6 ? digits.slice(-6) : "";
+}
+
+function getSaleKey(sale: CrmSale) {
+  return String(sale.id || sale.wixId || sale._id || sale.sourceRecordId || sale.phone || sale.email || "").trim();
+}
+
+function buildSaleHistoryParams(sale: CrmSale) {
+  const sourceSystem = String(sale.sourceSystem || "").trim();
+  const sourceRecordId = String(sale.sourceRecordId || "").trim();
+
+  if (sourceSystem && sourceRecordId) {
+    return {
+      sourceSystem,
+      sourceRecordId,
+      limit: 500,
+    };
+  }
+
+  return {
+    saleId: sale.id || sale.wixId || sale._id || "",
+    phone: sale.normalizedPhone || sale.phone || "",
+    email: sale.email || "",
+    limit: 500,
+  };
+}
+
+function formatSourceRecord(sourceSystem?: string | null, sourceRecordId?: string | null) {
+  const system = String(sourceSystem || "").trim();
+  const record = String(sourceRecordId || "").trim();
+  if (system && record) {
+    return `${system}: ${record}`;
+  }
+
+  return system || record;
+}
+
+function getSaleHistoryEventClass(eventType?: string | null) {
+  switch (String(eventType || "").trim()) {
+    case "lead_created":
+      return "type-lead";
+    case "lead_intent":
+      return "type-intent";
+    case "contact_service":
+      return "type-service";
+    case "sale":
+      return "type-sale";
+    case "dialler_call":
+      return "type-call";
+    default:
+      return "type-default";
+  }
+}
+
+function getSaleHistoryEventIcon(eventType?: string | null) {
+  switch (String(eventType || "").trim()) {
+    case "lead_created":
+      return "LC";
+    case "lead_intent":
+      return "LI";
+    case "contact_service":
+      return "CS";
+    case "sale":
+      return "SA";
+    case "dialler_call":
+      return "DC";
+    default:
+      return "EV";
+  }
+}
+
+function formatEventType(eventType?: string | null) {
+  return String(eventType || "Event")
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function formatSaleHistoryMetadata(event: CrmSaleHistoryEvent) {
+  const metadata = event.metadata || {};
+  const items: string[] = [];
+
+  if (metadata.agentId || metadata.agentName) {
+    items.push(`Agent: ${formatAgentLabel(Number(metadata.agentId) || undefined, metadata.agentName) || metadata.agentName || metadata.agentId}`);
+  }
+  if (metadata.callCode || metadata.callCodeDetails) {
+    items.push(`Call code: ${[metadata.callCode, metadata.callCodeDetails].filter(Boolean).join(" - ")}`);
+  }
+  if (metadata.callTraceId) {
+    items.push(`Trace: ${metadata.callTraceId}`);
+  }
+  if (metadata.amountTotalMajor !== undefined && metadata.amountTotalMajor !== null) {
+    items.push(`Amount: ${formatPounds(Number(metadata.amountTotalMajor))}`);
+  }
+  if (metadata.serviceDisplayName || metadata.serviceKey) {
+    items.push(`Service: ${metadata.serviceDisplayName || metadata.serviceKey}`);
+  }
+  if (metadata.campaignName) {
+    items.push(`Campaign: ${metadata.campaignName}`);
+  }
+  if (metadata.sourceSystem || metadata.sourceRecordId) {
+    items.push(`Source: ${formatSourceRecord(metadata.sourceSystem, metadata.sourceRecordId)}`);
+  }
+
+  return items;
 }
 
 function getDateInputDaysAgo(daysAgo: number) {

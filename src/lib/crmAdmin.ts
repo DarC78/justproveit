@@ -88,14 +88,59 @@ export type CrmSale = {
   contactId?: string | null;
   canonicalContactId?: string | null;
   wixCreatedDateUtc?: string | null;
+  createdAtUtc?: string | null;
   name?: string | null;
   email?: string | null;
   phone?: string | null;
+  normalizedPhone?: string | null;
   amountTotal?: number | null;
   amountTotalMajor?: number | null;
+  serviceKey?: string | null;
+  sourceSystem?: string | null;
+  sourceRecordId?: string | null;
   storeowner?: string | null;
   dialerowner?: string | null;
   dialerlast?: string | null;
+};
+
+export type CrmSaleHistoryEvent = {
+  eventId?: string | number | null;
+  eventType?: "lead_created" | "lead_intent" | "contact_service" | "sale" | "dialler_call" | string | null;
+  occurredAtUtc?: string | null;
+  title?: string | null;
+  description?: string | null;
+  metadata?: {
+    serviceKey?: string | null;
+    serviceDisplayName?: string | null;
+    amountTotalMajor?: number | null;
+    agentId?: number | string | null;
+    agentName?: string | null;
+    callTraceId?: number | string | null;
+    callCode?: number | string | null;
+    callCodeDetails?: string | null;
+    campaignName?: string | null;
+    sourceSystem?: string | null;
+    sourceRecordId?: string | null;
+  } | null;
+};
+
+export type CrmSaleHistoryResponse = {
+  sale?: CrmSale | null;
+  contact?: {
+    id?: string | null;
+    displayName?: string | null;
+    status?: string | null;
+    source?: string | null;
+    sourceSummary?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    normalizedPhone?: string | null;
+    createdAtUtc?: string | null;
+    updatedAtUtc?: string | null;
+  } | null;
+  events?: CrmSaleHistoryEvent[];
+  total?: number;
+  limit?: number;
 };
 
 export type CrmLeadIntentServiceOption = {
@@ -342,6 +387,15 @@ export function listCrmSales(
   params: Record<string, string | number | boolean | null | undefined>,
 ) {
   return fetchJson<CrmSalesResponse>(`${BASE_PATH}/sales${buildQuery(params)}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function getCrmSaleHistory(
+  token: string,
+  params: Record<string, string | number | boolean | null | undefined>,
+) {
+  return fetchJson<CrmSaleHistoryResponse>(`${BASE_PATH}/sales/history${buildQuery(params)}`, {
     headers: authHeaders(token),
   });
 }
