@@ -3458,8 +3458,9 @@ function getSaleKey(sale: CrmSale) {
 }
 
 function buildSaleHistoryParams(sale: CrmSale) {
-  const sourceSystem = String(sale.sourceSystem || "").trim();
   const sourceRecordId = String(sale.sourceRecordId || "").trim();
+  const sourceSystem = String(sale.sourceSystem || (sourceRecordId ? "stripe" : "")).trim();
+  const saleId = String(sale.id || sale.wixId || sale._id || "").trim();
   const phone = sale.normalizedPhone || sale.phone || "";
   const email = sale.email || "";
   const historyWindow = buildSaleHistoryWindow(sale);
@@ -3468,25 +3469,34 @@ function buildSaleHistoryParams(sale: CrmSale) {
     dateEnd: historyWindow.dateEnd,
     occurredFromUtc: historyWindow.occurredFromUtc,
     occurredToUtc: historyWindow.occurredToUtc,
+    fromUtc: historyWindow.occurredFromUtc,
+    toUtc: historyWindow.occurredToUtc,
+    createdFromUtc: historyWindow.occurredFromUtc,
+    createdToUtc: historyWindow.occurredToUtc,
   };
 
   if (sourceSystem && sourceRecordId) {
     return {
       sourceSystem,
       sourceRecordId,
-      phone,
-      email,
+      ...windowParams,
+      limit: 150,
+    };
+  }
+
+  if (saleId) {
+    return {
+      saleId,
       ...windowParams,
       limit: 150,
     };
   }
 
   return {
-    saleId: sale.id || sale.wixId || sale._id || "",
     phone,
     email,
     ...windowParams,
-    limit: 150,
+    limit: 50,
   };
 }
 
