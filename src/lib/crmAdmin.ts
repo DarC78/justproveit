@@ -391,13 +391,21 @@ export function listCrmSales(
   });
 }
 
-export function getCrmSaleHistory(
+export async function getCrmSaleHistory(
   token: string,
   params: Record<string, string | number | boolean | null | undefined>,
 ) {
-  return fetchJson<CrmSaleHistoryResponse>(`${BASE_PATH}/sales/history${buildQuery(params)}`, {
-    headers: authHeaders(token),
-  });
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 20000);
+
+  try {
+    return await fetchJson<CrmSaleHistoryResponse>(`${BASE_PATH}/sales/history${buildQuery(params)}`, {
+      headers: authHeaders(token),
+      signal: controller.signal,
+    });
+  } finally {
+    window.clearTimeout(timeout);
+  }
 }
 
 export function listCrmLeadIntents(

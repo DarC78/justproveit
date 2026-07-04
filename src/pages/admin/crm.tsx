@@ -1646,6 +1646,8 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
   const [historyLoadingKey, setHistoryLoadingKey] = useState("");
   const [selectedHistory, setSelectedHistory] = useState<CrmSaleHistoryResponse | null>(null);
   const [selectedHistorySaleKey, setSelectedHistorySaleKey] = useState("");
+  const [historyMessage, setHistoryMessage] = useState("");
+  const [historyMessageType, setHistoryMessageType] = useState<"info" | "error">("info");
 
   useEffect(() => {
     loadSales();
@@ -1669,13 +1671,20 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
     const saleKey = getSaleKey(sale);
     setHistoryLoadingKey(saleKey);
     setSelectedHistorySaleKey(saleKey);
+    setSelectedHistory(null);
+    setHistoryMessage("Loading sale history...");
+    setHistoryMessageType("info");
     try {
       const result = await getCrmSaleHistory(token, buildSaleHistoryParams(sale));
       setSelectedHistory(result);
+      setHistoryMessage("");
       onError("");
     } catch (error) {
       setSelectedHistory(null);
-      onError(error instanceof Error ? error.message : "Nu am putut incarca istoricul vanzarii.");
+      const message = formatSaleHistoryError(error);
+      setHistoryMessage(message);
+      setHistoryMessageType("error");
+      onError(message);
     } finally {
       setHistoryLoadingKey("");
     }
@@ -1716,6 +1725,11 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
         minWidth={1080}
         className="sales-table"
       />
+      {historyMessage ? (
+        <p className={historyMessageType === "error" ? "history-message error" : "history-message"}>
+          {historyMessage}
+        </p>
+      ) : null}
       {selectedHistory ? (
         <SaleHistoryPanel
           history={selectedHistory}
@@ -1741,6 +1755,15 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
         .history-btn:disabled {
           opacity: 0.65;
           cursor: not-allowed;
+        }
+        .history-message {
+          margin: 12px 0 0;
+          font-size: 13px;
+          font-weight: 700;
+          color: #0c389d;
+        }
+        .history-message.error {
+          color: #b00020;
         }
       `}</style>
     </CrmCard>
@@ -3437,21 +3460,37 @@ function getSaleKey(sale: CrmSale) {
 function buildSaleHistoryParams(sale: CrmSale) {
   const sourceSystem = String(sale.sourceSystem || "").trim();
   const sourceRecordId = String(sale.sourceRecordId || "").trim();
+  const phone = sale.normalizedPhone || sale.phone || "";
+  const email = sale.email || "";
 
   if (sourceSystem && sourceRecordId) {
     return {
       sourceSystem,
       sourceRecordId,
+      phone,
+      email,
       limit: 500,
     };
   }
 
   return {
     saleId: sale.id || sale.wixId || sale._id || "",
-    phone: sale.normalizedPhone || sale.phone || "",
-    email: sale.email || "",
+    phone,
+    email,
     limit: 500,
   };
+}
+
+function formatSaleHistoryError(error: unknown) {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return "History request timed out after 20 seconds. Try again or narrow the sales filter.";
+  }
+
+  if (error instanceof Error && error.name === "AbortError") {
+    return "History request timed out after 20 seconds. Try again or narrow the sales filter.";
+  }
+
+  return error instanceof Error ? error.message : "Nu am putut incarca istoricul vanzarii.";
 }
 
 function formatSourceRecord(sourceSystem?: string | null, sourceRecordId?: string | null) {
