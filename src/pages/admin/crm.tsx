@@ -1672,7 +1672,7 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
     setHistoryLoadingKey(saleKey);
     setSelectedHistorySaleKey(saleKey);
     setSelectedHistory(null);
-    setHistoryMessage("Loading sale history...");
+    setHistoryMessage("Loading sale history for 30 days after the sale...");
     setHistoryMessageType("info");
     try {
       const result = await getCrmSaleHistory(token, buildSaleHistoryParams(sale));
@@ -3462,6 +3462,13 @@ function buildSaleHistoryParams(sale: CrmSale) {
   const sourceRecordId = String(sale.sourceRecordId || "").trim();
   const phone = sale.normalizedPhone || sale.phone || "";
   const email = sale.email || "";
+  const historyWindow = buildSaleHistoryWindow(sale);
+  const windowParams = {
+    dateBegin: historyWindow.dateBegin,
+    dateEnd: historyWindow.dateEnd,
+    occurredFromUtc: historyWindow.occurredFromUtc,
+    occurredToUtc: historyWindow.occurredToUtc,
+  };
 
   if (sourceSystem && sourceRecordId) {
     return {
@@ -3469,7 +3476,8 @@ function buildSaleHistoryParams(sale: CrmSale) {
       sourceRecordId,
       phone,
       email,
-      limit: 500,
+      ...windowParams,
+      limit: 150,
     };
   }
 
@@ -3477,8 +3485,43 @@ function buildSaleHistoryParams(sale: CrmSale) {
     saleId: sale.id || sale.wixId || sale._id || "",
     phone,
     email,
-    limit: 500,
+    ...windowParams,
+    limit: 150,
   };
+}
+
+function buildSaleHistoryWindow(sale: CrmSale) {
+  const saleDate = getSaleHistoryStartDate(sale);
+  if (!saleDate) {
+    return {
+      dateBegin: "",
+      dateEnd: "",
+      occurredFromUtc: "",
+      occurredToUtc: "",
+    };
+  }
+
+  const endDate = new Date(saleDate);
+  endDate.setDate(endDate.getDate() + 30);
+  const now = new Date();
+  const cappedEndDate = endDate > now ? now : endDate;
+
+  return {
+    dateBegin: getLocalDateKey(saleDate.toISOString()),
+    dateEnd: getLocalDateKey(cappedEndDate.toISOString()),
+    occurredFromUtc: saleDate.toISOString(),
+    occurredToUtc: cappedEndDate.toISOString(),
+  };
+}
+
+function getSaleHistoryStartDate(sale: CrmSale) {
+  const value = sale.createdAtUtc || sale.wixCreatedDateUtc;
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function formatSaleHistoryError(error: unknown) {
