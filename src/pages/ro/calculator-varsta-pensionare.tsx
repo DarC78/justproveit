@@ -393,8 +393,8 @@ export default function RomanianPensionCalculatorPage() {
                 <TextInput label="Telefon" type="tel" value={form.phone} onChange={(value) => update("phone", value)} />
               </fieldset>
 
-              <fieldset className="grid gap-4 md:grid-cols-3">
-                <legend className="mb-2 text-base font-bold md:col-span-3">Date personale</legend>
+              <fieldset className="grid gap-4 md:grid-cols-2">
+                <legend className="mb-2 text-base font-bold md:col-span-2">Date personale</legend>
                 <SelectInput
                   label="Luna nasterii"
                   value={form.birthMonth}
@@ -422,7 +422,7 @@ export default function RomanianPensionCalculatorPage() {
                     <option value="M">Barbat</option>
                   </select>
                 </label>
-                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                <div className="grid gap-3 md:col-span-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
                   <TextInput label="Copii crescuti" type="number" min="0" value={form.childrenRaised} onChange={(value) => update("childrenRaised", value)} />
                   <button
                     type="button"
