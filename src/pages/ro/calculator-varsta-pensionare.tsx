@@ -129,6 +129,7 @@ export default function RomanianPensionCalculatorPage() {
   const [error, setError] = useState("");
   const [response, setResponse] = useState<PensionCalculatorResponse | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
+  const [sendingSimulationEmail, setSendingSimulationEmail] = useState(false);
   const [emailMessage, setEmailMessage] = useState("");
 
   const jsonLd = useMemo(
@@ -237,7 +238,7 @@ export default function RomanianPensionCalculatorPage() {
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+    if (!isValidEmail(form.email)) {
       setEmailMessage("Completeaza o adresa de email valida inainte de trimiterea rezultatului.");
       return;
     }
@@ -270,6 +271,73 @@ export default function RomanianPensionCalculatorPage() {
       );
     } finally {
       setSendingEmail(false);
+    }
+  }
+
+  async function handleSendSimulationEmail() {
+    const recipientEmail = form.email.trim();
+
+    if (!recipientEmail) {
+      setEmailMessage("Completeaza emailul inainte de trimiterea simularii.");
+      return;
+    }
+
+    if (!isValidEmail(recipientEmail)) {
+      setEmailMessage("Completeaza o adresa de email valida inainte de trimiterea simularii.");
+      return;
+    }
+
+    const simulationContact = {
+      fullName: form.fullName.trim() || "Simulare Pensie Romania",
+      email: recipientEmail,
+      phone: form.phone.trim() || "07000000000",
+    };
+
+    setSendingSimulationEmail(true);
+    setEmailMessage("");
+    setError("");
+
+    try {
+      const simulationResult = await submitPensionCalculator({
+        ...simulationContact,
+        birthYearMonth: "1960-10",
+        gender: "M",
+        applicationDate: "2025-09-01",
+        periods: {
+          normalRoYears: 35,
+          normalRoMonths: 0,
+          foreignYears: 0,
+          foreignMonths: 0,
+          deosebiteYears: 0,
+          deosebiteMonths: 0,
+          specialeYears: 0,
+          specialeMonths: 0,
+          grupaIYears: 0,
+          grupaIMonths: 0,
+          grupaIIYears: 0,
+          grupaIIMonths: 0,
+        },
+        foreignPeriods: [],
+        childrenRaised: 0,
+        handicapType: "none",
+        handicapYears: 0,
+        handicapMonths: 0,
+        domain: typeof window !== "undefined" ? window.location.hostname : "justproveit.co.uk",
+        source: "ro-pension-calculator-email-simulation",
+        pageUrl: typeof window !== "undefined" ? window.location.href : CANONICAL,
+        referrer: typeof document !== "undefined" ? document.referrer : "",
+      });
+
+      await sendPensionCalculatorEmail(simulationResult.resultId, simulationContact);
+      setEmailMessage("Emailul de simulare a fost trimis.");
+    } catch (simulationError) {
+      setEmailMessage(
+        simulationError instanceof Error
+          ? simulationError.message
+          : "Emailul de simulare nu a putut fi trimis.",
+      );
+    } finally {
+      setSendingSimulationEmail(false);
     }
   }
 
@@ -354,7 +422,17 @@ export default function RomanianPensionCalculatorPage() {
                     <option value="M">Barbat</option>
                   </select>
                 </label>
-                <TextInput label="Copii crescuti" type="number" min="0" value={form.childrenRaised} onChange={(value) => update("childrenRaised", value)} />
+                <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
+                  <TextInput label="Copii crescuti" type="number" min="0" value={form.childrenRaised} onChange={(value) => update("childrenRaised", value)} />
+                  <button
+                    type="button"
+                    disabled={sendingSimulationEmail}
+                    onClick={handleSendSimulationEmail}
+                    className="inline-flex w-full items-center justify-center rounded-md border border-emerald-700 bg-white px-4 py-2 text-sm font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-500 md:w-auto"
+                  >
+                    {sendingSimulationEmail ? "Trimit..." : "Email simulare"}
+                  </button>
+                </div>
               </fieldset>
 
               <fieldset>
@@ -857,6 +935,10 @@ function isOnlyAgePending(
       reason.trim().toLowerCase().startsWith("varsta"),
     )
   );
+}
+
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
 function asNumber(value: string) {
