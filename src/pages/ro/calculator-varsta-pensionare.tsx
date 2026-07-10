@@ -131,6 +131,8 @@ export default function RomanianPensionCalculatorPage() {
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingSimulationEmail, setSendingSimulationEmail] = useState(false);
   const [emailMessage, setEmailMessage] = useState("");
+  const [simulationEmailMessage, setSimulationEmailMessage] = useState("");
+  const [simulationEmailStatus, setSimulationEmailStatus] = useState<"success" | "error" | "">("");
 
   const jsonLd = useMemo(
     () => ({
@@ -180,6 +182,8 @@ export default function RomanianPensionCalculatorPage() {
     event.preventDefault();
     setError("");
     setEmailMessage("");
+    setSimulationEmailMessage("");
+    setSimulationEmailStatus("");
     setResponse(null);
 
     if (!form.birthYear || !form.birthMonth) {
@@ -262,7 +266,11 @@ export default function RomanianPensionCalculatorPage() {
             }
           : current,
       );
-      setEmailMessage("Rezultatul a fost trimis pe email.");
+      setEmailMessage(
+        emailResult.emailSent
+          ? "Rezultatul a fost trimis pe email."
+          : emailResult.emailError || "Emailul nu a putut fi trimis.",
+      );
     } catch (sendError) {
       setEmailMessage(
         sendError instanceof Error
@@ -278,12 +286,14 @@ export default function RomanianPensionCalculatorPage() {
     const recipientEmail = form.email.trim();
 
     if (!recipientEmail) {
-      setEmailMessage("Completeaza emailul inainte de trimiterea simularii.");
+      setSimulationEmailStatus("error");
+      setSimulationEmailMessage("Fail: completeaza emailul.");
       return;
     }
 
     if (!isValidEmail(recipientEmail)) {
-      setEmailMessage("Completeaza o adresa de email valida inainte de trimiterea simularii.");
+      setSimulationEmailStatus("error");
+      setSimulationEmailMessage("Fail: email invalid.");
       return;
     }
 
@@ -294,7 +304,8 @@ export default function RomanianPensionCalculatorPage() {
     };
 
     setSendingSimulationEmail(true);
-    setEmailMessage("");
+    setSimulationEmailMessage("");
+    setSimulationEmailStatus("");
     setError("");
 
     try {
@@ -328,13 +339,28 @@ export default function RomanianPensionCalculatorPage() {
         referrer: typeof document !== "undefined" ? document.referrer : "",
       });
 
-      await sendPensionCalculatorEmail(simulationResult.resultId, simulationContact);
-      setEmailMessage("Emailul de simulare a fost trimis.");
+      const emailResult = await sendPensionCalculatorEmail(
+        simulationResult.resultId,
+        simulationContact,
+      );
+
+      if (emailResult.emailSent) {
+        setSimulationEmailStatus("success");
+        setSimulationEmailMessage("Success: email trimis.");
+      } else {
+        setSimulationEmailStatus("error");
+        setSimulationEmailMessage(
+          `Fail: ${emailResult.emailError || "emailul nu a putut fi trimis."}`,
+        );
+      }
     } catch (simulationError) {
-      setEmailMessage(
-        simulationError instanceof Error
-          ? simulationError.message
-          : "Emailul de simulare nu a putut fi trimis.",
+      setSimulationEmailStatus("error");
+      setSimulationEmailMessage(
+        `Fail: ${
+          simulationError instanceof Error
+            ? simulationError.message
+            : "emailul de simulare nu a putut fi trimis."
+        }`,
       );
     } finally {
       setSendingSimulationEmail(false);
@@ -424,14 +450,26 @@ export default function RomanianPensionCalculatorPage() {
                 </label>
                 <div className="grid gap-3 md:col-span-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
                   <TextInput label="Copii crescuti" type="number" min="0" value={form.childrenRaised} onChange={(value) => update("childrenRaised", value)} />
-                  <button
-                    type="button"
-                    disabled={sendingSimulationEmail}
-                    onClick={handleSendSimulationEmail}
-                    className="inline-flex w-full items-center justify-center rounded-md border border-emerald-700 bg-white px-4 py-2 text-sm font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-500 md:w-auto"
-                  >
-                    {sendingSimulationEmail ? "Trimit..." : "Email simulare"}
-                  </button>
+                  <div className="flex flex-col gap-2 sm:min-w-[190px]">
+                    <button
+                      type="button"
+                      disabled={sendingSimulationEmail}
+                      onClick={handleSendSimulationEmail}
+                      className="inline-flex w-full items-center justify-center rounded-md border border-emerald-700 bg-white px-4 py-2 text-sm font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-500"
+                    >
+                      {sendingSimulationEmail ? "Trimit..." : "Email simulare"}
+                    </button>
+                    {simulationEmailMessage ? (
+                      <p
+                        aria-live="polite"
+                        className={`text-xs font-bold ${
+                          simulationEmailStatus === "success" ? "text-emerald-700" : "text-red-700"
+                        }`}
+                      >
+                        {simulationEmailMessage}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               </fieldset>
 
