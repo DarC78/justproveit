@@ -313,7 +313,7 @@ export default function RomanianPensionCalculatorPage() {
         ...simulationContact,
         birthYearMonth: "1960-10",
         gender: "M",
-        applicationDate: "2025-09-01",
+        applicationDate: "2025-10",
         periods: {
           normalRoYears: 35,
           normalRoMonths: 0,
