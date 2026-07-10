@@ -311,17 +311,17 @@ export default function RomanianPensionCalculatorPage() {
     try {
       const simulationResult = await submitPensionCalculator({
         ...simulationContact,
-        birthYearMonth: "1960-10",
+        birthYearMonth: "1966-05",
         gender: "M",
         applicationDate: "2025-10",
         periods: {
-          normalRoYears: 35,
+          normalRoYears: 24,
           normalRoMonths: 0,
           foreignYears: 0,
           foreignMonths: 0,
           deosebiteYears: 0,
           deosebiteMonths: 0,
-          specialeYears: 0,
+          specialeYears: 11,
           specialeMonths: 0,
           grupaIYears: 0,
           grupaIMonths: 0,
