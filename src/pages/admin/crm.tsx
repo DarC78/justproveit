@@ -1537,6 +1537,7 @@ function NewLeadPanel({
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [language, setLanguage] = useState("");
+  const [service, setService] = useState<"simulator pensie" | "other">("simulator pensie");
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
@@ -1548,12 +1549,15 @@ function NewLeadPanel({
         email,
         phoneNumber,
         language,
+        service,
+        interestType: "ASAP",
         agent: agentName,
       });
       setFullName("");
       setEmail("");
       setPhoneNumber("");
       setLanguage("");
+      setService("simulator pensie");
       onCreated(result.lead);
       onError("");
     } catch (error) {
@@ -1584,6 +1588,10 @@ function NewLeadPanel({
           {LANGUAGE_OPTIONS.map((item) => (
             <option key={item}>{item}</option>
           ))}
+        </select>
+        <select value={service} onChange={(event) => setService(event.target.value as "simulator pensie" | "other")}>
+          <option value="simulator pensie">simulator pensie</option>
+          <option value="other">other</option>
         </select>
         <button type="submit" className="orange" disabled={saving}>
           {saving ? "Se adauga..." : "Adauga Lead"}
