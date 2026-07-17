@@ -3355,11 +3355,18 @@ function formatAgentLabel(agentId?: number | null, agentName?: string | null) {
 }
 
 function formatPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary) {
-  if (!hasCalltraceCampaignSummary(campaign)) {
-    return formatLegacyPredictiveCampaignSummary(campaign);
-  }
-
   const queueName = campaign.campaignName || `Queue ${campaign.queueId}`;
+
+  if (!hasCalltraceCampaignSummary(campaign)) {
+    return [
+      queueName,
+      `Total Leads: ${campaign.totalLeads ?? 0}`,
+      "Updated campaign summary metrics are not available from the API yet",
+      `Called Today: ${campaign.calledToday ?? 0} (${campaign.calledYesterday ?? 0}) Connected Today: ${campaign.connectedToday ?? 0} (${campaign.connectedYesterday ?? 0})`,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+  }
 
   return [
     queueName,
@@ -3384,68 +3391,6 @@ function hasCalltraceCampaignSummary(campaign: CrmPredictiveCampaignSummary) {
     campaign.dialledOneTime !== undefined ||
     campaign.topDiallerResults !== undefined
   );
-}
-
-function formatLegacyPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary) {
-  const queueName = campaign.campaignName || `Queue ${campaign.queueId}`;
-
-  return [
-    queueName,
-    `Total Leads: ${campaign.totalLeads ?? 0}`,
-    `Finished Leads To Ag ${getFinishedToAgCount(campaign)}`,
-    `Finished Not Ag ${getFinishedNotAgCount(campaign)}`,
-    `ToBeDialled ${campaign.toBeDialled ?? 0}`,
-    `VoiceMails: ${getVoiceMailCount(campaign)}`,
-    formatLegacyTopCallCodes(campaign.topCallCodes),
-    `Dialled zero times: ${campaign.toBeDialledZeroTrials ?? 0} / 1-3 times: ${campaign.toBeDialledOneToThreeTrials ?? 0} / 4-5 times: ${campaign.toBeDialledFourToFiveTrials ?? 0} / 5+ times: ${campaign.toBeDialledFivePlusTrials ?? 0}`,
-    `Called Today: ${campaign.calledToday ?? 0} (${campaign.calledYesterday ?? 0}) Connected Today: ${campaign.connectedToday ?? 0} (${campaign.connectedYesterday ?? 0})`,
-  ]
-    .filter(Boolean)
-    .join(" | ");
-}
-
-function getFinishedToAgCount(campaign: CrmPredictiveCampaignSummary) {
-  return campaign.finishedLeadsToAg ?? campaign.finishedToAg ?? campaign.leadsToAg ?? 0;
-}
-
-function getFinishedNotAgCount(campaign: CrmPredictiveCampaignSummary) {
-  return campaign.finishedNotAg ?? campaign.noAgLeads ?? 0;
-}
-
-function getVoiceMailCount(campaign: CrmPredictiveCampaignSummary) {
-  const voiceMailCallCode = campaign.topCallCodes?.find((callCode) => callCode.callCode === 5);
-  return voiceMailCallCode?.count ?? campaign.toBeDialledLastCallCode5 ?? 0;
-}
-
-function formatLegacyTopCallCodes(
-  callCodes?: Array<{ callCode?: number | null; label?: string | null; count?: number; yesterdayCount?: number }>,
-) {
-  if (!callCodes?.length) {
-    return "";
-  }
-
-  const topCallCodes = callCodes
-    .filter((callCode) => {
-      const label = String(callCode.label || "").trim().toLowerCase();
-      return Boolean(callCode.callCode && callCode.callCode > 0 && callCode.callCode !== 5 && label !== "default");
-    })
-    .sort((first, second) => {
-      const countDiff = (second.count ?? 0) - (first.count ?? 0);
-      if (countDiff !== 0) {
-        return countDiff;
-      }
-
-      return (first.callCode ?? 0) - (second.callCode ?? 0);
-    })
-    .slice(0, 5);
-
-  if (!topCallCodes.length) {
-    return "";
-  }
-
-  return topCallCodes
-    .map((callCode) => `${callCode.label || `CallCode ${callCode.callCode ?? ""}`}: ${callCode.count ?? 0}`)
-    .join(" | ");
 }
 
 function formatTopCallCodes(
@@ -3496,25 +3441,8 @@ function formatGroupedCampaignCounts<T extends { label?: string | null; count?: 
 }
 
 function formatDialledTimes(campaign: CrmPredictiveCampaignSummary) {
-  const hasDetailedBuckets = [
-    campaign.dialledOneTime,
-    campaign.dialledTwoTimes,
-    campaign.dialledThreeTimes,
-    campaign.dialledFourTimes,
-    campaign.dialledFiveTimes,
-    campaign.dialledSixTimes,
-    campaign.dialledSevenTimes,
-    campaign.dialledEightTimes,
-    campaign.dialledNineTimes,
-    campaign.dialledTenPlusTimes,
-  ].some((value) => value !== undefined && value !== null);
-
-  if (!hasDetailedBuckets) {
-    return `Dialled zero times: ${campaign.toBeDialledZeroTrials ?? 0} / 1-3 times: ${campaign.toBeDialledOneToThreeTrials ?? 0} / 4-5 times: ${campaign.toBeDialledFourToFiveTrials ?? 0} / 5+ times: ${campaign.toBeDialledFivePlusTrials ?? 0}`;
-  }
-
   return [
-    `Dialled zero times: ${campaign.dialledZeroTimes ?? campaign.toBeDialledZeroTrials ?? 0}`,
+    `Dialled zero times: ${campaign.dialledZeroTimes ?? 0}`,
     `1 time: ${campaign.dialledOneTime ?? 0}`,
     `2 times: ${campaign.dialledTwoTimes ?? 0}`,
     `3 times: ${campaign.dialledThreeTimes ?? 0}`,
