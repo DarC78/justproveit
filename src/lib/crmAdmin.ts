@@ -192,10 +192,30 @@ export type CrmPredictiveCampaignSummary = {
   toBeDialledOneToThreeTrials?: number;
   toBeDialledFourToFiveTrials?: number;
   toBeDialledFivePlusTrials?: number;
+  notDialled?: number;
+  dialled?: number;
+  dialledButNoAgent?: number;
+  dialledToAgent?: number;
+  dialledZeroTimes?: number;
+  dialledOneTime?: number;
+  dialledTwoTimes?: number;
+  dialledThreeTimes?: number;
+  dialledFourTimes?: number;
+  dialledFiveTimes?: number;
+  dialledSixTimes?: number;
+  dialledSevenTimes?: number;
+  dialledEightTimes?: number;
+  dialledNineTimes?: number;
+  dialledTenPlusTimes?: number;
   calledToday?: number;
   connectedToday?: number;
   calledYesterday?: number;
   connectedYesterday?: number;
+  topDiallerResults?: Array<{
+    diallerResult?: number | null;
+    label?: string | null;
+    count?: number;
+  }>;
   topCallCodes?: Array<{
     callCode?: number | null;
     label?: string | null;

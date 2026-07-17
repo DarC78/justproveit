@@ -3360,13 +3360,13 @@ function formatPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary)
   return [
     queueName,
     `Total Leads: ${campaign.totalLeads ?? 0}`,
-    `Finished Leads To Ag ${getFinishedToAgCount(campaign)}`,
-    `Finished Not Ag ${getFinishedNotAgCount(campaign)}`,
-    `ToBeDialled ${campaign.toBeDialled ?? 0}`,
-    `VoiceMails: ${getVoiceMailCount(campaign)}`,
+    `Not dialled: ${campaign.notDialled ?? campaign.toBeDialled ?? 0}`,
+    `Dialled but No Agent: ${campaign.dialledButNoAgent ?? getFinishedNotAgCount(campaign)}`,
+    formatTopDiallerResults(campaign.topDiallerResults),
+    `DialledToAgent: ${campaign.dialledToAgent ?? getFinishedToAgCount(campaign)}`,
     formatTopCallCodes(campaign.topCallCodes),
-    `Dialled zero times: ${campaign.toBeDialledZeroTrials ?? 0} / 1-3 times: ${campaign.toBeDialledOneToThreeTrials ?? 0} / 4-5 times: ${campaign.toBeDialledFourToFiveTrials ?? 0} / 5+ times: ${campaign.toBeDialledFivePlusTrials ?? 0}`,
     `Called Today: ${campaign.calledToday ?? 0} (${campaign.calledYesterday ?? 0}) Connected Today: ${campaign.connectedToday ?? 0} (${campaign.connectedYesterday ?? 0})`,
+    formatDialledTimes(campaign),
   ]
     .filter(Boolean)
     .join(" | ");
@@ -3380,40 +3380,84 @@ function getFinishedNotAgCount(campaign: CrmPredictiveCampaignSummary) {
   return campaign.finishedNotAg ?? campaign.noAgLeads ?? 0;
 }
 
-function getVoiceMailCount(campaign: CrmPredictiveCampaignSummary) {
-  const voiceMailCallCode = campaign.topCallCodes?.find((callCode) => callCode.callCode === 5);
-  return voiceMailCallCode?.count ?? campaign.toBeDialledLastCallCode5 ?? 0;
-}
-
 function formatTopCallCodes(
   callCodes?: Array<{ callCode?: number | null; label?: string | null; count?: number; yesterdayCount?: number }>,
 ) {
-  if (!callCodes?.length) {
-    return "";
-  }
+  return formatGroupedCampaignCounts(
+    callCodes,
+    "Callcodes",
+    (callCode) => callCode.label || `CallCode ${callCode.callCode ?? ""}`,
+    (first, second) => (first.callCode ?? 0) - (second.callCode ?? 0),
+  );
+}
 
-  const topCallCodes = callCodes
-    .filter((callCode) => {
-      const label = String(callCode.label || "").trim().toLowerCase();
-      return Boolean(callCode.callCode && callCode.callCode > 0 && callCode.callCode !== 5 && label !== "default");
-    })
+function formatTopDiallerResults(
+  diallerResults?: Array<{ diallerResult?: number | null; label?: string | null; count?: number }>,
+) {
+  return formatGroupedCampaignCounts(
+    diallerResults,
+    "Dialler results",
+    (diallerResult) => diallerResult.label || `DiallerResult ${diallerResult.diallerResult ?? ""}`,
+    (first, second) => (first.diallerResult ?? 0) - (second.diallerResult ?? 0),
+  );
+}
+
+function formatGroupedCampaignCounts<T extends { label?: string | null; count?: number }>(
+  items: T[] | undefined,
+  prefix: string,
+  getLabel: (item: T) => string,
+  compareTieBreak: (first: T, second: T) => number,
+) {
+  const sortedItems = (items || [])
+    .filter((item) => (item.count ?? 0) > 0)
     .sort((first, second) => {
       const countDiff = (second.count ?? 0) - (first.count ?? 0);
       if (countDiff !== 0) {
         return countDiff;
       }
 
-      return (first.callCode ?? 0) - (second.callCode ?? 0);
-    })
-    .slice(0, 5);
+      const labelDiff = getLabel(first).localeCompare(getLabel(second));
+      return labelDiff || compareTieBreak(first, second);
+    });
 
-  if (!topCallCodes.length) {
+  if (!sortedItems.length) {
     return "";
   }
 
-  return topCallCodes
-    .map((callCode) => `${callCode.label || `CallCode ${callCode.callCode ?? ""}`}: ${callCode.count ?? 0}`)
-    .join(" | ");
+  return `${prefix}: ${sortedItems.map((item) => `${getLabel(item)}: ${item.count ?? 0}`).join(" | ")}`;
+}
+
+function formatDialledTimes(campaign: CrmPredictiveCampaignSummary) {
+  const hasDetailedBuckets = [
+    campaign.dialledOneTime,
+    campaign.dialledTwoTimes,
+    campaign.dialledThreeTimes,
+    campaign.dialledFourTimes,
+    campaign.dialledFiveTimes,
+    campaign.dialledSixTimes,
+    campaign.dialledSevenTimes,
+    campaign.dialledEightTimes,
+    campaign.dialledNineTimes,
+    campaign.dialledTenPlusTimes,
+  ].some((value) => value !== undefined && value !== null);
+
+  if (!hasDetailedBuckets) {
+    return `Dialled zero times: ${campaign.toBeDialledZeroTrials ?? 0} / 1-3 times: ${campaign.toBeDialledOneToThreeTrials ?? 0} / 4-5 times: ${campaign.toBeDialledFourToFiveTrials ?? 0} / 5+ times: ${campaign.toBeDialledFivePlusTrials ?? 0}`;
+  }
+
+  return [
+    `Dialled zero times: ${campaign.dialledZeroTimes ?? campaign.toBeDialledZeroTrials ?? 0}`,
+    `1 time: ${campaign.dialledOneTime ?? 0}`,
+    `2 times: ${campaign.dialledTwoTimes ?? 0}`,
+    `3 times: ${campaign.dialledThreeTimes ?? 0}`,
+    `4 times: ${campaign.dialledFourTimes ?? 0}`,
+    `5 times: ${campaign.dialledFiveTimes ?? 0}`,
+    `6 times: ${campaign.dialledSixTimes ?? 0}`,
+    `7 times: ${campaign.dialledSevenTimes ?? 0}`,
+    `8 times: ${campaign.dialledEightTimes ?? 0}`,
+    `9 times: ${campaign.dialledNineTimes ?? 0}`,
+    `10+ times: ${campaign.dialledTenPlusTimes ?? 0}`,
+  ].join(" / ");
 }
 
 function toInputDate(value?: string | null) {
