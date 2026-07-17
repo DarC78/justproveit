@@ -3355,18 +3355,50 @@ function formatAgentLabel(agentId?: number | null, agentName?: string | null) {
 }
 
 function formatPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary) {
+  if (!hasCalltraceCampaignSummary(campaign)) {
+    return formatLegacyPredictiveCampaignSummary(campaign);
+  }
+
   const queueName = campaign.campaignName || `Queue ${campaign.queueId}`;
 
   return [
     queueName,
     `Total Leads: ${campaign.totalLeads ?? 0}`,
-    `Not dialled: ${campaign.notDialled ?? campaign.toBeDialled ?? 0}`,
-    `Dialled but No Agent: ${campaign.dialledButNoAgent ?? getFinishedNotAgCount(campaign)}`,
+    `Not dialled: ${campaign.notDialled ?? 0}`,
+    `Dialled but No Agent: ${campaign.dialledButNoAgent ?? 0}`,
     formatTopDiallerResults(campaign.topDiallerResults),
-    `DialledToAgent: ${campaign.dialledToAgent ?? getFinishedToAgCount(campaign)}`,
+    `DialledToAgent: ${campaign.dialledToAgent ?? 0}`,
     formatTopCallCodes(campaign.topCallCodes),
     `Called Today: ${campaign.calledToday ?? 0} (${campaign.calledYesterday ?? 0}) Connected Today: ${campaign.connectedToday ?? 0} (${campaign.connectedYesterday ?? 0})`,
     formatDialledTimes(campaign),
+  ]
+    .filter(Boolean)
+    .join(" | ");
+}
+
+function hasCalltraceCampaignSummary(campaign: CrmPredictiveCampaignSummary) {
+  return (
+    campaign.notDialled !== undefined ||
+    campaign.dialledButNoAgent !== undefined ||
+    campaign.dialledToAgent !== undefined ||
+    campaign.dialledOneTime !== undefined ||
+    campaign.topDiallerResults !== undefined
+  );
+}
+
+function formatLegacyPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary) {
+  const queueName = campaign.campaignName || `Queue ${campaign.queueId}`;
+
+  return [
+    queueName,
+    `Total Leads: ${campaign.totalLeads ?? 0}`,
+    `Finished Leads To Ag ${getFinishedToAgCount(campaign)}`,
+    `Finished Not Ag ${getFinishedNotAgCount(campaign)}`,
+    `ToBeDialled ${campaign.toBeDialled ?? 0}`,
+    `VoiceMails: ${getVoiceMailCount(campaign)}`,
+    formatLegacyTopCallCodes(campaign.topCallCodes),
+    `Dialled zero times: ${campaign.toBeDialledZeroTrials ?? 0} / 1-3 times: ${campaign.toBeDialledOneToThreeTrials ?? 0} / 4-5 times: ${campaign.toBeDialledFourToFiveTrials ?? 0} / 5+ times: ${campaign.toBeDialledFivePlusTrials ?? 0}`,
+    `Called Today: ${campaign.calledToday ?? 0} (${campaign.calledYesterday ?? 0}) Connected Today: ${campaign.connectedToday ?? 0} (${campaign.connectedYesterday ?? 0})`,
   ]
     .filter(Boolean)
     .join(" | ");
@@ -3378,6 +3410,42 @@ function getFinishedToAgCount(campaign: CrmPredictiveCampaignSummary) {
 
 function getFinishedNotAgCount(campaign: CrmPredictiveCampaignSummary) {
   return campaign.finishedNotAg ?? campaign.noAgLeads ?? 0;
+}
+
+function getVoiceMailCount(campaign: CrmPredictiveCampaignSummary) {
+  const voiceMailCallCode = campaign.topCallCodes?.find((callCode) => callCode.callCode === 5);
+  return voiceMailCallCode?.count ?? campaign.toBeDialledLastCallCode5 ?? 0;
+}
+
+function formatLegacyTopCallCodes(
+  callCodes?: Array<{ callCode?: number | null; label?: string | null; count?: number; yesterdayCount?: number }>,
+) {
+  if (!callCodes?.length) {
+    return "";
+  }
+
+  const topCallCodes = callCodes
+    .filter((callCode) => {
+      const label = String(callCode.label || "").trim().toLowerCase();
+      return Boolean(callCode.callCode && callCode.callCode > 0 && callCode.callCode !== 5 && label !== "default");
+    })
+    .sort((first, second) => {
+      const countDiff = (second.count ?? 0) - (first.count ?? 0);
+      if (countDiff !== 0) {
+        return countDiff;
+      }
+
+      return (first.callCode ?? 0) - (second.callCode ?? 0);
+    })
+    .slice(0, 5);
+
+  if (!topCallCodes.length) {
+    return "";
+  }
+
+  return topCallCodes
+    .map((callCode) => `${callCode.label || `CallCode ${callCode.callCode ?? ""}`}: ${callCode.count ?? 0}`)
+    .join(" | ");
 }
 
 function formatTopCallCodes(
