@@ -5,7 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 const SITE_URL = "https://www.justproveit.co.uk";
 const PAGE_URL = `${SITE_URL}/saleconsultation`;
 const SERVICE_NAME = "Simulare Varsta Pensie Internationala";
-const DISPLAY_PRICE = "£97";
+const DISPLAY_PRICE = "£50 acum";
 const INITIAL_PAYMENT = "£50";
 const MONTHLY_PAYMENT = "£23.50";
 const CONTACT_STORAGE_KEY = "jpi-saleconsultation-contact";
@@ -204,13 +204,13 @@ export default function SaleConsultationPage() {
                   Plată securizată prin Stripe
                 </p>
                 <p className="mt-3 text-sm font-extrabold text-slate-950">{SERVICE_NAME}</p>
-                <p className="mt-1 text-sm font-bold text-emerald-700">Pay now {INITIAL_PAYMENT}</p>
+                <p className="mt-1 text-sm font-bold text-emerald-700">Plateste acum {INITIAL_PAYMENT}</p>
                 <button
                   type="submit"
                   disabled={paymentStatus === "loading"}
                   className="mt-3 inline-flex h-12 w-full items-center justify-center rounded-md bg-emerald-700 px-5 text-sm font-extrabold uppercase tracking-normal text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
-                  {paymentStatus === "loading" ? "Se pregătește plata..." : `Pay now ${INITIAL_PAYMENT}`}
+                  {paymentStatus === "loading" ? "Se pregătește plata..." : `Plateste acum ${INITIAL_PAYMENT}`}
                 </button>
                 <p className="mt-2 text-sm leading-6 text-slate-700">
                   Prima plată este {INITIAL_PAYMENT}. Doar dacă vă puteți pensiona mai devreme de doi ani, încă două
@@ -276,7 +276,7 @@ export default function SaleConsultationPage() {
                   disabled={paymentStatus === "loading"}
                   className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-md bg-emerald-700 px-5 text-sm font-extrabold uppercase tracking-normal text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
-                  {paymentStatus === "loading" ? "Se pregătește plata..." : `Pay now ${INITIAL_PAYMENT}`}
+                  {paymentStatus === "loading" ? "Se pregătește plata..." : `Plateste acum ${INITIAL_PAYMENT}`}
                 </button>
 
                 {paymentMessage ? (

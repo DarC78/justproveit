@@ -1,7 +1,7 @@
 const STRIPE_API_BASE_URL = "https://api.stripe.com";
 const SERVICE_KEY = "saleconsultation";
 const SERVICE_NAME = "Simulare Varsta Pensie Internationala";
-const CHECKOUT_PRICE_DESCRIPTION = "Pay now £50. Then 2 x £23.50 only if you can retire in the next 2 years.";
+const CHECKOUT_PRICE_DESCRIPTION = "Plateste acum £50. Apoi 2 x £23.50 doar daca va puteti pensiona in urmatorii 2 ani.";
 const CHECKOUT_CUSTOM_TEXT = `Ce cumpărați: ${SERVICE_NAME}. Cât costă: ${CHECKOUT_PRICE_DESCRIPTION}.`;
 const DISPLAY_PRICE_PENCE = 9700;
 const DEFAULT_INITIAL_PAYMENT_PENCE = 5000;
