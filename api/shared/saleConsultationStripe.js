@@ -1,9 +1,10 @@
 const STRIPE_API_BASE_URL = "https://api.stripe.com";
 const SERVICE_KEY = "saleconsultation";
-const SERVICE_NAME = "Simulare Pensie Internațională";
-const CHECKOUT_PRICE_DESCRIPTION = "£50 acum și 2 x £23.50 doar dacă vă puteți pensiona în următorii 2 ani";
+const SERVICE_NAME = "Simulare Varsta Pensie Internationala";
+const CHECKOUT_PRICE_DESCRIPTION = "Pay now £50. Then 2 x £23.50 only if you can retire in the next 2 years.";
 const CHECKOUT_CUSTOM_TEXT = `Ce cumpărați: ${SERVICE_NAME}. Cât costă: ${CHECKOUT_PRICE_DESCRIPTION}.`;
 const DISPLAY_PRICE_PENCE = 9700;
+const DEFAULT_INITIAL_PAYMENT_PENCE = 5000;
 const DEFAULT_INITIAL_TOP_UP_PENCE = 2650;
 const DEFAULT_MONTHLY_PRICE_PENCE = 2350;
 
@@ -52,12 +53,32 @@ async function createSaleConsultationSetupSession(context, req) {
       capturedAtUtc,
     });
 
+    const initialPaymentAmount = readPositiveInteger(
+      process.env.STRIPE_SALECONSULTATION_INITIAL_PAYMENT_AMOUNT_PENCE ||
+        process.env.SALECONSULTATION_INITIAL_PAYMENT_AMOUNT_PENCE,
+      DEFAULT_INITIAL_PAYMENT_PENCE,
+    );
+
     const session = await stripePost(stripeKey, "/v1/checkout/sessions", {
-      mode: "setup",
+      mode: "payment",
       currency: "gbp",
       customer: customer.id,
       payment_method_types: ["card"],
       locale: "ro",
+      submit_type: "pay",
+      line_items: [
+        {
+          price_data: {
+            currency: "gbp",
+            unit_amount: initialPaymentAmount,
+            product_data: {
+              name: SERVICE_NAME,
+              description: CHECKOUT_PRICE_DESCRIPTION,
+            },
+          },
+          quantity: 1,
+        },
+      ],
       success_url: `${siteUrl}/saleconsultation?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/saleconsultation?checkout=cancelled`,
       custom_text: {
@@ -66,8 +87,9 @@ async function createSaleConsultationSetupSession(context, req) {
         },
       },
       metadata,
-      setup_intent_data: {
+      payment_intent_data: {
         description: `${SERVICE_NAME} - ${CHECKOUT_PRICE_DESCRIPTION}`,
+        setup_future_usage: "off_session",
         metadata,
       },
     });
@@ -108,11 +130,16 @@ async function activateSaleConsultationSchedule(context, req) {
     }
 
     const session = await stripeGet(stripeKey, `/v1/checkout/sessions/${encodeURIComponent(sessionId)}`, {
-      expand: ["setup_intent"],
+      expand: ["payment_intent", "setup_intent"],
     });
 
     if (session.status !== "complete") {
       context.res = json(409, { error: "Stripe Checkout session is not complete yet." });
+      return;
+    }
+
+    if (session.mode === "payment" && session.payment_status !== "paid") {
+      context.res = json(409, { error: "Stripe Checkout payment is not paid yet." });
       return;
     }
 
@@ -122,27 +149,32 @@ async function activateSaleConsultationSchedule(context, req) {
     }
 
     const customerId = readStripeId(session.customer);
-    const setupIntent = await getSetupIntent(stripeKey, session.setup_intent);
-    const paymentMethodId = readStripeId(setupIntent.payment_method);
+    const paymentMethodId = await getCheckoutPaymentMethodId(stripeKey, session);
 
     if (!customerId || !paymentMethodId) {
       context.res = json(409, {
-        error: "Stripe did not return a customer and payment method for this setup session.",
+        error: "Stripe did not return a customer and payment method for this checkout session.",
       });
       return;
     }
 
     await updateCustomerDefaultPaymentMethod(stripeKey, customerId, paymentMethodId, session);
 
-    const prices = await getSchedulePrices(stripeKey, sessionId);
+    const initialPaymentCollected = session.mode === "payment";
+    const prices = await getSchedulePrices(stripeKey, sessionId, {
+      includeSetupFee: !initialPaymentCollected,
+    });
     const schedule = await createSubscriptionSchedule(stripeKey, {
       session,
       customerId,
       paymentMethodId,
       monthlyPriceId: prices.monthlyPriceId,
       setupFeePriceId: prices.setupFeePriceId,
+      initialPaymentCollected,
     });
-    const firstInvoice = await settleFirstInvoice(stripeKey, schedule.subscription, sessionId);
+    const firstInvoice = initialPaymentCollected
+      ? null
+      : await settleFirstInvoice(stripeKey, schedule.subscription, sessionId);
 
     context.res = json(200, {
       ok: true,
@@ -172,6 +204,30 @@ async function getSetupIntent(stripeKey, setupIntent) {
   return stripeGet(stripeKey, `/v1/setup_intents/${encodeURIComponent(setupIntentId)}`);
 }
 
+async function getPaymentIntent(stripeKey, paymentIntent) {
+  if (paymentIntent && typeof paymentIntent === "object") {
+    return paymentIntent;
+  }
+
+  const paymentIntentId = readStripeId(paymentIntent);
+
+  if (!paymentIntentId) {
+    return {};
+  }
+
+  return stripeGet(stripeKey, `/v1/payment_intents/${encodeURIComponent(paymentIntentId)}`);
+}
+
+async function getCheckoutPaymentMethodId(stripeKey, session) {
+  if (session.mode === "payment") {
+    const paymentIntent = await getPaymentIntent(stripeKey, session.payment_intent);
+    return readStripeId(paymentIntent.payment_method);
+  }
+
+  const setupIntent = await getSetupIntent(stripeKey, session.setup_intent);
+  return readStripeId(setupIntent.payment_method);
+}
+
 async function updateCustomerDefaultPaymentMethod(stripeKey, customerId, paymentMethodId, session) {
   const metadata = session.metadata || {};
   const params = {
@@ -198,7 +254,8 @@ async function updateCustomerDefaultPaymentMethod(stripeKey, customerId, payment
   await stripePost(stripeKey, `/v1/customers/${encodeURIComponent(customerId)}`, params);
 }
 
-async function getSchedulePrices(stripeKey, sessionId) {
+async function getSchedulePrices(stripeKey, sessionId, options) {
+  const includeSetupFee = !options || options.includeSetupFee !== false;
   const monthlyPriceId =
     process.env.STRIPE_SALECONSULTATION_MONTHLY_PRICE_ID ||
     process.env.SALECONSULTATION_MONTHLY_PRICE_ID ||
@@ -208,7 +265,7 @@ async function getSchedulePrices(stripeKey, sessionId) {
     process.env.SALECONSULTATION_SETUP_FEE_PRICE_ID ||
     "";
 
-  if (monthlyPriceId && setupFeePriceId) {
+  if (monthlyPriceId && (!includeSetupFee || setupFeePriceId)) {
     return { monthlyPriceId, setupFeePriceId };
   }
 
@@ -217,11 +274,6 @@ async function getSchedulePrices(stripeKey, sessionId) {
     process.env.STRIPE_SALECONSULTATION_MONTHLY_AMOUNT_PENCE ||
       process.env.SALECONSULTATION_MONTHLY_AMOUNT_PENCE,
     DEFAULT_MONTHLY_PRICE_PENCE,
-  );
-  const setupFeeAmount = readPositiveInteger(
-    process.env.STRIPE_SALECONSULTATION_SETUP_FEE_AMOUNT_PENCE ||
-      process.env.SALECONSULTATION_SETUP_FEE_AMOUNT_PENCE,
-    DEFAULT_INITIAL_TOP_UP_PENCE,
   );
 
   const createdMonthlyPriceId =
@@ -246,24 +298,29 @@ async function getSchedulePrices(stripeKey, sessionId) {
     ).id;
 
   const createdSetupFeePriceId =
-    setupFeePriceId ||
-    (
-      await stripePost(
-        stripeKey,
-        "/v1/prices",
-        {
-          currency: "gbp",
-          unit_amount: setupFeeAmount,
-          product_data: { name: `${productName} - initial top-up` },
-          metadata: {
-            service: SERVICE_KEY,
-            component: "initial_top_up",
-            display_price_pence: String(DISPLAY_PRICE_PENCE),
-          },
-        },
-        `saleconsultation-setup-fee-price-${sessionId}`,
-      )
-    ).id;
+    includeSetupFee && !setupFeePriceId
+      ? (
+          await stripePost(
+            stripeKey,
+            "/v1/prices",
+            {
+              currency: "gbp",
+              unit_amount: readPositiveInteger(
+                process.env.STRIPE_SALECONSULTATION_SETUP_FEE_AMOUNT_PENCE ||
+                  process.env.SALECONSULTATION_SETUP_FEE_AMOUNT_PENCE,
+                DEFAULT_INITIAL_TOP_UP_PENCE,
+              ),
+              product_data: { name: `${productName} - initial top-up` },
+              metadata: {
+                service: SERVICE_KEY,
+                component: "initial_top_up",
+                display_price_pence: String(DISPLAY_PRICE_PENCE),
+              },
+            },
+            `saleconsultation-setup-fee-price-${sessionId}`,
+          )
+        ).id
+      : setupFeePriceId;
 
   return {
     monthlyPriceId: createdMonthlyPriceId,
@@ -277,21 +334,20 @@ async function createSubscriptionSchedule(stripeKey, options) {
     customerEmail: options.session.customer_details && options.session.customer_details.email,
     source: SERVICE_KEY,
   });
-
-  return stripePost(
-    stripeKey,
-    "/v1/subscription_schedules",
-    {
-      customer: options.customerId,
-      start_date: "now",
-      end_behavior: "cancel",
-      default_settings: {
-        collection_method: "charge_automatically",
-        default_payment_method: options.paymentMethodId,
-        description: SERVICE_NAME,
-      },
-      metadata,
-      phases: [
+  const phases = options.initialPaymentCollected
+    ? [
+        {
+          duration: { interval: "month", interval_count: 2 },
+          collection_method: "charge_automatically",
+          default_payment_method: options.paymentMethodId,
+          items: [{ price: options.monthlyPriceId, quantity: 1 }],
+          metadata: {
+            service: SERVICE_KEY,
+            phase: "remaining_payments",
+          },
+        },
+      ]
+    : [
         {
           duration: { interval: "month", interval_count: 1 },
           collection_method: "charge_automatically",
@@ -313,10 +369,36 @@ async function createSubscriptionSchedule(stripeKey, options) {
             phase: "remaining_payments",
           },
         },
-      ],
+      ];
+
+  return stripePost(
+    stripeKey,
+    "/v1/subscription_schedules",
+    {
+      customer: options.customerId,
+      start_date: options.initialPaymentCollected ? getNextMonthlyPaymentTimestamp() : "now",
+      end_behavior: "cancel",
+      default_settings: {
+        collection_method: "charge_automatically",
+        default_payment_method: options.paymentMethodId,
+        description: SERVICE_NAME,
+      },
+      metadata,
+      phases,
     },
     `saleconsultation-schedule-${options.session.id}`,
   );
+}
+
+function getNextMonthlyPaymentTimestamp() {
+  const date = new Date();
+  const targetDay = date.getUTCDate();
+  date.setUTCMonth(date.getUTCMonth() + 1, 1);
+  const lastDayOfTargetMonth = new Date(
+    Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  date.setUTCDate(Math.min(targetDay, lastDayOfTargetMonth));
+  return Math.floor(date.getTime() / 1000);
 }
 
 async function settleFirstInvoice(stripeKey, subscriptionId, sessionId) {
