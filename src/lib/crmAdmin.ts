@@ -179,6 +179,7 @@ export type CrmLeadIntentRow = {
 export type CrmPredictiveCampaignSummary = {
   queueId?: number | null;
   campaignName?: string | null;
+  predictiveTrialLimit?: number;
   totalLeads?: number;
   finishedLeads?: number;
   finishedLeadsToAg?: number;
@@ -197,9 +198,11 @@ export type CrmPredictiveCampaignSummary = {
   completed?: number;
   completedLeads?: number;
   completedLeadCount?: number;
+  completedCount?: number;
   available?: number;
   availableLeads?: number;
   availableLeadCount?: number;
+  availableCount?: number;
   dialledButNoAgent?: number;
   dialledToAgent?: number;
   dialledZeroTimes?: number;
