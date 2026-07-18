@@ -7,8 +7,14 @@ const PAGE_URL = `${SITE_URL}/saleconsultation`;
 const DISPLAY_PRICE = "£97";
 const INITIAL_PAYMENT = "£50";
 const MONTHLY_PAYMENT = "£23.50";
+const CONTACT_STORAGE_KEY = "jpi-saleconsultation-contact";
 
 type PaymentStatus = "idle" | "loading" | "success" | "error";
+type SaleConsultationContact = {
+  fullName: string;
+  email: string;
+  phone: string;
+};
 
 export default function SaleConsultationPage() {
   const [fullName, setFullName] = useState("");
@@ -17,8 +23,21 @@ export default function SaleConsultationPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>("idle");
   const [paymentMessage, setPaymentMessage] = useState("");
+  const [contactLoaded, setContactLoaded] = useState(false);
 
   useEffect(() => {
+    const storedContact = readStoredContact();
+    if (storedContact.fullName) {
+      setFullName(storedContact.fullName);
+    }
+    if (storedContact.email) {
+      setEmail(storedContact.email);
+    }
+    if (storedContact.phone) {
+      setPhone(storedContact.phone);
+    }
+    setContactLoaded(true);
+
     const params = new URLSearchParams(window.location.search);
     const checkoutStatus = params.get("checkout");
     const sessionId = params.get("session_id");
@@ -71,8 +90,23 @@ export default function SaleConsultationPage() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!contactLoaded) {
+      return;
+    }
+
+    saveStoredContact({ fullName, email, phone });
+  }, [contactLoaded, fullName, email, phone]);
+
   async function handleCheckout(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const contact = {
+      fullName: fullName.trim(),
+      email: email.trim(),
+      phone: phone.trim(),
+    };
+
+    saveStoredContact(contact);
 
     if (!acceptedTerms) {
       setPaymentStatus("error");
@@ -87,7 +121,7 @@ export default function SaleConsultationPage() {
       const response = await fetch("/api/saleconsultation/create-setup-session", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fullName, email, phone }),
+        body: JSON.stringify(contact),
       });
       const payload = await response.json().catch(() => null);
 
@@ -177,6 +211,7 @@ export default function SaleConsultationPage() {
                   <input
                     value={fullName}
                     onChange={(event) => setFullName(event.target.value)}
+                    autoComplete="name"
                     required
                     className="mt-1 h-11 w-full rounded-md border border-slate-300 px-3 text-sm shadow-sm focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
@@ -187,6 +222,7 @@ export default function SaleConsultationPage() {
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
+                    autoComplete="email"
                     required
                     className="mt-1 h-11 w-full rounded-md border border-slate-300 px-3 text-sm shadow-sm focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
@@ -197,6 +233,7 @@ export default function SaleConsultationPage() {
                     type="tel"
                     value={phone}
                     onChange={(event) => setPhone(event.target.value)}
+                    autoComplete="tel"
                     required
                     className="mt-1 h-11 w-full rounded-md border border-slate-300 px-3 text-sm shadow-sm focus:border-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-100"
                   />
@@ -339,7 +376,7 @@ export default function SaleConsultationPage() {
             <div>
               <strong className="text-slate-950">Contact</strong>
               <p className="mt-2">+44 7447 707829</p>
-              <p>adriandfeta@proveitweb.co.uk</p>
+              <p>adriandefta@proveitweb.co.uk</p>
             </div>
           </div>
         </footer>
@@ -385,6 +422,58 @@ function Metric({ title, value }: { title: string; value: string }) {
       <p className="mt-1 text-xl font-extrabold tracking-normal text-slate-950">{value}</p>
     </div>
   );
+}
+
+function readStoredContact(): SaleConsultationContact {
+  if (typeof window === "undefined") {
+    return { fullName: "", email: "", phone: "" };
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CONTACT_STORAGE_KEY);
+    if (!raw) {
+      return { fullName: "", email: "", phone: "" };
+    }
+
+    const parsed = JSON.parse(raw) as Partial<SaleConsultationContact>;
+    return {
+      fullName: cleanStoredContactValue(parsed.fullName, 120),
+      email: cleanStoredContactValue(parsed.email, 180),
+      phone: cleanStoredContactValue(parsed.phone, 80),
+    };
+  } catch {
+    return { fullName: "", email: "", phone: "" };
+  }
+}
+
+function saveStoredContact(contact: SaleConsultationContact) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const storedContact = {
+    fullName: cleanStoredContactValue(contact.fullName, 120),
+    email: cleanStoredContactValue(contact.email, 180),
+    phone: cleanStoredContactValue(contact.phone, 80),
+  };
+
+  try {
+    if (!storedContact.fullName && !storedContact.email && !storedContact.phone) {
+      window.localStorage.removeItem(CONTACT_STORAGE_KEY);
+      return;
+    }
+
+    window.localStorage.setItem(CONTACT_STORAGE_KEY, JSON.stringify(storedContact));
+  } catch {
+    // Ignore storage failures so checkout is not blocked by browser privacy settings.
+  }
+}
+
+function cleanStoredContactValue(value: unknown, maxLength: number) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLength);
 }
 
 function readApiError(payload: unknown, fallback: string) {

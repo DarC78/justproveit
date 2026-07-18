@@ -25,18 +25,35 @@ async function createSaleConsultationSetupSession(context, req) {
     }
 
     const siteUrl = getSiteUrl(req);
+    const capturedAtUtc = new Date().toISOString();
+    const contactMetadata = buildMetadata({
+      fullName,
+      email,
+      phone,
+      sourcePage: `${siteUrl}/saleconsultation`,
+      leadStatus: "checkout_started",
+      capturedAtUtc,
+    });
+    const customer = await createCapturedCustomer(stripeKey, {
+      fullName,
+      email,
+      phone,
+      metadata: contactMetadata,
+    });
     const metadata = buildMetadata({
       fullName,
       email,
       phone,
       sourcePage: `${siteUrl}/saleconsultation`,
+      leadStatus: "checkout_session_created",
+      stripeCustomerId: customer.id,
+      capturedAtUtc,
     });
 
     const session = await stripePost(stripeKey, "/v1/checkout/sessions", {
       mode: "setup",
       currency: "gbp",
-      customer_creation: "always",
-      customer_email: email,
+      customer: customer.id,
       payment_method_types: ["card"],
       locale: "ro",
       success_url: `${siteUrl}/saleconsultation?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -52,6 +69,15 @@ async function createSaleConsultationSetupSession(context, req) {
   } catch (error) {
     context.res = json(readStatus(error), { error: readErrorMessage(error) });
   }
+}
+
+async function createCapturedCustomer(stripeKey, options) {
+  return stripePost(stripeKey, "/v1/customers", {
+    name: options.fullName,
+    email: options.email,
+    phone: options.phone,
+    metadata: options.metadata,
+  });
 }
 
 async function activateSaleConsultationSchedule(context, req) {
@@ -143,8 +169,13 @@ async function updateCustomerDefaultPaymentMethod(stripeKey, customerId, payment
     metadata: {
       saleconsultation_last_checkout_session: session.id,
       saleconsultation_service: SERVICE_KEY,
+      saleconsultation_payment_status: "checkout_complete",
     },
   };
+
+  if (metadata.email) {
+    params.email = metadata.email;
+  }
 
   if (metadata.fullName) {
     params.name = metadata.fullName;
