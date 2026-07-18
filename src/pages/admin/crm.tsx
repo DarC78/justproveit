@@ -3204,6 +3204,10 @@ const panelStyles = `
     font-size: 14px;
     margin: 12px 0;
   }
+  .campaign-summary-important {
+    color: #b00020;
+    font-weight: 800;
+  }
   .sms-row {
     display: grid;
     grid-template-columns: 220px 220px;
@@ -3356,31 +3360,141 @@ function formatAgentLabel(agentId?: number | null, agentName?: string | null) {
 
 function formatPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary) {
   const queueName = campaign.campaignName || `Queue ${campaign.queueId}`;
+  const completedLeads = getCompletedLeadsCount(campaign);
+  const availableLeads = getAvailableLeadsCount(campaign);
 
   if (!hasCalltraceCampaignSummary(campaign)) {
-    return [
-      queueName,
-      `Total Leads: ${campaign.totalLeads ?? 0}`,
-      "Updated campaign summary metrics are not available from the API yet",
-      `Called Today: ${campaign.calledToday ?? 0} (${campaign.calledYesterday ?? 0}) Connected Today: ${campaign.connectedToday ?? 0} (${campaign.connectedYesterday ?? 0})`,
-    ]
-      .filter(Boolean)
-      .join(" | ");
+    return formatCampaignSummarySegments([
+      { key: "queue", text: queueName },
+      { key: "total", text: `Total Leads: ${campaign.totalLeads ?? 0}`, highlight: true },
+      { key: "completed", text: `Completed: ${formatOptionalCampaignCount(completedLeads)}`, highlight: true },
+      { key: "not-dialled", text: `Not dialled: ${campaign.notDialled ?? 0}`, highlight: true },
+      { key: "available", text: `Available Leads: ${formatOptionalCampaignCount(availableLeads)}`, highlight: true },
+      { key: "missing", text: "Updated campaign summary metrics are not available from the API yet" },
+      {
+        key: "called",
+        text: `Called Today: ${campaign.calledToday ?? 0} (${campaign.calledYesterday ?? 0}) Connected Today: ${campaign.connectedToday ?? 0} (${campaign.connectedYesterday ?? 0})`,
+      },
+    ]);
   }
 
-  return [
-    queueName,
-    `Total Leads: ${campaign.totalLeads ?? 0}`,
-    `Not dialled: ${campaign.notDialled ?? 0}`,
-    `Dialled but No Agent: ${campaign.dialledButNoAgent ?? 0}`,
-    formatTopDiallerResults(campaign.topDiallerResults),
-    `DialledToAgent: ${campaign.dialledToAgent ?? 0}`,
-    formatTopCallCodes(campaign.topCallCodes),
-    `Called Today: ${campaign.calledToday ?? 0} (${campaign.calledYesterday ?? 0}) Connected Today: ${campaign.connectedToday ?? 0} (${campaign.connectedYesterday ?? 0})`,
-    formatDialledTimes(campaign),
-  ]
-    .filter(Boolean)
-    .join(" | ");
+  return formatCampaignSummarySegments([
+    { key: "queue", text: queueName },
+    { key: "total", text: `Total Leads: ${campaign.totalLeads ?? 0}`, highlight: true },
+    { key: "completed", text: `Completed: ${formatOptionalCampaignCount(completedLeads)}`, highlight: true },
+    { key: "not-dialled", text: `Not dialled: ${campaign.notDialled ?? 0}`, highlight: true },
+    { key: "available", text: `Available Leads: ${formatOptionalCampaignCount(availableLeads)}`, highlight: true },
+    { key: "no-agent", text: `Dialled but No Agent: ${campaign.dialledButNoAgent ?? 0}` },
+    { key: "dialler-results", text: formatTopDiallerResults(campaign.topDiallerResults) },
+    { key: "to-agent", text: `DialledToAgent: ${campaign.dialledToAgent ?? 0}` },
+    { key: "callcodes", text: formatTopCallCodes(campaign.topCallCodes) },
+    {
+      key: "called",
+      text: `Called Today: ${campaign.calledToday ?? 0} (${campaign.calledYesterday ?? 0}) Connected Today: ${campaign.connectedToday ?? 0} (${campaign.connectedYesterday ?? 0})`,
+    },
+    { key: "dialled-times", text: formatDialledTimes(campaign) },
+  ]);
+}
+
+function formatCampaignSummarySegments(
+  segments: Array<{ key: string; text?: string | null; highlight?: boolean }>,
+) {
+  const visibleSegments = segments.filter((segment) => segment.text);
+
+  return (
+    <span className="campaign-summary-line">
+      {visibleSegments.map((segment, index) => (
+        <span key={segment.key}>
+          {index > 0 ? " | " : ""}
+          <span
+            className={segment.highlight ? "campaign-summary-important" : undefined}
+            style={segment.highlight ? { color: "#b00020", fontWeight: 800 } : undefined}
+          >
+            {segment.text}
+          </span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function formatOptionalCampaignCount(value: number | null): string | number {
+  return value === null ? "n/a" : value;
+}
+
+function getCompletedLeadsCount(campaign: CrmPredictiveCampaignSummary): number | null {
+  const explicit = getCampaignNumber(campaign, [
+    "completed",
+    "completedLeads",
+    "completedLeadCount",
+    "completedCount",
+    "Completed",
+    "CompletedLeads",
+    "CompletedLeadCount",
+    "CompletedCount",
+  ]);
+  if (explicit !== null) {
+    return explicit;
+  }
+
+  const available = getAvailableLeadsCount(campaign, false);
+  const total = getCampaignNumber(campaign, ["totalLeads", "TotalLeads"]);
+  const notDialled = getCampaignNumber(campaign, ["notDialled", "NotDialled"]);
+  if (available !== null && total !== null && notDialled !== null) {
+    return Math.max(total - notDialled - available, 0);
+  }
+
+  return null;
+}
+
+function getAvailableLeadsCount(
+  campaign: CrmPredictiveCampaignSummary,
+  deriveFromCompleted = true,
+): number | null {
+  const explicit = getCampaignNumber(campaign, [
+    "available",
+    "availableLeads",
+    "availableLeadCount",
+    "availableCount",
+    "Available",
+    "AvailableLeads",
+    "AvailableLeadCount",
+    "AvailableCount",
+  ]);
+  if (explicit !== null) {
+    return explicit;
+  }
+
+  if (!deriveFromCompleted) {
+    return null;
+  }
+
+  const completed = getCompletedLeadsCount(campaign);
+  const total = getCampaignNumber(campaign, ["totalLeads", "TotalLeads"]);
+  const notDialled = getCampaignNumber(campaign, ["notDialled", "NotDialled"]);
+  if (completed !== null && total !== null && notDialled !== null) {
+    return Math.max(total - notDialled - completed, 0);
+  }
+
+  return null;
+}
+
+function getCampaignNumber(campaign: CrmPredictiveCampaignSummary, keys: string[]): number | null {
+  const row = campaign as Record<string, unknown>;
+
+  for (const key of keys) {
+    const value = row[key];
+    if (value === undefined || value === null || value === "") {
+      continue;
+    }
+
+    const number = typeof value === "number" ? value : Number(value);
+    if (Number.isFinite(number)) {
+      return number;
+    }
+  }
+
+  return null;
 }
 
 function hasCalltraceCampaignSummary(campaign: CrmPredictiveCampaignSummary) {

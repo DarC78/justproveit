@@ -194,6 +194,12 @@ export type CrmPredictiveCampaignSummary = {
   toBeDialledFivePlusTrials?: number;
   notDialled?: number;
   dialled?: number;
+  completed?: number;
+  completedLeads?: number;
+  completedLeadCount?: number;
+  available?: number;
+  availableLeads?: number;
+  availableLeadCount?: number;
   dialledButNoAgent?: number;
   dialledToAgent?: number;
   dialledZeroTimes?: number;
