@@ -172,21 +172,21 @@ export default function SaleConsultationPage() {
             <div className="relative mx-auto grid min-h-[640px] max-w-6xl items-center gap-8 px-4 py-12 lg:grid-cols-[minmax(0,1fr)_380px]">
               <div className="max-w-3xl">
                 <p className="text-sm font-bold uppercase tracking-[0.18em] text-emerald-200">
-                  Pensia internațională
+                  Află când poți accesa pensia internațională
                 </p>
                 <h1 className="mt-3 text-4xl font-extrabold leading-tight tracking-normal md:text-6xl">
                   Simulare pensionare internațională
                 </h1>
                 <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-100">
-                  Ai muncit în două sau mai multe țări? Află când poți ieși la pensie în fiecare țară,
-                  ce opțiuni ai și ce întrebări merită puse înainte să iei o decizie importantă.
+                  Ai muncit în două sau mai multe țări? Află când poți ieși la pensie în fiecare țară și exact
+                  procedura de urmat în fiecare țară! Nu fă greșeli care te pot costa pensia ta!
                 </p>
                 <div className="mt-7 grid gap-3 text-sm font-bold sm:grid-cols-3">
                   <span className="border-l-4 border-emerald-300 bg-white/10 px-4 py-3 backdrop-blur">
                     Consultație telefonică în română
                   </span>
                   <span className="border-l-4 border-sky-300 bg-white/10 px-4 py-3 backdrop-blur">
-                    Raport personalizat pe cazul tău
+                    Raport personalizat în cazul tău pe email
                   </span>
                   <span className="border-l-4 border-amber-300 bg-white/10 px-4 py-3 backdrop-blur">
                     Fără date bancare sau parole
@@ -199,11 +199,15 @@ export default function SaleConsultationPage() {
                 onSubmit={handleCheckout}
                 className="rounded-lg border border-white/30 bg-white p-5 text-slate-950 shadow-xl"
               >
-                <p className="text-sm font-bold text-emerald-700">Plată securizată prin Stripe</p>
-                <h2 className="mt-1 text-2xl font-extrabold tracking-normal">Simulare pensionare {DISPLAY_PRICE}</h2>
+                <p className="inline-flex rounded-md bg-slate-950 px-3 py-2 text-sm font-bold text-white">
+                  Plată securizată prin Stripe
+                </p>
+                <h2 className="mt-3 rounded-md bg-emerald-700 px-3 py-2 text-2xl font-extrabold tracking-normal text-white">
+                  Simulare pensionare {DISPLAY_PRICE}
+                </h2>
                 <p className="mt-2 text-sm leading-6 text-slate-700">
-                  Autorizați cardul în Stripe. Prima plată este {INITIAL_PAYMENT}, apoi două plăți lunare de{" "}
-                  {MONTHLY_PAYMENT}. Planul se oprește automat după a treia plată.
+                  Prima plată este {INITIAL_PAYMENT}. Doar dacă vă puteți pensiona mai devreme de doi ani, încă două
+                  plăți lunare de {MONTHLY_PAYMENT}! Dacă nu, nu mai plătiți nimic!
                 </p>
 
                 <label className="mt-4 block">
@@ -263,7 +267,7 @@ export default function SaleConsultationPage() {
                 <button
                   type="submit"
                   disabled={paymentStatus === "loading"}
-                  className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-md bg-red-600 px-5 text-sm font-extrabold uppercase tracking-normal text-white shadow-sm hover:bg-red-700 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-md bg-emerald-700 px-5 text-sm font-extrabold uppercase tracking-normal text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
                   {paymentStatus === "loading" ? "Se pregătește plata..." : `Simulare pensionare ${DISPLAY_PRICE}`}
                 </button>
@@ -294,14 +298,15 @@ export default function SaleConsultationPage() {
             <div>
               <SectionTitle eyebrow="Ce facem pentru tine" title="Primești claritate înainte să iei decizii despre pensie" />
               <div className="mt-6 grid gap-4 md:grid-cols-2">
-                <Feature title="Aflăm scenariile de pensionare">
+                <Feature title="Afli scenariile de pensionare">
                   Discutăm anii lucrați în fiecare țară și îți explicăm când te-ai putea pensiona în fiecare sistem.
                 </Feature>
                 <Feature title="Analizăm opțiunile tale">
                   Verificăm ce poate însemna pensionarea anticipată, pensionarea treptată și pensia din mai multe state.
                 </Feature>
                 <Feature title="Răspundem la întrebări">
-                  Ai o consultație telefonică fără limită strictă de timp, ca să poți întreba tot ce contează.
+                  Ai o consultație telefonică fără limită strictă de timp, ca să poți întreba tot ce contează. Și încă
+                  1-2 luni după îți răspundem la orice întrebare.
                 </Feature>
                 <Feature title="Nu cerem date sensibile">
                   Nu avem nevoie de NINO, pașaport, cont bancar sau parole. Tu controlezi toate datele personale.
@@ -311,12 +316,12 @@ export default function SaleConsultationPage() {
 
             <aside className="rounded-lg border border-slate-200 bg-slate-50 p-6">
               <h2 className="text-2xl font-extrabold tracking-normal">Cât costă?</h2>
-              <p className="mt-3 text-4xl font-extrabold text-red-600">{DISPLAY_PRICE}</p>
+              <p className="mt-3 text-4xl font-extrabold text-emerald-700">{DISPLAY_PRICE}</p>
               <p className="mt-3 text-sm leading-7 text-slate-700">
-                Plată în trei tranșe: {INITIAL_PAYMENT} astăzi, apoi {MONTHLY_PAYMENT} luna viitoare și{" "}
-                {MONTHLY_PAYMENT} în luna următoare. Abonamentul se anulează automat după finalizarea planului.
+                Prima plată este {INITIAL_PAYMENT}. Doar dacă vă puteți pensiona mai devreme de doi ani, încă două
+                plăți lunare de {MONTHLY_PAYMENT}. Dacă nu, nu mai plătiți nimic.
               </p>
-              <p className="mt-4 rounded-md border border-red-200 bg-white p-4 text-sm font-bold leading-7 text-red-700">
+              <p className="mt-4 rounded-md border border-emerald-200 bg-white p-4 text-sm font-bold leading-7 text-emerald-700">
                 Garanție: dacă nu vă puteți pensiona în următorii 2 ani, plătiți doar {INITIAL_PAYMENT}.
               </p>
               <a
@@ -335,7 +340,10 @@ export default function SaleConsultationPage() {
                 {[
                   ["4,2 ani", "În medie, românii care au muncit afară pot pierde ani de contribuții neclarificate."],
                   ["2+ pensii", "Cei care au muncit în mai multe țări pot avea drepturi în sisteme diferite."],
-                  ["Fără drumuri", "Consultația se face telefonic, fără birouri, cozi sau deplasări inutile."],
+                  [
+                    "Fără drumuri",
+                    "Consultația se face telefonic, fără birouri, cozi sau deplasări inutile. Mai mult, afli cum să îți depui dosarul de pensie fără să te deplasezi în România sau în altă țară.",
+                  ],
                 ].map(([title, text]) => (
                   <div key={title} className="rounded-lg border border-white/15 bg-white/10 p-5">
                     <p className="text-3xl font-extrabold text-emerald-200">{title}</p>
