@@ -202,9 +202,13 @@ export default function SaleConsultationPage() {
                 <p className="inline-flex rounded-md bg-slate-950 px-3 py-2 text-sm font-bold text-white">
                   Plată securizată prin Stripe
                 </p>
-                <h2 className="mt-3 rounded-md bg-emerald-700 px-3 py-2 text-2xl font-extrabold tracking-normal text-white">
-                  Simulare pensionare {DISPLAY_PRICE}
-                </h2>
+                <button
+                  type="submit"
+                  disabled={paymentStatus === "loading"}
+                  className="mt-3 inline-flex h-12 w-full items-center justify-center rounded-md bg-emerald-700 px-5 text-sm font-extrabold uppercase tracking-normal text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                >
+                  {paymentStatus === "loading" ? "Se pregătește plata..." : `Simulare pensionare ${DISPLAY_PRICE}`}
+                </button>
                 <p className="mt-2 text-sm leading-6 text-slate-700">
                   Prima plată este {INITIAL_PAYMENT}. Doar dacă vă puteți pensiona mai devreme de doi ani, încă două
                   plăți lunare de {MONTHLY_PAYMENT}! Dacă nu, nu mai plătiți nimic!
