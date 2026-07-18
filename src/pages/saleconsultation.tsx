@@ -121,9 +121,6 @@ export default function SaleConsultationPage() {
             <Link href="/" className="text-lg font-extrabold tracking-normal">
               Just<span className="text-emerald-700">ProveIt</span>
             </Link>
-            <Link href="/ro/calculator-varsta-pensionare" className="text-sm font-bold text-emerald-700 hover:underline">
-              Calculator pensie
-            </Link>
           </div>
         </header>
 
