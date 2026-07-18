@@ -1,6 +1,8 @@
 const STRIPE_API_BASE_URL = "https://api.stripe.com";
 const SERVICE_KEY = "saleconsultation";
-const SERVICE_NAME = "Simulare pensionare internationala";
+const SERVICE_NAME = "Simulare Pensie Internațională";
+const CHECKOUT_PRICE_DESCRIPTION = "£50 acum și 2 x £23.50 doar dacă vă puteți pensiona în următorii 2 ani";
+const CHECKOUT_CUSTOM_TEXT = `Ce cumpărați: ${SERVICE_NAME}. Cât costă: ${CHECKOUT_PRICE_DESCRIPTION}.`;
 const DISPLAY_PRICE_PENCE = 9700;
 const DEFAULT_INITIAL_TOP_UP_PENCE = 2650;
 const DEFAULT_MONTHLY_PRICE_PENCE = 2350;
@@ -58,8 +60,16 @@ async function createSaleConsultationSetupSession(context, req) {
       locale: "ro",
       success_url: `${siteUrl}/saleconsultation?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/saleconsultation?checkout=cancelled`,
+      custom_text: {
+        submit: {
+          message: CHECKOUT_CUSTOM_TEXT,
+        },
+      },
       metadata,
-      setup_intent_data: { metadata },
+      setup_intent_data: {
+        description: `${SERVICE_NAME} - ${CHECKOUT_PRICE_DESCRIPTION}`,
+        metadata,
+      },
     });
 
     context.res = json(200, {
