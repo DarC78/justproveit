@@ -2065,6 +2065,7 @@ function LeadIntentPanel({
   const [loading, setLoading] = useState(false);
   const [resultText, setResultText] = useState("");
   const [predictiveCampaignSummary, setPredictiveCampaignSummary] = useState<CrmPredictiveCampaignSummary[]>([]);
+  const [showCampaignDetails, setShowCampaignDetails] = useState(false);
   const [selectedLeadsTotal, setSelectedLeadsTotal] = useState(0);
   const [sortConfig, setSortConfig] = useState<LeadIntentSortConfig>({ column: "Created", direction: "desc" });
   const [intentOptions, setIntentOptions] = useState<string[]>([]);
@@ -2265,13 +2266,25 @@ function LeadIntentPanel({
             <br />
             {predictiveCampaignSummary.map((campaign) => (
               <span key={campaign.queueId ?? campaign.campaignName}>
-                {formatPredictiveCampaignSummary(campaign)}
+                {formatPredictiveCampaignSummary(campaign, showCampaignDetails)}
                 <br />
               </span>
             ))}
           </>
         ) : null}
       </p>
+      {predictiveCampaignSummary.length ? (
+        <div className="campaign-summary-actions">
+          <button
+            type="button"
+            className="orange small"
+            aria-expanded={showCampaignDetails}
+            onClick={() => setShowCampaignDetails((current) => !current)}
+          >
+            {showCampaignDetails ? "collapse campaigns details" : "expand campaigns details"}
+          </button>
+        </div>
+      ) : null}
       <p className="green-label">
         Total: {sortedRows.length}
         {intentCompositionSummary.length ? ` | ${intentCompositionSummary.join(" | ")}` : ""}
@@ -3208,6 +3221,9 @@ const panelStyles = `
     color: #b00020;
     font-weight: 800;
   }
+  .campaign-summary-actions {
+    margin: 0 0 12px;
+  }
   .sms-row {
     display: grid;
     grid-template-columns: 220px 220px;
@@ -3358,18 +3374,25 @@ function formatAgentLabel(agentId?: number | null, agentName?: string | null) {
   return agentName ? `${agentId} - ${agentName}` : String(agentId);
 }
 
-function formatPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary) {
+function formatPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary, showDetails: boolean) {
   const queueName = campaign.campaignName || `Queue ${campaign.queueId}`;
   const completedLeads = getCompletedLeadsCount(campaign);
   const availableLeads = getAvailableLeadsCount(campaign);
+  const compactSegments = [
+    { key: "queue", text: queueName },
+    { key: "total", text: `Total Leads: ${campaign.totalLeads ?? 0}`, highlight: true },
+    { key: "completed", text: `Completed: ${formatOptionalCampaignCount(completedLeads)}`, highlight: true },
+    { key: "not-dialled", text: `Not dialled: ${campaign.notDialled ?? 0}`, highlight: true },
+    { key: "available", text: `Available Leads: ${formatOptionalCampaignCount(availableLeads)}`, highlight: true },
+  ];
+
+  if (!showDetails) {
+    return formatCampaignSummarySegments(compactSegments);
+  }
 
   if (!hasCalltraceCampaignSummary(campaign)) {
     return formatCampaignSummarySegments([
-      { key: "queue", text: queueName },
-      { key: "total", text: `Total Leads: ${campaign.totalLeads ?? 0}`, highlight: true },
-      { key: "completed", text: `Completed: ${formatOptionalCampaignCount(completedLeads)}`, highlight: true },
-      { key: "not-dialled", text: `Not dialled: ${campaign.notDialled ?? 0}`, highlight: true },
-      { key: "available", text: `Available Leads: ${formatOptionalCampaignCount(availableLeads)}`, highlight: true },
+      ...compactSegments,
       { key: "missing", text: "Updated campaign summary metrics are not available from the API yet" },
       {
         key: "called",
@@ -3379,11 +3402,7 @@ function formatPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary)
   }
 
   return formatCampaignSummarySegments([
-    { key: "queue", text: queueName },
-    { key: "total", text: `Total Leads: ${campaign.totalLeads ?? 0}`, highlight: true },
-    { key: "completed", text: `Completed: ${formatOptionalCampaignCount(completedLeads)}`, highlight: true },
-    { key: "not-dialled", text: `Not dialled: ${campaign.notDialled ?? 0}`, highlight: true },
-    { key: "available", text: `Available Leads: ${formatOptionalCampaignCount(availableLeads)}`, highlight: true },
+    ...compactSegments,
     { key: "no-agent", text: `Dialled but No Agent: ${campaign.dialledButNoAgent ?? 0}` },
     { key: "dialler-results", text: formatTopDiallerResults(campaign.topDiallerResults) },
     { key: "to-agent", text: `DialledToAgent: ${campaign.dialledToAgent ?? 0}` },
