@@ -329,20 +329,12 @@ export default function SaleConsultationPage() {
         </main>
 
         <footer className="border-t border-slate-200 bg-white">
-          <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 text-sm text-slate-700 md:grid-cols-3">
+          <div className="mx-auto grid max-w-6xl gap-6 px-4 py-8 text-sm text-slate-700 md:grid-cols-2">
             <div>
               <strong className="text-lg text-slate-950">
                 Just<span className="text-emerald-700">ProveIt</span>
               </strong>
               <p className="mt-2">Ajutăm comunitatea să înțeleagă drepturile și opțiunile disponibile.</p>
-            </div>
-            <div>
-              <strong className="text-slate-950">Link-uri utile</strong>
-              <p className="mt-2">
-                <Link href="/ro/calculator-varsta-pensionare" className="hover:underline">
-                  Calculator vârstă pensionare
-                </Link>
-              </p>
             </div>
             <div>
               <strong className="text-slate-950">Contact</strong>
