@@ -38,7 +38,6 @@ async function createSaleConsultationSetupSession(context, req) {
       customer_creation: "always",
       customer_email: email,
       payment_method_types: ["card"],
-      phone_number_collection: { enabled: true },
       locale: "ro",
       success_url: `${siteUrl}/saleconsultation?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${siteUrl}/saleconsultation?checkout=cancelled`,
