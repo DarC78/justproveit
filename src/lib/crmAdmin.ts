@@ -36,6 +36,8 @@ export type CrmLead = {
   emailLeads?: string | null;
   emailAsap?: string | null;
   addToDialler?: number | null;
+  createdAtUtc?: string | null;
+  updatedAtUtc?: string | null;
   canonical?: {
     contactId?: string | null;
     emailCount?: number;
@@ -61,7 +63,9 @@ export type CrmContactPhone = {
 
 export type CrmActivity = {
   timestamp?: string | null;
+  action?: string | null;
   state?: string | null;
+  agent?: string | null;
   param1?: string | null;
   param2?: string | null;
   param3?: string | null;
@@ -151,6 +155,8 @@ export type CrmLeadIntentServiceOption = {
 export type CrmLeadIntentRow = {
   interestId?: string | null;
   leadId?: string | null;
+  contactId?: string | null;
+  canonicalContactId?: string | null;
   serviceId?: string | null;
   serviceKey?: string | null;
   serviceDisplayName?: string | null;
@@ -310,6 +316,8 @@ export type CrmEmailSequencePayload = {
   sequence: string;
   cmcDomain?: string;
   cmcName?: string;
+  intentId?: string;
+  serviceKey?: string;
   agent?: string;
 };
 
@@ -487,7 +495,7 @@ export function addCrmLeadPhone(token: string, id: string, payload: { phone: str
 export function queueCrmSmsSequence(
   token: string,
   id: string,
-  payload: { type: "buy" | "skeptic"; agent?: string },
+  payload: { type: "buy" | "skeptic"; intentId?: string; serviceKey?: string; agent?: string },
 ) {
   return fetchJson<{ success: boolean; queued: number; lead: CrmLead }>(
     `${BASE_PATH}/leads/${encodeURIComponent(id)}/sms-sequence`,
@@ -519,9 +527,13 @@ export function listCrmMissedCalls(token: string, limit = 10) {
   );
 }
 
-export function searchCrmActivity(token: string, email: string) {
+export function searchCrmActivity(
+  token: string,
+  params: { contactId?: string | null; email?: string | null; phone?: string | null; limit?: number } | string,
+) {
+  const query = typeof params === "string" ? { email: params } : params;
   return fetchJson<{ activities?: CrmActivity[]; items?: CrmActivity[] }>(
-    `${BASE_PATH}/activity${buildQuery({ email })}`,
+    `${BASE_PATH}/activity${buildQuery(query)}`,
     {
       headers: authHeaders(token),
     },

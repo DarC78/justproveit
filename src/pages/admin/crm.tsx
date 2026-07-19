@@ -99,6 +99,7 @@ const EMAIL_SEQUENCE_OPTIONS = [
   { label: "CF_DEMARAT_CMC", value: "CF_DEMARAT_CMC" },
   { label: "VREA_OUT_CMC", value: "VREA_OUT_CMC" },
 ];
+const DEFAULT_EMAIL_SEQUENCE_OPTIONS = [{ label: "Test email", value: "Test email" }];
 
 const CMC_COMPANIES = [
   { name: "ADG Law", domain: "adglaw.co.uk" },
@@ -454,20 +455,21 @@ function mergeAgentOptions(
   return [{ agentId: currentValue, agentName: null }, ...unique];
 }
 
-function isInternationalPensionsIntent(row?: CrmLeadIntentRow | null) {
+function isCarFinanceIntent(row?: CrmLeadIntentRow | null) {
   const serviceText = `${row?.serviceKey || ""} ${row?.serviceDisplayName || ""}`
     .toLowerCase()
     .replace(/[_-]+/g, " ");
-  return (
-    serviceText.includes("simulator pensie") ||
-    serviceText.includes("simulatorpensie") ||
-    serviceText.includes("pensii") ||
-    serviceText.includes("pensie") ||
-    serviceText.includes("pension")
-  );
+  return serviceText.includes("car finance") || serviceText.includes("carfinance");
 }
 
-async function findLatestCrmLeadIntentByPhone(token: string, phone: string) {
+function isEmailLookupValue(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+async function findLatestCrmLeadIntent(
+  token: string,
+  lookup: { phone?: string | null; email?: string | null },
+) {
   const baseParams = {
     createdLastDays: 3650,
     statusBucket: "both",
@@ -475,7 +477,8 @@ async function findLatestCrmLeadIntentByPhone(token: string, phone: string) {
     intent: "all",
     service: "all",
     language: "all",
-    phone,
+    phone: lookup.phone || undefined,
+    email: lookup.email || undefined,
     lastCallAgentId: "all",
     limit: 20,
   };
@@ -491,6 +494,10 @@ async function findLatestCrmLeadIntentByPhone(token: string, phone: string) {
   ];
 
   return rows.sort((first, second) => getDateTimeValue(second.createdAtUtc) - getDateTimeValue(first.createdAtUtc))[0] || null;
+}
+
+async function findLatestCrmLeadIntentByPhone(token: string, phone: string) {
+  return findLatestCrmLeadIntent(token, { phone });
 }
 
 export default function AdminCrmPage() {
@@ -619,18 +626,19 @@ export default function AdminCrmPage() {
 
   async function handleLeadSelected(lead: CrmLead) {
     const phone = String(lead.phoneNumber || lead.normalizedPhone || "").trim();
+    const email = String(lead.email || "").trim();
     setSelectedLead(lead);
     setSelectedIntent(null);
     detailsTabButtonRef.current?.click();
 
-    if (!token || !phone) {
+    if (!token || (!phone && !email)) {
       setStatusMessage("Lead incarcat.");
       setErrorMessage("");
       return;
     }
 
     try {
-      const latestIntent = await findLatestCrmLeadIntentByPhone(token, phone);
+      const latestIntent = await findLatestCrmLeadIntent(token, phone ? { phone } : { email });
       if (latestIntent?.lead) {
         setSelectedLead(latestIntent.lead);
         setSelectedIntent(latestIntent);
@@ -699,19 +707,16 @@ export default function AdminCrmPage() {
 
             <div ref={tabContentRef}>
               {activeTab === "details" ? (
-                selectedIntent && isInternationalPensionsIntent(selectedIntent) ? (
-                  <InternationalPensionsDetailsPanel lead={selectedLead} intent={selectedIntent} />
-                ) : (
-                  <LeadDetailsPanel
-                    token={token}
-                    agentName={agentName}
-                    lead={selectedLead}
-                    onLeadChange={setSelectedLead}
-                    onIntentChange={setSelectedIntent}
-                    onStatus={setStatusMessage}
-                    onError={setErrorMessage}
-                  />
-                )
+                <LeadDetailsPanel
+                  token={token}
+                  agentName={agentName}
+                  lead={selectedLead}
+                  selectedIntent={selectedIntent}
+                  onLeadChange={setSelectedLead}
+                  onIntentChange={setSelectedIntent}
+                  onStatus={setStatusMessage}
+                  onError={setErrorMessage}
+                />
               ) : null}
 
               {activeTab === "new" ? (
@@ -960,6 +965,7 @@ function LeadDetailsPanel({
   token,
   agentName,
   lead,
+  selectedIntent,
   onLeadChange,
   onIntentChange,
   onStatus,
@@ -968,12 +974,14 @@ function LeadDetailsPanel({
   token: string;
   agentName: string;
   lead: CrmLead;
+  selectedIntent: CrmLeadIntentRow | null;
   onLeadChange: (lead: CrmLead) => void;
   onIntentChange: (intent: CrmLeadIntentRow | null) => void;
   onStatus: (message: string) => void;
   onError: (message: string) => void;
 }) {
   const [draft, setDraft] = useState<CrmLead>(lead);
+  const [lookupValue, setLookupValue] = useState("");
   const [newObservation, setNewObservation] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPhone, setNewPhone] = useState("");
@@ -983,43 +991,57 @@ function LeadDetailsPanel({
   const [emailSequenceBusy, setEmailSequenceBusy] = useState(false);
   const [selectedSequence, setSelectedSequence] = useState("");
   const [selectedCmcDomain, setSelectedCmcDomain] = useState("");
-  const [nextContactTime, setNextContactTime] = useState("");
-  const [activityEmail, setActivityEmail] = useState("");
+  const [lastContactDate, setLastContactDate] = useState("");
+  const [lastContactTime, setLastContactTime] = useState("");
+  const [activityLookup, setActivityLookup] = useState("");
   const [activityRows, setActivityRows] = useState<CrmActivity[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const isCarFinance = isCarFinanceIntent(selectedIntent);
+  const emailSequenceOptions = isCarFinance ? EMAIL_SEQUENCE_OPTIONS : DEFAULT_EMAIL_SEQUENCE_OPTIONS;
+  const lastContactValue = getLeadLastContactValue(lead, selectedIntent);
 
   useEffect(() => {
     setDraft(lead);
+    setLookupValue(getLeadLookupValue(lead));
     setNewObservation("");
     setNewEmail("");
     setNewPhone("");
     setSelectedSequence("");
     setSelectedCmcDomain("");
-    setNextContactTime(toInputTime(lead.dataUrmatorContact));
-    setActivityEmail(lead.email || "");
+    setLastContactDate(toInputDate(lastContactValue));
+    setLastContactTime(toInputTime(lastContactValue));
+    setActivityLookup(getLeadLookupValue(lead));
     setActivityRows([]);
-  }, [lead]);
+    void loadLeadHistory(lead, { silent: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead, selectedIntent]);
 
-  async function handlePhoneLookup() {
-    if (!token || !draft.phoneNumber) {
+  async function handleLeadLookup() {
+    const lookup = lookupValue.trim();
+    if (!token || !lookup) {
       return;
     }
 
     try {
-      const [result, latestIntent] = await Promise.all([
-        findCrmLeadByPhone(token, draft.phoneNumber),
-        findLatestCrmLeadIntentByPhone(token, draft.phoneNumber).catch(() => null),
+      const isEmailLookup = isEmailLookupValue(lookup);
+      const [leadResult, latestIntent] = await Promise.all([
+        isEmailLookup
+          ? listCrmLeads(token, { email: lookup, status: "all", limit: 1 })
+          : findCrmLeadByPhone(token, lookup),
+        findLatestCrmLeadIntent(token, isEmailLookup ? { email: lookup } : { phone: lookup }).catch(() => null),
       ]);
-      const foundLead = latestIntent?.lead || result.lead;
+      const foundLead =
+        latestIntent?.lead ||
+        ("leads" in leadResult ? leadResult.leads?.[0] : leadResult.lead);
       if (foundLead) {
         setDraft(foundLead);
         onLeadChange(foundLead);
         onIntentChange(latestIntent);
-        onStatus("Lead gasit dupa telefon.");
+        onStatus(isEmailLookup ? "Lead gasit dupa email." : "Lead gasit dupa telefon.");
         onError("");
       } else {
         onStatus("");
-        onError("Nu am gasit lead dupa telefon.");
+        onError(isEmailLookup ? "Nu am gasit lead dupa email." : "Nu am gasit lead dupa telefon.");
       }
     } catch (error) {
       onError(error instanceof Error ? error.message : "Nu am putut cauta lead-ul.");
@@ -1043,7 +1065,7 @@ function LeadDetailsPanel({
         language: draft.language || "",
         year: draft.year || "",
         nrInmatriculare: draft.nrInmatriculare || "",
-        dataUrmatorContact: buildDateTimeValue(draft.dataUrmatorContact, nextContactTime),
+        dataUrmatorContact: buildDateTimeValue(lastContactDate, lastContactTime),
         email: payloadEmail,
         agent: agentName,
       });
@@ -1108,6 +1130,11 @@ function LeadDetailsPanel({
   }
 
   async function handleSmsSequence(type: "buy" | "skeptic") {
+    if (!isCarFinance) {
+      onError("No SMS configured for this lead intent.");
+      return;
+    }
+
     const id = draft.id || draft.wixId || draft._id;
     if (!id) {
       onError("Selecteaza sau cauta un lead inainte de SMS.");
@@ -1118,10 +1145,13 @@ function LeadDetailsPanel({
     try {
       const result = await queueCrmSmsSequence(token, id, {
         type,
+        intentId: selectedIntent?.interestId || undefined,
+        serviceKey: selectedIntent?.serviceKey || undefined,
         agent: agentName,
       });
-      setDraft(result.lead);
-      onLeadChange(result.lead);
+      const updatedLead = { ...draft, ...result.lead };
+      setDraft(updatedLead);
+      onLeadChange(updatedLead);
       onStatus(`SMS ${type === "buy" ? "CUMPARA" : "SCEPTIC"} adaugat pe secventa.`);
       onError("");
     } catch (error) {
@@ -1156,10 +1186,13 @@ function LeadDetailsPanel({
         sequence: selectedSequence,
         cmcDomain: selectedCmcDomain || undefined,
         cmcName: selectedCmc?.name,
+        intentId: selectedIntent?.interestId || undefined,
+        serviceKey: selectedIntent?.serviceKey || undefined,
         agent: agentName,
       });
-      setDraft(result.lead);
-      onLeadChange(result.lead);
+      const updatedLead = { ...draft, ...result.lead };
+      setDraft(updatedLead);
+      onLeadChange(updatedLead);
       onStatus(result.message || "Clientul a fost pus pe secventa de email.");
       onError("");
     } catch (error) {
@@ -1169,24 +1202,37 @@ function LeadDetailsPanel({
     }
   }
 
-  async function handleActivitySearch() {
-    const email = activityEmail.trim();
-    if (!email) {
-      onError("Introdu emailul pentru activitate.");
+  async function loadLeadHistory(
+    leadForHistory: CrmLead = draft,
+    options: { lookup?: string; silent?: boolean } = {},
+  ) {
+    const params = buildLeadHistoryParams(leadForHistory, selectedIntent, options.lookup);
+    if (!params.contactId && !params.email && !params.phone) {
+      if (!options.silent) {
+        onError("Introdu telefonul sau emailul pentru istoric.");
+      }
       return;
     }
 
     setActivityLoading(true);
     try {
-      const result = await searchCrmActivity(token, email);
+      const result = await searchCrmActivity(token, params);
       setActivityRows(result.activities || result.items || []);
-      onStatus("Activitatea a fost incarcata.");
-      onError("");
+      if (!options.silent) {
+        onStatus("Istoricul a fost incarcat.");
+        onError("");
+      }
     } catch (error) {
-      onError(error instanceof Error ? error.message : "Nu am putut cauta activitatea.");
+      if (!options.silent) {
+        onError(error instanceof Error ? error.message : "Nu am putut cauta istoricul.");
+      }
     } finally {
       setActivityLoading(false);
     }
+  }
+
+  async function handleActivitySearch() {
+    await loadLeadHistory(draft, { lookup: activityLookup.trim() });
   }
 
   const financeOptions = mergeCurrentOption(FINANCE_COMPANIES, draft.financeCompany);
@@ -1198,11 +1244,11 @@ function LeadDetailsPanel({
     <CrmCard title="Detalii client" className="details-card">
       <div className="lookup-row">
         <input
-          value={draft.phoneNumber ?? ""}
-          onChange={(event) => setDraft({ ...draft, phoneNumber: event.target.value })}
-          placeholder="Cauta dupa telefon..."
+          value={lookupValue}
+          onChange={(event) => setLookupValue(event.target.value)}
+          placeholder="Cauta dupa telefon sau email..."
         />
-        <button type="button" className="orange small" onClick={handlePhoneLookup}>
+        <button type="button" className="orange small" onClick={handleLeadLookup}>
           Cauta Lead
         </button>
       </div>
@@ -1247,60 +1293,64 @@ function LeadDetailsPanel({
 
       <hr />
 
-      <div className="form-grid three">
-        <label>
-          Numar inmatriculare
-          <input
-            value={draft.nrInmatriculare ?? ""}
-            onChange={(event) => setDraft({ ...draft, nrInmatriculare: event.target.value })}
-          />
-        </label>
-        <label>
-          Anul achizitiei
-          <input
-            value={draft.year ?? ""}
-            onChange={(event) => setDraft({ ...draft, year: event.target.value })}
-          />
-        </label>
-        <label>
-          Firma finantare
-          <select
-            value={draft.financeCompany ?? ""}
-            onChange={(event) => setDraft({ ...draft, financeCompany: event.target.value })}
-          >
-            <option value="">Firma de finantare</option>
-            {financeOptions.map((company) => (
-              <option key={company}>{company}</option>
-            ))}
-          </select>
-        </label>
-      </div>
+      {isCarFinance ? (
+        <>
+          <div className="form-grid three">
+            <label>
+              Numar inmatriculare
+              <input
+                value={draft.nrInmatriculare ?? ""}
+                onChange={(event) => setDraft({ ...draft, nrInmatriculare: event.target.value })}
+              />
+            </label>
+            <label>
+              Anul achizitiei
+              <input
+                value={draft.year ?? ""}
+                onChange={(event) => setDraft({ ...draft, year: event.target.value })}
+              />
+            </label>
+            <label>
+              Firma finantare
+              <select
+                value={draft.financeCompany ?? ""}
+                onChange={(event) => setDraft({ ...draft, financeCompany: event.target.value })}
+              >
+                <option value="">Firma de finantare</option>
+                {financeOptions.map((company) => (
+                  <option key={company}>{company}</option>
+                ))}
+              </select>
+            </label>
+          </div>
 
-      <div className="inline-fields">
-        <label>
-          Limba
-          <select
-            value={draft.language ?? ""}
-            onChange={(event) => setDraft({ ...draft, language: event.target.value })}
-          >
-            <option value="">Language</option>
-            {languageOptions.map((language) => (
-              <option key={language}>{language}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Adauga email nou
-          <input
-            value={newEmail}
-            onChange={(event) => setNewEmail(event.target.value)}
-            placeholder="Adauga email nou"
-          />
-        </label>
-        <button type="button" className="orange small" onClick={handleAddEmail} disabled={saving}>
-          Adauga Email
-        </button>
-      </div>
+          <div className="inline-fields">
+            <label>
+              Limba
+              <select
+                value={draft.language ?? ""}
+                onChange={(event) => setDraft({ ...draft, language: event.target.value })}
+              >
+                <option value="">Language</option>
+                {languageOptions.map((language) => (
+                  <option key={language}>{language}</option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Adauga email nou
+              <input
+                value={newEmail}
+                onChange={(event) => setNewEmail(event.target.value)}
+                placeholder="Adauga email nou"
+              />
+            </label>
+            <button type="button" className="orange small" onClick={handleAddEmail} disabled={saving}>
+              Adauga Email
+            </button>
+          </div>
+        </>
+      ) : null}
 
       <label className="wide-label">
         Observatii curente:
@@ -1331,7 +1381,7 @@ function LeadDetailsPanel({
           }}
         >
           <option value="">Secventa de email</option>
-          {EMAIL_SEQUENCE_OPTIONS.map((option) => (
+          {emailSequenceOptions.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>
@@ -1370,7 +1420,7 @@ function LeadDetailsPanel({
           type="button"
           className="green"
           onClick={() => handleSmsSequence("buy")}
-          disabled={Boolean(smsBusy)}
+          disabled={!isCarFinance || Boolean(smsBusy)}
         >
           {smsBusy === "buy" ? "Se adauga..." : "SMS - CUMPARA"}
         </button>
@@ -1378,16 +1428,17 @@ function LeadDetailsPanel({
           type="button"
           className="blue"
           onClick={() => handleSmsSequence("skeptic")}
-          disabled={Boolean(smsBusy)}
+          disabled={!isCarFinance || Boolean(smsBusy)}
         >
           {smsBusy === "skeptic" ? "Se adauga..." : "SMS - SCEPTIC"}
         </button>
+        {!isCarFinance ? <span className="sms-warning">no SMS configured</span> : null}
       </div>
 
       <p className="green-label">Rezultat actiune:</p>
       <div className="finish-row">
         <label>
-          Status:
+          Last Status:
           <select
             value={draft.statusOriginal ?? ""}
             onChange={(event) => setDraft({ ...draft, statusOriginal: event.target.value })}
@@ -1399,16 +1450,16 @@ function LeadDetailsPanel({
           </select>
         </label>
         <label>
-          Data urmator contact
+          Data ultimului Contact
           <input
             type="date"
-            value={toInputDate(draft.dataUrmatorContact)}
-            onChange={(event) => setDraft({ ...draft, dataUrmatorContact: event.target.value })}
+            value={lastContactDate}
+            onChange={(event) => setLastContactDate(event.target.value)}
           />
         </label>
         <label>
-          Choose a time
-          <input type="time" value={nextContactTime} onChange={(event) => setNextContactTime(event.target.value)} />
+          Time
+          <input type="time" value={lastContactTime} onChange={(event) => setLastContactTime(event.target.value)} />
         </label>
         <button type="button" className="orange small" onClick={handleSave}>
           Termina Cazul
@@ -1419,18 +1470,19 @@ function LeadDetailsPanel({
 
       <div className="activity-search">
         <label>
-          Cauta activitate dupa email
-          <input value={activityEmail} onChange={(event) => setActivityEmail(event.target.value)} />
+          Cauta istoric dupa telefon sau email
+          <input value={activityLookup} onChange={(event) => setActivityLookup(event.target.value)} />
         </label>
         <button type="button" className="orange small" onClick={handleActivitySearch} disabled={activityLoading}>
-          {activityLoading ? "Caut..." : "Cauta activitate"}
+          {activityLoading ? "Caut..." : "Cauta istoric"}
         </button>
       </div>
       <DataTable
-        columns={["Timestamp", "State", "Param1", "Param2", "Param3", "Param4", "Param5"]}
+        columns={["timestamp", "Action", "Agent", "Param1", "Param2", "Param3", "Param4", "Param5"]}
         rows={activityRows.map((item) => [
-          item.timestamp,
-          item.state,
+          formatDateTime(item.timestamp),
+          item.action || item.state,
+          item.agent,
           item.param1,
           item.param2,
           item.param3,
@@ -1444,82 +1496,6 @@ function LeadDetailsPanel({
       <style jsx>{panelStyles}</style>
     </CrmCard>
   );
-}
-
-function InternationalPensionsDetailsPanel({
-  lead,
-  intent,
-}: {
-  lead: CrmLead;
-  intent: CrmLeadIntentRow;
-}) {
-  const calculatorUrl = buildPensionCalculatorUrl(lead);
-
-  return (
-    <CrmCard title="Detalii Pensii Internationale" className="details-card">
-      <div className="detail-grid">
-        <LabelValue label="Nume:" value={lead.fullName} />
-        <LabelValue label="Telefon:" value={lead.phoneNumber} />
-        <LabelValue label="Email:" value={lead.email} />
-        <LabelValue label="Status:" value={lead.statusOriginal} />
-        <LabelValue label="Intent:" value={intent.interestType} />
-        <LabelValue label="Service:" value={intent.serviceDisplayName || intent.serviceKey} />
-        <LabelValue label="Limba:" value={formatLanguage(intent.language || lead.language)} />
-        <LabelValue label="Sursa:" value={intent.source} />
-      </div>
-
-      <div className="calculator-frame-wrap">
-        <iframe
-          title="Calculator varsta pensionare"
-          src={calculatorUrl}
-          className="calculator-frame"
-        />
-      </div>
-
-      <style jsx>{panelStyles}</style>
-      <style jsx>{`
-        .calculator-frame-wrap {
-          margin-top: 24px;
-          border: 4px solid #0c389d;
-          height: min(980px, calc(100vh - 240px));
-          min-height: 680px;
-          overflow: hidden;
-          background: #fff;
-        }
-
-        .calculator-frame {
-          width: 100%;
-          height: 100%;
-          border: 0;
-          display: block;
-        }
-      `}</style>
-    </CrmCard>
-  );
-}
-
-function buildPensionCalculatorUrl(lead: CrmLead) {
-  const params = new URLSearchParams();
-  const fullName = lead.fullName?.trim();
-  const email = lead.email?.trim();
-  const phone = lead.phoneNumber?.trim();
-
-  if (fullName) {
-    params.set("fullName", fullName);
-    params.set("nume", fullName);
-  }
-
-  if (email) {
-    params.set("email", email);
-  }
-
-  if (phone) {
-    params.set("phone", phone);
-    params.set("telefon", phone);
-  }
-
-  const query = params.toString();
-  return `/ro/calculator-varsta-pensionare${query ? `?${query}` : ""}`;
 }
 
 function NewLeadPanel({
@@ -3226,9 +3202,15 @@ const panelStyles = `
   }
   .sms-row {
     display: grid;
-    grid-template-columns: 220px 220px;
+    grid-template-columns: 220px 220px minmax(140px, 1fr);
     justify-content: space-between;
+    align-items: center;
     gap: 20px;
+  }
+  .sms-warning {
+    color: #b00020;
+    font-size: 13px;
+    font-weight: 800;
   }
   .green,
   .blue {
@@ -3587,6 +3569,84 @@ function formatDialledTimes(campaign: CrmPredictiveCampaignSummary) {
     `9 times: ${campaign.dialledNineTimes ?? 0}`,
     `10+ times: ${campaign.dialledTenPlusTimes ?? 0}`,
   ].join(" / ");
+}
+
+function getLeadContactId(lead?: CrmLead | null, intent?: CrmLeadIntentRow | null) {
+  return String(
+    intent?.contactId ||
+      intent?.canonicalContactId ||
+      intent?.leadId ||
+      lead?.contactId ||
+      lead?.canonicalContactId ||
+      lead?.canonical?.contactId ||
+      lead?.id ||
+      "",
+  ).trim();
+}
+
+function getLeadPhoneValue(lead?: CrmLead | null) {
+  return String(lead?.phoneNumber || lead?.normalizedPhone || "").trim();
+}
+
+function getLeadEmailValue(lead?: CrmLead | null) {
+  return String(lead?.email || "").trim();
+}
+
+function getLeadLookupValue(lead?: CrmLead | null) {
+  return getLeadPhoneValue(lead) || getLeadEmailValue(lead);
+}
+
+function getLeadLastContactValue(lead?: CrmLead | null, intent?: CrmLeadIntentRow | null) {
+  return (
+    intent?.lastCallTimeUtc ||
+    intent?.contactTimeUtc ||
+    lead?.dataUrmatorContact ||
+    lead?.updatedAtUtc ||
+    lead?.leadDate ||
+    null
+  );
+}
+
+function buildLeadHistoryParams(
+  lead: CrmLead,
+  intent?: CrmLeadIntentRow | null,
+  lookupOverride?: string,
+) {
+  const lookup = String(lookupOverride || "").trim();
+  const contactId = getLeadContactId(lead, intent);
+  const defaultPhone = getLeadPhoneValue(lead);
+  const defaultEmail = getLeadEmailValue(lead);
+  const params: { contactId?: string; phone?: string; email?: string; limit: number } = {
+    limit: 500,
+  };
+
+  if (contactId) {
+    params.contactId = contactId;
+  }
+
+  if (lookup) {
+    if (isEmailLookupValue(lookup)) {
+      params.email = lookup;
+      if (defaultPhone) {
+        params.phone = defaultPhone;
+      }
+    } else {
+      params.phone = lookup;
+      if (defaultEmail) {
+        params.email = defaultEmail;
+      }
+    }
+    return params;
+  }
+
+  if (defaultPhone) {
+    params.phone = defaultPhone;
+  }
+  if (defaultEmail) {
+    params.email = defaultEmail;
+  }
+
+  return params;
 }
 
 function toInputDate(value?: string | null) {
