@@ -466,6 +466,14 @@ function isEmailLookupValue(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
 
+function normalizeLookupEmail(value?: string | null) {
+  return String(value || "").trim().toLowerCase();
+}
+
+function normalizeLookupPhone(value?: string | null) {
+  return String(value || "").replace(/\D/g, "");
+}
+
 async function findLatestCrmLeadIntent(
   token: string,
   lookup: { phone?: string | null; email?: string | null },
@@ -3588,12 +3596,71 @@ function getLeadPhoneValue(lead?: CrmLead | null) {
   return String(lead?.phoneNumber || lead?.normalizedPhone || "").trim();
 }
 
+function getLeadPhoneValues(lead?: CrmLead | null) {
+  const phones = new Set<string>();
+  [lead?.phoneNumber, lead?.normalizedPhone].forEach((value) => {
+    const phone = String(value || "").trim();
+    if (phone) {
+      phones.add(phone);
+    }
+  });
+  (lead?.phones || []).forEach((phone) => {
+    [phone.phone, phone.normalizedPhone].forEach((value) => {
+      const text = String(value || "").trim();
+      if (text) {
+        phones.add(text);
+      }
+    });
+  });
+  return Array.from(phones);
+}
+
 function getLeadEmailValue(lead?: CrmLead | null) {
   return String(lead?.email || "").trim();
 }
 
+function getLeadEmailValues(lead?: CrmLead | null) {
+  const emails = new Set<string>();
+  [lead?.email, lead?.secondaryemail, lead?.emailLeads, lead?.emailAsap].forEach((value) => {
+    String(value || "")
+      .split(/[;,]/)
+      .map((item) => normalizeLookupEmail(item))
+      .filter(isEmailLookupValue)
+      .forEach((email) => emails.add(email));
+  });
+  return Array.from(emails);
+}
+
 function getLeadLookupValue(lead?: CrmLead | null) {
   return getLeadPhoneValue(lead) || getLeadEmailValue(lead);
+}
+
+function lookupMatchesLead(lookup: string, lead?: CrmLead | null) {
+  if (!lookup || !lead) {
+    return false;
+  }
+
+  if (isEmailLookupValue(lookup)) {
+    const lookupEmail = normalizeLookupEmail(lookup);
+    return getLeadEmailValues(lead).some((email) => email === lookupEmail);
+  }
+
+  const lookupPhone = normalizeLookupPhone(lookup);
+  if (!lookupPhone) {
+    return false;
+  }
+
+  return getLeadPhoneValues(lead).some((phone) => {
+    const leadPhone = normalizeLookupPhone(phone);
+    if (!leadPhone) {
+      return false;
+    }
+    return leadPhone === lookupPhone || (
+      leadPhone.length >= 6 &&
+      lookupPhone.length >= 6 &&
+      leadPhone.slice(-6) === lookupPhone.slice(-6)
+    );
+  });
 }
 
 function getLeadLastContactValue(lead?: CrmLead | null, intent?: CrmLeadIntentRow | null) {
@@ -3620,23 +3687,28 @@ function buildLeadHistoryParams(
     limit: 500,
   };
 
-  if (contactId) {
-    params.contactId = contactId;
-  }
-
   if (lookup) {
+    const lookupBelongsToSelectedLead = lookupMatchesLead(lookup, lead);
+    if (lookupBelongsToSelectedLead && contactId) {
+      params.contactId = contactId;
+    }
+
     if (isEmailLookupValue(lookup)) {
       params.email = lookup;
-      if (defaultPhone) {
+      if (lookupBelongsToSelectedLead && defaultPhone) {
         params.phone = defaultPhone;
       }
     } else {
       params.phone = lookup;
-      if (defaultEmail) {
+      if (lookupBelongsToSelectedLead && defaultEmail) {
         params.email = defaultEmail;
       }
     }
     return params;
+  }
+
+  if (contactId) {
+    params.contactId = contactId;
   }
 
   if (defaultPhone) {

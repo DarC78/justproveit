@@ -532,7 +532,7 @@ export function searchCrmActivity(
   params: { contactId?: string | null; email?: string | null; phone?: string | null; limit?: number } | string,
 ) {
   const query = typeof params === "string" ? { email: params } : params;
-  return fetchJson<{ activities?: CrmActivity[]; items?: CrmActivity[] }>(
+  return fetchCanonicalCrmReadJson<{ activities?: CrmActivity[]; items?: CrmActivity[] }>(
     `${BASE_PATH}/activity${buildQuery(query)}`,
     {
       headers: authHeaders(token),
