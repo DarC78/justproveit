@@ -55,6 +55,14 @@ export default function RomanianIndex() {
                 Calculator varsta de pensionare Romania →
               </Link>
             </li>
+            <li>
+              <Link
+                href="/ro/raport-gratuit"
+                className="font-semibold text-emerald-700 hover:underline"
+              >
+                Raport gratuit - 6 verificari rapide →
+              </Link>
+            </li>
           </ul>
         </section>
 
