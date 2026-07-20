@@ -5,17 +5,9 @@ const CANONICAL_READ_API_BASE_URL =
   process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL ??
   process.env.VITE_JPI_CRM_READ_API_BASE_URL ??
   "https://launchingstack-func-dev.azurewebsites.net/api";
-const LEAD_INTENTS_READ_API_BASE_URL =
-  process.env.NEXT_PUBLIC_JPI_CRM_LEAD_INTENTS_API_BASE_URL ??
-  process.env.VITE_JPI_CRM_LEAD_INTENTS_API_BASE_URL ??
-  API_BASE_URL;
 
 function resolveUrl(baseUrl: string, path: string) {
   return `${baseUrl.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
-}
-
-function normalizeBaseUrl(baseUrl: string) {
-  return baseUrl.replace(/\/+$/, "");
 }
 
 export type CrmLead = {
@@ -381,12 +373,8 @@ function buildQuery(params: Record<string, string | number | boolean | null | un
   return text ? `?${text}` : "";
 }
 
-async function fetchCrmReadJson<T>(
-  baseUrl: string,
-  path: string,
-  options: RequestInit = {},
-) {
-  if (normalizeBaseUrl(baseUrl) === normalizeBaseUrl(API_BASE_URL)) {
+async function fetchCanonicalCrmReadJson<T>(path: string, options: RequestInit = {}) {
+  if (CANONICAL_READ_API_BASE_URL === API_BASE_URL) {
     return fetchJson<T>(path, options);
   }
 
@@ -395,7 +383,7 @@ async function fetchCrmReadJson<T>(
     headers.set("content-type", "application/json");
   }
 
-  const response = await fetch(resolveUrl(baseUrl, path), {
+  const response = await fetch(resolveUrl(CANONICAL_READ_API_BASE_URL, path), {
     ...options,
     headers,
   });
@@ -413,10 +401,6 @@ async function fetchCrmReadJson<T>(
   }
 
   return payload as T;
-}
-
-async function fetchCanonicalCrmReadJson<T>(path: string, options: RequestInit = {}) {
-  return fetchCrmReadJson<T>(CANONICAL_READ_API_BASE_URL, path, options);
 }
 
 export function listCrmLeads(
@@ -467,13 +451,9 @@ export function listCrmLeadIntents(
   token: string,
   params: Record<string, string | number | boolean | null | undefined>,
 ) {
-  return fetchCrmReadJson<CrmLeadIntentResponse>(
-    LEAD_INTENTS_READ_API_BASE_URL,
-    `${BASE_PATH}/lead-intents${buildQuery(params)}`,
-    {
-      headers: authHeaders(token),
-    },
-  );
+  return fetchCanonicalCrmReadJson<CrmLeadIntentResponse>(`${BASE_PATH}/lead-intents${buildQuery(params)}`, {
+    headers: authHeaders(token),
+  });
 }
 
 export function listCrmHighLevelFunnels(

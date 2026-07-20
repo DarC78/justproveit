@@ -20,7 +20,7 @@ The frontend already renders these fields on:
 
 ## Important Deployment Target
 
-The JustProveIt frontend previously read lead-intents from the canonical CRM read API:
+The JustProveIt frontend reads lead-intents from the canonical CRM read API:
 
 `NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL`
 
@@ -28,19 +28,7 @@ The GitHub Static Web Apps workflow sets that value to:
 
 `https://launchingstack-func-dev.azurewebsites.net/api`
 
-Lead intents now have their own frontend API base:
-
-`NEXT_PUBLIC_JPI_CRM_LEAD_INTENTS_API_BASE_URL`
-
-If that variable is not set, the frontend uses the main authenticated API base:
-
-`NEXT_PUBLIC_API_BASE_URL`, defaulting to `https://apiprocess.azurewebsites.net/api`
-
-So this backend change should be available on the function app serving:
-
-`https://apiprocess.azurewebsites.net/api/justproveit/admin/crm/lead-intents`
-
-If the lead-intents-specific variable is pointed back at `launchingstack-func-dev`, then the same backend change must also be deployed to:
+So this backend change must be deployed to the CRM function app serving:
 
 `https://launchingstack-func-dev.azurewebsites.net/api/justproveit/admin/crm/lead-intents`
 
@@ -48,7 +36,7 @@ There is also an `apiprocess` implementation at:
 
 `https://apiprocess.azurewebsites.net/api/justproveit/admin/crm/lead-intents`
 
-That endpoint already returned the desired fields during testing, but the live frontend did not use it for this page. Keep both implementations aligned, or change the frontend environment to read from the updated backend.
+That endpoint returned the desired fields during testing, but it is not the source of truth for this CRM screen. Keep `apiprocess` aligned for parity, but do not route this frontend screen away from `launchingstack-func-dev` as the fix.
 
 ## Current Problem
 
@@ -185,6 +173,8 @@ For `SIMULATOR_PENSII_JUNE_2026_REAL_TIME`, the page should show something like:
 
 ## Acceptance Criteria
 
+- An authenticated browser request from `https://www.justproveit.co.uk/admin/crm?tab=intents` to `launchingstack-func-dev` returns `200` JSON for `/justproveit/admin/crm/lead-intents` and does not show `Failed to load CRM lead intents`.
+- CORS preflight from `https://www.justproveit.co.uk` allows `GET` and the `authorization` header on `/justproveit/admin/crm/lead-intents`.
 - `launchingstack-func-dev` returns `finishedLeadsToAg`, `finishedNotAg`, and populated `topCallCodes`.
 - `apiprocess` and `launchingstack-func-dev` return equivalent `predictiveCampaignSummary` for the same filters, unless there is a documented reason they differ.
 - `VoiceMails` equals the count for call code `5`.
