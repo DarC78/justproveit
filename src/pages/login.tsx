@@ -22,7 +22,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace(getPostLoginPath(user));
+    router.replace(getPostLoginPath(user, router.query.next));
   }, [router, status, user]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -32,7 +32,7 @@ export default function LoginPage() {
 
     try {
       const loggedInUser = await login(email, password);
-      await router.push(getPostLoginPath(loggedInUser));
+      await router.push(getPostLoginPath(loggedInUser, router.query.next));
     } catch (loginError) {
       setError(readLoginError(loginError));
     } finally {
@@ -202,7 +202,16 @@ function readResetError(error: unknown) {
   return "Password reset failed. Please try again.";
 }
 
-function getPostLoginPath(user: AuthUser | null | undefined) {
+function getPostLoginPath(
+  user: AuthUser | null | undefined,
+  next?: string | string[],
+) {
+  const safeNext = readSafeNextPath(next);
+
+  if (safeNext) {
+    return safeNext;
+  }
+
   if (isAdminUser(user)) {
     return "/admin";
   }
@@ -212,6 +221,16 @@ function getPostLoginPath(user: AuthUser | null | undefined) {
   }
 
   return "/";
+}
+
+function readSafeNextPath(value?: string | string[]) {
+  const next = Array.isArray(value) ? value[0] : value;
+
+  if (!next || !next.startsWith("/") || next.startsWith("//")) {
+    return "";
+  }
+
+  return next;
 }
 
 function readLoginError(error: unknown) {

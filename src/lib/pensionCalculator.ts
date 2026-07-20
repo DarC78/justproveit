@@ -81,38 +81,6 @@ export type PensionCalculatorEmailResponse = {
   emailError?: string | null;
 };
 
-export type PensionPurchaseEmailPayload = {
-  fullName?: string;
-  email: string;
-  phone?: string;
-  pageUrl?: string;
-  referrer?: string;
-};
-
-export type PensionPurchaseEmailResponse = {
-  success: boolean;
-  emailSent: boolean;
-  provider?: string;
-  messageId?: string | null;
-  emailError?: string | null;
-};
-
-export type PensionPurchaseSmsPayload = {
-  fullName?: string;
-  phone: string;
-  email?: string;
-  pageUrl?: string;
-  referrer?: string;
-};
-
-export type PensionPurchaseSmsResponse = {
-  success: boolean;
-  smsSent: boolean;
-  provider?: string;
-  messageId?: string | null;
-  smsError?: string | null;
-};
-
 export type PensionCalculatorPayload = {
   fullName?: string;
   email?: string;
@@ -183,48 +151,6 @@ export async function sendPensionCalculatorEmail(
   }
 
   return body as PensionCalculatorEmailResponse;
-}
-
-export async function sendPensionPurchaseEmail(payload: PensionPurchaseEmailPayload) {
-  const response = await fetch("/api/pension-calculator/purchase-email", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      tenantKey: TENANT_KEY,
-      source: "ro-pension-calculator-email-cumparare",
-      ...payload,
-    }),
-  });
-
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(readApiError(body, response.statusText));
-  }
-
-  return body as PensionPurchaseEmailResponse;
-}
-
-export async function sendPensionPurchaseSms(payload: PensionPurchaseSmsPayload) {
-  const response = await fetch("/api/pension-calculator/purchase-sms", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      tenantKey: TENANT_KEY,
-      source: "ro-pension-calculator-sms-cumparare",
-      ...payload,
-    }),
-  });
-
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(readApiError(body, response.statusText));
-  }
-
-  return body as PensionPurchaseSmsResponse;
 }
 
 function readApiError(payload: unknown, fallback: string) {
