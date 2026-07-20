@@ -20,15 +20,27 @@ The frontend already renders these fields on:
 
 ## Important Deployment Target
 
-The JustProveIt frontend currently reads lead-intents from the canonical CRM read API:
+The JustProveIt frontend previously read lead-intents from the canonical CRM read API:
 
 `NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL`
 
-In this repo, that points/defaults to:
+The GitHub Static Web Apps workflow sets that value to:
 
 `https://launchingstack-func-dev.azurewebsites.net/api`
 
-So this backend change must be deployed to the function app serving:
+Lead intents now have their own frontend API base:
+
+`NEXT_PUBLIC_JPI_CRM_LEAD_INTENTS_API_BASE_URL`
+
+If that variable is not set, the frontend uses the main authenticated API base:
+
+`NEXT_PUBLIC_API_BASE_URL`, defaulting to `https://apiprocess.azurewebsites.net/api`
+
+So this backend change should be available on the function app serving:
+
+`https://apiprocess.azurewebsites.net/api/justproveit/admin/crm/lead-intents`
+
+If the lead-intents-specific variable is pointed back at `launchingstack-func-dev`, then the same backend change must also be deployed to:
 
 `https://launchingstack-func-dev.azurewebsites.net/api/justproveit/admin/crm/lead-intents`
 
