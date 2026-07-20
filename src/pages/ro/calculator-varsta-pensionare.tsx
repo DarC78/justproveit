@@ -4,6 +4,8 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   PensionCalculatorResponse,
   sendPensionCalculatorEmail,
+  sendPensionPurchaseEmail,
+  sendPensionPurchaseSms,
   submitPensionCalculator,
   type AgeYM,
 } from "@/lib/pensionCalculator";
@@ -58,6 +60,7 @@ const FOREIGN_COUNTRIES = [
   { value: "UK", label: "Regatul Unit / UK" },
 ];
 const FOREIGN_PERIOD_SLOTS = [1, 2, 3] as const;
+type ActionStatus = "success" | "error" | "";
 
 type FormState = {
   fullName: string;
@@ -130,9 +133,15 @@ export default function RomanianPensionCalculatorPage() {
   const [response, setResponse] = useState<PensionCalculatorResponse | null>(null);
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingSimulationEmail, setSendingSimulationEmail] = useState(false);
+  const [sendingPurchaseEmail, setSendingPurchaseEmail] = useState(false);
+  const [sendingPurchaseSms, setSendingPurchaseSms] = useState(false);
   const [emailMessage, setEmailMessage] = useState("");
   const [simulationEmailMessage, setSimulationEmailMessage] = useState("");
-  const [simulationEmailStatus, setSimulationEmailStatus] = useState<"success" | "error" | "">("");
+  const [simulationEmailStatus, setSimulationEmailStatus] = useState<ActionStatus>("");
+  const [purchaseEmailMessage, setPurchaseEmailMessage] = useState("");
+  const [purchaseEmailStatus, setPurchaseEmailStatus] = useState<ActionStatus>("");
+  const [purchaseSmsMessage, setPurchaseSmsMessage] = useState("");
+  const [purchaseSmsStatus, setPurchaseSmsStatus] = useState<ActionStatus>("");
 
   const jsonLd = useMemo(
     () => ({
@@ -184,6 +193,10 @@ export default function RomanianPensionCalculatorPage() {
     setEmailMessage("");
     setSimulationEmailMessage("");
     setSimulationEmailStatus("");
+    setPurchaseEmailMessage("");
+    setPurchaseEmailStatus("");
+    setPurchaseSmsMessage("");
+    setPurchaseSmsStatus("");
     setResponse(null);
 
     if (!form.birthYear || !form.birthMonth) {
@@ -367,6 +380,104 @@ export default function RomanianPensionCalculatorPage() {
     }
   }
 
+  async function handleSendPurchaseEmail() {
+    const recipientEmail = form.email.trim();
+
+    if (!recipientEmail) {
+      setPurchaseEmailStatus("error");
+      setPurchaseEmailMessage("Fail: completeaza emailul.");
+      return;
+    }
+
+    if (!isValidEmail(recipientEmail)) {
+      setPurchaseEmailStatus("error");
+      setPurchaseEmailMessage("Fail: email invalid.");
+      return;
+    }
+
+    setSendingPurchaseEmail(true);
+    setPurchaseEmailMessage("");
+    setPurchaseEmailStatus("");
+    setError("");
+
+    try {
+      const purchaseResult = await sendPensionPurchaseEmail({
+        fullName: form.fullName.trim(),
+        email: recipientEmail,
+        phone: form.phone.trim(),
+        pageUrl: typeof window !== "undefined" ? window.location.href : CANONICAL,
+        referrer: typeof document !== "undefined" ? document.referrer : "",
+      });
+
+      if (purchaseResult.emailSent) {
+        setPurchaseEmailStatus("success");
+        setPurchaseEmailMessage("Success: email cumparare trimis.");
+      } else {
+        setPurchaseEmailStatus("error");
+        setPurchaseEmailMessage(
+          `Fail: ${purchaseResult.emailError || "emailul de cumparare nu a putut fi trimis."}`,
+        );
+      }
+    } catch (purchaseError) {
+      setPurchaseEmailStatus("error");
+      setPurchaseEmailMessage(
+        `Fail: ${
+          purchaseError instanceof Error
+            ? purchaseError.message
+            : "emailul de cumparare nu a putut fi trimis."
+        }`,
+      );
+    } finally {
+      setSendingPurchaseEmail(false);
+    }
+  }
+
+  async function handlePurchaseSms() {
+    const recipientPhone = form.phone.trim();
+
+    if (!recipientPhone) {
+      setPurchaseSmsStatus("error");
+      setPurchaseSmsMessage("Fail: completeaza telefonul.");
+      return;
+    }
+
+    setSendingPurchaseSms(true);
+    setPurchaseSmsMessage("");
+    setPurchaseSmsStatus("");
+    setError("");
+
+    try {
+      const smsResult = await sendPensionPurchaseSms({
+        fullName: form.fullName.trim(),
+        phone: recipientPhone,
+        email: form.email.trim(),
+        pageUrl: typeof window !== "undefined" ? window.location.href : CANONICAL,
+        referrer: typeof document !== "undefined" ? document.referrer : "",
+      });
+
+      if (smsResult.smsSent) {
+        setPurchaseSmsStatus("success");
+        setPurchaseSmsMessage("Success: SMS cumparare trimis.");
+      } else {
+        setPurchaseSmsStatus("error");
+        setPurchaseSmsMessage(
+          `Fail: ${smsResult.smsError || "SMS-ul de cumparare nu a putut fi trimis."}`,
+        );
+      }
+    } catch (smsError) {
+      setPurchaseSmsStatus("error");
+      setPurchaseSmsMessage(
+        `Fail: ${
+          smsError instanceof Error
+            ? smsError.message
+            : "SMS-ul de cumparare nu a putut fi trimis."
+        }`,
+      );
+    } finally {
+      setSendingPurchaseSms(false);
+    }
+  }
+
 
   return (
     <>
@@ -412,6 +523,54 @@ export default function RomanianPensionCalculatorPage() {
             </p>
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-6 rounded-lg border border-slate-200 bg-slate-100/80 p-5 shadow-sm">
+              <div className="space-y-3">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    disabled={sendingSimulationEmail}
+                    onClick={handleSendSimulationEmail}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-md border border-emerald-700 bg-white px-4 py-2 text-sm font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-500"
+                  >
+                    {sendingSimulationEmail ? "Trimit..." : "Email Simulare"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={sendingPurchaseEmail}
+                    onClick={handleSendPurchaseEmail}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-amber-500 px-4 py-2 text-sm font-bold text-slate-950 shadow-sm hover:bg-amber-400 disabled:cursor-not-allowed disabled:bg-slate-400 disabled:text-white"
+                  >
+                    {sendingPurchaseEmail ? "Trimit..." : "Email cumparare"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={sendingPurchaseSms}
+                    onClick={handlePurchaseSms}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+                  >
+                    {sendingPurchaseSms ? "Trimit..." : "SMS Cumparare"}
+                  </button>
+                </div>
+                {simulationEmailMessage || purchaseEmailMessage || purchaseSmsMessage ? (
+                  <div aria-live="polite" className="space-y-1">
+                    {simulationEmailMessage ? (
+                      <ActionMessage status={simulationEmailStatus}>
+                        {simulationEmailMessage}
+                      </ActionMessage>
+                    ) : null}
+                    {purchaseEmailMessage ? (
+                      <ActionMessage status={purchaseEmailStatus}>
+                        {purchaseEmailMessage}
+                      </ActionMessage>
+                    ) : null}
+                    {purchaseSmsMessage ? (
+                      <ActionMessage status={purchaseSmsStatus}>
+                        {purchaseSmsMessage}
+                      </ActionMessage>
+                    ) : null}
+                  </div>
+                ) : null}
+              </div>
+
               <fieldset className="grid gap-4 md:grid-cols-3">
                 <legend className="mb-2 text-base font-bold md:col-span-3">Date de contact</legend>
                 <TextInput label="Nume complet" value={form.fullName} onChange={(value) => update("fullName", value)} />
@@ -448,29 +607,7 @@ export default function RomanianPensionCalculatorPage() {
                     <option value="M">Barbat</option>
                   </select>
                 </label>
-                <div className="grid gap-3 md:col-span-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
-                  <TextInput label="Copii crescuti" type="number" min="0" value={form.childrenRaised} onChange={(value) => update("childrenRaised", value)} />
-                  <div className="flex flex-col gap-2 sm:min-w-[190px]">
-                    <button
-                      type="button"
-                      disabled={sendingSimulationEmail}
-                      onClick={handleSendSimulationEmail}
-                      className="inline-flex w-full items-center justify-center rounded-md border border-emerald-700 bg-white px-4 py-2 text-sm font-bold text-emerald-700 shadow-sm hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-500"
-                    >
-                      {sendingSimulationEmail ? "Trimit..." : "Email simulare"}
-                    </button>
-                    {simulationEmailMessage ? (
-                      <p
-                        aria-live="polite"
-                        className={`text-xs font-bold ${
-                          simulationEmailStatus === "success" ? "text-emerald-700" : "text-red-700"
-                        }`}
-                      >
-                        {simulationEmailMessage}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
+                <TextInput label="Copii crescuti" type="number" min="0" value={form.childrenRaised} onChange={(value) => update("childrenRaised", value)} />
               </fieldset>
 
               <fieldset>
@@ -659,6 +796,24 @@ function SelectInput({
         ))}
       </select>
     </label>
+  );
+}
+
+function ActionMessage({
+  children,
+  status,
+}: {
+  children: string;
+  status: ActionStatus;
+}) {
+  return (
+    <p
+      className={`text-xs font-bold ${
+        status === "success" ? "text-emerald-700" : "text-red-700"
+      }`}
+    >
+      {children}
+    </p>
   );
 }
 
