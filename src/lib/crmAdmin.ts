@@ -5,6 +5,7 @@ const CANONICAL_READ_API_BASE_URL =
   process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL ??
   process.env.VITE_JPI_CRM_READ_API_BASE_URL ??
   "https://launchingstack-func-dev.azurewebsites.net/api";
+const ASAP_LEAD_API_URL = "https://launchingstack-func-dev.azurewebsites.net/api/justproveit/leads/asap";
 
 function resolveUrl(baseUrl: string, path: string) {
   return `${baseUrl.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
@@ -403,6 +404,42 @@ async function fetchCanonicalCrmReadJson<T>(path: string, options: RequestInit =
   return payload as T;
 }
 
+async function fetchDirectJson<T>(url: string, options: RequestInit = {}) {
+  const headers = new Headers(options.headers);
+  if (options.body && !headers.has("content-type")) {
+    headers.set("content-type", "application/json");
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(readCrmApiError(payload, response.statusText));
+  }
+
+  return payload as T;
+}
+
+function readCrmApiError(payload: unknown, fallback: string) {
+  if (payload && typeof payload === "object") {
+    const error = "error" in payload ? payload.error : "message" in payload ? payload.message : null;
+    if (typeof error === "string" && error.trim()) {
+      return error;
+    }
+    if (error && typeof error === "object" && "message" in error) {
+      const message = error.message;
+      if (typeof message === "string" && message.trim()) {
+        return message;
+      }
+    }
+  }
+
+  return fallback || "CRM request failed.";
+}
+
 export function listCrmLeads(
   token: string,
   params: Record<string, string | number | boolean | null | undefined>,
@@ -557,7 +594,7 @@ export function sendManualCrmSms(token: string, payload: ManualCrmSmsPayload) {
 }
 
 export function insertManualCrmLead(token: string, payload: ManualCrmLeadPayload) {
-  return fetchJson<{ success: boolean; lead: CrmLead }>(`${BASE_PATH}/leads`, {
+  return fetchDirectJson<{ success: boolean; lead: CrmLead }>(ASAP_LEAD_API_URL, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(payload),
