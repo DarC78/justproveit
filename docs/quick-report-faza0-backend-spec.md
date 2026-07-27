@@ -34,15 +34,14 @@ the request body, matching the pension calculator pattern.
   "consentVerbalAt": "2026-07-20T10:00:00.000Z",
   "standardTaxCode": "1257L",
   "answers": {
-    "taxCode": "BR",
-    "multipleJobs": "no",
+    "multipleJobs": "yes",
+    "taxRecoveredLast5Years": "no",
     "electoralRoll": "yes",
     "creditReportChecked": "no",
     "bankSwitchLast": "never",
     "insuranceRenewal": "autoNoCompare",
     "transferMethod": "bank",
     "transferCompared": "no",
-    "utilitiesUpToDate": "yes",
     "utilitiesCompared": "no"
   },
   "results": [
@@ -50,11 +49,10 @@ the request body, matching the pension calculator pattern.
       "code": "MF01",
       "title": "Cod fiscal (tax code) greșit",
       "flag": "rosu",
-      "output": "Codul tău fiscal pare greșit — poți fi impozitat în plus. Recomandăm verificare directă cu HMRC, posibilă rambursare pe ultimii 5 ani.",
+      "output": "Ai avut mai multe joburi și nu ai recuperat taxele pe ultimii 5 ani. Este posibil să fi plătit taxe în plus; valoarea medie care poate fi recuperată este £1,250–£4,000. Recomandăm verificare directă cu HMRC.",
       "rawAnswer": {
-        "taxCode": "BR",
-        "multipleJobs": "no",
-        "standardTaxCode": "1257L"
+        "multipleJobs": "yes",
+        "taxRecoveredLast5Years": "no"
       }
     }
   ],
@@ -64,10 +62,14 @@ the request body, matching the pension calculator pattern.
 }
 ```
 
-`results[]` always contains 7 rows because `FC07` is split into:
+`results[]` always contains 6 rows. The quick checks are:
 
-- `FC07_plata`
-- `FC07_furnizor`
+- `MF01`
+- `MF02`
+- `CD07`
+- `FC02`
+- `FC05`
+- `FC07`
 
 Allowed `flag` values are:
 
@@ -109,8 +111,10 @@ pension calculator.
 
 Email content:
 
-- the 7 submitted result rows
+- the 6 submitted result rows
 - each row's `title`, `flag`, and `output`
+- use the submitted `output` text snapshots in the email so the monetary risk
+  ranges shown in the simulator are also included in the post-simulation email
 - closing CTA inviting the client to a full "radiografie financiară" call for
   the remaining checks, including state benefits
 - compliance text approved by the business
@@ -155,7 +159,7 @@ Validation failure:
 
 - `POST /justproveit/quick-report/faza0` accepts the frontend payload.
 - The lead is saved with source `raport_gratuit_faza0`.
-- All 7 result rows are persisted with their submitted flags and raw answers.
+- All 6 result rows are persisted with their submitted flags and raw answers.
 - The report email is sent to the submitted client email address.
 - The endpoint response lets the frontend distinguish full success from
   save-success/email-failure.

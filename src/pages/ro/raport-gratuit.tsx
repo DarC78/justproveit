@@ -19,15 +19,14 @@ const PAGE_PATH = "/ro/raport-gratuit";
 const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
 
 const initialAnswers: QuickReportAnswers = {
-  taxCode: "",
   multipleJobs: "",
+  taxRecoveredLast5Years: "",
   electoralRoll: "",
   creditReportChecked: "",
   bankSwitchLast: "",
   insuranceRenewal: "",
   transferMethod: "",
   transferCompared: "",
-  utilitiesUpToDate: "",
   utilitiesCompared: "",
 };
 
@@ -52,7 +51,7 @@ export default function FreeQuickReportPage() {
   const [status, setStatus] = useState<"success" | "error" | "">("");
   const [message, setMessage] = useState("");
   const standardTaxCode = getStandardTaxCode();
-  const results = useMemo(() => evaluateQuickReport(answers, standardTaxCode), [answers, standardTaxCode]);
+  const results = useMemo(() => evaluateQuickReport(answers), [answers]);
   const completion = useMemo(() => getQuickReportCompletion(results), [results]);
   const counts = useMemo(() => getQuickReportFlagCounts(results), [results]);
 
@@ -231,21 +230,21 @@ export default function FreeQuickReportPage() {
               <legend className="mb-2 text-base font-bold">Verificari rapide</legend>
 
               <CheckFields title="MF01 - Cod fiscal gresit">
-                <TextInput
-                  label="Care e codul tau fiscal (tax code) de pe ultimul fluturas de salariu?"
-                  value={answers.taxCode}
-                  onChange={(value) => updateAnswer("taxCode", value)}
-                  placeholder={`Ex: ${standardTaxCode}`}
-                />
                 <SelectInput
                   label="Ai avut mai multe joburi in acest an fiscal sau in ultimii 5 ani?"
                   value={answers.multipleJobs}
                   onChange={(value) => updateAnswer("multipleJobs", value as QuickReportAnswers["multipleJobs"])}
                   options={yesNoOptions}
                 />
+                <SelectInput
+                  label="Ai recuperat taxele pe ultimii 5 ani?"
+                  value={answers.taxRecoveredLast5Years}
+                  onChange={(value) => updateAnswer("taxRecoveredLast5Years", value as QuickReportAnswers["taxRecoveredLast5Years"])}
+                  options={yesNoOptions}
+                />
               </CheckFields>
 
-              <CheckFields title="CD01 - Credit score / raport de credit">
+              <CheckFields title="MF02 - Credit score / raport de credit">
                 <SelectInput
                   label="Esti inscris pe electoral roll la adresa curenta?"
                   value={answers.electoralRoll}
@@ -309,12 +308,6 @@ export default function FreeQuickReportPage() {
               </CheckFields>
 
               <CheckFields title="FC07 - Facturi de utilitati">
-                <SelectInput
-                  label="Esti la zi cu plata facturilor de utilitati?"
-                  value={answers.utilitiesUpToDate}
-                  onChange={(value) => updateAnswer("utilitiesUpToDate", value as QuickReportAnswers["utilitiesUpToDate"])}
-                  options={yesNoOptions}
-                />
                 <SelectInput
                   label="Ai comparat sau schimbat furnizorul de energie/broadband/mobile in ultimele 12 luni?"
                   value={answers.utilitiesCompared}

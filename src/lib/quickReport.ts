@@ -5,20 +5,19 @@ export type QuickReportDisplayFlag = QuickReportFlag | "necompletat";
 export type YesNo = "" | "yes" | "no";
 
 export type QuickReportAnswers = {
-  taxCode: string;
   multipleJobs: YesNo;
+  taxRecoveredLast5Years: YesNo;
   electoralRoll: YesNo;
   creditReportChecked: YesNo;
   bankSwitchLast: "" | "within12" | "over12" | "never";
   insuranceRenewal: "" | "compared" | "autoNoCompare" | "notApplicable";
   transferMethod: "" | "bank" | "westernUnion" | "moneyGram" | "wise" | "revolut" | "other";
   transferCompared: YesNo;
-  utilitiesUpToDate: YesNo;
   utilitiesCompared: YesNo;
 };
 
 export type QuickReportResult = {
-  code: "MF01" | "CD01" | "CD07" | "FC02" | "FC05" | "FC07_plata" | "FC07_furnizor";
+  code: "MF01" | "MF02" | "CD07" | "FC02" | "FC05" | "FC07";
   title: string;
   flag: QuickReportDisplayFlag;
   output: string;
@@ -54,17 +53,13 @@ export function getStandardTaxCode() {
   return process.env.NEXT_PUBLIC_STANDARD_TAX_CODE || DEFAULT_STANDARD_TAX_CODE;
 }
 
-export function evaluateQuickReport(
-  answers: QuickReportAnswers,
-  standardTaxCode = getStandardTaxCode(),
-): QuickReportResult[] {
+export function evaluateQuickReport(answers: QuickReportAnswers): QuickReportResult[] {
   return [
-    evaluateTaxCode(answers, standardTaxCode),
+    evaluateTaxReclaim(answers),
     evaluateCreditReport(answers),
     evaluateBankSwitch(answers),
     evaluateInsurance(answers),
     evaluateTransferFees(answers),
-    evaluateUtilityPayment(answers),
     evaluateUtilitySwitch(answers),
   ];
 }
@@ -109,30 +104,23 @@ export async function submitQuickReport(payload: QuickReportSubmitPayload) {
   return body as QuickReportSubmitResponse;
 }
 
-function evaluateTaxCode(answers: QuickReportAnswers, standardTaxCode: string): QuickReportResult {
-  const taxCode = normalizeTaxCode(answers.taxCode);
-  const standard = normalizeTaxCode(standardTaxCode);
+function evaluateTaxReclaim(answers: QuickReportAnswers): QuickReportResult {
   const rawAnswer = {
-    taxCode: answers.taxCode,
     multipleJobs: answers.multipleJobs,
-    standardTaxCode,
+    taxRecoveredLast5Years: answers.taxRecoveredLast5Years,
   };
 
-  if (!taxCode || !answers.multipleJobs) {
+  if (!answers.multipleJobs || !answers.taxRecoveredLast5Years) {
     return incomplete("MF01", "Cod fiscal (tax code) greșit", rawAnswer);
   }
 
-  const emergency = isEmergencyTaxCode(taxCode);
-  const hasKnownMultipleJobs = answers.multipleJobs === "yes";
-  const nonStandardWithoutKnownReason = taxCode !== standard && !hasKnownMultipleJobs;
-
-  if (emergency || nonStandardWithoutKnownReason) {
+  if (answers.multipleJobs === "yes" && answers.taxRecoveredLast5Years === "no") {
     return {
       code: "MF01",
       title: "Cod fiscal (tax code) greșit",
       flag: "rosu",
       output:
-        "Codul tău fiscal pare greșit — poți fi impozitat în plus. Recomandăm verificare directă cu HMRC, posibilă rambursare pe ultimii 5 ani.",
+        "Ai avut mai multe joburi și nu ai recuperat taxele pe ultimii 5 ani. Este posibil să fi plătit taxe în plus; valoarea medie care poate fi recuperată este £1,250–£4,000. Recomandăm verificare directă cu HMRC.",
       rawAnswer,
     };
   }
@@ -141,7 +129,7 @@ function evaluateTaxCode(answers: QuickReportAnswers, standardTaxCode: string): 
     code: "MF01",
     title: "Cod fiscal (tax code) greșit",
     flag: "verde",
-    output: "Codul tău fiscal pare corect.",
+    output: "Nu am identificat un risc rapid de taxe nerecuperate pe baza răspunsurilor.",
     rawAnswer,
   };
 }
@@ -153,33 +141,33 @@ function evaluateCreditReport(answers: QuickReportAnswers): QuickReportResult {
   };
 
   if (!answers.electoralRoll || !answers.creditReportChecked) {
-    return incomplete("CD01", "Credit score / raport de credit", rawAnswer);
+    return incomplete("MF02", "Credit score / raport de credit", rawAnswer);
   }
 
   if (answers.electoralRoll === "no") {
     return {
-      code: "CD01",
+      code: "MF02",
       title: "Credit score / raport de credit",
       flag: "rosu",
       output:
-        "Nu ești înscris pe electoral roll — asta îți poate limita accesul la credit și scorul de credit. Poți rezolva gratuit, online, în câteva minute.",
+        "Nu ești înscris pe electoral roll — asta îți poate limita accesul la credit și scorul de credit. O eroare în raportul de credit vă poate costa între £1,000 și £5,000 în doar câțiva ani, prin dobânzi mai mari și acces limitat la finanțare. În cazurile grave, pierderile pot depăși £10,000.",
       rawAnswer,
     };
   }
 
   if (answers.creditReportChecked === "no") {
     return {
-      code: "CD01",
+      code: "MF02",
       title: "Credit score / raport de credit",
       flag: "galben",
       output:
-        "Recomandăm o verificare gratuită a raportului de credit — 1 din 3 oameni in UK au cel putin o eroare in raportul de scor de credit care poate duce la costuri mai mari la asigurari, la rate mai mari la imprumuturi bancare si carduri de credit, si chiar la limitarea accesului la carduri de credit / imprumuturi bancare",
+        "Recomandăm o verificare gratuită a raportului de credit. O eroare în raportul de credit vă poate costa între £1,000 și £5,000 în doar câțiva ani, prin dobânzi mai mari și acces limitat la finanțare. În cazurile grave, pierderile pot depăși £10,000.",
       rawAnswer,
     };
   }
 
   return {
-    code: "CD01",
+    code: "MF02",
     title: "Credit score / raport de credit",
     flag: "verde",
     output: "Ești înscris pe electoral roll și ai verificat raportul de credit.",
@@ -227,7 +215,7 @@ function evaluateInsurance(answers: QuickReportAnswers): QuickReportResult {
       title: "Asigurări auto/casă — loyalty penalty",
       flag: "rosu",
       output:
-        "Probabil plătești mai mult decât ai putea la reînnoirea automată — o comparație rapidă înainte de următoarea reînnoire poate economisi bani.",
+        "Gospodăria medie din UK pierde aproximativ £700 pe an rămânând fidelă acelorași furnizori. În 5 ani, asta înseamnă aproximativ £3,500 în costuri inutile.",
       rawAnswer,
     };
   }
@@ -258,7 +246,7 @@ function evaluateTransferFees(answers: QuickReportAnswers): QuickReportResult {
       title: "Comisioane mari remitere bani spre România",
       flag: "rosu",
       output:
-        "Probabil plătești comisioane mari la transferul de bani — variante mai ieftine pot economisi bani la fiecare transfer.",
+        "Un român care trimite bani familiei în România poate pierde între £1,000 și £3,000 în doar 5 ani doar din comisioane și cursuri de schimb nefavorabile. Cei care folosesc metode mai scumpe pot pierde și peste £5,000.",
       rawAnswer,
     };
   }
@@ -272,53 +260,26 @@ function evaluateTransferFees(answers: QuickReportAnswers): QuickReportResult {
   };
 }
 
-function evaluateUtilityPayment(answers: QuickReportAnswers): QuickReportResult {
-  const rawAnswer = { utilitiesUpToDate: answers.utilitiesUpToDate };
-
-  if (!answers.utilitiesUpToDate) {
-    return incomplete("FC07_plata", "Facturi de utilități — plată la zi", rawAnswer);
-  }
-
-  if (answers.utilitiesUpToDate === "no") {
-    return {
-      code: "FC07_plata",
-      title: "Facturi de utilități — plată la zi",
-      flag: "galben",
-      output:
-        "Dacă ai dificultăți cu plata facturilor, există suport disponibil înainte să ajungă la penalizări — putem recomanda unde să ceri ajutor.",
-      rawAnswer,
-    };
-  }
-
-  return {
-    code: "FC07_plata",
-    title: "Facturi de utilități — plată la zi",
-    flag: "verde",
-    output: "Ești la zi cu plata facturilor de utilități.",
-    rawAnswer,
-  };
-}
-
 function evaluateUtilitySwitch(answers: QuickReportAnswers): QuickReportResult {
   const rawAnswer = { utilitiesCompared: answers.utilitiesCompared };
 
   if (!answers.utilitiesCompared) {
-    return incomplete("FC07_furnizor", "Facturi de utilități — schimbare furnizor", rawAnswer);
+    return incomplete("FC07", "Facturi de utilități — schimbare furnizor", rawAnswer);
   }
 
   if (answers.utilitiesCompared === "no") {
     return {
-      code: "FC07_furnizor",
+      code: "FC07",
       title: "Facturi de utilități — schimbare furnizor",
       flag: "rosu",
       output:
-        "Probabil plătești mai mult decât ai putea la utilități — o comparație rapidă de tarife poate economisi bani.",
+        "O gospodărie din Marea Britanie pierde în medie între £2,500 și £3,500 în 5 ani doar pentru că nu își schimbă sau renegociază furnizorii de utilități și telecomunicații.",
       rawAnswer,
     };
   }
 
   return {
-    code: "FC07_furnizor",
+    code: "FC07",
     title: "Facturi de utilități — schimbare furnizor",
     flag: "verde",
     output: "Ai comparat sau schimbat furnizorul în ultimele 12 luni.",
@@ -338,22 +299,6 @@ function incomplete(
     output: "Completează răspunsurile pentru această verificare.",
     rawAnswer,
   };
-}
-
-function normalizeTaxCode(value: string) {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
-function isEmergencyTaxCode(taxCode: string) {
-  return (
-    taxCode === "BR" ||
-    taxCode === "0T" ||
-    taxCode === "D0" ||
-    taxCode === "D1" ||
-    taxCode.startsWith("BR") ||
-    taxCode.endsWith("W1") ||
-    taxCode.endsWith("M1")
-  );
 }
 
 function readApiError(payload: unknown, fallback: string) {
