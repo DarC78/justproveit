@@ -1,13 +1,14 @@
+import { useAuth } from "@/context/AuthContext";
+import { sendGenericUpdateEmail } from "@/lib/genericReports";
 import Head from "next/head";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import type { ReactNode } from "react";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   evaluateQuickReport,
   getQuickReportCompletion,
   getQuickReportFlagCounts,
-  getStandardTaxCode,
-  submitQuickReport,
   type QuickReportAnswers,
   type QuickReportDisplayFlag,
   type QuickReportFlag,
@@ -45,12 +46,13 @@ const initialContact: ContactForm = {
 };
 
 export default function FreeQuickReportPage() {
+  const router = useRouter();
+  const { status: authStatus, token, isCrm, logout } = useAuth();
   const [contact, setContact] = useState<ContactForm>(initialContact);
   const [answers, setAnswers] = useState<QuickReportAnswers>(initialAnswers);
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<"success" | "error" | "">("");
   const [message, setMessage] = useState("");
-  const standardTaxCode = getStandardTaxCode();
   const results = useMemo(() => evaluateQuickReport(answers), [answers]);
   const completion = useMemo(() => getQuickReportCompletion(results), [results]);
   const counts = useMemo(() => getQuickReportFlagCounts(results), [results]);
@@ -91,6 +93,24 @@ export default function FreeQuickReportPage() {
     }));
   }, []);
 
+  useEffect(() => {
+    if (authStatus !== "anonymous" || !router.isReady) {
+      return;
+    }
+
+    const next = encodeURIComponent(
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : PAGE_PATH,
+    );
+    router.replace(`/login?next=${next}`);
+  }, [authStatus, router]);
+
+  async function handleLogout() {
+    await logout();
+    await router.push("/login");
+  }
+
   async function handleSendReport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus("");
@@ -124,33 +144,37 @@ export default function FreeQuickReportPage() {
       return;
     }
 
+    if (!token || !isCrm) {
+      setStatus("error");
+      setMessage("Autentificare CRM necesara pentru trimiterea raportului.");
+      return;
+    }
+
     const completedResults = results.filter(
       (result): result is QuickReportResult & { flag: QuickReportFlag } => result.flag !== "necompletat",
     );
+    const reportText = buildQuickReportEmailText({
+      fullName,
+      results: completedResults,
+    });
 
     setSending(true);
     try {
-      const response = await submitQuickReport({
-        fullName,
-        email,
-        phone,
-        consentVerbalAt: new Date().toISOString(),
-        answers,
-        results: completedResults,
-        standardTaxCode,
-        domain: typeof window !== "undefined" ? window.location.hostname : "justproveit.co.uk",
-        pageUrl: typeof window !== "undefined" ? window.location.href : CANONICAL,
-        referrer: typeof document !== "undefined" ? document.referrer : "",
+      await sendGenericUpdateEmail(token, {
+        to: email,
+        customerName: fullName,
+        customerSinceLabel: "Raport gratuit JustProveIt",
+        statusLabel: `Rosu: ${counts.rosu} | Galben: ${counts.galben} | Verde: ${counts.verde}`,
+        subject: "Raportul tau gratuit JustProveIt",
+        preheader: "Cele 6 verificari rapide pentru bani pierduti in UK.",
+        plainText: reportText,
+        html: buildQuickReportEmailHtml({
+          fullName,
+          results: completedResults,
+        }),
       });
-
-      if (response.emailSent === false) {
-        setStatus("error");
-        setMessage(response.emailError || "Raportul a fost salvat, dar emailul nu a putut fi trimis.");
-        return;
-      }
-
       setStatus("success");
-      setMessage(response.message || "Raportul a fost trimis pe email.");
+      setMessage("Raportul a fost trimis pe email.");
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Raportul nu a putut fi trimis.");
@@ -167,6 +191,27 @@ export default function FreeQuickReportPage() {
     setAnswers((current) => ({ ...current, [key]: value }));
   }
 
+  if (authStatus === "loading" || authStatus === "anonymous") {
+    return (
+      <AuthGateShell
+        title="Verificam accesul"
+        message="Raportul gratuit este disponibil dupa autentificare."
+        actionHref={`/login?next=${encodeURIComponent(PAGE_PATH)}`}
+      />
+    );
+  }
+
+  if (!isCrm || !token) {
+    return (
+      <AuthGateShell
+        title="Acces CRM necesar"
+        message="Contul autentificat nu are acces CRM pentru aceasta pagina."
+        actionLabel="Inapoi la administrare"
+        actionHref="/admin"
+      />
+    );
+  }
+
   return (
     <>
       <Head>
@@ -177,7 +222,7 @@ export default function FreeQuickReportPage() {
         />
         <link rel="canonical" href={CANONICAL} />
         <meta httpEquiv="content-language" content="ro-GB" />
-        <meta name="robots" content="index,follow,max-image-preview:large" />
+        <meta name="robots" content="noindex,nofollow" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -193,6 +238,13 @@ export default function FreeQuickReportPage() {
             <Link href="/ro/calculator-varsta-pensionare" className="text-sm font-semibold text-emerald-700 hover:underline">
               Calculator pensie
             </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100"
+            >
+              Sign out
+            </button>
           </div>
         </header>
 
@@ -506,4 +558,110 @@ function formatFlag(flag: QuickReportDisplayFlag) {
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+function buildQuickReportEmailText({
+  fullName,
+  results,
+}: {
+  fullName: string;
+  results: Array<QuickReportResult & { flag: QuickReportFlag }>;
+}) {
+  const rows = results
+    .map((result) => `${result.code} - ${result.title}\nStatus: ${result.flag.toUpperCase()}\n${result.output}`)
+    .join("\n\n");
+
+  return `Buna ziua ${fullName},
+
+Aveti mai jos raportul gratuit JustProveIt cu cele 6 verificari rapide pentru bani pierduti in UK.
+
+${rows}
+
+Raportul este informativ si nu reprezinta sfat financiar reglementat.
+
+Daca doriti, putem face o radiografie financiara completa si verifica si alte zone unde romanii din UK pot pierde bani, inclusiv beneficii de stat si situatii fiscale.
+
+O zi buna,
+JustProveIt`;
+}
+
+function buildQuickReportEmailHtml(options: {
+  fullName: string;
+  results: Array<QuickReportResult & { flag: QuickReportFlag }>;
+}) {
+  const rows = options.results
+    .map(
+      (result) => `
+        <tr>
+          <td style="padding:12px;border:1px solid #d9e2ec;font-weight:700;vertical-align:top;">${escapeHtml(result.code)}</td>
+          <td style="padding:12px;border:1px solid #d9e2ec;vertical-align:top;">
+            <div style="font-weight:700;">${escapeHtml(result.title)}</div>
+            <div style="margin-top:4px;text-transform:uppercase;font-size:12px;font-weight:700;color:${flagColor(result.flag)};">${escapeHtml(result.flag)}</div>
+            <div style="margin-top:8px;line-height:1.55;">${escapeHtml(result.output)}</div>
+          </td>
+        </tr>`,
+    )
+    .join("");
+
+  return `
+    <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.55;">
+      <p>Buna ziua ${escapeHtml(options.fullName)},</p>
+      <p>Aveti mai jos raportul gratuit JustProveIt cu cele 6 verificari rapide pentru bani pierduti in UK.</p>
+      <table style="border-collapse:collapse;width:100%;margin:20px 0;">
+        <tbody>${rows}</tbody>
+      </table>
+      <p>Raportul este informativ si nu reprezinta sfat financiar reglementat.</p>
+      <p>Daca doriti, putem face o radiografie financiara completa si verifica si alte zone unde romanii din UK pot pierde bani, inclusiv beneficii de stat si situatii fiscale.</p>
+      <p>O zi buna,<br>JustProveIt</p>
+    </div>`;
+}
+
+function flagColor(flag: QuickReportFlag) {
+  if (flag === "rosu") {
+    return "#991b1b";
+  }
+  if (flag === "galben") {
+    return "#92400e";
+  }
+  return "#065f46";
+}
+
+function escapeHtml(value: string) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function AuthGateShell({
+  title,
+  message,
+  actionLabel = "Autentificare",
+  actionHref,
+}: {
+  title: string;
+  message: string;
+  actionLabel?: string;
+  actionHref: string;
+}) {
+  return (
+    <div className="min-h-screen bg-slate-50 px-4 py-16 text-slate-950">
+      <Head>
+        <title>{title} | JustProveIt</title>
+        <meta name="robots" content="noindex,nofollow" />
+      </Head>
+      <main className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
+        <h1 className="text-2xl font-extrabold">{title}</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-600">{message}</p>
+        <Link
+          href={actionHref}
+          className="mt-5 inline-flex items-center justify-center rounded-md bg-emerald-700 px-5 py-3 text-sm font-bold text-white hover:bg-emerald-800"
+        >
+          {actionLabel}
+        </Link>
+      </main>
+    </div>
+  );
 }

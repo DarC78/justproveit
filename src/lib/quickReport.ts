@@ -1,5 +1,3 @@
-import { API_BASE_URL, TENANT_KEY } from "@/lib/auth";
-
 export type QuickReportFlag = "verde" | "galben" | "rosu";
 export type QuickReportDisplayFlag = QuickReportFlag | "necompletat";
 export type YesNo = "" | "yes" | "no";
@@ -23,37 +21,6 @@ export type QuickReportResult = {
   output: string;
   rawAnswer: Record<string, string>;
 };
-
-export type QuickReportSubmitPayload = {
-  fullName: string;
-  email: string;
-  phone: string;
-  consentVerbalAt: string;
-  answers: QuickReportAnswers;
-  results: Array<QuickReportResult & { flag: QuickReportFlag }>;
-  standardTaxCode: string;
-  source?: string;
-  domain?: string;
-  pageUrl?: string;
-  referrer?: string;
-};
-
-export type QuickReportSubmitResponse = {
-  success: boolean;
-  leadId?: string;
-  reportId?: string;
-  emailSent?: boolean;
-  emailError?: string | null;
-  message?: string;
-};
-
-const DEFAULT_STANDARD_TAX_CODE = "1257L";
-const QUICK_REPORT_API_URL =
-  process.env.NEXT_PUBLIC_QUICK_REPORT_API_URL || "/api/justproveit/quick-report/faza0";
-
-export function getStandardTaxCode() {
-  return process.env.NEXT_PUBLIC_STANDARD_TAX_CODE || DEFAULT_STANDARD_TAX_CODE;
-}
 
 export function evaluateQuickReport(answers: QuickReportAnswers): QuickReportResult[] {
   return [
@@ -83,27 +50,6 @@ export function getQuickReportFlagCounts(results: QuickReportResult[]) {
     }),
     { verde: 0, galben: 0, rosu: 0, necompletat: 0 },
   );
-}
-
-export async function submitQuickReport(payload: QuickReportSubmitPayload) {
-  const response = await fetch(resolveQuickReportApiUrl(), {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      tenantKey: TENANT_KEY,
-      source: "raport_gratuit_faza0",
-      ...payload,
-    }),
-  });
-
-  const body = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(readApiError(body, response.statusText));
-  }
-
-  return body as QuickReportSubmitResponse;
 }
 
 function evaluateTaxReclaim(answers: QuickReportAnswers): QuickReportResult {
@@ -312,38 +258,4 @@ function incomplete(
     output: "Completează răspunsurile pentru această verificare.",
     rawAnswer,
   };
-}
-
-function readApiError(payload: unknown, fallback: string) {
-  if (payload && typeof payload === "object") {
-    const error = "error" in payload ? payload.error : null;
-    if (typeof error === "string") {
-      return error;
-    }
-    if (
-      error &&
-      typeof error === "object" &&
-      "message" in error &&
-      typeof error.message === "string"
-    ) {
-      return error.message;
-    }
-    if ("message" in payload && typeof payload.message === "string") {
-      return payload.message;
-    }
-  }
-
-  if (fallback === "Not Found") {
-    return "Endpoint-ul pentru trimiterea raportului nu este disponibil inca.";
-  }
-
-  return fallback || "Raportul nu a putut fi trimis.";
-}
-
-function resolveQuickReportApiUrl() {
-  if (/^https?:\/\//i.test(QUICK_REPORT_API_URL) || QUICK_REPORT_API_URL.startsWith("/")) {
-    return QUICK_REPORT_API_URL;
-  }
-
-  return `${API_BASE_URL}/${QUICK_REPORT_API_URL.replace(/^\/+/, "")}`;
 }

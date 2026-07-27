@@ -3,71 +3,37 @@
 ## Context
 
 The frontend page `/ro/raport-gratuit` is implemented in this repository.
-It evaluates the 6 quick checks client-side and submits the completed report
-to `NEXT_PUBLIC_QUICK_REPORT_API_URL`, defaulting to this repository's Static
-Web Apps API route:
+It is CRM-authenticated and evaluates the 6 quick checks client-side.
+It sends the completed report email through the existing authenticated backend
+email route used by other admin/generic report tooling:
 
-`/api/justproveit/quick-report/faza0`.
+`POST /justproveit/admin/generic-reports/emails/generic-update`
 
-If `NEXT_PUBLIC_QUICK_REPORT_API_URL` is configured as a relative path without a
-leading slash, the frontend resolves it against `NEXT_PUBLIC_API_BASE_URL`.
+The frontend calls this through `API_BASE_URL`, which defaults to:
 
-This repository includes a minimal Static Web Apps function for the endpoint,
-using Resend to send the report email. For the fuller backend implementation
-with lead/report persistence, implement the save/email endpoint in the API
-service that already handles:
+`https://apiprocess.azurewebsites.net/api`
 
-- `POST /justproveit/pension-calculator/calculate`
-- `POST /justproveit/pension-calculator/results/{resultId}/email`
+This keeps the report on the same backend environment as the international
+pension calculator and existing email infrastructure.
 
 ## Endpoint
 
-`POST /api/justproveit/quick-report/faza0`
+`POST /justproveit/admin/generic-reports/emails/generic-update`
 
-The equivalent route value inside Azure Functions is:
-
-`POST /justproveit/quick-report/faza0`
-
-No admin bearer token is required. The page sends `tenantKey: "justproveit"` in
-the request body, matching the pension calculator pattern.
+The request includes the logged-in user's bearer token.
 
 ## Request Body
 
 ```json
 {
-  "tenantKey": "justproveit",
-  "source": "raport_gratuit_faza0",
-  "fullName": "Client Name",
-  "email": "client@example.com",
-  "phone": "07123456789",
-  "consentVerbalAt": "2026-07-20T10:00:00.000Z",
-  "standardTaxCode": "1257L",
-  "answers": {
-    "multipleJobs": "yes",
-    "taxRecoveredLast5Years": "no",
-    "electoralRoll": "yes",
-    "creditReportChecked": "no",
-    "bankSwitchLast": "never",
-    "insuranceRenewal": "autoNoCompare",
-    "transferMethod": "bank",
-    "transferCompared": "no",
-    "utilitiesCompared": "no"
-  },
-  "results": [
-    {
-      "code": "MF01",
-      "title": "Cod fiscal (tax code) greșit",
-      "flag": "rosu",
-      "output": "Ai avut mai multe joburi și nu ai recuperat taxele pe ultimii 5 ani. Este posibil să fi plătit taxe în plus; valoarea medie care poate fi recuperată este £1,250–£4,000. Recomandăm verificare directă cu HMRC.",
-      "rawAnswer": {
-        "multipleJobs": "yes",
-        "taxRecoveredLast5Years": "no"
-      }
-    }
-  ],
-  "domain": "www.justproveit.co.uk",
-  "pageUrl": "https://www.justproveit.co.uk/ro/raport-gratuit",
-  "referrer": ""
+  "to": "client@example.com",
+  "customerName": "Client Name",
+  "customerSinceLabel": "Raport gratuit JustProveIt",
+  "statusLabel": "Rosu: 3 | Galben: 1 | Verde: 2",
+  "subject": "Raportul tau gratuit JustProveIt",
+  "preheader": "Cele 6 verificari rapide pentru bani pierduti in UK.",
+  "plainText": "Buna ziua Client Name...",
+  "html": "<div>...</div>"
 }
 ```
 
@@ -115,14 +81,8 @@ Minimum result fields:
 
 ## Email
 
-Send the client an email using the same provider/template infrastructure as the
-pension calculator.
-
-The Static Web Apps function expects:
-
-- `RESEND_API_KEY`
-- `RESEND_FROM_EMAIL`
-- optional `RESEND_REPLY_TO_EMAIL`
+Send the client an email using the existing backend email infrastructure and
+environment already used by the pension calculator/admin backend.
 
 Email content:
 
@@ -143,22 +103,16 @@ Success:
 ```json
 {
   "success": true,
-  "leadId": "lead_123",
-  "reportId": "qr_123",
-  "emailSent": true,
-  "message": "Raportul a fost trimis pe email."
+  "provider": "resend",
+  "messageId": "resend-message-id"
 }
 ```
 
-Email failure after save:
+Email failure:
 
 ```json
 {
-  "success": true,
-  "leadId": "lead_123",
-  "reportId": "qr_123",
-  "emailSent": false,
-  "emailError": "Email provider error"
+  "error": "Email provider error"
 }
 ```
 
@@ -172,11 +126,10 @@ Validation failure:
 
 ## Acceptance Criteria
 
-- `POST /justproveit/quick-report/faza0` accepts the frontend payload.
+- `/ro/raport-gratuit` requires CRM authentication.
+- `Trimite raport` sends through `POST /justproveit/admin/generic-reports/emails/generic-update`.
 - The lead is saved with source `raport_gratuit_faza0`.
 - All 6 result rows are persisted with their submitted flags and raw answers.
 - The report email is sent to the submitted client email address.
-- The endpoint response lets the frontend distinguish full success from
-  save-success/email-failure.
 - Existing pension calculator endpoints and templates continue to work
   unchanged.
