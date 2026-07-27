@@ -48,6 +48,8 @@ export type QuickReportSubmitResponse = {
 };
 
 const DEFAULT_STANDARD_TAX_CODE = "1257L";
+const QUICK_REPORT_API_URL =
+  process.env.NEXT_PUBLIC_QUICK_REPORT_API_URL || "/api/justproveit/quick-report/faza0";
 
 export function getStandardTaxCode() {
   return process.env.NEXT_PUBLIC_STANDARD_TAX_CODE || DEFAULT_STANDARD_TAX_CODE;
@@ -84,7 +86,7 @@ export function getQuickReportFlagCounts(results: QuickReportResult[]) {
 }
 
 export async function submitQuickReport(payload: QuickReportSubmitPayload) {
-  const response = await fetch(`${API_BASE_URL}/justproveit/quick-report/faza0`, {
+  const response = await fetch(resolveQuickReportApiUrl(), {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -125,6 +127,17 @@ function evaluateTaxReclaim(answers: QuickReportAnswers): QuickReportResult {
     };
   }
 
+  if (answers.multipleJobs === "no" && answers.taxRecoveredLast5Years === "no") {
+    return {
+      code: "MF01",
+      title: "Cod fiscal (tax code) greșit",
+      flag: "galben",
+      output:
+        "Există multe spețe pe care se pot recupera taxe, de la marriage allowance până la tax allowance. Se pot pierde sute și mii de lire, iar taxele se pot recupera pe ultimii 5 ani.",
+      rawAnswer,
+    };
+  }
+
   return {
     code: "MF01",
     title: "Cod fiscal (tax code) greșit",
@@ -159,7 +172,7 @@ function evaluateCreditReport(answers: QuickReportAnswers): QuickReportResult {
     return {
       code: "MF02",
       title: "Credit score / raport de credit",
-      flag: "galben",
+      flag: "rosu",
       output:
         "Recomandăm o verificare gratuită a raportului de credit. O eroare în raportul de credit vă poate costa între £1,000 și £5,000 în doar câțiva ani, prin dobânzi mai mari și acces limitat la finanțare. În cazurile grave, pierderile pot depăși £10,000.",
       rawAnswer,
@@ -320,5 +333,17 @@ function readApiError(payload: unknown, fallback: string) {
     }
   }
 
+  if (fallback === "Not Found") {
+    return "Endpoint-ul pentru trimiterea raportului nu este disponibil inca.";
+  }
+
   return fallback || "Raportul nu a putut fi trimis.";
+}
+
+function resolveQuickReportApiUrl() {
+  if (/^https?:\/\//i.test(QUICK_REPORT_API_URL) || QUICK_REPORT_API_URL.startsWith("/")) {
+    return QUICK_REPORT_API_URL;
+  }
+
+  return `${API_BASE_URL}/${QUICK_REPORT_API_URL.replace(/^\/+/, "")}`;
 }

@@ -4,18 +4,27 @@
 
 The frontend page `/ro/raport-gratuit` is implemented in this repository.
 It evaluates the 6 quick checks client-side and submits the completed report
-through the same external API base used by the pension calculator:
+to `NEXT_PUBLIC_QUICK_REPORT_API_URL`, defaulting to this repository's Static
+Web Apps API route:
 
-`NEXT_PUBLIC_API_BASE_URL`, defaulting to `https://apiprocess.azurewebsites.net/api`.
+`/api/justproveit/quick-report/faza0`.
 
-This repository does not contain the existing pension calculator email service,
-lead persistence, or email template engine. Implement the save/email endpoint in
-the API service that already handles:
+If `NEXT_PUBLIC_QUICK_REPORT_API_URL` is configured as a relative path without a
+leading slash, the frontend resolves it against `NEXT_PUBLIC_API_BASE_URL`.
+
+This repository includes a minimal Static Web Apps function for the endpoint,
+using Resend to send the report email. For the fuller backend implementation
+with lead/report persistence, implement the save/email endpoint in the API
+service that already handles:
 
 - `POST /justproveit/pension-calculator/calculate`
 - `POST /justproveit/pension-calculator/results/{resultId}/email`
 
 ## Endpoint
+
+`POST /api/justproveit/quick-report/faza0`
+
+The equivalent route value inside Azure Functions is:
 
 `POST /justproveit/quick-report/faza0`
 
@@ -108,6 +117,12 @@ Minimum result fields:
 
 Send the client an email using the same provider/template infrastructure as the
 pension calculator.
+
+The Static Web Apps function expects:
+
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+- optional `RESEND_REPLY_TO_EMAIL`
 
 Email content:
 
