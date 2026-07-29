@@ -332,6 +332,18 @@ export type ManualCrmLeadPayload = {
   agent?: string;
 };
 
+export type ManualCrmLeadCreateResponse = {
+  success?: boolean;
+  lead?: CrmLead | null;
+  accepted?: boolean;
+  queued?: boolean;
+  jobId?: string | null;
+  requestId?: string | null;
+  operationId?: string | null;
+  statusUrl?: string | null;
+  message?: string | null;
+};
+
 export type ManualCrmEmailPayload = {
   email: string;
   firstName?: string;
@@ -594,7 +606,7 @@ export function sendManualCrmSms(token: string, payload: ManualCrmSmsPayload) {
 }
 
 export function insertManualCrmLead(token: string, payload: ManualCrmLeadPayload) {
-  return fetchDirectJson<{ success: boolean; lead: CrmLead }>(ASAP_LEAD_API_URL, {
+  return fetchDirectJson<ManualCrmLeadCreateResponse | null>(ASAP_LEAD_API_URL, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(payload),

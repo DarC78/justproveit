@@ -782,6 +782,15 @@ export default function AdminCrmPage() {
                     setActiveTabState("details");
                     setStatusMessage("Lead adaugat.");
                   }}
+                  onAccepted={(reference) => {
+                    setSelectedLead(blankLead());
+                    setSelectedIntent(null);
+                    setStatusMessage(
+                      reference
+                        ? `Lead preluat pentru procesare. Referinta: ${reference}.`
+                        : "Lead preluat pentru procesare.",
+                    );
+                  }}
                   onError={setErrorMessage}
                 />
               ) : null}
@@ -1555,11 +1564,13 @@ function NewLeadPanel({
   token,
   agentName,
   onCreated,
+  onAccepted,
   onError,
 }: {
   token: string;
   agentName: string;
   onCreated: (lead: CrmLead) => void;
+  onAccepted: (reference?: string | null) => void;
   onError: (message: string) => void;
 }) {
   const [fullName, setFullName] = useState("");
@@ -1587,7 +1598,11 @@ function NewLeadPanel({
       setPhoneNumber("");
       setLanguage("");
       setService("simulator pensie");
-      onCreated(result.lead);
+      if (result?.lead) {
+        onCreated(result.lead);
+      } else {
+        onAccepted(result?.jobId || result?.requestId || result?.operationId || null);
+      }
       onError("");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Nu am putut adauga lead-ul.");
