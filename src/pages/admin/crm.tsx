@@ -252,6 +252,51 @@ function mergeCurrentOption(options: string[], current?: string | null) {
   return [value, ...options];
 }
 
+const EXPLICIT_ONLY_LEAD_INTENT_OPTIONS = ["JobApplications"];
+
+function normalizeLeadIntentType(value?: string | null) {
+  return String(value || "")
+    .replace(/[^a-z0-9]/gi, "")
+    .toUpperCase();
+}
+
+function isExplicitOnlyLeadIntent(value?: string | null) {
+  const normalized = normalizeLeadIntentType(value);
+  return EXPLICIT_ONLY_LEAD_INTENT_OPTIONS.some(
+    (intent) => normalizeLeadIntentType(intent) === normalized,
+  );
+}
+
+function shouldHideExplicitOnlyLeadIntents(intent: string) {
+  return String(intent || "").trim().toLowerCase() === "all";
+}
+
+function filterExplicitOnlyLeadIntents(rows: CrmLeadIntentRow[], intent: string) {
+  if (!shouldHideExplicitOnlyLeadIntents(intent)) {
+    return rows;
+  }
+
+  return rows.filter((row) => !isExplicitOnlyLeadIntent(row.interestType));
+}
+
+function mergeLeadIntentOptions(options: string[], current?: string | null) {
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  for (const item of [...options, ...EXPLICIT_ONLY_LEAD_INTENT_OPTIONS]) {
+    const value = String(item || "").trim();
+    const key = value.toLowerCase();
+    if (!value || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    merged.push(value);
+  }
+
+  return mergeCurrentOption(merged, current);
+}
+
 function formatLanguage(value?: string | null) {
   const text = String(value || "").trim();
   return LANGUAGE_LABELS[text.toLowerCase()] || text;
@@ -2121,11 +2166,20 @@ function LeadIntentPanel({
         limit: 300,
       });
       const nextRows = result.rows || result.items || [];
+      const rowsWithoutExplicitOnlyIntents = filterExplicitOnlyLeadIntents(nextRows, intent);
       const shouldFilterCalendlyToday = showCalendlyOnlyToday && calendlyOnlyToday;
-      const visibleRows = shouldFilterCalendlyToday ? nextRows.filter(isLeadIntentContactToday) : nextRows;
-      const summary = shouldFilterCalendlyToday ? summarizeLeadIntentRows(visibleRows) : result.leadSummary || {};
+      const visibleRows = shouldFilterCalendlyToday
+        ? rowsWithoutExplicitOnlyIntents.filter(isLeadIntentContactToday)
+        : rowsWithoutExplicitOnlyIntents;
+      const summary = shouldFilterCalendlyToday || shouldHideExplicitOnlyLeadIntents(intent)
+        ? summarizeLeadIntentRows(visibleRows)
+        : result.leadSummary || {};
       setRows(visibleRows);
-      setSelectedLeadsTotal(shouldFilterCalendlyToday ? visibleRows.length : result.total ?? 0);
+      setSelectedLeadsTotal(
+        shouldFilterCalendlyToday || shouldHideExplicitOnlyLeadIntents(intent)
+          ? visibleRows.length
+          : result.total ?? 0,
+      );
       setResultText(
         `Total Leads: ${summary.totalLeads ?? 0} | ASAP ${summary.asap ?? 0} | Calendly ${summary.calendly ?? 0} | Car Finance ${summary.carFinance ?? 0} | International Pensions ${summary.internationalPensions ?? 0}`,
       );
@@ -2164,7 +2218,7 @@ function LeadIntentPanel({
         <label>Intent</label>
         <select value={intent} onChange={(event) => setIntent(event.target.value)}>
           <option value="all">all</option>
-          {mergeCurrentOption(intentOptions, intent === "all" ? "" : intent).map((item) => (
+          {mergeLeadIntentOptions(intentOptions, intent === "all" ? "" : intent).map((item) => (
             <option key={item} value={item}>
               {item}
             </option>
