@@ -26,37 +26,41 @@ In the email section titled:
 
 Do not render authority address/phone/email/contact-detail blocks.
 
-Render only these concise labels, with the existing relevant links preserved:
+Render only these concise labels as plain text, with no hyperlinks:
 
 - `Romania - date de contact`
 - `UK - International Pension Centre - date de contact`
 
-### JustProveIt-domain outbound links
+### Authority contact labels must not be links
 
-These destination URLs must not appear directly in the email:
+The two authority contact labels must not be wrapped in `<a>` tags and must not render as Markdown links.
 
-- `https://www.gov.uk/state-pension-age`
+These destination URLs must not appear in the email HTML or plain-text body:
+
 - `https://www.cnpp.ro/contact`
+- `https://www.cnpp.ro/relatii-cu-publicul`
 - `https://www.gov.uk/international-pension-centre`
 
-Instead, each link should go through a `justproveit.co.uk` URL that redirects/tracks to the final destination.
+If the email currently renders these as Markdown links, replace:
 
-Suggested route pattern:
+- `[Romania - date de contact](https://www.cnpp.ro/relatii-cu-publicul)`
+- `[UK - International Pension Centre - date de contact](https://www.gov.uk/international-pension-centre)`
 
-`https://www.justproveit.co.uk/go?to=<encoded-url>&source=pension-calculator-email`
+with:
 
-If the API already has a preferred tracking/redirect route, use that instead, as long as the visible `href` domain is `www.justproveit.co.uk` or `justproveit.co.uk`.
+- `Romania - date de contact`
+- `UK - International Pension Centre - date de contact`
 
 ## Acceptance criteria
 
 - A pension simulation email is delivered from `Adrian Defta <adrian@mail.justproveit.co.uk>`.
 - The email section `Unde puteti depune/verifica dosarul de pensie` does not include full contact details for CNPP/Romania or the UK International Pension Centre.
-- The same section includes the labels:
+- The same section includes the plain-text labels:
   - `Romania - date de contact`
   - `UK - International Pension Centre - date de contact`
-- The email HTML does not contain direct `href` values for:
-  - `https://www.gov.uk/state-pension-age`
+- The email HTML does not contain links around those two labels.
+- The email HTML and plain-text body do not contain:
   - `https://www.cnpp.ro/contact`
+  - `https://www.cnpp.ro/relatii-cu-publicul`
   - `https://www.gov.uk/international-pension-centre`
-- The three links route via the JustProveIt domain and redirect to the correct final public pages.
 - Existing pension result data and CTA/template layout remain otherwise unchanged.

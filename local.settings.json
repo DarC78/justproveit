@@ -1,0 +1,6 @@
+{
+  "IsEncrypted": false,
+  "Values": {
+    "SqlConnectionString": "Server=82.76.172.205,1433;Initial Catalog=LaunchingStack;User ID=Proveit;Password=Pvr_2026_Srse34_eft23_63yh3_9kLm4xQ7;Encrypt=True;TrustServerCertificate=True;Connection Timeout=30;"
+  }
+}

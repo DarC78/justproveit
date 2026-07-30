@@ -53,33 +53,57 @@ const CODE_REPLY_TEMPLATES: ReplyTemplate[] = [
     key: "felicitari",
     label: "felicitari",
     sortOrder: 10,
-    plainText: `Buna ziua,
+    plainText: `Actualizare dosar Proveit
+Stadiul procesului de recuperare
+Informatii despre schema FCA si despre dosarul pe care il aveti cu noi.
 
-Felicitari! Finantatorul v-a retinut complaint-ul, prin urmare sunteti in primul val care isi va recupera banii. 
+Client
+{{customerName}}
 
-Sunt 3 spete pentru care se recupereaza banii. Una se cheama DCA cealalta. Alta in care comisionul era mai mare de 35% din dobanda. Si cea de-a treia speta in care exista o relatie de unu la unu intre dealer si finantaror. 
+1. Informatii generale
+Buna ziua,
 
-In 30 Martie 2026 FCA a comunicat toate formulele de calcul. Finantatorii au 3 luni sa isi puna la punct sistemele informatice (adica pana pe 30 iunie). Dupa aceasta data incep sa trimita deciziile. Au maxim 3 luni (adica pana pe 30 Septembrie), sa rezolve plangerile. 
+Felicitari! Finantatorul v-a retinut complaint-ul, prin urmare ati trecut de una dintre cele mai importante etape ale procesului.
 
-Prin emailul lor va confirma ca au retinut complaint-ul. Cand mai primiti vreo notificare de la ei o sa va rog sa ne spuneti. 
-Este foarte important ca ati depasit aceasta etapa inainte sa inceapa schema de compensare. Asta inseamna ca veti fi in primul val de ramburs. 
+Acesta este un email prin care va explicam stadiul procesului de recuperare, dosarul pe care il aveti cu noi si ce aveti de facut in continuare.
+
+Pe 30 Martie 2026 FCA a demarat schema de recuperare si a comunicat formulele de calcul. Toti cei care au demarat procesul de recuperare inainte de inceperea schemei vor intra in primul val de recuperare si vor primi deciziile intre Iunie si Septembrie 2026.
+
+Toti clientii Proveit, ca si dumneavoastra, au demarat procesul. Asta inseamna ca ar trebui sa fiti in primul val de ramburs. Mentionam ca, potrivit FCA, acesta este termenul maximal. Unii finantatori pot raspunde chiar mai devreme.
+
+Prin emailul primit de la finantator, ei confirma ca au retinut complaint-ul. Cand mai primiti orice notificare de la ei, va rugam sa ne-o trimiteti pentru verificare.
 
 https://www.fca.org.uk/news/statements/fca-confirms-motor-finance-redress-scheme
 
-Avem un program prin care puteti castiga cateva sute de lire pe luna. Noi vom infiinta o pagina pe site-ul nostru cu testimoniale de la clientii nostrii. Cand cineva intra la noi pe site, vede si da click pe testimonialul dvs, si devine client, atunci dumneavoastra primiti £35. Pentru fiecare persoana.
+2. Despre dosarul dvs.
+Dumneavoastra ne sunteti client din data de {{customerSinceLabel}}. In acest moment va rugam sa asteptati urmatoarea comunicare de la finantator, iar cand o primiti sa ne-o trimiteti pentru verificare.
 
-Mai mult, in fiecare luna avem o tombola iar un testimonial va castiga £50.
+In acest moment nu mai aveti nimic de facut.
 
-Daca ati vrea sa participati tot ce aveti de facut este sa ne lasati un testimonial scris asupra interactiunii cu firma noastra si sa atasati o poza dupa decizia dvs. (acoperiti-va datele personale).
+Sunt 3 spete principale pentru care se recupereaza banii:
 
-Sincer, chiar daca nu ati dori sa participati, tot am aprecia foarte mult feedback-ul dumneavoastra sincer. Suntem o echipa tanara si la inceput de drum si avem nevoie de sustinerea clientilor nostrii.
+1. DCA - atunci cand dealerul avea libertatea sa modifice dobanda pentru a primi un comision mai mare.
+2. Comision foarte mare - atunci cand valoarea comisionului depasea 35% din dobanda.
+3. Relatie directa intre dealer si finantator - atunci cand exista o relatie unu la unu intre dealer si finantator.
 
-Puteti sa il lasati aici: https://uk.trustpilot.com/review/proveitweb.co.uk
+3. Asigurati-va ca nu ati semnat fara sa stiti si cu o firma de avocatura
+Multe firme de avocatura au website-uri foarte inselatoare. Pare ca verificati ceva gratuit, dar in realitate puteti semna o imputernicire prin care acea firma va reprezinta si poate lua aproape 50% din ce se recupereaza.
+
+Aveti aici un video in care dl. Adrian explica cat de usor puteti cadea in aceasta capcana si cat de mult va poate costa:
+
+https://youtu.be/3wwhwmA1MdY
+
+Daca ati semnat cu o astfel de firma, va rugam sa ne spuneti numele firmei si vom incerca sa va ajutam sa iesiti din contract fara sa platiti ceva.
+
+4. Feedback si testimonial
+Daca ati vrea sa ne ajutati, am aprecia foarte mult un testimonial despre interactiunea cu firma noastra. Suntem o echipa tanara si la inceput de drum, iar feedback-ul clientilor nostri ne ajuta enorm.
+
+Puteti lasa un review aici:
+https://uk.trustpilot.com/review/proveitweb.co.uk
 
 Pentru orice alte intrebari va stam la dispozitie.
 
-
-Cu respect,
+O zi buna,
 Echipa de suport ProveIt
 `,
   },
@@ -2290,13 +2314,21 @@ function renderTemplateText(
     template.body ??
     stripHtml(template.html ?? "");
   const fallbackEmail = message ? buildContextEmail(message) : "";
-  const firstName = getCustomerName(customer, fallbackEmail).split(" ")[0];
+  const customerName = getCustomerName(customer, fallbackEmail);
+  const firstName = customerName.split(" ")[0];
+  const customerSinceLabel =
+    getCustomerString(customer, ["customerSinceLabel", "customerSince"]) ||
+    "mentionata in sistemul nostru";
 
   return raw
     .replaceAll("{{firstName}}", firstName)
     .replaceAll("{firstName}", firstName)
-    .replaceAll("{{customerName}}", getCustomerName(customer, firstName))
-    .replaceAll("{{email}}", message ? buildContextEmail(message) : "");
+    .replaceAll("{{customerName}}", customerName || firstName)
+    .replaceAll("{customerName}", customerName || firstName)
+    .replaceAll("{{customerSinceLabel}}", customerSinceLabel)
+    .replaceAll("{customerSinceLabel}", customerSinceLabel)
+    .replaceAll("{{email}}", message ? buildContextEmail(message) : "")
+    .replaceAll("{email}", message ? buildContextEmail(message) : "");
 }
 
 function getLocalizedTemplateText(
