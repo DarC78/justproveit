@@ -465,13 +465,31 @@ function mergeLanguageOptions(options: string[]) {
   return merged;
 }
 
+const HIDDEN_LEAD_INTENT_SERVICE_OPTIONS = ["Book Call", "Inbound SMS", "Missed Calls"];
+
+function isHiddenLeadIntentServiceValue(value?: string | null) {
+  const normalized = normalizeLeadIntentType(value);
+  return HIDDEN_LEAD_INTENT_SERVICE_OPTIONS.some(
+    (service) => normalizeLeadIntentType(service) === normalized,
+  );
+}
+
+function isHiddenLeadIntentServiceOption(item: { serviceKey?: string | null; displayName?: string | null }) {
+  return isHiddenLeadIntentServiceValue(item.serviceKey) || isHiddenLeadIntentServiceValue(item.displayName);
+}
+
 function mergeServiceOptions(
   options: Array<{ serviceKey: string; displayName?: string | null }>,
   current?: string | null,
 ) {
-  const serviceOptions = options.filter((item) => item.serviceKey);
+  const serviceOptions = options.filter((item) => item.serviceKey && !isHiddenLeadIntentServiceOption(item));
   const currentValue = String(current || "").trim();
-  if (!currentValue || currentValue === "all" || serviceOptions.some((item) => item.serviceKey === currentValue)) {
+  if (
+    !currentValue ||
+    currentValue === "all" ||
+    isHiddenLeadIntentServiceValue(currentValue) ||
+    serviceOptions.some((item) => item.serviceKey === currentValue)
+  ) {
     return serviceOptions;
   }
 
