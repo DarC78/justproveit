@@ -2717,6 +2717,7 @@ function InboundSmsPanel({
             ])}
             loading={historyLoading}
             minWidth={880}
+            className="inbound-history-table"
           />
         </div>
       </div>
@@ -3248,6 +3249,36 @@ function DataTable({
         }
         tbody tr.sms-past_due td:last-child {
           background: #ffc6bf;
+        }
+        .inbound-history-table :global(table) {
+          table-layout: fixed;
+        }
+        .inbound-history-table :global(th),
+        .inbound-history-table :global(td) {
+          white-space: normal;
+          word-break: break-word;
+        }
+        .inbound-history-table :global(th:nth-child(1)),
+        .inbound-history-table :global(td:nth-child(1)),
+        .inbound-history-table :global(th:nth-child(2)),
+        .inbound-history-table :global(td:nth-child(2)),
+        .inbound-history-table :global(th:nth-child(3)),
+        .inbound-history-table :global(td:nth-child(3)),
+        .inbound-history-table :global(th:nth-child(4)),
+        .inbound-history-table :global(td:nth-child(4)),
+        .inbound-history-table :global(th:nth-child(6)),
+        .inbound-history-table :global(td:nth-child(6)),
+        .inbound-history-table :global(th:nth-child(8)),
+        .inbound-history-table :global(td:nth-child(8)) {
+          width: 10%;
+        }
+        .inbound-history-table :global(th:nth-child(5)),
+        .inbound-history-table :global(td:nth-child(5)) {
+          width: 30%;
+        }
+        .inbound-history-table :global(th:nth-child(7)),
+        .inbound-history-table :global(td:nth-child(7)) {
+          width: 20%;
         }
         .sales-table :global(th:first-child),
         .sales-table :global(td:first-child) {
