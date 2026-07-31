@@ -252,7 +252,7 @@ function mergeCurrentOption(options: string[], current?: string | null) {
   return [value, ...options];
 }
 
-const EXPLICIT_ONLY_LEAD_INTENT_OPTIONS = ["JobApplications"];
+const HIDDEN_LEAD_INTENT_OPTIONS = ["JobApplication", "JobApplications"];
 
 function normalizeLeadIntentType(value?: string | null) {
   return String(value || "")
@@ -262,7 +262,7 @@ function normalizeLeadIntentType(value?: string | null) {
 
 function isExplicitOnlyLeadIntent(value?: string | null) {
   const normalized = normalizeLeadIntentType(value);
-  return EXPLICIT_ONLY_LEAD_INTENT_OPTIONS.some(
+  return HIDDEN_LEAD_INTENT_OPTIONS.some(
     (intent) => normalizeLeadIntentType(intent) === normalized,
   );
 }
@@ -283,10 +283,10 @@ function mergeLeadIntentOptions(options: string[], current?: string | null) {
   const seen = new Set<string>();
   const merged: string[] = [];
 
-  for (const item of [...options, ...EXPLICIT_ONLY_LEAD_INTENT_OPTIONS]) {
+  for (const item of options) {
     const value = String(item || "").trim();
     const key = value.toLowerCase();
-    if (!value || seen.has(key)) {
+    if (!value || isExplicitOnlyLeadIntent(value) || seen.has(key)) {
       continue;
     }
 
@@ -294,7 +294,7 @@ function mergeLeadIntentOptions(options: string[], current?: string | null) {
     merged.push(value);
   }
 
-  return mergeCurrentOption(merged, current);
+  return mergeCurrentOption(merged, isExplicitOnlyLeadIntent(current) ? null : current);
 }
 
 function formatLanguage(value?: string | null) {
