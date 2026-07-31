@@ -67,6 +67,17 @@ export type CrmActivity = {
   action?: string | null;
   state?: string | null;
   agent?: string | null;
+  direction?: string | null;
+  type?: string | null;
+  eventType?: string | null;
+  phone?: string | null;
+  phoneNumber?: string | null;
+  normalizedPhone?: string | null;
+  message?: string | null;
+  body?: string | null;
+  smsBody?: string | null;
+  text?: string | null;
+  content?: string | null;
   param1?: string | null;
   param2?: string | null;
   param3?: string | null;
@@ -95,6 +106,10 @@ export type CrmInboundSms = {
   receivedAtUtc?: string | null;
   receivedAt?: string | null;
   createdAtUtc?: string | null;
+  lastMessageAtUtc?: string | null;
+  lastSmsAtUtc?: string | null;
+  direction?: string | null;
+  lastDirection?: string | null;
   fromPhone?: string | null;
   phone?: string | null;
   phoneNumber?: string | null;
@@ -113,6 +128,9 @@ export type CrmInboundSms = {
   fullName?: string | null;
   source?: string | null;
   providerMessageId?: string | null;
+  messageCount?: number | null;
+  inboundCount?: number | null;
+  outboundCount?: number | null;
 };
 
 export type CrmSale = {

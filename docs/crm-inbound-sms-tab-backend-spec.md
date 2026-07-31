@@ -6,7 +6,11 @@ Support a new CRM tab on:
 
 `https://justproveit.co.uk/admin/crm/?tab=inboundSms`
 
-The tab will show received SMS messages, let an agent click one SMS to see the phone number history, and let the agent reply through the existing manual SMS endpoint.
+The tab will show received SMS messages grouped into phone-number threads, let an agent click one thread to see the
+phone number history, and let the agent reply through the existing manual SMS endpoint.
+
+The frontend groups received SMS messages by phone number into threads. The list status is the status of the latest SMS
+for that phone number.
 
 Do not use the Twilio webhook endpoint as the read endpoint. This endpoint remains the inbound receiver:
 
@@ -52,6 +56,10 @@ Supported query params:
 - `offset`: optional number
 
 If `dateBegin` or `dateEnd` is supplied, use the explicit date window instead of `receivedLastDays`.
+
+The frontend can group individual inbound SMS rows by `normalizedPhone`/phone number. For accurate thread status after
+an agent replies, the latest inbound SMS row for that phone number should be returned with `status = "answered"` and
+reply metadata such as `lastReplyAtUtc` or `answeredAtUtc`.
 
 Suggested response:
 
@@ -169,7 +177,12 @@ Recommended activity row conventions:
 
 - inbound SMS: `action = "Inbound SMS"`
 - outbound SMS: `action = "Outbound SMS"` or `action = "Manual SMS"`
+- SMS direction: use `direction = "inbound" | "outbound"` when possible; otherwise the frontend infers it from `action`
+- SMS body: use `message`, `body`, `smsBody`, `text`, or `param2`
 - calls: include call direction, call code, call result, queue/campaign, agent, and timestamp in existing param fields
+
+The selected thread transcript is rendered from this activity response. If outbound manual replies are not present here,
+the frontend can still show inbound messages from the list response, but it cannot show the full two-way SMS thread.
 
 ## Reply Behavior
 
@@ -220,10 +233,12 @@ The read endpoint should not expose Twilio secrets, webhook signatures, or inter
 - The endpoint supports pagination through `limit` and `offset`.
 - The endpoint supports filtering by `phone` and `status`.
 - Each row has one of: `answered`, `to_be_answered`, `past_due`.
+- Rows can be individual inbound SMS messages; the frontend groups them into phone-number threads.
 - An answered SMS is returned with `status = "answered"` and enough reply metadata for the UI.
 - An unanswered SMS older than 24 hours is returned with `status = "past_due"`.
 - An unanswered SMS less than or equal to 24 hours old is returned with `status = "to_be_answered"`.
 - `GET /justproveit/admin/crm/activity?phone=...&limit=500` returns SMS and call history for the selected phone.
+- The activity response includes inbound and outbound SMS bodies, timestamps, and direction.
 - `POST /justproveit/admin/crm/manual-sms` sends the reply and records it in activity/history.
 - After a successful manual reply, refreshing the inbound SMS list shows the message as `answered`.
 - No full SMS bodies or full phone numbers are written to application logs.

@@ -44,6 +44,16 @@ type TabKey =
   | "highLevelFunnels"
   | "missed";
 type GateStatus = "checking" | "allowed" | "denied";
+type InboundSmsThreadStatus = "answered" | "to_be_answered" | "past_due";
+type InboundSmsThread = {
+  phone: string;
+  phoneKey: string;
+  messages: CrmInboundSms[];
+  lastSms: CrmInboundSms;
+  lastAt: string | null;
+  status: InboundSmsThreadStatus;
+  leadName: string;
+};
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "details", label: "Detalii Lead" },
@@ -2443,13 +2453,43 @@ function InboundSmsPanel({
   const [phoneFilter, setPhoneFilter] = useState("");
   const [smsRows, setSmsRows] = useState<CrmInboundSms[]>([]);
   const [total, setTotal] = useState(0);
-  const [selectedSms, setSelectedSms] = useState<CrmInboundSms | null>(null);
+  const [selectedThreadPhone, setSelectedThreadPhone] = useState("");
   const [activityRows, setActivityRows] = useState<CrmActivity[]>([]);
   const [loading, setLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
   const [localMessage, setLocalMessage] = useState("");
+  const threadRows = useMemo(() => groupInboundSmsThreads(smsRows), [smsRows]);
+  const selectedThread = useMemo(
+    () => threadRows.find((thread) => thread.phoneKey === selectedThreadPhone) || null,
+    [selectedThreadPhone, threadRows],
+  );
+  const conversationRows = useMemo(() => {
+    const activitySmsRows = activityRows
+      .filter(isSmsActivity)
+      .map((item) => ({
+        timestamp: item.timestamp || null,
+        direction: getActivitySmsDirection(item),
+        body: getActivitySmsBody(item),
+        agent: item.agent || "",
+      }))
+      .filter((item) => item.body || item.timestamp)
+      .sort((left, right) => getDateTimeValue(left.timestamp) - getDateTimeValue(right.timestamp));
+
+    if (activitySmsRows.length) {
+      return activitySmsRows;
+    }
+
+    return (selectedThread?.messages || [])
+      .map((sms) => ({
+        timestamp: getInboundSmsReceivedAt(sms),
+        direction: "inbound" as const,
+        body: getInboundSmsMessage(sms),
+        agent: "",
+      }))
+      .sort((left, right) => getDateTimeValue(left.timestamp) - getDateTimeValue(right.timestamp));
+  }, [activityRows, selectedThread]);
 
   useEffect(() => {
     loadInboundSms();
@@ -2470,14 +2510,9 @@ function InboundSmsPanel({
       const nextRows = result.items || result.rows || result.messages || [];
       setSmsRows(nextRows);
       setTotal(result.total ?? nextRows.length);
-      if (selectedSms) {
-        const selectedId = getInboundSmsId(selectedSms);
-        const updatedSelected = selectedId
-          ? nextRows.find((row) => getInboundSmsId(row) === selectedId)
-          : null;
-        if (updatedSelected) {
-          setSelectedSms(updatedSelected);
-        }
+      if (selectedThreadPhone && !groupInboundSmsThreads(nextRows).some((thread) => thread.phoneKey === selectedThreadPhone)) {
+        setSelectedThreadPhone("");
+        setActivityRows([]);
       }
       onError("");
     } catch (error) {
@@ -2497,10 +2532,9 @@ function InboundSmsPanel({
     }
   }
 
-  async function loadPhoneHistory(sms: CrmInboundSms) {
-    const phone = getInboundSmsPhone(sms);
+  async function loadPhoneHistory(phone: string) {
     if (!phone) {
-      onError("SMS-ul selectat nu are telefon.");
+      onError("Threadul selectat nu are telefon.");
       return;
     }
 
@@ -2516,21 +2550,22 @@ function InboundSmsPanel({
     }
   }
 
-  async function handleSelectSms(sms: CrmInboundSms) {
-    setSelectedSms(sms);
+  async function handleSelectThread(thread: InboundSmsThread) {
+    setSelectedThreadPhone(thread.phoneKey);
+    setActivityRows([]);
     setReplyText("");
-    await loadPhoneHistory(sms);
+    await loadPhoneHistory(thread.phone);
   }
 
   async function handleSendReply() {
-    if (!selectedSms) {
-      onError("Selecteaza un SMS inainte de raspuns.");
+    if (!selectedThread) {
+      onError("Selecteaza un thread inainte de raspuns.");
       return;
     }
 
-    const phone = getInboundSmsPhone(selectedSms);
+    const phone = selectedThread.phone;
     if (!phone) {
-      onError("SMS-ul selectat nu are telefon.");
+      onError("Threadul selectat nu are telefon.");
       return;
     }
 
@@ -2549,7 +2584,7 @@ function InboundSmsPanel({
       setReplyText("");
       onStatus("SMS-ul a fost trimis.");
       onError("");
-      await loadPhoneHistory(selectedSms);
+      await loadPhoneHistory(phone);
       await loadInboundSms();
     } catch (error) {
       onError(error instanceof Error ? error.message : "Nu am putut trimite raspunsul SMS.");
@@ -2591,40 +2626,62 @@ function InboundSmsPanel({
         </button>
       </div>
 
-      <p className="green-label">Total SMS: {total}</p>
+      <p className="green-label">
+        Threaduri SMS: {threadRows.length} / SMS inbound: {total}
+      </p>
       {localMessage ? <p className="inbound-local-message">{localMessage}</p> : null}
 
       <DataTable
-        columns={["Received", "Status", "Phone", "Lead", "Message", "Answered at", "Agent"]}
-        rows={smsRows.map((sms) => [
-          formatDateTime(getInboundSmsReceivedAt(sms)),
-          formatInboundSmsStatusLabel(getInboundSmsStatus(sms)),
-          getInboundSmsPhone(sms),
-          getInboundSmsLeadName(sms),
-          getInboundSmsPreview(sms),
-          formatDateTime(sms.answeredAtUtc || sms.lastReplyAtUtc),
-          sms.replyAgent,
+        columns={["Ultimul SMS", "Status", "Phone", "Lead", "SMS-uri", "Ultimul mesaj", "Answered at", "Agent"]}
+        rows={threadRows.map((thread) => [
+          formatDateTime(thread.lastAt),
+          formatInboundSmsStatusLabel(thread.status),
+          thread.phone,
+          thread.leadName,
+          getInboundSmsThreadCount(thread),
+          getInboundSmsPreview(thread.lastSms),
+          formatDateTime(thread.lastSms.answeredAtUtc || thread.lastSms.lastReplyAtUtc),
+          thread.lastSms.replyAgent,
         ])}
         loading={loading}
         onRowClick={(index) => {
-          const sms = smsRows[index];
-          if (sms) {
-            void handleSelectSms(sms);
+          const thread = threadRows[index];
+          if (thread) {
+            void handleSelectThread(thread);
           }
         }}
-        rowClassName={(index) => `sms-${getInboundSmsStatus(smsRows[index])}`}
-        minWidth={1180}
+        rowClassName={(index) => `sms-${threadRows[index]?.status || "to_be_answered"}`}
+        minWidth={1260}
       />
 
       <div className="inbound-sms-detail">
         <div className="inbound-selected">
-          <h2>SMS selectat</h2>
-          {selectedSms ? (
+          <h2>Thread selectat</h2>
+          {selectedThread ? (
             <>
-              <LabelValue label="Telefon:" value={getInboundSmsPhone(selectedSms)} />
-              <LabelValue label="Status:" value={formatInboundSmsStatusLabel(getInboundSmsStatus(selectedSms))} />
-              <LabelValue label="Primit:" value={formatDateTime(getInboundSmsReceivedAt(selectedSms))} />
-              <div className="inbound-message-body">{getInboundSmsMessage(selectedSms)}</div>
+              <LabelValue label="Telefon:" value={selectedThread.phone} />
+              <LabelValue label="Status:" value={formatInboundSmsStatusLabel(selectedThread.status)} />
+              <LabelValue label="Ultimul SMS:" value={formatDateTime(selectedThread.lastAt)} />
+              <div className="inbound-message-body">
+                {historyLoading && !conversationRows.length ? (
+                  <p>Se incarca conversatia...</p>
+                ) : conversationRows.length ? (
+                  conversationRows.map((item, index) => (
+                    <div
+                      key={`${item.timestamp || index}-${index}`}
+                      className={`sms-transcript-item sms-transcript-${item.direction}`}
+                    >
+                      <div className="sms-transcript-meta">
+                        {formatDateTime(item.timestamp)} - {item.direction === "outbound" ? "outbound" : "inbound"}
+                        {item.agent ? ` - ${item.agent}` : ""}
+                      </div>
+                      <div className="sms-transcript-body">{item.body}</div>
+                    </div>
+                  ))
+                ) : (
+                  <p>Nu exista SMS-uri in istoricul disponibil.</p>
+                )}
+              </div>
               <textarea
                 value={replyText}
                 onChange={(event) => setReplyText(event.target.value)}
@@ -2640,7 +2697,7 @@ function InboundSmsPanel({
               </button>
             </>
           ) : (
-            <p>Selecteaza un SMS din lista.</p>
+            <p>Selecteaza un thread din lista.</p>
           )}
         </div>
 
@@ -3690,13 +3747,37 @@ const panelStyles = `
   }
   .inbound-message-body {
     min-height: 120px;
-    max-height: 240px;
+    max-height: 360px;
     overflow: auto;
     margin: 12px 0;
     border: 1px solid #555;
     padding: 12px;
     font-size: 13px;
     line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .sms-transcript-item {
+    border-left: 4px solid #666;
+    padding: 8px 10px;
+    margin-bottom: 10px;
+    background: #fff;
+  }
+  .sms-transcript-inbound {
+    border-left-color: #ff4b26;
+  }
+  .sms-transcript-outbound {
+    border-left-color: #258a3f;
+    background: #f0fbf3;
+  }
+  .sms-transcript-meta {
+    margin-bottom: 4px;
+    color: #555;
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+  .sms-transcript-body {
     white-space: pre-wrap;
     word-break: break-word;
   }
@@ -3786,7 +3867,7 @@ function getInboundSmsId(sms?: CrmInboundSms | null) {
 }
 
 function getInboundSmsReceivedAt(sms?: CrmInboundSms | null) {
-  return sms?.receivedAtUtc || sms?.receivedAt || sms?.createdAtUtc || null;
+  return sms?.lastMessageAtUtc || sms?.lastSmsAtUtc || sms?.receivedAtUtc || sms?.receivedAt || sms?.createdAtUtc || null;
 }
 
 function getInboundSmsPhone(sms?: CrmInboundSms | null) {
@@ -3802,6 +3883,47 @@ function getInboundSmsPreview(sms?: CrmInboundSms | null) {
   return message.length > 120 ? `${message.slice(0, 120)}...` : message;
 }
 
+function getPhoneThreadKey(phone?: string | null) {
+  const value = String(phone || "").trim();
+  const digits = value.replace(/\D/g, "");
+  return digits || value.toLowerCase();
+}
+
+function groupInboundSmsThreads(rows: CrmInboundSms[]): InboundSmsThread[] {
+  const grouped = new Map<string, CrmInboundSms[]>();
+
+  rows.forEach((sms, index) => {
+    const phone = getInboundSmsPhone(sms);
+    const key = getPhoneThreadKey(phone) || `unknown-${getInboundSmsId(sms) || index}`;
+    grouped.set(key, [...(grouped.get(key) || []), sms]);
+  });
+
+  return Array.from(grouped.entries())
+    .map(([phoneKey, messages]) => {
+      const sortedMessages = [...messages].sort(
+        (left, right) => getDateTimeValue(getInboundSmsReceivedAt(right)) - getDateTimeValue(getInboundSmsReceivedAt(left)),
+      );
+      const lastSms = sortedMessages[0];
+      const phone = getInboundSmsPhone(lastSms) || getInboundSmsPhone(messages[0]);
+      const leadName = sortedMessages.map(getInboundSmsLeadName).find(Boolean) || "";
+
+      return {
+        phone,
+        phoneKey,
+        messages: sortedMessages,
+        lastSms,
+        lastAt: getInboundSmsReceivedAt(lastSms),
+        status: getInboundSmsStatus(lastSms),
+        leadName,
+      };
+    })
+    .sort((left, right) => getDateTimeValue(right.lastAt) - getDateTimeValue(left.lastAt));
+}
+
+function getInboundSmsThreadCount(thread: InboundSmsThread) {
+  return thread.lastSms.messageCount || thread.lastSms.inboundCount || thread.messages.length;
+}
+
 function getInboundSmsLeadName(sms?: CrmInboundSms | null) {
   return String(sms?.leadName || sms?.fullName || sms?.leadId || sms?.contactId || "").trim();
 }
@@ -3810,6 +3932,11 @@ function getInboundSmsStatus(sms?: CrmInboundSms | null): "answered" | "to_be_an
   const status = String(sms?.status || "").trim().toLowerCase();
   if (status === "answered" || status === "to_be_answered" || status === "past_due") {
     return status;
+  }
+
+  const direction = String(sms?.lastDirection || sms?.direction || "").trim().toLowerCase();
+  if (direction.includes("outbound") || direction.includes("sent") || direction.includes("manual")) {
+    return "answered";
   }
 
   if (sms?.answered === true || sms?.answered === 1 || sms?.answered === "true" || sms?.answeredAtUtc || sms?.lastReplyAtUtc) {
@@ -3822,6 +3949,73 @@ function getInboundSmsStatus(sms?: CrmInboundSms | null): "answered" | "to_be_an
   }
 
   return "to_be_answered";
+}
+
+function isSmsActivity(item: CrmActivity) {
+  const haystack = [
+    item.action,
+    item.state,
+    item.direction,
+    item.type,
+    item.eventType,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return haystack.includes("sms") || haystack.includes("text message");
+}
+
+function getActivitySmsDirection(item: CrmActivity): "inbound" | "outbound" {
+  const haystack = [
+    item.direction,
+    item.action,
+    item.state,
+    item.type,
+    item.eventType,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    haystack.includes("outbound") ||
+    haystack.includes("manual") ||
+    haystack.includes("sent") ||
+    haystack.includes("reply")
+  ) {
+    return "outbound";
+  }
+
+  return "inbound";
+}
+
+function getActivitySmsBody(item: CrmActivity) {
+  const direct = firstNonEmpty(item.message, item.body, item.smsBody, item.text, item.content);
+  if (direct) {
+    return direct;
+  }
+
+  return firstNonEmpty(
+    item.param2,
+    item.param3,
+    item.param4,
+    item.param5,
+    looksLikePhoneValue(item.param1) ? "" : item.param1,
+  );
+}
+
+function firstNonEmpty(...values: Array<string | null | undefined>) {
+  return values.map((value) => String(value || "").trim()).find(Boolean) || "";
+}
+
+function looksLikePhoneValue(value?: string | null) {
+  const text = String(value || "").trim();
+  if (!text) {
+    return false;
+  }
+
+  return text.replace(/\D/g, "").length >= 9;
 }
 
 function formatInboundSmsStatusLabel(status: string) {
