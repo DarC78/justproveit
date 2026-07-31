@@ -86,6 +86,35 @@ export type CrmMissedCall = {
   lastconnectedcampaign?: string | null;
 };
 
+export type CrmInboundSmsStatus = "answered" | "to_be_answered" | "past_due" | string;
+
+export type CrmInboundSms = {
+  id?: string | number | null;
+  inboundSmsId?: string | number | null;
+  smsId?: string | number | null;
+  receivedAtUtc?: string | null;
+  receivedAt?: string | null;
+  createdAtUtc?: string | null;
+  fromPhone?: string | null;
+  phone?: string | null;
+  phoneNumber?: string | null;
+  normalizedPhone?: string | null;
+  message?: string | null;
+  body?: string | null;
+  smsBody?: string | null;
+  status?: CrmInboundSmsStatus | null;
+  answered?: boolean | number | string | null;
+  answeredAtUtc?: string | null;
+  lastReplyAtUtc?: string | null;
+  replyAgent?: string | null;
+  contactId?: string | null;
+  leadId?: string | null;
+  leadName?: string | null;
+  fullName?: string | null;
+  source?: string | null;
+  providerMessageId?: string | null;
+};
+
 export type CrmSale = {
   id?: string | null;
   wixId?: string | null;
@@ -297,6 +326,16 @@ export type CrmLeadIntentResponse = {
     agents?: Array<{ agentId: number; agentName?: string | null }>;
   };
   predictiveCampaignSummary?: CrmPredictiveCampaignSummary[];
+};
+
+export type CrmInboundSmsResponse = {
+  items?: CrmInboundSms[];
+  rows?: CrmInboundSms[];
+  messages?: CrmInboundSms[];
+  total?: number;
+  limit?: number;
+  offset?: number;
+  filters?: Record<string, string | number | null>;
 };
 
 export type CrmLeadUpdatePayload = {
@@ -574,6 +613,15 @@ export function listCrmMissedCalls(token: string, limit = 10) {
       headers: authHeaders(token),
     },
   );
+}
+
+export function listCrmInboundSms(
+  token: string,
+  params: Record<string, string | number | boolean | null | undefined>,
+) {
+  return fetchCanonicalCrmReadJson<CrmInboundSmsResponse>(`${BASE_PATH}/inbound-sms${buildQuery(params)}`, {
+    headers: authHeaders(token),
+  });
 }
 
 export function searchCrmActivity(

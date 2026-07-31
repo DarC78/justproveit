@@ -4,6 +4,7 @@ import {
   CrmActivity,
   CrmContactPhone,
   CrmHighLevelFunnelRow,
+  CrmInboundSms,
   CrmLead,
   CrmLeadIntentRow,
   CrmMissedCall,
@@ -14,6 +15,7 @@ import {
   findCrmLeadByPhone,
   getCrmSaleHistory,
   insertManualCrmLead,
+  listCrmInboundSms,
   listCrmLeadIntents,
   listCrmHighLevelFunnels,
   listCrmMissedCalls,
@@ -31,7 +33,16 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
-type TabKey = "details" | "new" | "sales" | "all" | "intents" | "manual" | "highLevelFunnels" | "missed";
+type TabKey =
+  | "details"
+  | "new"
+  | "sales"
+  | "all"
+  | "intents"
+  | "inboundSms"
+  | "manual"
+  | "highLevelFunnels"
+  | "missed";
 type GateStatus = "checking" | "allowed" | "denied";
 
 const TABS: Array<{ key: TabKey; label: string }> = [
@@ -40,6 +51,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "sales", label: "Arata Vanzarile" },
   { key: "all", label: "All Leads CRM" },
   { key: "intents", label: "Lead Intents" },
+  { key: "inboundSms", label: "InboundSMS" },
   { key: "manual", label: "Send Manual Email/SMS" },
   { key: "highLevelFunnels", label: "High Level Funnels" },
 ];
@@ -829,6 +841,15 @@ export default function AdminCrmPage() {
                 <LeadIntentPanel
                   token={token}
                   onSelectIntent={handleIntentSelected}
+                  onError={setErrorMessage}
+                />
+              ) : null}
+
+              {activeTab === "inboundSms" ? (
+                <InboundSmsPanel
+                  token={token}
+                  agentName={agentName}
+                  onStatus={setStatusMessage}
                   onError={setErrorMessage}
                 />
               ) : null}
@@ -2406,6 +2427,248 @@ function LeadIntentPanel({
   );
 }
 
+function InboundSmsPanel({
+  token,
+  agentName,
+  onStatus,
+  onError,
+}: {
+  token: string;
+  agentName: string;
+  onStatus: (message: string) => void;
+  onError: (message: string) => void;
+}) {
+  const [receivedLastDays, setReceivedLastDays] = useState("30");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [phoneFilter, setPhoneFilter] = useState("");
+  const [smsRows, setSmsRows] = useState<CrmInboundSms[]>([]);
+  const [total, setTotal] = useState(0);
+  const [selectedSms, setSelectedSms] = useState<CrmInboundSms | null>(null);
+  const [activityRows, setActivityRows] = useState<CrmActivity[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [sendingReply, setSendingReply] = useState(false);
+  const [localMessage, setLocalMessage] = useState("");
+
+  useEffect(() => {
+    loadInboundSms();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadInboundSms() {
+    setLoading(true);
+    setLocalMessage("");
+    try {
+      const result = await listCrmInboundSms(token, {
+        receivedLastDays,
+        status: statusFilter,
+        phone: phoneFilter.trim(),
+        limit: 100,
+        offset: 0,
+      });
+      const nextRows = result.items || result.rows || result.messages || [];
+      setSmsRows(nextRows);
+      setTotal(result.total ?? nextRows.length);
+      if (selectedSms) {
+        const selectedId = getInboundSmsId(selectedSms);
+        const updatedSelected = selectedId
+          ? nextRows.find((row) => getInboundSmsId(row) === selectedId)
+          : null;
+        if (updatedSelected) {
+          setSelectedSms(updatedSelected);
+        }
+      }
+      onError("");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Nu am putut incarca SMS-urile inbound.";
+      setSmsRows([]);
+      setTotal(0);
+      setLocalMessage(
+        message.toLowerCase().includes("not found")
+          ? "Endpointul InboundSMS nu este disponibil inca in LaunchingStack."
+          : message,
+      );
+      if (!message.toLowerCase().includes("not found")) {
+        onError(message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function loadPhoneHistory(sms: CrmInboundSms) {
+    const phone = getInboundSmsPhone(sms);
+    if (!phone) {
+      onError("SMS-ul selectat nu are telefon.");
+      return;
+    }
+
+    setHistoryLoading(true);
+    try {
+      const result = await searchCrmActivity(token, { phone, limit: 500 });
+      setActivityRows(result.activities || result.items || []);
+      onError("");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut incarca istoricul telefonului.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  async function handleSelectSms(sms: CrmInboundSms) {
+    setSelectedSms(sms);
+    setReplyText("");
+    await loadPhoneHistory(sms);
+  }
+
+  async function handleSendReply() {
+    if (!selectedSms) {
+      onError("Selecteaza un SMS inainte de raspuns.");
+      return;
+    }
+
+    const phone = getInboundSmsPhone(selectedSms);
+    if (!phone) {
+      onError("SMS-ul selectat nu are telefon.");
+      return;
+    }
+
+    if (!replyText.trim()) {
+      onError("Completeaza raspunsul SMS.");
+      return;
+    }
+
+    setSendingReply(true);
+    try {
+      await sendManualCrmSms(token, {
+        phone,
+        message: replyText.trim(),
+        agent: agentName,
+      });
+      setReplyText("");
+      onStatus("SMS-ul a fost trimis.");
+      onError("");
+      await loadPhoneHistory(selectedSms);
+      await loadInboundSms();
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut trimite raspunsul SMS.");
+    } finally {
+      setSendingReply(false);
+    }
+  }
+
+  return (
+    <CrmCard title="InboundSMS" className="wide-card">
+      <div className="filter-grid inbound-sms-filter">
+        <label>Received last days</label>
+        <input
+          type="number"
+          min="1"
+          max="3650"
+          value={receivedLastDays}
+          onChange={(event) => setReceivedLastDays(event.target.value)}
+        />
+
+        <label>Status</label>
+        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+          <option value="all">all</option>
+          <option value="answered">answered</option>
+          <option value="to_be_answered">to be answered</option>
+          <option value="past_due">past due</option>
+        </select>
+
+        <label>Phone</label>
+        <input
+          type="search"
+          value={phoneFilter}
+          onChange={(event) => setPhoneFilter(event.target.value)}
+          placeholder="Telefon..."
+        />
+
+        <button type="button" className="orange small" onClick={loadInboundSms} disabled={loading}>
+          {loading ? "Se incarca..." : "Filter"}
+        </button>
+      </div>
+
+      <p className="green-label">Total SMS: {total}</p>
+      {localMessage ? <p className="inbound-local-message">{localMessage}</p> : null}
+
+      <DataTable
+        columns={["Received", "Status", "Phone", "Lead", "Message", "Answered at", "Agent"]}
+        rows={smsRows.map((sms) => [
+          formatDateTime(getInboundSmsReceivedAt(sms)),
+          formatInboundSmsStatusLabel(getInboundSmsStatus(sms)),
+          getInboundSmsPhone(sms),
+          getInboundSmsLeadName(sms),
+          getInboundSmsPreview(sms),
+          formatDateTime(sms.answeredAtUtc || sms.lastReplyAtUtc),
+          sms.replyAgent,
+        ])}
+        loading={loading}
+        onRowClick={(index) => {
+          const sms = smsRows[index];
+          if (sms) {
+            void handleSelectSms(sms);
+          }
+        }}
+        rowClassName={(index) => `sms-${getInboundSmsStatus(smsRows[index])}`}
+        minWidth={1180}
+      />
+
+      <div className="inbound-sms-detail">
+        <div className="inbound-selected">
+          <h2>SMS selectat</h2>
+          {selectedSms ? (
+            <>
+              <LabelValue label="Telefon:" value={getInboundSmsPhone(selectedSms)} />
+              <LabelValue label="Status:" value={formatInboundSmsStatusLabel(getInboundSmsStatus(selectedSms))} />
+              <LabelValue label="Primit:" value={formatDateTime(getInboundSmsReceivedAt(selectedSms))} />
+              <div className="inbound-message-body">{getInboundSmsMessage(selectedSms)}</div>
+              <textarea
+                value={replyText}
+                onChange={(event) => setReplyText(event.target.value)}
+                placeholder="Scrie raspunsul SMS..."
+              />
+              <button
+                type="button"
+                className="orange small"
+                onClick={handleSendReply}
+                disabled={sendingReply}
+              >
+                {sendingReply ? "Se trimite..." : "Trimite SMS"}
+              </button>
+            </>
+          ) : (
+            <p>Selecteaza un SMS din lista.</p>
+          )}
+        </div>
+
+        <div className="inbound-history">
+          <h2>Istoric telefon</h2>
+          <DataTable
+            columns={["timestamp", "Action", "Agent", "Param1", "Param2", "Param3", "Param4", "Param5"]}
+            rows={activityRows.map((item) => [
+              formatDateTime(item.timestamp),
+              item.action || item.state,
+              item.agent,
+              item.param1,
+              item.param2,
+              item.param3,
+              item.param4,
+              item.param5,
+            ])}
+            loading={historyLoading}
+            minWidth={880}
+          />
+        </div>
+      </div>
+
+      <style jsx>{panelStyles}</style>
+    </CrmCard>
+  );
+}
+
 function HighLevelFunnelsPanel({ token, onError }: { token: string; onError: (message: string) => void }) {
   const [dateBegin, setDateBegin] = useState(() => getDateInputDaysAgo(30));
   const [dateEnd, setDateEnd] = useState(() => getDateInputDaysAgo(0));
@@ -2782,6 +3045,7 @@ function DataTable({
   loading,
   onRowClick,
   onRowDoubleClick,
+  rowClassName,
   sortableColumns,
   minWidth,
   className,
@@ -2791,6 +3055,7 @@ function DataTable({
   loading?: boolean;
   onRowClick?: (index: number) => void;
   onRowDoubleClick?: (index: number) => void;
+  rowClassName?: (index: number) => string | undefined;
   sortableColumns?: Record<string, { direction: "asc" | "desc"; onClick: () => void }>;
   minWidth?: number;
   className?: string;
@@ -2828,7 +3093,12 @@ function DataTable({
                 key={`${index}-${row[0]}`}
                 onClick={() => onRowClick?.(index)}
                 onDoubleClick={() => onRowDoubleClick?.(index)}
-                className={onRowClick || onRowDoubleClick ? "clickable" : undefined}
+                className={[
+                  onRowClick || onRowDoubleClick ? "clickable" : "",
+                  rowClassName?.(index) || "",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
               >
                 {row.map((cell, cellIndex) => (
                   <td key={cellIndex}>{cell ?? ""}</td>
@@ -2892,8 +3162,35 @@ function DataTable({
         tbody tr.clickable:hover td {
           background: #f6f8ff;
         }
+        tbody tr.sms-answered td {
+          background: #e4f6e9;
+        }
+        tbody tr.sms-to_be_answered td {
+          background: #fff4cf;
+        }
+        tbody tr.sms-past_due td {
+          background: #ffe1de;
+        }
+        tbody tr.sms-answered:hover td {
+          background: #d4efdc;
+        }
+        tbody tr.sms-to_be_answered:hover td {
+          background: #ffe9a8;
+        }
+        tbody tr.sms-past_due:hover td {
+          background: #ffd0ca;
+        }
         tbody tr td:last-child {
           background: #e5e5e5;
+        }
+        tbody tr.sms-answered td:last-child {
+          background: #c9ebd2;
+        }
+        tbody tr.sms-to_be_answered td:last-child {
+          background: #ffe39b;
+        }
+        tbody tr.sms-past_due td:last-child {
+          background: #ffc6bf;
         }
         .sales-table :global(th:first-child),
         .sales-table :global(td:first-child) {
@@ -3360,6 +3657,54 @@ const panelStyles = `
     width: min(940px, 100%);
     grid-template-columns: 130px minmax(120px, 1fr) 100px minmax(150px, 1fr) 90px minmax(150px, 1fr);
   }
+  .inbound-sms-filter {
+    width: min(940px, 100%);
+    grid-template-columns: 140px minmax(100px, 1fr) 70px minmax(150px, 1fr) 60px minmax(160px, 1fr) 100px;
+  }
+  .inbound-local-message {
+    margin: 12px 0;
+    color: #b00020;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .inbound-sms-detail {
+    display: grid;
+    grid-template-columns: minmax(300px, 0.9fr) minmax(520px, 1.4fr);
+    gap: 24px;
+    align-items: start;
+    margin-top: 24px;
+  }
+  .inbound-selected,
+  .inbound-history {
+    min-width: 0;
+  }
+  .inbound-selected h2,
+  .inbound-history h2 {
+    margin: 0 0 12px;
+    font-size: 18px;
+    line-height: 1.25;
+  }
+  .inbound-selected p {
+    margin: 0;
+    font-size: 13px;
+  }
+  .inbound-message-body {
+    min-height: 120px;
+    max-height: 240px;
+    overflow: auto;
+    margin: 12px 0;
+    border: 1px solid #555;
+    padding: 12px;
+    font-size: 13px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .inbound-selected textarea {
+    width: 100%;
+    min-height: 110px;
+    margin: 0 0 10px;
+  }
   .high-level-filter {
     width: min(940px, 100%);
     grid-template-columns: 100px minmax(140px, 1fr) 80px minmax(140px, 1fr) 70px minmax(170px, 1fr) 100px;
@@ -3395,6 +3740,8 @@ const panelStyles = `
     .personal-filter,
     .all-filter,
     .intent-filter,
+    .inbound-sms-filter,
+    .inbound-sms-detail,
     .high-level-filter {
       width: 100%;
       grid-template-columns: 1fr;
@@ -3432,6 +3779,60 @@ function formatDateTime(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function getInboundSmsId(sms?: CrmInboundSms | null) {
+  return String(sms?.id || sms?.inboundSmsId || sms?.smsId || sms?.providerMessageId || "").trim();
+}
+
+function getInboundSmsReceivedAt(sms?: CrmInboundSms | null) {
+  return sms?.receivedAtUtc || sms?.receivedAt || sms?.createdAtUtc || null;
+}
+
+function getInboundSmsPhone(sms?: CrmInboundSms | null) {
+  return String(sms?.fromPhone || sms?.phoneNumber || sms?.phone || sms?.normalizedPhone || "").trim();
+}
+
+function getInboundSmsMessage(sms?: CrmInboundSms | null) {
+  return String(sms?.message || sms?.body || sms?.smsBody || "").trim();
+}
+
+function getInboundSmsPreview(sms?: CrmInboundSms | null) {
+  const message = getInboundSmsMessage(sms);
+  return message.length > 120 ? `${message.slice(0, 120)}...` : message;
+}
+
+function getInboundSmsLeadName(sms?: CrmInboundSms | null) {
+  return String(sms?.leadName || sms?.fullName || sms?.leadId || sms?.contactId || "").trim();
+}
+
+function getInboundSmsStatus(sms?: CrmInboundSms | null): "answered" | "to_be_answered" | "past_due" {
+  const status = String(sms?.status || "").trim().toLowerCase();
+  if (status === "answered" || status === "to_be_answered" || status === "past_due") {
+    return status;
+  }
+
+  if (sms?.answered === true || sms?.answered === 1 || sms?.answered === "true" || sms?.answeredAtUtc || sms?.lastReplyAtUtc) {
+    return "answered";
+  }
+
+  const receivedAt = getDateTimeValue(getInboundSmsReceivedAt(sms));
+  if (receivedAt && Date.now() - receivedAt > 24 * 60 * 60 * 1000) {
+    return "past_due";
+  }
+
+  return "to_be_answered";
+}
+
+function formatInboundSmsStatusLabel(status: string) {
+  switch (status) {
+    case "answered":
+      return "answered";
+    case "past_due":
+      return "past due";
+    default:
+      return "to be answered";
+  }
 }
 
 function getDateTimeValue(value?: string | null) {
