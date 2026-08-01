@@ -4149,13 +4149,34 @@ function formatLeadIntentPostIntentLastCallCode(row: CrmLeadIntentRow) {
 function formatPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary, showDetails: boolean) {
   const queueName = campaign.campaignName || `Queue ${campaign.queueId}`;
   const completedLeads = getCompletedLeadsCount(campaign);
+  const completedNoAgent = getCompletedNoAgentCount(campaign);
+  const completedTalkedToAgent = getCompletedTalkedToAgentCount(campaign);
+  const completedSegments =
+    completedNoAgent !== null || completedTalkedToAgent !== null
+      ? [
+          {
+            key: "completed-no-agent",
+            text: `Completed - no agent: ${formatOptionalCampaignCount(completedNoAgent)}`,
+            highlight: true,
+          },
+          {
+            key: "completed-talked-agent",
+            text: `Completed - talked to agent: ${formatOptionalCampaignCount(completedTalkedToAgent)}`,
+            highlight: true,
+          },
+        ]
+      : [{ key: "completed", text: `Completed: ${formatOptionalCampaignCount(completedLeads)}`, highlight: true }];
   const availableLeads = getAvailableLeadsCount(campaign);
   const compactSegments = [
     { key: "queue", text: queueName },
     { key: "total", text: `Total Leads: ${campaign.totalLeads ?? 0}`, highlight: true },
-    { key: "completed", text: `Completed: ${formatOptionalCampaignCount(completedLeads)}`, highlight: true },
-    { key: "not-dialled", text: `Not dialled: ${campaign.notDialled ?? 0}`, highlight: true },
-    { key: "available", text: `Available Leads: ${formatOptionalCampaignCount(availableLeads)}`, highlight: true },
+    ...completedSegments,
+    { key: "not-dialled", text: `Available - not dialled: ${campaign.notDialled ?? 0}`, highlight: true },
+    {
+      key: "available",
+      text: `Available - dialled - no agent conn: ${formatOptionalCampaignCount(availableLeads)}`,
+      highlight: true,
+    },
   ];
 
   if (!showDetails) {
@@ -4233,6 +4254,61 @@ function getCompletedLeadsCount(campaign: CrmPredictiveCampaignSummary): number 
   const notDialled = getCampaignNumber(campaign, ["notDialled", "NotDialled"]);
   if (available !== null && total !== null && notDialled !== null) {
     return Math.max(total - notDialled - available, 0);
+  }
+
+  return null;
+}
+
+function getCompletedNoAgentCount(campaign: CrmPredictiveCampaignSummary): number | null {
+  const explicit = getCampaignNumber(campaign, [
+    "completedNoAgent",
+    "completedNoAgentCount",
+    "completedWithoutAgent",
+    "completedNotConnected",
+    "CompletedNoAgent",
+    "CompletedNoAgentCount",
+    "CompletedWithoutAgent",
+    "CompletedNotConnected",
+  ]);
+  if (explicit !== null) {
+    return explicit;
+  }
+
+  const completed = getCompletedLeadsCount(campaign);
+  const talkedToAgent = getCompletedTalkedToAgentCount(campaign, false);
+  if (completed !== null && talkedToAgent !== null) {
+    return Math.max(completed - talkedToAgent, 0);
+  }
+
+  return null;
+}
+
+function getCompletedTalkedToAgentCount(
+  campaign: CrmPredictiveCampaignSummary,
+  deriveFromNoAgent = true,
+): number | null {
+  const explicit = getCampaignNumber(campaign, [
+    "completedTalkedToAgent",
+    "completedTalkedToAgentCount",
+    "completedWithAgent",
+    "completedToAgent",
+    "CompletedTalkedToAgent",
+    "CompletedTalkedToAgentCount",
+    "CompletedWithAgent",
+    "CompletedToAgent",
+  ]);
+  if (explicit !== null) {
+    return explicit;
+  }
+
+  if (!deriveFromNoAgent) {
+    return null;
+  }
+
+  const completed = getCompletedLeadsCount(campaign);
+  const noAgent = getCompletedNoAgentCount(campaign);
+  if (completed !== null && noAgent !== null) {
+    return Math.max(completed - noAgent, 0);
   }
 
   return null;

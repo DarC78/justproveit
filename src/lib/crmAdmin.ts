@@ -271,6 +271,14 @@ export type CrmPredictiveCampaignSummary = {
   completedLeads?: number;
   completedLeadCount?: number;
   completedCount?: number;
+  completedNoAgent?: number;
+  completedNoAgentCount?: number;
+  completedWithoutAgent?: number;
+  completedNotConnected?: number;
+  completedTalkedToAgent?: number;
+  completedTalkedToAgentCount?: number;
+  completedWithAgent?: number;
+  completedToAgent?: number;
   available?: number;
   availableLeads?: number;
   availableLeadCount?: number;
