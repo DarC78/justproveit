@@ -1589,7 +1589,7 @@ function LeadDetailsPanel({
         </button>
       </div>
       <DataTable
-        columns={["timestamp", "Action", "Agent", "Param1", "Param2", "Param3", "Param4", "Param5"]}
+        columns={["timestamp", "Action", "Agent", "Param1", "Param2", "Param3", "Param4"]}
         rows={activityRows.map((item) => [
           formatDateTime(item.timestamp),
           item.action || item.state,
@@ -1598,10 +1598,10 @@ function LeadDetailsPanel({
           item.param2,
           item.param3,
           item.param4,
-          item.param5,
         ])}
         loading={activityLoading}
         minWidth={880}
+        className="lead-history-table"
       />
 
       <style jsx>{panelStyles}</style>
@@ -3250,11 +3250,14 @@ function DataTable({
         tbody tr.sms-past_due td:last-child {
           background: #ffc6bf;
         }
-        .inbound-history-table :global(table) {
+        .inbound-history-table :global(table),
+        .lead-history-table :global(table) {
           table-layout: fixed;
         }
         .inbound-history-table :global(th),
-        .inbound-history-table :global(td) {
+        .inbound-history-table :global(td),
+        .lead-history-table :global(th),
+        .lead-history-table :global(td) {
           white-space: normal;
           word-break: break-word;
         }
@@ -3278,6 +3281,26 @@ function DataTable({
         }
         .inbound-history-table :global(th:nth-child(7)),
         .inbound-history-table :global(td:nth-child(7)) {
+          width: 20%;
+        }
+        .lead-history-table :global(th:nth-child(1)),
+        .lead-history-table :global(td:nth-child(1)),
+        .lead-history-table :global(th:nth-child(2)),
+        .lead-history-table :global(td:nth-child(2)),
+        .lead-history-table :global(th:nth-child(3)),
+        .lead-history-table :global(td:nth-child(3)),
+        .lead-history-table :global(th:nth-child(4)),
+        .lead-history-table :global(td:nth-child(4)),
+        .lead-history-table :global(th:nth-child(6)),
+        .lead-history-table :global(td:nth-child(6)) {
+          width: 10%;
+        }
+        .lead-history-table :global(th:nth-child(5)),
+        .lead-history-table :global(td:nth-child(5)) {
+          width: 30%;
+        }
+        .lead-history-table :global(th:nth-child(7)),
+        .lead-history-table :global(td:nth-child(7)) {
           width: 20%;
         }
         .sales-table :global(th:first-child),
