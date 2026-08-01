@@ -406,10 +406,10 @@ type LeadIntentSortColumn =
   | "Intent"
   | "Service"
   | "CRM Status"
-  | "Agent Name"
-  | "Last Agent"
-  | "Last Call"
-  | "Last Callcode"
+  | "TotalPreviousCalls"
+  | "LastAgent"
+  | "LastCall"
+  | "LastCallCode"
   | "Language"
   | "Source"
   | "Campaign";
@@ -439,14 +439,14 @@ function getLeadIntentSortValue(row: CrmLeadIntentRow, column: LeadIntentSortCol
       return row.serviceDisplayName || row.serviceKey || "";
     case "CRM Status":
       return row.lead?.statusOriginal || "";
-    case "Agent Name":
-      return row.lastCallAgentName || "";
-    case "Last Agent":
-      return formatAgentLabel(row.lastCallAgentId, row.lastCallAgentName);
-    case "Last Call":
-      return getDateTimeValue(row.lastCallTimeUtc);
-    case "Last Callcode":
-      return row.lastCallCode ?? row.lastCallCodeDetails ?? "";
+    case "TotalPreviousCalls":
+      return getLeadIntentTotalPreviousCalls(row);
+    case "LastAgent":
+      return formatLeadIntentPostIntentLastAgent(row);
+    case "LastCall":
+      return getDateTimeValue(getLeadIntentPostIntentLastCallTime(row));
+    case "LastCallCode":
+      return getLeadIntentPostIntentLastCallCode(row);
     case "Language":
       return formatLanguage(row.language);
     case "Source":
@@ -2177,10 +2177,10 @@ function LeadIntentPanel({
     "Intent",
     "Service",
     "CRM Status",
-    "Agent Name",
-    "Last Agent",
-    "Last Call",
-    "Last Callcode",
+    "TotalPreviousCalls",
+    "LastAgent",
+    "LastCall",
+    "LastCallCode",
     "Language",
     "Source",
     "Campaign",
@@ -2403,10 +2403,10 @@ function LeadIntentPanel({
           row.interestType,
           row.serviceDisplayName || row.serviceKey,
           row.lead?.statusOriginal,
-          row.lastCallAgentName,
-          formatAgentLabel(row.lastCallAgentId, row.lastCallAgentName),
-          formatDateTime(row.lastCallTimeUtc),
-          row.lastCallCodeDetails || row.lastCallCode,
+          getLeadIntentTotalPreviousCalls(row),
+          formatLeadIntentPostIntentLastAgent(row),
+          formatDateTime(getLeadIntentPostIntentLastCallTime(row)),
+          formatLeadIntentPostIntentLastCallCode(row),
           formatLanguage(row.language),
           row.source,
           row.campaignName || row.adName,
@@ -4040,6 +4040,10 @@ function firstNonEmpty(...values: Array<string | null | undefined>) {
   return values.map((value) => String(value || "").trim()).find(Boolean) || "";
 }
 
+function firstDefined<T>(...values: Array<T | null | undefined>) {
+  return values.find((value) => value !== undefined && value !== null && value !== "");
+}
+
 function looksLikePhoneValue(value?: string | null) {
   const text = String(value || "").trim();
   if (!text) {
@@ -4075,6 +4079,43 @@ function formatAgentLabel(agentId?: number | null, agentName?: string | null) {
   }
 
   return agentName ? `${agentId} - ${agentName}` : String(agentId);
+}
+
+function getLeadIntentTotalPreviousCalls(row: CrmLeadIntentRow) {
+  const value = firstDefined(row.totalPreviousCalls, row.totalPreviousTalkedCalls, row.totalPreviousConnectedCalls);
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : "";
+}
+
+function getLeadIntentPostIntentLastAgentId(row: CrmLeadIntentRow) {
+  return firstDefined(row.postIntentLastCallAgentId, row.lastPostIntentCallAgentId, row.lastCallAgentId) ?? null;
+}
+
+function getLeadIntentPostIntentLastAgentName(row: CrmLeadIntentRow) {
+  return firstNonEmpty(row.postIntentLastCallAgentName, row.lastPostIntentCallAgentName, row.lastCallAgentName);
+}
+
+function formatLeadIntentPostIntentLastAgent(row: CrmLeadIntentRow) {
+  const agentId = getLeadIntentPostIntentLastAgentId(row);
+  const agentName = getLeadIntentPostIntentLastAgentName(row);
+  return agentId === null ? agentName : formatAgentLabel(agentId, agentName);
+}
+
+function getLeadIntentPostIntentLastCallTime(row: CrmLeadIntentRow) {
+  return firstNonEmpty(row.postIntentLastCallTimeUtc, row.lastPostIntentCallTimeUtc, row.lastCallTimeUtc) || null;
+}
+
+function getLeadIntentPostIntentLastCallCode(row: CrmLeadIntentRow) {
+  return firstDefined(row.postIntentLastCallCode, row.lastPostIntentCallCode, row.lastCallCode) ?? "";
+}
+
+function formatLeadIntentPostIntentLastCallCode(row: CrmLeadIntentRow) {
+  const code = getLeadIntentPostIntentLastCallCode(row);
+  if (code !== "") {
+    return code;
+  }
+
+  return firstNonEmpty(row.postIntentLastCallCodeDetails, row.lastPostIntentCallCodeDetails, row.lastCallCodeDetails);
 }
 
 function formatPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary, showDetails: boolean) {
