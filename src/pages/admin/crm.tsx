@@ -4133,12 +4133,17 @@ function getLeadIntentPostIntentLastCallCode(row: CrmLeadIntentRow) {
 }
 
 function formatLeadIntentPostIntentLastCallCode(row: CrmLeadIntentRow) {
-  const code = getLeadIntentPostIntentLastCallCode(row);
-  if (code !== "") {
-    return code;
-  }
-
-  return firstNonEmpty(row.postIntentLastCallCodeDetails, row.lastPostIntentCallCodeDetails, row.lastCallCodeDetails);
+  return (
+    firstNonEmpty(
+      row.postIntentLastCallCodeDetails,
+      row.postIntentLastCallCodeDescription,
+      row.postIntentLastCallCodeName,
+      row.lastPostIntentCallCodeDetails,
+      row.lastPostIntentCallCodeDescription,
+      row.lastPostIntentCallCodeName,
+      row.lastCallCodeDetails,
+    ) || getLeadIntentPostIntentLastCallCode(row)
+  );
 }
 
 function formatPredictiveCampaignSummary(campaign: CrmPredictiveCampaignSummary, showDetails: boolean) {

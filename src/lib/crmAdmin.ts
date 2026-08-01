@@ -233,11 +233,15 @@ export type CrmLeadIntentRow = {
   postIntentLastCallTimeUtc?: string | null;
   postIntentLastCallCode?: number | string | null;
   postIntentLastCallCodeDetails?: string | null;
+  postIntentLastCallCodeName?: string | null;
+  postIntentLastCallCodeDescription?: string | null;
   lastPostIntentCallAgentId?: number | null;
   lastPostIntentCallAgentName?: string | null;
   lastPostIntentCallTimeUtc?: string | null;
   lastPostIntentCallCode?: number | string | null;
   lastPostIntentCallCodeDetails?: string | null;
+  lastPostIntentCallCodeName?: string | null;
+  lastPostIntentCallCodeDescription?: string | null;
   createdAtUtc?: string | null;
   closedAtUtc?: string | null;
   updatedAtUtc?: string | null;

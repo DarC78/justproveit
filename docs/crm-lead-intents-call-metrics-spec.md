@@ -38,6 +38,11 @@ Preferred canonical names:
 - `postIntentLastCallCode`
 - `postIntentLastCallCodeDetails`
 
+Optional aliases accepted by the frontend for the human-readable callcode label:
+
+- `postIntentLastCallCodeName`
+- `postIntentLastCallCodeDescription`
+
 The frontend also tolerates these aliases for backwards compatibility:
 
 - `totalPreviousTalkedCalls`
@@ -47,6 +52,8 @@ The frontend also tolerates these aliases for backwards compatibility:
 - `lastPostIntentCallTimeUtc`
 - `lastPostIntentCallCode`
 - `lastPostIntentCallCodeDetails`
+- `lastPostIntentCallCodeName`
+- `lastPostIntentCallCodeDescription`
 - existing `lastCallAgentId`, `lastCallAgentName`, `lastCallTimeUtc`, `lastCallCode`, `lastCallCodeDetails` if LaunchingStack changes those fields to the new semantics
 
 ## Matching Rules
@@ -101,7 +108,9 @@ Rules:
 
 `postIntentLastCallCode` is the numeric call code of that same latest qualifying post-intent call.
 
-`postIntentLastCallCodeDetails` can also be returned for debugging/display parity, but the table prefers the numeric code.
+`postIntentLastCallCodeDetails` must be the human-readable name/description for that same call code. The CRM table
+displays this description in `LastCallCode`, not the numeric ID. If no description is available, the frontend falls back
+to the numeric code only as a last resort.
 
 ## Frontend Mapping
 
@@ -110,7 +119,7 @@ The deployed frontend table displays:
 - `TotalPreviousCalls`: `totalPreviousCalls`
 - `LastAgent`: `postIntentLastCallAgentId` + `postIntentLastCallAgentName`
 - `LastCall`: `postIntentLastCallTimeUtc`
-- `LastCallCode`: `postIntentLastCallCode`
+- `LastCallCode`: `postIntentLastCallCodeDetails`
 
 The old `Agent Name` column has been replaced by `TotalPreviousCalls`.
 
