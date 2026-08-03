@@ -26,6 +26,7 @@ import {
   scheduleManualCrmEmail,
   searchCrmActivity,
   sendManualCrmSms,
+  stopCrmLeadDialler,
   updateCrmLead,
 } from "@/lib/crmAdmin";
 import Head from "next/head";
@@ -816,6 +817,7 @@ export default function AdminCrmPage() {
                 <NewLeadPanel
                   token={token}
                   agentName={agentName}
+                  onStatus={setStatusMessage}
                   onCreated={(lead) => {
                     setSelectedLead(lead);
                     setSelectedIntent(null);
@@ -1612,12 +1614,14 @@ function LeadDetailsPanel({
 function NewLeadPanel({
   token,
   agentName,
+  onStatus,
   onCreated,
   onAccepted,
   onError,
 }: {
   token: string;
   agentName: string;
+  onStatus: (message: string) => void;
   onCreated: (lead: CrmLead) => void;
   onAccepted: (reference?: string | null) => void;
   onError: (message: string) => void;
@@ -1628,6 +1632,8 @@ function NewLeadPanel({
   const [language, setLanguage] = useState("");
   const [service, setService] = useState<"simulator pensie" | "other">("simulator pensie");
   const [saving, setSaving] = useState(false);
+  const [stopDiallerPhone, setStopDiallerPhone] = useState("");
+  const [stopDiallerSaving, setStopDiallerSaving] = useState(false);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -1657,6 +1663,33 @@ function NewLeadPanel({
       onError(error instanceof Error ? error.message : "Nu am putut adauga lead-ul.");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleStopDiallerSubmit(event: FormEvent) {
+    event.preventDefault();
+    const phone = stopDiallerPhone.trim();
+    if (!phone) {
+      onError("Introdu numarul de telefon pentru oprirea din dialler.");
+      onStatus("");
+      return;
+    }
+
+    setStopDiallerSaving(true);
+    try {
+      const result = await stopCrmLeadDialler(token, {
+        phone,
+        reason: "Removed from dialler from CRM New Lead tab",
+        agent: agentName,
+      });
+      setStopDiallerPhone("");
+      onError("");
+      onStatus(result?.message || "Lead scos din dialler.");
+    } catch (error) {
+      onStatus("");
+      onError(error instanceof Error ? error.message : "Nu am putut scoate lead-ul din dialler.");
+    } finally {
+      setStopDiallerSaving(false);
     }
   }
 
@@ -1691,6 +1724,24 @@ function NewLeadPanel({
         </button>
       </form>
 
+      <div className="stop-dialler">
+        <h2>stop dialling a lead</h2>
+        <form onSubmit={handleStopDiallerSubmit}>
+          <label>
+            Phone number
+            <input
+              type="tel"
+              value={stopDiallerPhone}
+              onChange={(event) => setStopDiallerPhone(event.target.value)}
+              placeholder="07771866203"
+            />
+          </label>
+          <button type="submit" className="orange" disabled={stopDiallerSaving}>
+            {stopDiallerSaving ? "Se opreste..." : "remove from dialler"}
+          </button>
+        </form>
+      </div>
+
       <style jsx>{`
         .new-lead {
           width: 330px;
@@ -1703,6 +1754,19 @@ function NewLeadPanel({
           font-size: 36px;
           color: #444;
           font-weight: 800;
+        }
+        .stop-dialler {
+          margin-top: 28px;
+          padding-top: 22px;
+          border-top: 1px solid #ddd;
+        }
+        .stop-dialler h2 {
+          margin: 0 0 12px;
+          text-align: center;
+          font-size: 20px;
+          color: #444;
+          font-weight: 800;
+          text-transform: none;
         }
         form {
           display: grid;

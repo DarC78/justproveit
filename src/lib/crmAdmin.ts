@@ -448,6 +448,27 @@ export type ManualCrmSmsPayload = {
   agent?: string;
 };
 
+export type StopCrmLeadDiallerPayload = {
+  phone?: string;
+  intentId?: string;
+  queueId?: number;
+  clientId?: number;
+  reason?: string;
+  agent?: string;
+};
+
+export type StopCrmLeadDiallerResponse = {
+  success?: boolean;
+  message?: string | null;
+  stopped?: number | null;
+  removed?: number | null;
+  updated?: number | null;
+  affectedRows?: number | null;
+  matched?: number | null;
+  intent?: CrmLeadIntentRow | null;
+  leadIntent?: CrmLeadIntentRow | null;
+};
+
 function authHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`,
@@ -699,6 +720,14 @@ export function sendManualCrmSms(token: string, payload: ManualCrmSmsPayload) {
 
 export function insertManualCrmLead(token: string, payload: ManualCrmLeadPayload) {
   return fetchDirectJson<ManualCrmLeadCreateResponse | null>(ASAP_LEAD_API_URL, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function stopCrmLeadDialler(token: string, payload: StopCrmLeadDiallerPayload) {
+  return fetchCanonicalCrmReadJson<StopCrmLeadDiallerResponse>(`${BASE_PATH}/dialler/stop`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(payload),
