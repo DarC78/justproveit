@@ -1,6 +1,7 @@
 import { useAuth } from "@/context/AuthContext";
 import {
   addCrmLeadPhone,
+  closeCrmInboundSmsCase,
   CrmActivity,
   CrmContactPhone,
   CrmHighLevelFunnelRow,
@@ -2524,6 +2525,7 @@ function InboundSmsPanel({
 }) {
   const [receivedLastDays, setReceivedLastDays] = useState("30");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showOnlyInProgress, setShowOnlyInProgress] = useState(true);
   const [phoneFilter, setPhoneFilter] = useState("");
   const [smsRows, setSmsRows] = useState<CrmInboundSms[]>([]);
   const [total, setTotal] = useState(0);
@@ -2533,9 +2535,18 @@ function InboundSmsPanel({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
+  const [closingCase, setClosingCase] = useState(false);
   const [localMessage, setLocalMessage] = useState("");
   const [localOutboundSms, setLocalOutboundSms] = useState<LocalOutboundSms[]>([]);
-  const threadRows = useMemo(() => groupInboundSmsThreads(smsRows), [smsRows]);
+  const [closedThreadOverrides, setClosedThreadOverrides] = useState<Record<string, { closedAtUtc: string; agent: string }>>({});
+  const threadRows = useMemo(
+    () => applyClosedThreadOverrides(groupInboundSmsThreads(smsRows), closedThreadOverrides),
+    [closedThreadOverrides, smsRows],
+  );
+  const visibleThreadRows = useMemo(
+    () => threadRows.filter((thread) => !showOnlyInProgress || isInboundSmsThreadInProgress(thread)),
+    [showOnlyInProgress, threadRows],
+  );
   const selectedThread = useMemo(
     () => threadRows.find((thread) => thread.phoneKey === selectedThreadPhone) || null,
     [selectedThreadPhone, threadRows],
@@ -2571,13 +2582,15 @@ function InboundSmsPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadInboundSms() {
+  async function loadInboundSms(options: { showOnlyInProgress?: boolean; statusFilter?: string } = {}) {
+    const nextShowOnlyInProgress = options.showOnlyInProgress ?? showOnlyInProgress;
+    const nextStatusFilter = options.statusFilter ?? statusFilter;
     setLoading(true);
     setLocalMessage("");
     try {
       const result = await listCrmInboundSms(token, {
         receivedLastDays,
-        status: statusFilter,
+        status: nextShowOnlyInProgress ? "all" : nextStatusFilter,
         phone: phoneFilter.trim(),
         limit: 100,
         offset: 0,
@@ -2679,6 +2692,51 @@ function InboundSmsPanel({
     }
   }
 
+  async function handleCloseCase() {
+    if (!selectedThread) {
+      onError("Selecteaza un thread inainte de inchidere.");
+      return;
+    }
+
+    const phone = selectedThread.phone;
+    if (!phone) {
+      onError("Threadul selectat nu are telefon.");
+      return;
+    }
+
+    const inboundSmsId = getInboundSmsId(selectedThread.lastSms);
+    const closedAtUtc = new Date().toISOString();
+    setClosingCase(true);
+    try {
+      await closeCrmInboundSmsCase(token, {
+        inboundSmsId: inboundSmsId || undefined,
+        smsId: selectedThread.lastSms.smsId || undefined,
+        phone,
+        status: "answered",
+        agent: agentName,
+      });
+      setClosedThreadOverrides((current) => ({
+        ...current,
+        [selectedThread.phoneKey]: { closedAtUtc, agent: agentName },
+      }));
+      setSmsRows((current) =>
+        current.map((sms) =>
+          getPhoneThreadKey(getInboundSmsPhone(sms)) === selectedThread.phoneKey
+            ? markInboundSmsAnswered(sms, closedAtUtc, agentName)
+            : sms,
+        ),
+      );
+      onStatus("Cazul SMS a fost inchis.");
+      onError("");
+      await loadPhoneHistory(phone);
+      await loadInboundSms();
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut inchide cazul SMS.");
+    } finally {
+      setClosingCase(false);
+    }
+  }
+
   return (
     <CrmCard title="InboundSMS" className="wide-card">
       <div className="filter-grid inbound-sms-filter">
@@ -2692,7 +2750,11 @@ function InboundSmsPanel({
         />
 
         <label>Status</label>
-        <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+        <select
+          value={statusFilter}
+          onChange={(event) => setStatusFilter(event.target.value)}
+          disabled={showOnlyInProgress}
+        >
           <option value="all">all</option>
           <option value="answered">answered</option>
           <option value="to_be_answered">to be answered</option>
@@ -2707,19 +2769,32 @@ function InboundSmsPanel({
           placeholder="Telefon..."
         />
 
-        <button type="button" className="orange small" onClick={loadInboundSms} disabled={loading}>
+        <label className="in-progress-filter">
+          <input
+            type="checkbox"
+            checked={showOnlyInProgress}
+            onChange={(event) => {
+              const checked = event.target.checked;
+              setShowOnlyInProgress(checked);
+              void loadInboundSms({ showOnlyInProgress: checked });
+            }}
+          />
+          Show Only In Progress
+        </label>
+
+        <button type="button" className="orange small" onClick={() => loadInboundSms()} disabled={loading}>
           {loading ? "Se incarca..." : "Filter"}
         </button>
       </div>
 
       <p className="green-label">
-        Threaduri SMS: {threadRows.length} / SMS inbound: {total}
+        Threaduri SMS: {visibleThreadRows.length} / SMS inbound: {total}
       </p>
       {localMessage ? <p className="inbound-local-message">{localMessage}</p> : null}
 
       <DataTable
         columns={["Ultimul SMS", "Status", "Phone", "Lead", "SMS-uri", "Ultimul mesaj", "Answered at", "Agent"]}
-        rows={threadRows.map((thread) => [
+        rows={visibleThreadRows.map((thread) => [
           formatDateTime(thread.lastAt),
           formatInboundSmsStatusLabel(thread.status),
           thread.phone,
@@ -2731,12 +2806,12 @@ function InboundSmsPanel({
         ])}
         loading={loading}
         onRowClick={(index) => {
-          const thread = threadRows[index];
+          const thread = visibleThreadRows[index];
           if (thread) {
             void handleSelectThread(thread);
           }
         }}
-        rowClassName={(index) => `sms-${threadRows[index]?.status || "to_be_answered"}`}
+        rowClassName={(index) => `sms-${visibleThreadRows[index]?.status || "to_be_answered"}`}
         minWidth={1260}
       />
 
@@ -2788,7 +2863,17 @@ function InboundSmsPanel({
         </div>
 
         <div className="inbound-history">
-          <h2>Istoric telefon</h2>
+          <div className="inbound-history-heading">
+            <h2>Istoric telefon</h2>
+            <button
+              type="button"
+              className="orange small"
+              onClick={handleCloseCase}
+              disabled={!selectedThread || selectedThread.status === "answered" || closingCase}
+            >
+              {closingCase ? "Closing..." : "Close Case"}
+            </button>
+          </div>
           <DataTable
             columns={["timestamp", "Action", "Agent", "Param1", "Param2", "Param3", "Param4", "Param5"]}
             rows={activityRows.map((item) => [
@@ -3855,8 +3940,30 @@ const panelStyles = `
     grid-template-columns: 130px minmax(120px, 1fr) 100px minmax(150px, 1fr) 90px minmax(150px, 1fr);
   }
   .inbound-sms-filter {
-    width: min(940px, 100%);
-    grid-template-columns: 140px minmax(100px, 1fr) 70px minmax(150px, 1fr) 60px minmax(160px, 1fr) 100px;
+    width: min(1160px, 100%);
+    grid-template-columns: 140px minmax(90px, 1fr) 70px minmax(140px, 1fr) 60px minmax(150px, 1fr) minmax(190px, max-content) 100px;
+  }
+  .in-progress-filter {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .in-progress-filter input {
+    width: 16px;
+    height: 16px;
+  }
+  .inbound-history-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 12px;
+  }
+  .inbound-history-heading h2 {
+    margin: 0;
   }
   .inbound-local-message {
     margin: 12px 0;
@@ -4083,6 +4190,46 @@ function groupInboundSmsThreads(rows: CrmInboundSms[]): InboundSmsThread[] {
       };
     })
     .sort((left, right) => getDateTimeValue(right.lastAt) - getDateTimeValue(left.lastAt));
+}
+
+function applyClosedThreadOverrides(
+  threads: InboundSmsThread[],
+  overrides: Record<string, { closedAtUtc: string; agent: string }>,
+) {
+  return threads.map((thread) => {
+    const override = overrides[thread.phoneKey];
+    if (!override) {
+      return thread;
+    }
+
+    const lastThreadMessageAt = getDateTimeValue(thread.lastAt);
+    const closedAt = getDateTimeValue(override.closedAtUtc);
+    if (lastThreadMessageAt && closedAt && lastThreadMessageAt > closedAt) {
+      return thread;
+    }
+
+    return {
+      ...thread,
+      status: "answered" as const,
+      lastSms: markInboundSmsAnswered(thread.lastSms, override.closedAtUtc, override.agent),
+      messages: thread.messages.map((sms) => markInboundSmsAnswered(sms, override.closedAtUtc, override.agent)),
+    };
+  });
+}
+
+function markInboundSmsAnswered(sms: CrmInboundSms, answeredAtUtc: string, agent: string) {
+  return {
+    ...sms,
+    status: "answered",
+    answered: true,
+    answeredAtUtc: sms.answeredAtUtc || answeredAtUtc,
+    lastReplyAtUtc: sms.lastReplyAtUtc || answeredAtUtc,
+    replyAgent: sms.replyAgent || agent,
+  };
+}
+
+function isInboundSmsThreadInProgress(thread: InboundSmsThread) {
+  return thread.status === "to_be_answered" || thread.status === "past_due";
 }
 
 function getInboundSmsThreadCount(thread: InboundSmsThread) {

@@ -208,6 +208,55 @@ Backend requirements for this route:
 
 No new reply endpoint is required unless `manual-sms` cannot reliably log the outbound reply.
 
+## Close Case Behavior
+
+The frontend closes an inbound SMS thread through:
+
+`POST /justproveit/admin/crm/inbound-sms/close-case`
+
+Request body:
+
+```json
+{
+  "inboundSmsId": "latest-inbound-sms-id-if-available",
+  "smsId": "alternate-sms-id-if-available",
+  "phone": "447700900123",
+  "status": "answered",
+  "agent": "Agent Name"
+}
+```
+
+Backend requirements for this route:
+
+- require the same CRM/admin bearer token auth as the other CRM admin routes
+- accept either a stable inbound SMS id or phone number; phone is required if no id is supplied
+- mark the selected inbound SMS thread as finished by setting the green state, currently `answered`
+- set answer metadata such as `answered = true`, `answeredAtUtc` or `lastReplyAtUtc`, and `replyAgent`
+- persist enough activity/audit context to show who closed the case and when
+- return the updated inbound SMS row or a success response
+
+Suggested success response:
+
+```json
+{
+  "success": true,
+  "sms": {
+    "id": "inbound-sms-id",
+    "phone": "447700900123",
+    "status": "answered",
+    "answered": true,
+    "answeredAtUtc": "2026-08-08T06:30:00.000Z",
+    "replyAgent": "Agent Name"
+  }
+}
+```
+
+After a successful close, refreshing:
+
+`GET /justproveit/admin/crm/inbound-sms`
+
+should return that phone thread as `answered`.
+
 ## Data Storage Expectations
 
 The inbound webhook:
@@ -240,7 +289,9 @@ The read endpoint should not expose Twilio secrets, webhook signatures, or inter
 - `GET /justproveit/admin/crm/activity?phone=...&limit=500` returns SMS and call history for the selected phone.
 - The activity response includes inbound and outbound SMS bodies, timestamps, and direction.
 - `POST /justproveit/admin/crm/manual-sms` sends the reply and records it in activity/history.
+- `POST /justproveit/admin/crm/inbound-sms/close-case` marks an inbound SMS thread as `answered`.
 - After a successful manual reply, refreshing the inbound SMS list shows the message as `answered`.
+- After a successful close case action, refreshing the inbound SMS list shows the message as `answered`.
 - No full SMS bodies or full phone numbers are written to application logs.
 
 ## Frontend Implementation Plan After Backend Is Ready

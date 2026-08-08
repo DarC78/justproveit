@@ -448,6 +448,14 @@ export type ManualCrmSmsPayload = {
   agent?: string;
 };
 
+export type CloseCrmInboundSmsCasePayload = {
+  inboundSmsId?: string | number | null;
+  smsId?: string | number | null;
+  phone?: string | null;
+  status?: "answered";
+  agent?: string;
+};
+
 export type StopCrmLeadDiallerPayload = {
   phone?: string;
   intentId?: string;
@@ -687,6 +695,20 @@ export function listCrmInboundSms(
   return fetchCanonicalCrmReadJson<CrmInboundSmsResponse>(`${BASE_PATH}/inbound-sms${buildQuery(params)}`, {
     headers: authHeaders(token),
   });
+}
+
+export function closeCrmInboundSmsCase(token: string, payload: CloseCrmInboundSmsCasePayload) {
+  return fetchCanonicalCrmReadJson<{ success?: boolean; sms?: CrmInboundSms; item?: CrmInboundSms; message?: string }>(
+    `${BASE_PATH}/inbound-sms/close-case`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify({
+        status: "answered",
+        ...payload,
+      }),
+    },
+  );
 }
 
 export function searchCrmActivity(
