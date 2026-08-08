@@ -24,6 +24,7 @@ import {
   listCrmSales,
   queueCrmEmailSequence,
   queueCrmSmsSequence,
+  reserveCrmLeadIntent,
   scheduleManualCrmEmail,
   searchCrmActivity,
   sendManualCrmSms,
@@ -559,6 +560,14 @@ function isCarFinanceIntent(row?: CrmLeadIntentRow | null) {
   return serviceText.includes("car finance") || serviceText.includes("carfinance");
 }
 
+function isAsapLeadIntent(row?: CrmLeadIntentRow | null) {
+  return String(row?.interestType || "").trim().toUpperCase() === "ASAP";
+}
+
+function getLeadIntentId(row?: CrmLeadIntentRow | null) {
+  return String(row?.interestId || "").trim();
+}
+
 function isEmailLookupValue(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
 }
@@ -863,7 +872,9 @@ export default function AdminCrmPage() {
               {activeTab === "intents" ? (
                 <LeadIntentPanel
                   token={token}
+                  agentName={agentName}
                   onSelectIntent={handleIntentSelected}
+                  onStatus={setStatusMessage}
                   onError={setErrorMessage}
                 />
               ) : null}
@@ -2212,11 +2223,15 @@ function AllLeadsPanel({
 
 function LeadIntentPanel({
   token,
+  agentName,
   onSelectIntent,
+  onStatus,
   onError,
 }: {
   token: string;
+  agentName: string;
   onSelectIntent: (row: CrmLeadIntentRow) => void;
+  onStatus: (message: string) => void;
   onError: (message: string) => void;
 }) {
   const [createdLastDays, setCreatedLastDays] = useState("30");
@@ -2231,6 +2246,7 @@ function LeadIntentPanel({
   const [calendlyOnlyToday, setCalendlyOnlyToday] = useState(true);
   const [rows, setRows] = useState<CrmLeadIntentRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [reservingIntentId, setReservingIntentId] = useState("");
   const [resultText, setResultText] = useState("");
   const [predictiveCampaignSummary, setPredictiveCampaignSummary] = useState<CrmPredictiveCampaignSummary[]>([]);
   const [showCampaignDetails, setShowCampaignDetails] = useState(false);
@@ -2332,6 +2348,45 @@ function LeadIntentPanel({
       onError(error instanceof Error ? error.message : "Nu am putut incarca lead intent.");
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleIntentDoubleClick(index: number) {
+    const row = sortedRows[index];
+    if (!row?.lead) {
+      onError("Intentul selectat nu are lead atasat.");
+      return;
+    }
+
+    if (!isAsapLeadIntent(row)) {
+      onSelectIntent(row);
+      return;
+    }
+
+    const interestId = getLeadIntentId(row);
+    if (!interestId) {
+      onError("Intentul ASAP selectat nu are id pentru rezervare.");
+      return;
+    }
+
+    setReservingIntentId(interestId);
+    try {
+      await reserveCrmLeadIntent(token, interestId, {
+        agent: agentName,
+        reservationTtlMinutes: 15,
+        reason: "Opened ASAP intent from Lead Intents tab",
+      });
+      setRows((current) => current.filter((item) => getLeadIntentId(item) !== interestId));
+      setReservingIntentId("");
+      onStatus("Intent ASAP rezervat pentru 15 minute.");
+      onError("");
+      onSelectIntent(row);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Nu am putut rezerva intentul ASAP.";
+      onStatus("");
+      await loadIntents();
+      onError(message);
+      setReservingIntentId("");
     }
   }
 
@@ -2465,6 +2520,7 @@ function LeadIntentPanel({
       <p className="green-label">
         Total: {sortedRows.length}
         {intentCompositionSummary.length ? ` | ${intentCompositionSummary.join(" | ")}` : ""}
+        {reservingIntentId ? " | Se rezerva intentul ASAP..." : ""}
       </p>
       <DataTable
         columns={intentTableColumns}
@@ -2488,13 +2544,7 @@ function LeadIntentPanel({
         ])}
         loading={loading}
         onRowDoubleClick={(index) => {
-          const row = sortedRows[index];
-          if (row?.lead) {
-            onSelectIntent(row);
-            return;
-          }
-
-          onError("Intentul selectat nu are lead atasat.");
+          void handleIntentDoubleClick(index);
         }}
         sortableColumns={Object.fromEntries(
           intentTableColumns.map((column) => [

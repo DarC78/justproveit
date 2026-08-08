@@ -245,6 +245,9 @@ export type CrmLeadIntentRow = {
   createdAtUtc?: string | null;
   closedAtUtc?: string | null;
   updatedAtUtc?: string | null;
+  reservedByAgent?: string | null;
+  reservedAtUtc?: string | null;
+  reservationExpiresAtUtc?: string | null;
   lead?: CrmLead | null;
 };
 
@@ -403,6 +406,24 @@ export type CrmEmailSequencePayload = {
   intentId?: string;
   serviceKey?: string;
   agent?: string;
+};
+
+export type CrmLeadIntentReservationPayload = {
+  agent?: string;
+  reservationTtlMinutes?: number;
+  reason?: string;
+};
+
+export type CrmLeadIntentReservationResponse = {
+  success?: boolean;
+  reservation?: {
+    interestId?: string | null;
+    reservedByAgent?: string | null;
+    reservedAtUtc?: string | null;
+    reservationExpiresAtUtc?: string | null;
+  } | null;
+  intent?: CrmLeadIntentRow | null;
+  message?: string | null;
 };
 
 export type ManualCrmLeadPayload = {
@@ -615,6 +636,21 @@ export function listCrmLeadIntents(
   return fetchCanonicalCrmReadJson<CrmLeadIntentResponse>(`${BASE_PATH}/lead-intents${buildQuery(params)}`, {
     headers: authHeaders(token),
   });
+}
+
+export function reserveCrmLeadIntent(
+  token: string,
+  interestId: string,
+  payload: CrmLeadIntentReservationPayload,
+) {
+  return fetchCanonicalCrmReadJson<CrmLeadIntentReservationResponse>(
+    `${BASE_PATH}/lead-intents/${encodeURIComponent(interestId)}/reservation`,
+    {
+      method: "POST",
+      headers: authHeaders(token),
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export function listCrmHighLevelFunnels(
