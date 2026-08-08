@@ -61,6 +61,86 @@ const FOREIGN_COUNTRIES = [
   { value: "UK", label: "Regatul Unit / UK" },
 ];
 const FOREIGN_PERIOD_SLOTS = [1, 2, 3] as const;
+type SpecialSituationKey =
+  | "removedFromServicePoliticalRacialPre1945"
+  | "recognizedAntifascistRevolutionaryActivity"
+  | "illegalSuspensionOrDismissalAnnulled"
+  | "professionalOrPoliticalTrainingWhileEmployed"
+  | "formerSocialInsuranceContributions"
+  | "womanReducedScheduleChildcareUnder6"
+  | "decreeLaw118RecognizedPeriods"
+  | "wifeFollowingHusbandPermanentMissionAbroad"
+  | "compensatoryPaymentsOug98_1999"
+  | "unemploymentLaw1_1991IntegrationAid";
+type PeriodInputState = {
+  years: string;
+  months: string;
+};
+type SpecialSituationsState = Record<SpecialSituationKey, PeriodInputState>;
+const SPECIAL_SITUATION_OPTIONS: Array<{
+  key: SpecialSituationKey;
+  label: string;
+}> = [
+  {
+    key: "removedFromServicePoliticalRacialPre1945",
+    label:
+      "Perioada in care a fost indepartata din serviciu pentru activitate politica revolutionara, antifascista sau democratica, inainte de 23 August 1944, ori ca urmare a persecutiilor rasiale sau nationale, in perioada ianuarie 1938 - decembrie 1945",
+  },
+  {
+    key: "recognizedAntifascistRevolutionaryActivity",
+    label:
+      "Perioada in care a desfasurat o activitate revolutionara antifascista, recunoscuta de organele in drept ca vechime in munca",
+  },
+  {
+    key: "illegalSuspensionOrDismissalAnnulled",
+    label:
+      "Perioada in care a fost suspendata din functie ori i s-a desfacut contractul de munca, daca aceste masuri au fost anulate ulterior ca fiind ilegale",
+  },
+  {
+    key: "professionalOrPoliticalTrainingWhileEmployed",
+    label:
+      "Perioada in care o persoana incadrata in munca urmeaza cursuri de pregatire profesionala sau politica",
+  },
+  {
+    key: "formerSocialInsuranceContributions",
+    label:
+      "Perioadele pentru care s-a cotizat la fostele asigurari sociale ori la casele de pensii preluate de stat",
+  },
+  {
+    key: "womanReducedScheduleChildcareUnder6",
+    label:
+      "Perioada in care o femeie a fost incadrata, cu program redus, potrivit legii, pentru ingrijirea copiilor in varsta de pana la 6 ani, se socoteste ca timp integral",
+  },
+  {
+    key: "decreeLaw118RecognizedPeriods",
+    label: "Perioadele recunoscute ca atare in baza Decretului-lege nr. 118/1990",
+  },
+  {
+    key: "wifeFollowingHusbandPermanentMissionAbroad",
+    label:
+      "Timpul cat sotia salariata lipseste din tara pentru a-si urma sotul trimis in misiune permanenta in strainatate",
+  },
+  {
+    key: "compensatoryPaymentsOug98_1999",
+    label:
+      "Perioadele pentru care se primesc plati compensatorii in baza Ordonantei de Urgenta nr. 98/1999",
+  },
+  {
+    key: "unemploymentLaw1_1991IntegrationAid",
+    label:
+      "Perioadele in care a beneficiat de somaj si de ajutor de integrare profesionala prevazute de Legea nr. 1/1991",
+  },
+];
+const ADDITIONAL_BREAKDOWN_LABELS: Record<string, string> = {
+  armyNormal: "Armata - termen normal",
+  armyReduced: "Armata - termen redus",
+  paidUnemployment: "Somaj platit",
+  maternityLeave: "Concediu de maternitate",
+  university: "Facultate fara suprapunere",
+};
+SPECIAL_SITUATION_OPTIONS.forEach((option) => {
+  ADDITIONAL_BREAKDOWN_LABELS[option.key] = option.label;
+});
 type ActionStatus = "success" | "error" | "";
 const PURCHASE_EMAIL_TEMPLATE = "ro-pension-calculator-email-cumparare";
 const PURCHASE_SMS_TEXT = `Felicitari pentru ca doriti sa vedeti exact cand iesiti la pensie in Romania si in alte tari in care ati mai muncit. 
@@ -85,6 +165,16 @@ type FormState = {
   gender: "F" | "M";
   normalRoYears: string;
   normalRoMonths: string;
+  armyNormalYears: string;
+  armyNormalMonths: string;
+  armyReducedYears: string;
+  armyReducedMonths: string;
+  paidUnemploymentYears: string;
+  paidUnemploymentMonths: string;
+  maternityLeaveYears: string;
+  maternityLeaveMonths: string;
+  universityYears: string;
+  universityMonths: string;
   foreignCountry1: string;
   foreignYears1: string;
   foreignMonths1: string;
@@ -106,6 +196,7 @@ type FormState = {
   handicapType: string;
   handicapYears: string;
   handicapMonths: string;
+  specialSituations: SpecialSituationsState;
 };
 
 const initialForm: FormState = {
@@ -117,6 +208,16 @@ const initialForm: FormState = {
   gender: "F",
   normalRoYears: "",
   normalRoMonths: "",
+  armyNormalYears: "",
+  armyNormalMonths: "",
+  armyReducedYears: "",
+  armyReducedMonths: "",
+  paidUnemploymentYears: "",
+  paidUnemploymentMonths: "",
+  maternityLeaveYears: "",
+  maternityLeaveMonths: "",
+  universityYears: "",
+  universityMonths: "",
   foreignCountry1: "UK",
   foreignYears1: "",
   foreignMonths1: "",
@@ -138,6 +239,7 @@ const initialForm: FormState = {
   handicapType: "none",
   handicapYears: "",
   handicapMonths: "",
+  specialSituations: createInitialSpecialSituations(),
 };
 
 export default function RomanianPensionCalculatorPage() {
@@ -242,6 +344,7 @@ export default function RomanianPensionCalculatorPage() {
     try {
       const foreignPeriods = buildForeignPeriods(form);
       const foreignTotalMonths = foreignPeriods.reduce((total, period) => total + (period.monthsTotal || 0), 0);
+      const additionalPeriods = buildAdditionalPeriodFields(form);
       const result = await submitPensionCalculator({
         fullName: form.fullName,
         email: form.email,
@@ -261,6 +364,7 @@ export default function RomanianPensionCalculatorPage() {
           grupaIMonths: asNumber(form.grupaIMonths),
           grupaIIYears: asNumber(form.grupaIIYears),
           grupaIIMonths: asNumber(form.grupaIIMonths),
+          ...additionalPeriods,
         },
         foreignPeriods,
         childrenRaised: asNumber(form.childrenRaised),
@@ -680,6 +784,41 @@ export default function RomanianPensionCalculatorPage() {
                     onYears={(value) => update("normalRoYears", value)}
                     onMonths={(value) => update("normalRoMonths", value)}
                   />
+                  <PeriodRow
+                    label="Armata - termen normal"
+                    years={form.armyNormalYears}
+                    months={form.armyNormalMonths}
+                    onYears={(value) => update("armyNormalYears", value)}
+                    onMonths={(value) => update("armyNormalMonths", value)}
+                  />
+                  <PeriodRow
+                    label="Armata - termen redus"
+                    years={form.armyReducedYears}
+                    months={form.armyReducedMonths}
+                    onYears={(value) => update("armyReducedYears", value)}
+                    onMonths={(value) => update("armyReducedMonths", value)}
+                  />
+                  <PeriodRow
+                    label="Somaj platit"
+                    years={form.paidUnemploymentYears}
+                    months={form.paidUnemploymentMonths}
+                    onYears={(value) => update("paidUnemploymentYears", value)}
+                    onMonths={(value) => update("paidUnemploymentMonths", value)}
+                  />
+                  <PeriodRow
+                    label="Concediu de maternitate"
+                    years={form.maternityLeaveYears}
+                    months={form.maternityLeaveMonths}
+                    onYears={(value) => update("maternityLeaveYears", value)}
+                    onMonths={(value) => update("maternityLeaveMonths", value)}
+                  />
+                  <PeriodRow
+                    label="Facultate fara suprapunere cu ani lucrati"
+                    years={form.universityYears}
+                    months={form.universityMonths}
+                    onYears={(value) => update("universityYears", value)}
+                    onMonths={(value) => update("universityMonths", value)}
+                  />
                   {FOREIGN_PERIOD_SLOTS.map((slot) => (
                     <ForeignPeriodRow
                       key={slot}
@@ -720,6 +859,22 @@ export default function RomanianPensionCalculatorPage() {
                     onYears={(value) => update("grupaIIYears", value)}
                     onMonths={(value) => update("grupaIIMonths", value)}
                   />
+                </div>
+              </fieldset>
+
+              <fieldset>
+                <legend className="mb-3 text-base font-bold">Situatii speciale pentru vechime</legend>
+                <div className="grid gap-3">
+                  {SPECIAL_SITUATION_OPTIONS.map((option) => (
+                    <PeriodRow
+                      key={option.key}
+                      label={option.label}
+                      years={form.specialSituations[option.key].years}
+                      months={form.specialSituations[option.key].months}
+                      onYears={(value) => updateSpecialSituation(option.key, "years", value)}
+                      onMonths={(value) => updateSpecialSituation(option.key, "months", value)}
+                    />
+                  ))}
                 </div>
               </fieldset>
 
@@ -772,6 +927,8 @@ export default function RomanianPensionCalculatorPage() {
                 <li>varsta standard conform Anexei nr. 5</li>
                 <li>stagiu Romania si stagiu UK/strainatate</li>
                 <li>conditii deosebite, speciale, Grupa I si Grupa II</li>
+                <li>armata, somaj platit, concediu de maternitate si facultate fara suprapunere</li>
+                <li>situatii speciale introduse cu ani si luni pentru calcul</li>
                 <li>reducerea pentru femei cu copii</li>
                 <li>scenarii de pensionare anticipata si stagiu depasit</li>
               </ul>
@@ -788,6 +945,23 @@ export default function RomanianPensionCalculatorPage() {
 
   function update<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateSpecialSituation(
+    key: SpecialSituationKey,
+    field: keyof PeriodInputState,
+    value: string,
+  ) {
+    setForm((current) => ({
+      ...current,
+      specialSituations: {
+        ...current.specialSituations,
+        [key]: {
+          ...current.specialSituations[key],
+          [field]: value,
+        },
+      },
+    }));
   }
 }
 
@@ -1042,6 +1216,33 @@ function ResultPanel({
             <Metric label="Stagiu total contributiv" value={formatAge(result.stagiu.totalContributiv)} />
           </div>
 
+          {result.stagiu.additionalBreakdown &&
+          Object.keys(result.stagiu.additionalBreakdown).length > 0 ? (
+            <div className="mt-4 rounded-md border border-slate-200 bg-white p-3">
+              <h3 className="text-sm font-bold text-slate-800">Perioade suplimentare incluse</h3>
+              <div className="mt-3 grid gap-2 text-sm">
+                {Object.entries(result.stagiu.additionalBreakdown).map(([key, period]) => (
+                  <Metric
+                    key={key}
+                    label={`${formatAdditionalBreakdownLabel(key, period.label)} (${formatBreakdownClassification(period.classification)})`}
+                    value={formatAge(period)}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {result.warnings.length > 0 ? (
+            <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3">
+              <h3 className="text-sm font-bold text-amber-900">Atentionari</h3>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-5 text-amber-900">
+                {result.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <div className="mt-5 overflow-x-auto">
             <table className="w-full min-w-[520px] border-collapse text-left text-sm">
               <thead>
@@ -1180,6 +1381,23 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
+function formatAdditionalBreakdownLabel(key: string, backendLabel?: string) {
+  return backendLabel || ADDITIONAL_BREAKDOWN_LABELS[key] || key;
+}
+
+function formatBreakdownClassification(classification?: string) {
+  switch (classification) {
+    case "contributiv":
+      return "contributiv";
+    case "asimilat":
+      return "asimilat";
+    case "excluded":
+      return "exclus";
+    default:
+      return classification || "inclus";
+  }
+}
+
 function formatAge(age: AgeYM) {
   if (age.months === 0) {
     return `${age.years} ani`;
@@ -1233,6 +1451,56 @@ function isValidEmail(email: string) {
 function asNumber(value: string) {
   const numeric = Number(value);
   return Number.isFinite(numeric) && numeric > 0 ? numeric : 0;
+}
+
+function createInitialSpecialSituations(): SpecialSituationsState {
+  return SPECIAL_SITUATION_OPTIONS.reduce((state, option) => {
+    state[option.key] = { years: "", months: "" };
+    return state;
+  }, {} as SpecialSituationsState);
+}
+
+function buildAdditionalPeriodFields(form: FormState) {
+  const fields: Record<string, number> = {};
+
+  addPeriodFields(fields, "armyNormal", form.armyNormalYears, form.armyNormalMonths);
+  addPeriodFields(fields, "armyReduced", form.armyReducedYears, form.armyReducedMonths);
+  addPeriodFields(
+    fields,
+    "paidUnemployment",
+    form.paidUnemploymentYears,
+    form.paidUnemploymentMonths,
+  );
+  addPeriodFields(
+    fields,
+    "maternityLeave",
+    form.maternityLeaveYears,
+    form.maternityLeaveMonths,
+  );
+  addPeriodFields(fields, "university", form.universityYears, form.universityMonths);
+  SPECIAL_SITUATION_OPTIONS.forEach((option) => {
+    const period = form.specialSituations[option.key];
+    addPeriodFields(fields, option.key, period.years, period.months);
+  });
+
+  return fields;
+}
+
+function addPeriodFields(
+  fields: Record<string, number>,
+  prefix: string,
+  yearsValue: string,
+  monthsValue: string,
+) {
+  const years = asNumber(yearsValue);
+  const months = asNumber(monthsValue);
+
+  if (years === 0 && months === 0) {
+    return;
+  }
+
+  fields[`${prefix}Years`] = years;
+  fields[`${prefix}Months`] = months;
 }
 
 function buildForeignPeriods(form: FormState) {

@@ -38,6 +38,14 @@ export type PensionCalculatorResult = {
     totalContributiv: AgeYM;
     grupaI_plus_speciale: AgeYM;
     grupaII_plus_deosebite: AgeYM;
+    additionalBreakdown?: Record<
+      string,
+      AgeYM & {
+        classification?: string;
+        label?: string;
+        note?: string | null;
+      }
+    >;
   };
   ukStatePension?: {
     label: string;
