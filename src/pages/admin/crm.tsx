@@ -2536,6 +2536,7 @@ function InboundSmsPanel({
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
   const [closingCase, setClosingCase] = useState(false);
+  const [stoppingDialler, setStoppingDialler] = useState(false);
   const [localMessage, setLocalMessage] = useState("");
   const [localOutboundSms, setLocalOutboundSms] = useState<LocalOutboundSms[]>([]);
   const [closedThreadOverrides, setClosedThreadOverrides] = useState<Record<string, { closedAtUtc: string; agent: string }>>({});
@@ -2737,6 +2738,35 @@ function InboundSmsPanel({
     }
   }
 
+  async function handleStopDialling() {
+    if (!selectedThread) {
+      onError("Selecteaza un thread inainte de oprirea din dialler.");
+      return;
+    }
+
+    const phone = selectedThread.phone;
+    if (!phone) {
+      onError("Threadul selectat nu are telefon.");
+      return;
+    }
+
+    setStoppingDialler(true);
+    try {
+      const result = await stopCrmLeadDialler(token, {
+        phone,
+        reason: "Removed from dialler from CRM InboundSMS tab",
+        agent: agentName,
+      });
+      onStatus(result?.message || "Lead scos din dialler.");
+      onError("");
+      await loadPhoneHistory(phone);
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut scoate lead-ul din dialler.");
+    } finally {
+      setStoppingDialler(false);
+    }
+  }
+
   return (
     <CrmCard title="InboundSMS" className="wide-card">
       <div className="filter-grid inbound-sms-filter">
@@ -2865,14 +2895,24 @@ function InboundSmsPanel({
         <div className="inbound-history">
           <div className="inbound-history-heading">
             <h2>Istoric telefon</h2>
-            <button
-              type="button"
-              className="orange small"
-              onClick={handleCloseCase}
-              disabled={!selectedThread || selectedThread.status === "answered" || closingCase}
-            >
-              {closingCase ? "Closing..." : "Close Case"}
-            </button>
+            <div className="inbound-history-actions">
+              <button
+                type="button"
+                className="orange small"
+                onClick={handleCloseCase}
+                disabled={!selectedThread || selectedThread.status === "answered" || closingCase}
+              >
+                {closingCase ? "Closing..." : "Close Case"}
+              </button>
+              <button
+                type="button"
+                className="orange small"
+                onClick={handleStopDialling}
+                disabled={!selectedThread || stoppingDialler}
+              >
+                {stoppingDialler ? "Se opreste..." : "stop dialling"}
+              </button>
+            </div>
           </div>
           <DataTable
             columns={["timestamp", "Action", "Agent", "Param1", "Param2", "Param3", "Param4", "Param5"]}
@@ -3964,6 +4004,12 @@ const panelStyles = `
   }
   .inbound-history-heading h2 {
     margin: 0;
+  }
+  .inbound-history-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
   }
   .inbound-local-message {
     margin: 12px 0;
