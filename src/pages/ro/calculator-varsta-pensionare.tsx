@@ -66,9 +66,6 @@ type SpecialSituationKey =
   | "recognizedAntifascistRevolutionaryActivity"
   | "illegalSuspensionOrDismissalAnnulled"
   | "professionalOrPoliticalTrainingWhileEmployed"
-  | "formerSocialInsuranceContributions"
-  | "womanReducedScheduleChildcareUnder6"
-  | "decreeLaw118RecognizedPeriods"
   | "wifeFollowingHusbandPermanentMissionAbroad"
   | "compensatoryPaymentsOug98_1999"
   | "unemploymentLaw1_1991IntegrationAid";
@@ -100,20 +97,6 @@ const SPECIAL_SITUATION_OPTIONS: Array<{
     key: "professionalOrPoliticalTrainingWhileEmployed",
     label:
       "Perioada in care o persoana incadrata in munca urmeaza cursuri de pregatire profesionala sau politica",
-  },
-  {
-    key: "formerSocialInsuranceContributions",
-    label:
-      "Perioadele pentru care s-a cotizat la fostele asigurari sociale ori la casele de pensii preluate de stat",
-  },
-  {
-    key: "womanReducedScheduleChildcareUnder6",
-    label:
-      "Perioada in care o femeie a fost incadrata, cu program redus, potrivit legii, pentru ingrijirea copiilor in varsta de pana la 6 ani, se socoteste ca timp integral",
-  },
-  {
-    key: "decreeLaw118RecognizedPeriods",
-    label: "Perioadele recunoscute ca atare in baza Decretului-lege nr. 118/1990",
   },
   {
     key: "wifeFollowingHusbandPermanentMissionAbroad",

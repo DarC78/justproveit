@@ -145,12 +145,6 @@ The frontend also sends optional years/months for special historical/legal situa
     "illegalSuspensionOrDismissalAnnulledMonths": 0,
     "professionalOrPoliticalTrainingWhileEmployedYears": 0,
     "professionalOrPoliticalTrainingWhileEmployedMonths": 0,
-    "formerSocialInsuranceContributionsYears": 0,
-    "formerSocialInsuranceContributionsMonths": 0,
-    "womanReducedScheduleChildcareUnder6Years": 0,
-    "womanReducedScheduleChildcareUnder6Months": 0,
-    "decreeLaw118RecognizedPeriodsYears": 0,
-    "decreeLaw118RecognizedPeriodsMonths": 0,
     "wifeFollowingHusbandPermanentMissionAbroadYears": 0,
     "wifeFollowingHusbandPermanentMissionAbroadMonths": 0,
     "compensatoryPaymentsOug98_1999Years": 0,
@@ -169,9 +163,6 @@ Special situation period definitions:
 | `recognizedAntifascistRevolutionaryActivity` | Perioada in care a desfasurat o activitate revolutionara antifascista, recunoscuta de organele in drept ca vechime in munca |
 | `illegalSuspensionOrDismissalAnnulled` | Perioada in care a fost suspendata din functie ori i s-a desfacut contractul de munca, daca aceste masuri au fost anulate ulterior ca fiind ilegale |
 | `professionalOrPoliticalTrainingWhileEmployed` | Perioada in care o persoana incadrata in munca urmeaza cursuri de pregatire profesionala sau politica |
-| `formerSocialInsuranceContributions` | Perioadele pentru care s-a cotizat la fostele asigurari sociale ori la casele de pensii preluate de stat |
-| `womanReducedScheduleChildcareUnder6` | Perioada in care o femeie a fost incadrata, cu program redus, potrivit legii, pentru ingrijirea copiilor in varsta de pana la 6 ani, se socoteste ca timp integral |
-| `decreeLaw118RecognizedPeriods` | Perioadele recunoscute ca atare in baza Decretului-lege nr. 118/1990 |
 | `wifeFollowingHusbandPermanentMissionAbroad` | Timpul cat sotia salariata lipseste din tara pentru a-si urma sotul trimis in misiune permanenta in strainatate |
 | `compensatoryPaymentsOug98_1999` | Perioadele pentru care se primesc plati compensatorii in baza Ordonantei de Urgenta nr. 98/1999 |
 | `unemploymentLaw1_1991IntegrationAid` | Perioadele in care a beneficiat de somaj si de ajutor de integrare profesionala prevazute de Legea nr. 1/1991 |
@@ -308,12 +299,6 @@ Input:
 - `periods.illegalSuspensionOrDismissalAnnulledMonths`
 - `periods.professionalOrPoliticalTrainingWhileEmployedYears`
 - `periods.professionalOrPoliticalTrainingWhileEmployedMonths`
-- `periods.formerSocialInsuranceContributionsYears`
-- `periods.formerSocialInsuranceContributionsMonths`
-- `periods.womanReducedScheduleChildcareUnder6Years`
-- `periods.womanReducedScheduleChildcareUnder6Months`
-- `periods.decreeLaw118RecognizedPeriodsYears`
-- `periods.decreeLaw118RecognizedPeriodsMonths`
 - `periods.wifeFollowingHusbandPermanentMissionAbroadYears`
 - `periods.wifeFollowingHusbandPermanentMissionAbroadMonths`
 - `periods.compensatoryPaymentsOug98_1999Years`
