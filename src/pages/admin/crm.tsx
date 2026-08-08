@@ -55,6 +55,16 @@ type InboundSmsThread = {
   status: InboundSmsThreadStatus;
   leadName: string;
 };
+type SmsTranscriptItem = {
+  timestamp: string | null;
+  direction: "inbound" | "outbound";
+  body: string;
+  agent: string;
+};
+type LocalOutboundSms = SmsTranscriptItem & {
+  phoneKey: string;
+  timestamp: string;
+};
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "details", label: "Detalii Lead" },
@@ -2524,6 +2534,7 @@ function InboundSmsPanel({
   const [replyText, setReplyText] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
   const [localMessage, setLocalMessage] = useState("");
+  const [localOutboundSms, setLocalOutboundSms] = useState<LocalOutboundSms[]>([]);
   const threadRows = useMemo(() => groupInboundSmsThreads(smsRows), [smsRows]);
   const selectedThread = useMemo(
     () => threadRows.find((thread) => thread.phoneKey === selectedThreadPhone) || null,
@@ -2532,28 +2543,28 @@ function InboundSmsPanel({
   const conversationRows = useMemo(() => {
     const activitySmsRows = activityRows
       .filter(isSmsActivity)
-      .map((item) => ({
+      .map<SmsTranscriptItem>((item) => ({
         timestamp: item.timestamp || null,
         direction: getActivitySmsDirection(item),
         body: getActivitySmsBody(item),
         agent: item.agent || "",
       }))
       .filter((item) => item.body || item.timestamp)
-      .sort((left, right) => getDateTimeValue(left.timestamp) - getDateTimeValue(right.timestamp));
+      .sort(sortSmsTranscriptItems);
 
-    if (activitySmsRows.length) {
-      return activitySmsRows;
-    }
+    const localRows = localOutboundSms.filter((item) => item.phoneKey === selectedThreadPhone);
 
-    return (selectedThread?.messages || [])
-      .map((sms) => ({
+    const fallbackRows = (selectedThread?.messages || [])
+      .map<SmsTranscriptItem>((sms) => ({
         timestamp: getInboundSmsReceivedAt(sms),
         direction: "inbound" as const,
         body: getInboundSmsMessage(sms),
         agent: "",
       }))
-      .sort((left, right) => getDateTimeValue(left.timestamp) - getDateTimeValue(right.timestamp));
-  }, [activityRows, selectedThread]);
+      .sort(sortSmsTranscriptItems);
+
+    return mergeSmsTranscriptItems(activitySmsRows.length ? activitySmsRows : fallbackRows, localRows);
+  }, [activityRows, localOutboundSms, selectedThread, selectedThreadPhone]);
 
   useEffect(() => {
     loadInboundSms();
@@ -2638,13 +2649,24 @@ function InboundSmsPanel({
       return;
     }
 
+    const message = replyText.trim();
     setSendingReply(true);
     try {
       await sendManualCrmSms(token, {
         phone,
-        message: replyText.trim(),
+        message,
         agent: agentName,
       });
+      setLocalOutboundSms((current) => [
+        ...current,
+        {
+          phoneKey: selectedThread.phoneKey,
+          timestamp: new Date().toISOString(),
+          direction: "outbound",
+          body: message,
+          agent: agentName,
+        },
+      ]);
       setReplyText("");
       onStatus("SMS-ul a fost trimis.");
       onError("");
@@ -3982,6 +4004,31 @@ function formatDateTime(value?: string | null) {
 
 function getInboundSmsId(sms?: CrmInboundSms | null) {
   return String(sms?.id || sms?.inboundSmsId || sms?.smsId || sms?.providerMessageId || "").trim();
+}
+
+function sortSmsTranscriptItems(left: SmsTranscriptItem, right: SmsTranscriptItem) {
+  return getDateTimeValue(left.timestamp) - getDateTimeValue(right.timestamp);
+}
+
+function mergeSmsTranscriptItems(remoteRows: SmsTranscriptItem[], localRows: LocalOutboundSms[]) {
+  return [
+    ...remoteRows,
+    ...localRows.filter((localRow) => !remoteRows.some((remoteRow) => isSameOutboundSms(remoteRow, localRow))),
+  ].sort(sortSmsTranscriptItems);
+}
+
+function isSameOutboundSms(remoteRow: SmsTranscriptItem, localRow: LocalOutboundSms) {
+  if (remoteRow.direction !== "outbound" || remoteRow.body.trim() !== localRow.body.trim()) {
+    return false;
+  }
+
+  const remoteTimestamp = getDateTimeValue(remoteRow.timestamp);
+  const localTimestamp = getDateTimeValue(localRow.timestamp);
+  if (!remoteTimestamp || !localTimestamp) {
+    return false;
+  }
+
+  return Math.abs(remoteTimestamp - localTimestamp) < 10 * 60 * 1000;
 }
 
 function getInboundSmsReceivedAt(sms?: CrmInboundSms | null) {
