@@ -431,7 +431,7 @@ export type ManualCrmLeadPayload = {
   email: string;
   phoneNumber: string;
   language: string;
-  service: "simulator pensie" | "other";
+  service: "simulator pensie" | "FreeMoneyCheck" | "other";
   interestType?: "ASAP";
   agent?: string;
 };

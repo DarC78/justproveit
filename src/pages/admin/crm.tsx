@@ -1652,7 +1652,7 @@ function NewLeadPanel({
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [language, setLanguage] = useState("");
-  const [service, setService] = useState<"simulator pensie" | "other">("simulator pensie");
+  const [service, setService] = useState<"simulator pensie" | "FreeMoneyCheck" | "other">("simulator pensie");
   const [saving, setSaving] = useState(false);
   const [stopDiallerPhone, setStopDiallerPhone] = useState("");
   const [stopDiallerSaving, setStopDiallerSaving] = useState(false);
@@ -1737,8 +1737,12 @@ function NewLeadPanel({
             <option key={item}>{item}</option>
           ))}
         </select>
-        <select value={service} onChange={(event) => setService(event.target.value as "simulator pensie" | "other")}>
+        <select
+          value={service}
+          onChange={(event) => setService(event.target.value as "simulator pensie" | "FreeMoneyCheck" | "other")}
+        >
           <option value="simulator pensie">simulator pensie</option>
+          <option value="FreeMoneyCheck">FreeMoneyCheck</option>
           <option value="other">other</option>
         </select>
         <button type="submit" className="orange" disabled={saving}>
