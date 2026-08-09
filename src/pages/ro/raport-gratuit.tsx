@@ -18,6 +18,42 @@ import {
 const SITE_URL = "https://www.justproveit.co.uk";
 const PAGE_PATH = "/ro/raport-gratuit";
 const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
+const BANK_SWITCH_BONUS_EMAIL_INTRO =
+  "Banci care acorda bonusuri de £150-£220 cand va mutati un cont curent (nu cel principal, de preferinta) la ei. In total se pot castiga £1000 de la 5 banci:";
+const CREDIT_REPORT_EMAIL_NOTE =
+  "Verifica gratuit sa nu existe erori in raportul de scor de credit, folosind aplicatii gratuite precum ClearScore.";
+const CREDIT_REPORT_LINK = {
+  label: "ClearScore",
+  url: "https://www.clearscore.com/",
+};
+const INSURANCE_COMPARISON_EMAIL_NOTE =
+  "Pentru a verifica daca poti sa economisesti la 40+ tipuri de asigurari, ai comparatoare de preturi precum Confused.com.";
+const INSURANCE_COMPARISON_LINK = {
+  label: "Confused.com",
+  url: "https://www.confused.com/",
+};
+const BANK_SWITCH_BONUS_LINKS = [
+  {
+    label: "£220 Recompensa de la HSBC",
+    url: "https://www.hsbc.co.uk/current-accounts/products/bank-account/promotion/",
+  },
+  {
+    label: "£200 Recompensa de la Barclays",
+    url: "https://www.barclays.co.uk/current-accounts/switch-offer/acqagg/",
+  },
+  {
+    label: "£200 Recompensa de la Natwest",
+    url: "https://www.natwest.com/current-accounts/reward_account.html",
+  },
+  {
+    label: "£175 Recompensa de la firstDirect",
+    url: "https://www.firstdirect.com/banking/current-account-mgm",
+  },
+  {
+    label: "£200 Recompensa de la Coop Bank",
+    url: "https://www.co-operativebank.co.uk/products/bank-accounts/switch-offer/",
+  },
+];
 
 const initialAnswers: QuickReportAnswers = {
   multipleJobs: "",
@@ -568,7 +604,10 @@ function buildQuickReportEmailText({
   results: Array<QuickReportResult & { flag: QuickReportFlag }>;
 }) {
   const rows = results
-    .map((result) => `${result.code} - ${result.title}\nStatus: ${result.flag.toUpperCase()}\n${result.output}`)
+    .map(
+      (result) =>
+        `${result.code} - ${result.title}\nStatus: ${result.flag.toUpperCase()}\n${buildQuickReportResultText(result)}`,
+    )
     .join("\n\n");
 
   return `Buna ziua ${fullName},
@@ -597,7 +636,7 @@ function buildQuickReportEmailHtml(options: {
           <td style="padding:12px;border:1px solid #d9e2ec;vertical-align:top;">
             <div style="font-weight:700;">${escapeHtml(result.title)}</div>
             <div style="margin-top:4px;text-transform:uppercase;font-size:12px;font-weight:700;color:${flagColor(result.flag)};">${escapeHtml(result.flag)}</div>
-            <div style="margin-top:8px;line-height:1.55;">${escapeHtml(result.output)}</div>
+            <div style="margin-top:8px;line-height:1.55;">${buildQuickReportResultHtml(result)}</div>
           </td>
         </tr>`,
     )
@@ -614,6 +653,57 @@ function buildQuickReportEmailHtml(options: {
       <p>Daca doriti, putem face o radiografie financiara completa si verifica si alte zone unde romanii din UK pot pierde bani, inclusiv beneficii de stat si situatii fiscale.</p>
       <p>O zi buna,<br>JustProveIt</p>
     </div>`;
+}
+
+function buildQuickReportResultText(result: QuickReportResult) {
+  if (result.code === "MF02") {
+    return `${result.output}\n\n${CREDIT_REPORT_EMAIL_NOTE}\n${CREDIT_REPORT_LINK.label}: ${CREDIT_REPORT_LINK.url}`;
+  }
+
+  if (result.code === "CD07") {
+    const bankLinks = BANK_SWITCH_BONUS_LINKS.map((bank) => `${bank.label}: ${bank.url}`).join("\n");
+    return `${result.output}\n\n${BANK_SWITCH_BONUS_EMAIL_INTRO}\n\n${bankLinks}`;
+  }
+
+  if (result.code === "FC02") {
+    return `${result.output}\n\n${INSURANCE_COMPARISON_EMAIL_NOTE}\n${INSURANCE_COMPARISON_LINK.label}: ${INSURANCE_COMPARISON_LINK.url}`;
+  }
+
+  return result.output;
+}
+
+function buildQuickReportResultHtml(result: QuickReportResult) {
+  if (result.code === "MF02") {
+    return `
+      ${escapeHtml(result.output)}
+      <p style="margin:12px 0 0 0;">
+        ${escapeHtml(CREDIT_REPORT_EMAIL_NOTE)} <a href="${escapeHtml(CREDIT_REPORT_LINK.url)}" target="_blank" rel="noopener noreferrer" style="color:#047857;font-weight:700;">${escapeHtml(CREDIT_REPORT_LINK.label)}</a>
+      </p>`;
+  }
+
+  if (result.code === "CD07") {
+    const bankLinks = BANK_SWITCH_BONUS_LINKS.map(
+      (bank) =>
+        `<li><a href="${escapeHtml(bank.url)}" target="_blank" rel="noopener noreferrer" style="color:#047857;font-weight:700;">${escapeHtml(bank.label)}</a></li>`,
+    ).join("");
+
+    return `
+      ${escapeHtml(result.output)}
+      <div style="margin-top:12px;">
+        <p style="margin:0 0 8px 0;">${escapeHtml(BANK_SWITCH_BONUS_EMAIL_INTRO)}</p>
+        <ul style="margin:0;padding-left:20px;">${bankLinks}</ul>
+      </div>`;
+  }
+
+  if (result.code === "FC02") {
+    return `
+      ${escapeHtml(result.output)}
+      <p style="margin:12px 0 0 0;">
+        ${escapeHtml(INSURANCE_COMPARISON_EMAIL_NOTE)} <a href="${escapeHtml(INSURANCE_COMPARISON_LINK.url)}" target="_blank" rel="noopener noreferrer" style="color:#047857;font-weight:700;">${escapeHtml(INSURANCE_COMPARISON_LINK.label)}</a>
+      </p>`;
+  }
+
+  return escapeHtml(result.output);
 }
 
 function flagColor(flag: QuickReportFlag) {
