@@ -266,6 +266,135 @@ const FINANCE_COMPANIES = [
   "Nu stiu",
 ];
 
+const LEAD_FIELD_LABELS: Record<string, string> = {
+  id: "Lead ID",
+  wixId: "Wix ID",
+  _id: "Record ID",
+  contactId: "Contact ID",
+  canonicalContactId: "Canonical contact ID",
+  leadid: "Legacy lead ID",
+  fullName: "Nume",
+  phoneNumber: "Telefon",
+  normalizedPhone: "Telefon normalizat",
+  email: "Email",
+  secondaryemail: "Email 2",
+  emailLeads: "Email leads",
+  emailAsap: "Email ASAP",
+  isCustomer: "Este client?",
+  statusOriginal: "Rezultat",
+  dataUrmatorContact: "FU",
+  observation: "Obs",
+  language: "Limba",
+  initialAgent: "Agent initial",
+  lastAgent: "Ultimul agent",
+  leadDate: "Data lead",
+  createdAtUtc: "Creat",
+  updatedAtUtc: "Actualizat",
+  addToDialler: "Add to dialler",
+  financeCompany: "Firma finantare",
+  year: "Anul achizitiei",
+  nrInmatriculare: "Numar inmatriculare",
+  canonical: "Canonical",
+  phones: "Telefoane",
+};
+
+const LEAD_INTENT_FIELD_LABELS: Record<string, string> = {
+  interestId: "Intent ID",
+  leadId: "Lead ID",
+  contactId: "Contact ID",
+  canonicalContactId: "Canonical contact ID",
+  serviceId: "Service ID",
+  serviceKey: "Service",
+  serviceDisplayName: "Service display",
+  interestType: "Lead intent",
+  source: "Source",
+  campaignName: "Campaign",
+  adGroupName: "Ad group",
+  adName: "Ad",
+  language: "Limba",
+  contactTimeUtc: "FU intent",
+  intentStatus: "Intent status",
+  addToDialler: "Add to dialler",
+  notes: "Notes",
+  createdAtUtc: "Creat",
+  closedAtUtc: "Inchis",
+  updatedAtUtc: "Actualizat",
+  reservedByAgent: "Rezervat de",
+  reservedAtUtc: "Rezervat la",
+  reservationExpiresAtUtc: "Rezervare expira",
+};
+
+const LEAD_FIELD_ORDER = [
+  "id",
+  "wixId",
+  "_id",
+  "contactId",
+  "canonicalContactId",
+  "leadid",
+  "fullName",
+  "phoneNumber",
+  "normalizedPhone",
+  "email",
+  "secondaryemail",
+  "emailLeads",
+  "emailAsap",
+  "isCustomer",
+  "statusOriginal",
+  "dataUrmatorContact",
+  "observation",
+  "language",
+  "initialAgent",
+  "lastAgent",
+  "leadDate",
+  "createdAtUtc",
+  "updatedAtUtc",
+  "addToDialler",
+  "financeCompany",
+  "year",
+  "nrInmatriculare",
+  "canonical",
+  "phones",
+];
+
+const LEAD_INTENT_FIELD_ORDER = [
+  "interestId",
+  "leadId",
+  "contactId",
+  "canonicalContactId",
+  "serviceId",
+  "serviceKey",
+  "serviceDisplayName",
+  "interestType",
+  "source",
+  "campaignName",
+  "adGroupName",
+  "adName",
+  "language",
+  "contactTimeUtc",
+  "intentStatus",
+  "addToDialler",
+  "notes",
+  "lastCallAgentId",
+  "lastCallAgentName",
+  "lastCallTraceId",
+  "lastCallTimeUtc",
+  "lastCallCode",
+  "lastCallCodeDetails",
+  "totalPreviousCalls",
+  "postIntentLastCallAgentId",
+  "postIntentLastCallAgentName",
+  "postIntentLastCallTraceId",
+  "postIntentLastCallTimeUtc",
+  "postIntentLastCallCode",
+  "postIntentLastCallCodeDetails",
+  "createdAtUtc",
+  "closedAtUtc",
+  "updatedAtUtc",
+  "reservedByAgent",
+  "reservedAtUtc",
+  "reservationExpiresAtUtc",
+];
+
 function blankLead(): CrmLead {
   return {
     fullName: "",
@@ -303,6 +432,10 @@ function isExplicitOnlyLeadIntent(value?: string | null) {
   return HIDDEN_LEAD_INTENT_OPTIONS.some(
     (intent) => normalizeLeadIntentType(intent) === normalized,
   );
+}
+
+function isJobApplicationLeadIntent(value?: unknown) {
+  return isExplicitOnlyLeadIntent(String(value || ""));
 }
 
 function shouldHideExplicitOnlyLeadIntents(intent: string) {
@@ -617,12 +750,13 @@ function normalizeLookupPhone(value?: string | null) {
 async function findLatestCrmLeadIntent(
   token: string,
   lookup: { phone?: string | null; email?: string | null },
+  intent = "all",
 ) {
   const baseParams = {
     createdLastDays: 3650,
     statusBucket: "both",
     toBeContacted: "oricand",
-    intent: "all",
+    intent,
     service: "all",
     language: "all",
     phone: lookup.phone || undefined,
@@ -644,8 +778,31 @@ async function findLatestCrmLeadIntent(
   return rows.sort((first, second) => getDateTimeValue(second.createdAtUtc) - getDateTimeValue(first.createdAtUtc))[0] || null;
 }
 
-async function findLatestCrmLeadIntentByPhone(token: string, phone: string) {
-  return findLatestCrmLeadIntent(token, { phone });
+async function findJobApplicationCrmLeadIntent(
+  token: string,
+  lookup: { phone?: string | null; email?: string | null },
+) {
+  const rows = await Promise.all(
+    HIDDEN_LEAD_INTENT_OPTIONS.map((intent) =>
+      findLatestCrmLeadIntent(token, lookup, intent).catch(() => null),
+    ),
+  );
+
+  return rows
+    .filter(Boolean)
+    .sort((first, second) => getDateTimeValue(second?.createdAtUtc) - getDateTimeValue(first?.createdAtUtc))[0] || null;
+}
+
+async function findCrmLeadIntentForDetails(
+  token: string,
+  lookup: { phone?: string | null; email?: string | null },
+) {
+  const [jobApplicationIntent, latestIntent] = await Promise.all([
+    findJobApplicationCrmLeadIntent(token, lookup),
+    findLatestCrmLeadIntent(token, lookup).catch(() => null),
+  ]);
+
+  return jobApplicationIntent || latestIntent;
 }
 
 export default function AdminCrmPage() {
@@ -716,7 +873,7 @@ export default function AdminCrmPage() {
 
     Promise.all([
       findCrmLeadByPhone(token, cleanPhone),
-      findLatestCrmLeadIntentByPhone(token, cleanPhone).catch(() => null),
+      findCrmLeadIntentForDetails(token, { phone: cleanPhone }).catch(() => null),
     ])
       .then(([result, latestIntent]) => {
         if (cancelled) {
@@ -786,11 +943,15 @@ export default function AdminCrmPage() {
     }
 
     try {
-      const latestIntent = await findLatestCrmLeadIntent(token, phone ? { phone } : { email });
+      const latestIntent = await findCrmLeadIntentForDetails(token, phone ? { phone } : { email });
       if (latestIntent?.lead) {
         setSelectedLead(latestIntent.lead);
         setSelectedIntent(latestIntent);
-        setStatusMessage("Lead incarcat dupa ultimul intent.");
+        setStatusMessage(
+          isJobApplicationLeadIntent(latestIntent.interestType)
+            ? "Lead incarcat dupa intent JobApplication."
+            : "Lead incarcat dupa ultimul intent.",
+        );
         setErrorMessage("");
         return;
       }
@@ -1169,8 +1330,9 @@ function LeadDetailsPanel({
   const [activityRows, setActivityRows] = useState<CrmActivity[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const isCarFinance = isCarFinanceIntent(selectedIntent);
+  const isJobApplication = isJobApplicationLeadIntent(selectedIntent?.interestType);
   const emailSequenceOptions = isCarFinance ? EMAIL_SEQUENCE_OPTIONS : DEFAULT_EMAIL_SEQUENCE_OPTIONS;
-  const lastContactValue = getLeadLastContactValue(lead, selectedIntent);
+  const lastContactValue = isJobApplication ? lead.dataUrmatorContact : getLeadLastContactValue(lead, selectedIntent);
   const selectedEmail = getLeadStatusUpdateEmail(draft);
 
   useEffect(() => {
@@ -1201,7 +1363,7 @@ function LeadDetailsPanel({
         isEmailLookup
           ? listCrmLeads(token, { email: lookup, status: "all", limit: 1 })
           : findCrmLeadByPhone(token, lookup),
-        findLatestCrmLeadIntent(token, isEmailLookup ? { email: lookup } : { phone: lookup }).catch(() => null),
+        findCrmLeadIntentForDetails(token, isEmailLookup ? { email: lookup } : { phone: lookup }).catch(() => null),
       ]);
       const foundLead =
         latestIntent?.lead ||
@@ -1232,7 +1394,7 @@ function LeadDetailsPanel({
     try {
       const payloadEmail = newEmail.trim() || draft.email || "";
       const result = await updateCrmLead(token, id, {
-        observation: newObservation,
+        observation: isJobApplication ? String(draft.observation || "") : newObservation,
         financeCompany: draft.financeCompany || "",
         statusOriginal: draft.statusOriginal || "",
         language: draft.language || "",
@@ -1242,11 +1404,12 @@ function LeadDetailsPanel({
         email: payloadEmail,
         agent: agentName,
       });
-      setDraft(result.lead);
-      onLeadChange(result.lead);
+      const updatedLead = isJobApplication ? { ...draft, ...result.lead } : result.lead;
+      setDraft(updatedLead);
+      onLeadChange(updatedLead);
       setNewObservation("");
       setNewEmail("");
-      onStatus("Observatia a fost salvata.");
+      onStatus(isJobApplication ? "Lead salvat." : "Observatia a fost salvata.");
       onError("");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Nu am putut salva lead-ul.");
@@ -1520,178 +1683,195 @@ function LeadDetailsPanel({
 
       <hr />
 
-      {isCarFinance ? (
+      {isJobApplication ? (
+        <JobApplicationLeadPanel
+          lead={draft}
+          selectedIntent={selectedIntent}
+          statusOptions={statusOptions}
+          lastContactDate={lastContactDate}
+          lastContactTime={lastContactTime}
+          saving={saving}
+          onLeadChange={setDraft}
+          onLastContactDateChange={setLastContactDate}
+          onLastContactTimeChange={setLastContactTime}
+          onSave={handleSave}
+        />
+      ) : (
         <>
-          <div className="form-grid three">
-            <label>
-              Numar inmatriculare
-              <input
-                value={draft.nrInmatriculare ?? ""}
-                onChange={(event) => setDraft({ ...draft, nrInmatriculare: event.target.value })}
-              />
-            </label>
-            <label>
-              Anul achizitiei
-              <input
-                value={draft.year ?? ""}
-                onChange={(event) => setDraft({ ...draft, year: event.target.value })}
-              />
-            </label>
-            <label>
-              Firma finantare
-              <select
-                value={draft.financeCompany ?? ""}
-                onChange={(event) => setDraft({ ...draft, financeCompany: event.target.value })}
-              >
-                <option value="">Firma de finantare</option>
-                {financeOptions.map((company) => (
-                  <option key={company}>{company}</option>
-                ))}
-              </select>
-            </label>
+          {isCarFinance ? (
+            <>
+              <div className="form-grid three">
+                <label>
+                  Numar inmatriculare
+                  <input
+                    value={draft.nrInmatriculare ?? ""}
+                    onChange={(event) => setDraft({ ...draft, nrInmatriculare: event.target.value })}
+                  />
+                </label>
+                <label>
+                  Anul achizitiei
+                  <input
+                    value={draft.year ?? ""}
+                    onChange={(event) => setDraft({ ...draft, year: event.target.value })}
+                  />
+                </label>
+                <label>
+                  Firma finantare
+                  <select
+                    value={draft.financeCompany ?? ""}
+                    onChange={(event) => setDraft({ ...draft, financeCompany: event.target.value })}
+                  >
+                    <option value="">Firma de finantare</option>
+                    {financeOptions.map((company) => (
+                      <option key={company}>{company}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="inline-fields">
+                <label>
+                  Limba
+                  <select
+                    value={draft.language ?? ""}
+                    onChange={(event) => setDraft({ ...draft, language: event.target.value })}
+                  >
+                    <option value="">Language</option>
+                    {languageOptions.map((language) => (
+                      <option key={language}>{language}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Adauga email nou
+                  <input
+                    value={newEmail}
+                    onChange={(event) => setNewEmail(event.target.value)}
+                    placeholder="Adauga email nou"
+                  />
+                </label>
+                <button type="button" className="orange small" onClick={handleAddEmail} disabled={saving}>
+                  Adauga Email
+                </button>
+              </div>
+            </>
+          ) : null}
+
+          <label className="wide-label">
+            Observatii curente:
+            <textarea
+              value={newObservation}
+              onChange={(event) => setNewObservation(event.target.value)}
+              placeholder="Ce se intampla mai departe?"
+            />
+          </label>
+
+          <button type="button" className="orange save" onClick={handleSave} disabled={saving}>
+            {saving ? "Se salveaza..." : "Salveaza Observatie"}
+          </button>
+
+          <label className="wide-label previous">
+            Informatii precedente:
+            <div className="previous-log">{draft.observation || "Nu exista informatii precedente."}</div>
+          </label>
+
+          <div className="sequence-row">
+            <select
+              value={selectedSequence}
+              onChange={(event) => {
+                setSelectedSequence(event.target.value);
+                if (event.target.value !== "VREA_OUT_CMC") {
+                  setSelectedCmcDomain("");
+                }
+              }}
+            >
+              <option value="">Secventa de email</option>
+              {emailSequenceOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="orange small"
+              onClick={handleEmailSequence}
+              disabled={emailSequenceBusy}
+            >
+              {emailSequenceBusy ? "Se trimite..." : "Pune Client pe secventa"}
+            </button>
           </div>
 
-          <div className="inline-fields">
-            <label>
-              Limba
+          {selectedSequence === "VREA_OUT_CMC" ? (
+            <label className="cmc-row">
+              Firma claims management
               <select
-                value={draft.language ?? ""}
-                onChange={(event) => setDraft({ ...draft, language: event.target.value })}
+                value={selectedCmcDomain}
+                onChange={(event) => setSelectedCmcDomain(event.target.value)}
               >
-                <option value="">Language</option>
-                {languageOptions.map((language) => (
-                  <option key={language}>{language}</option>
+                <option value="">Selecteaza firma CMC</option>
+                {CMC_COMPANIES.map((company) => (
+                  <option key={company.domain} value={company.domain}>
+                    {company.domain}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          <p className="green-label">Rezultat actiune:</p>
+          <div className="sms-row">
+            <button
+              type="button"
+              className="green"
+              onClick={() => handleSmsSequence("buy")}
+              disabled={!isCarFinance || Boolean(smsBusy)}
+            >
+              {smsBusy === "buy" ? "Se adauga..." : "SMS - CUMPARA"}
+            </button>
+            <button
+              type="button"
+              className="blue"
+              onClick={() => handleSmsSequence("skeptic")}
+              disabled={!isCarFinance || Boolean(smsBusy)}
+            >
+              {smsBusy === "skeptic" ? "Se adauga..." : "SMS - SCEPTIC"}
+            </button>
+            {!isCarFinance ? <span className="sms-warning">no SMS configured</span> : null}
+          </div>
+
+          <p className="green-label">Rezultat actiune:</p>
+          <div className="finish-row">
+            <label>
+              Last Status:
+              <select
+                value={draft.statusOriginal ?? ""}
+                onChange={(event) => setDraft({ ...draft, statusOriginal: event.target.value })}
+              >
+                <option value="">Status</option>
+                {statusOptions.map((status) => (
+                  <option key={status}>{status}</option>
                 ))}
               </select>
             </label>
             <label>
-              Adauga email nou
+              Data ultimului Contact
               <input
-                value={newEmail}
-                onChange={(event) => setNewEmail(event.target.value)}
-                placeholder="Adauga email nou"
+                type="date"
+                value={lastContactDate}
+                onChange={(event) => setLastContactDate(event.target.value)}
               />
             </label>
-            <button type="button" className="orange small" onClick={handleAddEmail} disabled={saving}>
-              Adauga Email
+            <label>
+              Time
+              <input type="time" value={lastContactTime} onChange={(event) => setLastContactTime(event.target.value)} />
+            </label>
+            <button type="button" className="orange small" onClick={handleSave}>
+              Termina Cazul
             </button>
           </div>
         </>
-      ) : null}
-
-      <label className="wide-label">
-        Observatii curente:
-        <textarea
-          value={newObservation}
-          onChange={(event) => setNewObservation(event.target.value)}
-          placeholder="Ce se intampla mai departe?"
-        />
-      </label>
-
-      <button type="button" className="orange save" onClick={handleSave} disabled={saving}>
-        {saving ? "Se salveaza..." : "Salveaza Observatie"}
-      </button>
-
-      <label className="wide-label previous">
-        Informatii precedente:
-        <div className="previous-log">{draft.observation || "Nu exista informatii precedente."}</div>
-      </label>
-
-      <div className="sequence-row">
-        <select
-          value={selectedSequence}
-          onChange={(event) => {
-            setSelectedSequence(event.target.value);
-            if (event.target.value !== "VREA_OUT_CMC") {
-              setSelectedCmcDomain("");
-            }
-          }}
-        >
-          <option value="">Secventa de email</option>
-          {emailSequenceOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          className="orange small"
-          onClick={handleEmailSequence}
-          disabled={emailSequenceBusy}
-        >
-          {emailSequenceBusy ? "Se trimite..." : "Pune Client pe secventa"}
-        </button>
-      </div>
-
-      {selectedSequence === "VREA_OUT_CMC" ? (
-        <label className="cmc-row">
-          Firma claims management
-          <select
-            value={selectedCmcDomain}
-            onChange={(event) => setSelectedCmcDomain(event.target.value)}
-          >
-            <option value="">Selecteaza firma CMC</option>
-            {CMC_COMPANIES.map((company) => (
-              <option key={company.domain} value={company.domain}>
-                {company.domain}
-              </option>
-            ))}
-          </select>
-        </label>
-      ) : null}
-
-      <p className="green-label">Rezultat actiune:</p>
-      <div className="sms-row">
-        <button
-          type="button"
-          className="green"
-          onClick={() => handleSmsSequence("buy")}
-          disabled={!isCarFinance || Boolean(smsBusy)}
-        >
-          {smsBusy === "buy" ? "Se adauga..." : "SMS - CUMPARA"}
-        </button>
-        <button
-          type="button"
-          className="blue"
-          onClick={() => handleSmsSequence("skeptic")}
-          disabled={!isCarFinance || Boolean(smsBusy)}
-        >
-          {smsBusy === "skeptic" ? "Se adauga..." : "SMS - SCEPTIC"}
-        </button>
-        {!isCarFinance ? <span className="sms-warning">no SMS configured</span> : null}
-      </div>
-
-      <p className="green-label">Rezultat actiune:</p>
-      <div className="finish-row">
-        <label>
-          Last Status:
-          <select
-            value={draft.statusOriginal ?? ""}
-            onChange={(event) => setDraft({ ...draft, statusOriginal: event.target.value })}
-          >
-            <option value="">Status</option>
-            {statusOptions.map((status) => (
-              <option key={status}>{status}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Data ultimului Contact
-          <input
-            type="date"
-            value={lastContactDate}
-            onChange={(event) => setLastContactDate(event.target.value)}
-          />
-        </label>
-        <label>
-          Time
-          <input type="time" value={lastContactTime} onChange={(event) => setLastContactTime(event.target.value)} />
-        </label>
-        <button type="button" className="orange small" onClick={handleSave}>
-          Termina Cazul
-        </button>
-      </div>
+      )}
 
       <hr />
 
@@ -1722,6 +1902,117 @@ function LeadDetailsPanel({
 
       <style jsx>{panelStyles}</style>
     </CrmCard>
+  );
+}
+
+function JobApplicationLeadPanel({
+  lead,
+  selectedIntent,
+  statusOptions,
+  lastContactDate,
+  lastContactTime,
+  saving,
+  onLeadChange,
+  onLastContactDateChange,
+  onLastContactTimeChange,
+  onSave,
+}: {
+  lead: CrmLead;
+  selectedIntent: CrmLeadIntentRow | null;
+  statusOptions: string[];
+  lastContactDate: string;
+  lastContactTime: string;
+  saving: boolean;
+  onLeadChange: (lead: CrmLead) => void;
+  onLastContactDateChange: (value: string) => void;
+  onLastContactTimeChange: (value: string) => void;
+  onSave: () => void;
+}) {
+  const leadFields = getAvailableRecordFields(lead, {
+    labels: LEAD_FIELD_LABELS,
+    preferredOrder: LEAD_FIELD_ORDER,
+  });
+  const intentFields = getAvailableRecordFields(selectedIntent, {
+    labels: LEAD_INTENT_FIELD_LABELS,
+    preferredOrder: LEAD_INTENT_FIELD_ORDER,
+    excludedKeys: ["lead"],
+  });
+
+  return (
+    <section className="job-application-panel">
+      <div className="job-application-heading">
+        <h2>JobApplication</h2>
+        <span>{selectedIntent?.serviceDisplayName || selectedIntent?.serviceKey || "Lead intent"}</span>
+      </div>
+
+      <div className="job-application-edit-grid">
+        <label>
+          FU
+          <input
+            type="date"
+            value={lastContactDate}
+            onChange={(event) => onLastContactDateChange(event.target.value)}
+          />
+        </label>
+        <label>
+          Ora FU
+          <input
+            type="time"
+            value={lastContactTime}
+            onChange={(event) => onLastContactTimeChange(event.target.value)}
+          />
+        </label>
+        <label>
+          Rezultat
+          <select
+            value={lead.statusOriginal ?? ""}
+            onChange={(event) => onLeadChange({ ...lead, statusOriginal: event.target.value })}
+          >
+            <option value="">Status</option>
+            {statusOptions.map((status) => (
+              <option key={status}>{status}</option>
+            ))}
+          </select>
+        </label>
+        <label className="job-application-obs">
+          Obs
+          <textarea
+            value={lead.observation ?? ""}
+            onChange={(event) => onLeadChange({ ...lead, observation: event.target.value })}
+            placeholder="Observatii"
+          />
+        </label>
+        <button type="button" className="orange save" onClick={onSave} disabled={saving}>
+          {saving ? "Se salveaza..." : "Salveaza lead"}
+        </button>
+      </div>
+
+      <AvailableFieldsSection title="Toate informatiile lead-ului" fields={leadFields} />
+      {selectedIntent ? <AvailableFieldsSection title="Informatii lead intent" fields={intentFields} /> : null}
+    </section>
+  );
+}
+
+function AvailableFieldsSection({ title, fields }: { title: string; fields: AvailableRecordField[] }) {
+  return (
+    <section className="available-fields-section">
+      <h3>{title}</h3>
+      {fields.length ? (
+        <div className="available-fields-grid">
+          {fields.map((field) => (
+            <div key={field.key} className="available-field-row">
+              <div>
+                <span>{field.label}</span>
+                <code>{field.key}</code>
+              </div>
+              <div className="available-field-value">{renderAvailableFieldValue(field.value)}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>Nu exista campuri completate.</p>
+      )}
+    </section>
   );
 }
 
@@ -3912,6 +4203,96 @@ function LabelValue({ label, value }: { label: string; value?: string | number |
   );
 }
 
+type AvailableRecordField = {
+  key: string;
+  label: string;
+  value: unknown;
+};
+
+function getAvailableRecordFields(
+  record: unknown,
+  options: {
+    labels?: Record<string, string>;
+    preferredOrder?: string[];
+    excludedKeys?: string[];
+  } = {},
+): AvailableRecordField[] {
+  if (!record || typeof record !== "object") {
+    return [];
+  }
+
+  const excludedKeys = new Set(options.excludedKeys || []);
+  const preferredOrder = new Map((options.preferredOrder || []).map((key, index) => [key, index]));
+
+  return Object.entries(record as Record<string, unknown>)
+    .filter(([key, value]) => !excludedKeys.has(key) && hasAvailableFieldValue(value))
+    .sort(([firstKey], [secondKey]) => {
+      const firstOrder = preferredOrder.get(firstKey);
+      const secondOrder = preferredOrder.get(secondKey);
+      if (firstOrder !== undefined || secondOrder !== undefined) {
+        return (firstOrder ?? Number.MAX_SAFE_INTEGER) - (secondOrder ?? Number.MAX_SAFE_INTEGER);
+      }
+
+      return firstKey.localeCompare(secondKey, undefined, { sensitivity: "base" });
+    })
+    .map(([key, value]) => ({
+      key,
+      label: options.labels?.[key] || formatFieldKeyLabel(key),
+      value,
+    }));
+}
+
+function hasAvailableFieldValue(value: unknown) {
+  if (value === undefined || value === null) {
+    return false;
+  }
+
+  if (typeof value === "string") {
+    return value.trim() !== "";
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  if (typeof value === "object") {
+    return Object.keys(value as Record<string, unknown>).length > 0;
+  }
+
+  return true;
+}
+
+function renderAvailableFieldValue(value: unknown): React.ReactNode {
+  if (typeof value === "boolean") {
+    return value ? "true" : "false";
+  }
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "bigint") {
+    return String(value);
+  }
+
+  if (Array.isArray(value) || (value && typeof value === "object")) {
+    return <pre>{stringifyAvailableFieldValue(value)}</pre>;
+  }
+
+  return String(value ?? "");
+}
+
+function stringifyAvailableFieldValue(value: unknown) {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function formatFieldKeyLabel(key: string) {
+  return key
+    .replace(/[_-]+/g, " ")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function getPhoneKey(phone: CrmContactPhone) {
   return String(phone.normalizedPhone || phone.phone || phone.id || "").trim();
 }
@@ -4114,6 +4495,101 @@ const panelStyles = `
   }
   .selected-lead-actions .orange.small {
     min-width: 160px;
+  }
+  .job-application-panel {
+    display: grid;
+    gap: 22px;
+  }
+  .job-application-heading {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .job-application-heading h2 {
+    margin: 0;
+    font-size: 22px;
+    color: #111;
+  }
+  .job-application-heading span {
+    color: #555;
+    font-size: 13px;
+    font-weight: 800;
+    word-break: break-word;
+  }
+  .job-application-edit-grid {
+    display: grid;
+    grid-template-columns: 145px 110px minmax(180px, 1fr) 150px;
+    gap: 14px;
+    align-items: end;
+  }
+  .job-application-obs {
+    grid-column: 1 / -1;
+  }
+  .job-application-obs textarea {
+    min-height: 120px;
+  }
+  .available-fields-section {
+    display: grid;
+    gap: 10px;
+  }
+  .available-fields-section h3 {
+    margin: 0;
+    font-size: 17px;
+    color: #111;
+  }
+  .available-fields-section p {
+    margin: 0;
+    color: #555;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .available-fields-grid {
+    border: 1px solid #d6dbe8;
+  }
+  .available-field-row {
+    display: grid;
+    grid-template-columns: 190px minmax(0, 1fr);
+    border-top: 1px solid #d6dbe8;
+    min-width: 0;
+  }
+  .available-field-row:first-child {
+    border-top: 0;
+  }
+  .available-field-row > div {
+    min-width: 0;
+    padding: 10px 12px;
+  }
+  .available-field-row > div:first-child {
+    background: #f6f8ff;
+    border-right: 1px solid #d6dbe8;
+  }
+  .available-field-row span {
+    display: block;
+    font-weight: 800;
+    word-break: break-word;
+  }
+  .available-field-row code {
+    display: block;
+    margin-top: 4px;
+    color: #555;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 11px;
+    white-space: normal;
+    word-break: break-word;
+  }
+  .available-field-value {
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.45;
+  }
+  .available-field-value :global(pre) {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    line-height: 1.45;
   }
   hr {
     border: 0;
@@ -4427,6 +4903,9 @@ const panelStyles = `
     .phone-detail,
     .add-phone-row,
     .selected-lead-actions,
+    .job-application-heading,
+    .job-application-edit-grid,
+    .available-field-row,
     .form-grid.three,
     .inline-fields,
     .sequence-row,
