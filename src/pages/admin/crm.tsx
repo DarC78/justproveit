@@ -438,6 +438,41 @@ function isJobApplicationLeadIntent(value?: unknown) {
   return isExplicitOnlyLeadIntent(String(value || ""));
 }
 
+function includesJobApplicationText(value?: unknown) {
+  return normalizeLeadIntentType(String(value || "")).includes("JOBAPPLICATION");
+}
+
+function isJobApplicationLeadContext(
+  lead?: CrmLead | null,
+  intent?: CrmLeadIntentRow | null,
+  forceJobApplication = false,
+) {
+  if (forceJobApplication || isJobApplicationLeadIntent(intent?.interestType)) {
+    return true;
+  }
+
+  const leadRecord = (lead || {}) as Record<string, unknown>;
+  const intentRecord = (intent || {}) as Record<string, unknown>;
+  const signalKeys = [
+    "interestType",
+    "leadIntent",
+    "leadIntentType",
+    "intent",
+    "intentType",
+    "lead_intent",
+    "source",
+    "serviceKey",
+    "serviceDisplayName",
+    "campaignName",
+    "adGroupName",
+    "adName",
+  ];
+
+  return signalKeys.some(
+    (key) => includesJobApplicationText(leadRecord[key]) || includesJobApplicationText(intentRecord[key]),
+  );
+}
+
 function shouldHideExplicitOnlyLeadIntents(intent: string) {
   return String(intent || "").trim().toLowerCase() === "all";
 }
@@ -747,7 +782,7 @@ function normalizeLookupPhone(value?: string | null) {
   return String(value || "").replace(/\D/g, "");
 }
 
-async function findLatestCrmLeadIntent(
+async function listCrmLeadIntentRowsForLookup(
   token: string,
   lookup: { phone?: string | null; email?: string | null },
   intent = "all",
@@ -770,26 +805,34 @@ async function findLatestCrmLeadIntent(
     listCrmLeadIntents(token, { ...baseParams, closed: true }),
   ]);
 
-  const rows = [
+  return [
     ...(openResult.rows || openResult.items || []),
     ...(closedResult.rows || closedResult.items || []),
-  ];
+  ].sort((first, second) => getDateTimeValue(second.createdAtUtc) - getDateTimeValue(first.createdAtUtc));
+}
 
-  return rows.sort((first, second) => getDateTimeValue(second.createdAtUtc) - getDateTimeValue(first.createdAtUtc))[0] || null;
+async function findLatestCrmLeadIntent(
+  token: string,
+  lookup: { phone?: string | null; email?: string | null },
+  intent = "all",
+) {
+  const rows = await listCrmLeadIntentRowsForLookup(token, lookup, intent);
+  return rows[0] || null;
 }
 
 async function findJobApplicationCrmLeadIntent(
   token: string,
   lookup: { phone?: string | null; email?: string | null },
 ) {
-  const rows = await Promise.all(
-    HIDDEN_LEAD_INTENT_OPTIONS.map((intent) =>
-      findLatestCrmLeadIntent(token, lookup, intent).catch(() => null),
+  const rowGroups = await Promise.all(
+    [...HIDDEN_LEAD_INTENT_OPTIONS, "all"].map((intent) =>
+      listCrmLeadIntentRowsForLookup(token, lookup, intent).catch(() => [] as CrmLeadIntentRow[]),
     ),
   );
 
-  return rows
-    .filter(Boolean)
+  return rowGroups
+    .flat()
+    .filter((row): row is CrmLeadIntentRow => Boolean(row) && isJobApplicationLeadContext(row?.lead, row))
     .sort((first, second) => getDateTimeValue(second?.createdAtUtc) - getDateTimeValue(first?.createdAtUtc))[0] || null;
 }
 
@@ -820,6 +863,12 @@ export default function AdminCrmPage() {
   const autoloadedPhoneRef = useRef("");
   const agentName = user?.name || user?.email || "";
   const activeTab = activeTabState;
+  const forcedDetailsIntent = useMemo(() => {
+    const intentQuery = router.query.intent ?? router.query.leadIntent ?? router.query.interestType;
+    const value = Array.isArray(intentQuery) ? intentQuery[0] : intentQuery;
+    return String(value || "").trim();
+  }, [router.query.intent, router.query.interestType, router.query.leadIntent]);
+  const forceJobApplicationDetails = isJobApplicationLeadIntent(forcedDetailsIntent);
 
   useEffect(() => {
     if (status === "loading") {
@@ -1021,6 +1070,7 @@ export default function AdminCrmPage() {
                   agentName={agentName}
                   lead={selectedLead}
                   selectedIntent={selectedIntent}
+                  forceJobApplication={forceJobApplicationDetails}
                   onLeadChange={setSelectedLead}
                   onIntentChange={setSelectedIntent}
                   onStatus={setStatusMessage}
@@ -1298,6 +1348,7 @@ function LeadDetailsPanel({
   agentName,
   lead,
   selectedIntent,
+  forceJobApplication,
   onLeadChange,
   onIntentChange,
   onStatus,
@@ -1307,6 +1358,7 @@ function LeadDetailsPanel({
   agentName: string;
   lead: CrmLead;
   selectedIntent: CrmLeadIntentRow | null;
+  forceJobApplication?: boolean;
   onLeadChange: (lead: CrmLead) => void;
   onIntentChange: (intent: CrmLeadIntentRow | null) => void;
   onStatus: (message: string) => void;
@@ -1330,7 +1382,7 @@ function LeadDetailsPanel({
   const [activityRows, setActivityRows] = useState<CrmActivity[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
   const isCarFinance = isCarFinanceIntent(selectedIntent);
-  const isJobApplication = isJobApplicationLeadIntent(selectedIntent?.interestType);
+  const isJobApplication = isJobApplicationLeadContext(draft, selectedIntent, forceJobApplication);
   const emailSequenceOptions = isCarFinance ? EMAIL_SEQUENCE_OPTIONS : DEFAULT_EMAIL_SEQUENCE_OPTIONS;
   const lastContactValue = isJobApplication ? lead.dataUrmatorContact : getLeadLastContactValue(lead, selectedIntent);
   const selectedEmail = getLeadStatusUpdateEmail(draft);
@@ -1384,8 +1436,8 @@ function LeadDetailsPanel({
   }
 
   async function handleSave() {
-    const id = draft.id || draft.wixId || draft._id;
-    if (!id) {
+    const updateIds = getLeadUpdateIdCandidates(draft, selectedIntent, isJobApplication);
+    if (!updateIds.length) {
       onError("Selecteaza sau cauta un lead inainte de salvare.");
       return;
     }
@@ -1393,17 +1445,33 @@ function LeadDetailsPanel({
     setSaving(true);
     try {
       const payloadEmail = newEmail.trim() || draft.email || "";
-      const result = await updateCrmLead(token, id, {
+      const updatePayload = {
         observation: isJobApplication ? String(draft.observation || "") : newObservation,
         financeCompany: draft.financeCompany || "",
         statusOriginal: draft.statusOriginal || "",
         language: draft.language || "",
         year: draft.year || "",
         nrInmatriculare: draft.nrInmatriculare || "",
-        dataUrmatorContact: buildDateTimeValue(lastContactDate, lastContactTime),
+        dataUrmatorContact: buildDateTimeValue(lastContactDate, isJobApplication ? "" : lastContactTime),
         email: payloadEmail,
         agent: agentName,
-      });
+        ...(isJobApplication
+          ? {
+              leadId: selectedIntent?.leadId || draft.leadid || undefined,
+              contactId: selectedIntent?.contactId || draft.contactId || undefined,
+              canonicalContactId:
+                selectedIntent?.canonicalContactId ||
+                draft.canonicalContactId ||
+                draft.canonical?.contactId ||
+                undefined,
+              intentId: selectedIntent?.interestId || undefined,
+              interestId: selectedIntent?.interestId || undefined,
+              leadIntentId: selectedIntent?.interestId || undefined,
+              interestType: selectedIntent?.interestType || "JobApplication",
+            }
+          : {}),
+      };
+      const result = await updateCrmLeadByCandidateIds(token, updateIds, updatePayload);
       const updatedLead = isJobApplication ? { ...draft, ...result.lead } : result.lead;
       setDraft(updatedLead);
       onLeadChange(updatedLead);
@@ -1412,7 +1480,7 @@ function LeadDetailsPanel({
       onStatus(isJobApplication ? "Lead salvat." : "Observatia a fost salvata.");
       onError("");
     } catch (error) {
-      onError(error instanceof Error ? error.message : "Nu am putut salva lead-ul.");
+      onError(formatLeadSaveError(error, isJobApplication));
     } finally {
       setSaving(false);
     }
@@ -1661,7 +1729,7 @@ function LeadDetailsPanel({
             </div>
           </div>
         </div>
-        <LabelValue label="Actiune:" value={draft.statusOriginal} />
+        {!isJobApplication ? <LabelValue label="Actiune:" value={draft.statusOriginal} /> : null}
         <LabelValue label="Email:" value={draft.email} />
         <LabelValue label="Data lead:" value={formatDate(draft.leadDate)} />
         <LabelValue label="Email2:" value={draft.secondaryemail} />
@@ -1689,11 +1757,9 @@ function LeadDetailsPanel({
           selectedIntent={selectedIntent}
           statusOptions={statusOptions}
           lastContactDate={lastContactDate}
-          lastContactTime={lastContactTime}
           saving={saving}
           onLeadChange={setDraft}
           onLastContactDateChange={setLastContactDate}
-          onLastContactTimeChange={setLastContactTime}
           onSave={handleSave}
         />
       ) : (
@@ -1910,22 +1976,18 @@ function JobApplicationLeadPanel({
   selectedIntent,
   statusOptions,
   lastContactDate,
-  lastContactTime,
   saving,
   onLeadChange,
   onLastContactDateChange,
-  onLastContactTimeChange,
   onSave,
 }: {
   lead: CrmLead;
   selectedIntent: CrmLeadIntentRow | null;
   statusOptions: string[];
   lastContactDate: string;
-  lastContactTime: string;
   saving: boolean;
   onLeadChange: (lead: CrmLead) => void;
   onLastContactDateChange: (value: string) => void;
-  onLastContactTimeChange: (value: string) => void;
   onSave: () => void;
 }) {
   const leadFields = getAvailableRecordFields(lead, {
@@ -1952,14 +2014,6 @@ function JobApplicationLeadPanel({
             type="date"
             value={lastContactDate}
             onChange={(event) => onLastContactDateChange(event.target.value)}
-          />
-        </label>
-        <label>
-          Ora FU
-          <input
-            type="time"
-            value={lastContactTime}
-            onChange={(event) => onLastContactTimeChange(event.target.value)}
           />
         </label>
         <label>
@@ -4519,7 +4573,7 @@ const panelStyles = `
   }
   .job-application-edit-grid {
     display: grid;
-    grid-template-columns: 145px 110px minmax(180px, 1fr) 150px;
+    grid-template-columns: 145px minmax(180px, 1fr) 150px;
     gap: 14px;
     align-items: end;
   }
@@ -5594,6 +5648,79 @@ function getLeadPhoneValues(lead?: CrmLead | null) {
 
 function getLeadRecordId(lead?: CrmLead | null) {
   return String(lead?.id || lead?.wixId || lead?._id || lead?.leadid || "").trim();
+}
+
+function getLeadUpdateIdCandidates(
+  lead?: CrmLead | null,
+  intent?: CrmLeadIntentRow | null,
+  preferLeadIntentIds = false,
+) {
+  const values = preferLeadIntentIds
+    ? [
+        lead?.leadid,
+        intent?.leadId,
+        lead?.id,
+        lead?.wixId,
+        lead?._id,
+        intent?.interestId,
+        intent?.contactId,
+        intent?.canonicalContactId,
+        lead?.contactId,
+        lead?.canonicalContactId,
+        lead?.canonical?.contactId,
+      ]
+    : [
+        lead?.id,
+        lead?.wixId,
+        lead?._id,
+        lead?.leadid,
+      ];
+
+  const seen = new Set<string>();
+  return values
+    .map((value) => String(value || "").trim())
+    .filter((value) => {
+      if (!value || seen.has(value)) {
+        return false;
+      }
+
+      seen.add(value);
+      return true;
+    });
+}
+
+async function updateCrmLeadByCandidateIds(
+  token: string,
+  candidateIds: string[],
+  payload: Parameters<typeof updateCrmLead>[2],
+) {
+  let lastError: unknown = null;
+
+  for (const id of candidateIds) {
+    try {
+      return await updateCrmLead(token, id, payload);
+    } catch (error) {
+      lastError = error;
+      if (!isLeadNotFoundError(error)) {
+        throw error;
+      }
+    }
+  }
+
+  throw lastError || new Error("CRM lead not found.");
+}
+
+function isLeadNotFoundError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error || "");
+  return /lead not found|crm lead not found|not found/i.test(message);
+}
+
+function formatLeadSaveError(error: unknown, isJobApplication: boolean) {
+  if (isJobApplication && isLeadNotFoundError(error)) {
+    return "CRM lead not found. Pentru JobApplication, backend-ul trebuie sa accepte salvarea dupa leadId/intentId/contactId.";
+  }
+
+  return error instanceof Error ? error.message : "Nu am putut salva lead-ul.";
 }
 
 function getLeadEmailValue(lead?: CrmLead | null) {

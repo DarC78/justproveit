@@ -397,6 +397,13 @@ export type CrmLeadUpdatePayload = {
   email?: string;
   sentEmailDesc?: string;
   agent?: string;
+  leadId?: string;
+  contactId?: string;
+  canonicalContactId?: string;
+  intentId?: string;
+  interestId?: string;
+  leadIntentId?: string;
+  interestType?: string;
 };
 
 export type CrmEmailSequencePayload = {
