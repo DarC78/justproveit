@@ -426,6 +426,25 @@ export type CrmLeadIntentReservationResponse = {
   message?: string | null;
 };
 
+export type CreateCrmAsapIntentPayload = {
+  leadId?: string;
+  contactId?: string;
+  email?: string;
+  phone?: string;
+  interestType: "ASAP";
+  serviceKey: string;
+  source?: string;
+  agent?: string;
+};
+
+export type CreateCrmAsapIntentResponse = {
+  success?: boolean;
+  message?: string | null;
+  intent?: CrmLeadIntentRow | null;
+  leadIntent?: CrmLeadIntentRow | null;
+  lead?: CrmLead | null;
+};
+
 export type ManualCrmLeadPayload = {
   fullName: string;
   email: string;
@@ -651,6 +670,14 @@ export function reserveCrmLeadIntent(
       body: JSON.stringify(payload),
     },
   );
+}
+
+export function createCrmAsapIntent(token: string, payload: CreateCrmAsapIntentPayload) {
+  return fetchCanonicalCrmReadJson<CreateCrmAsapIntentResponse>(`${BASE_PATH}/lead-intents`, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
 }
 
 export function listCrmHighLevelFunnels(

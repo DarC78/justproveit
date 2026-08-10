@@ -360,17 +360,27 @@ export function addPhoneToAzureQueue(
 export function sendGenericUpdateEmail(
   token: string,
   payload: {
-    to: string;
-    customerName: string;
-    customerSinceLabel: string;
-    statusLabel: string;
+    to?: string;
+    email?: string;
+    customerEmail?: string;
+    customerName?: string;
+    customerSinceLabel?: string;
+    statusLabel?: string;
     subject?: string;
     preheader?: string;
+    lookupCustomer?: boolean;
+    isKnownClient?: boolean;
     plainText?: string;
     html?: string;
   },
 ) {
-  return fetchJson<{ success?: boolean; provider?: string; messageId?: string }>(
+  return fetchJson<{
+    success?: boolean;
+    provider?: string;
+    messageId?: string;
+    customerIdentified?: boolean;
+    lookupStatus?: string;
+  }>(
     `${BASE_PATH}/emails/generic-update`,
     {
       method: "POST",
