@@ -82,15 +82,30 @@ export function clearStoredSession() {
 }
 
 export async function loginRequest(email: string, password: string) {
-  const payload = await fetchJson<SessionPayload>("/auth/login", {
-    method: "POST",
-    body: JSON.stringify({
-      email,
-      password,
-      tenantKey: TENANT_KEY,
-      domain: getCurrentDomain(),
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 20000);
+
+  let payload: SessionPayload;
+  try {
+    payload = await fetchJson<SessionPayload>("/auth/login", {
+      method: "POST",
+      signal: controller.signal,
+      body: JSON.stringify({
+        email,
+        password,
+        tenantKey: TENANT_KEY,
+        domain: getCurrentDomain(),
+      }),
+    });
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new Error("Login request timed out. Please try again in a moment.");
+    }
+
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
 
   if (!payload.user || !payload.token || !payload.refreshToken) {
     throw new Error("Login response was missing session data.");
@@ -244,4 +259,12 @@ function readApiError(payload: unknown, fallback: string) {
   }
 
   return fallback || "Request failed.";
+}
+
+function isAbortError(error: unknown) {
+  return (
+    error instanceof DOMException && error.name === "AbortError"
+  ) || (
+    error instanceof Error && error.name === "AbortError"
+  );
 }

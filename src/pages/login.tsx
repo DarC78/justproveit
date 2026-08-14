@@ -50,7 +50,7 @@ export default function LoginPage() {
 
     try {
       const loggedInUser = await login(email, password);
-      await router.push(getPostLoginPath(loggedInUser, router.query.next));
+      void router.push(getPostLoginPath(loggedInUser, router.query.next));
     } catch (loginError) {
       setError(readLoginError(loginError));
     } finally {
