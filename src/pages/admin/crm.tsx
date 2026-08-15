@@ -419,7 +419,15 @@ function mergeCurrentOption(options: string[], current?: string | null) {
   return [value, ...options];
 }
 
-const HIDDEN_LEAD_INTENT_OPTIONS = ["JobApplication", "JobApplications"];
+const JOB_APPLICATION_LEAD_INTENT_OPTIONS = ["JobApplication", "JobApplications"];
+const HIDDEN_LEAD_INTENT_OPTIONS = [
+  ...JOB_APPLICATION_LEAD_INTENT_OPTIONS,
+  "BookCall",
+  "InboundEmail",
+  "inbound_email",
+  "MissedCall",
+  "PostCallFU",
+];
 
 function normalizeLeadIntentType(value?: string | null) {
   return String(value || "")
@@ -435,7 +443,10 @@ function isExplicitOnlyLeadIntent(value?: string | null) {
 }
 
 function isJobApplicationLeadIntent(value?: unknown) {
-  return isExplicitOnlyLeadIntent(String(value || ""));
+  const normalized = normalizeLeadIntentType(String(value || ""));
+  return JOB_APPLICATION_LEAD_INTENT_OPTIONS.some(
+    (intent) => normalizeLeadIntentType(intent) === normalized,
+  );
 }
 
 function includesJobApplicationText(value?: unknown) {
@@ -603,7 +614,11 @@ type LeadIntentSortConfig = {
   direction: "asc" | "desc";
 };
 
-function getLeadIntentSortValue(row: CrmLeadIntentRow, column: LeadIntentSortColumn) {
+function getLeadIntentSortValue(
+  row: CrmLeadIntentRow,
+  column: LeadIntentSortColumn,
+  agentNameById?: Map<number, string>,
+) {
   switch (column) {
     case "Created":
       return getDateTimeValue(row.createdAtUtc);
@@ -626,7 +641,7 @@ function getLeadIntentSortValue(row: CrmLeadIntentRow, column: LeadIntentSortCol
     case "TotalPreviousCalls":
       return getLeadIntentTotalPreviousCalls(row);
     case "LastAgent":
-      return formatLeadIntentPostIntentLastAgent(row);
+      return formatLeadIntentPostIntentLastAgent(row, agentNameById);
     case "LastCall":
       return getDateTimeValue(getLeadIntentPostIntentLastCallTime(row));
     case "LastCallCode":
@@ -729,6 +744,20 @@ function mergeAgentOptions(
   return [{ agentId: currentValue, agentName: null }, ...unique];
 }
 
+function buildAgentNameById(options: Array<{ agentId: number; agentName?: string | null }>) {
+  const names = new Map<number, string>();
+
+  for (const option of options) {
+    const agentId = Number(option.agentId);
+    const agentName = String(option.agentName || "").trim();
+    if (Number.isInteger(agentId) && agentId > 0 && agentName) {
+      names.set(agentId, agentName);
+    }
+  }
+
+  return names;
+}
+
 function isCarFinanceIntent(row?: CrmLeadIntentRow | null) {
   const serviceText = `${row?.serviceKey || ""} ${row?.serviceDisplayName || ""}`
     .toLowerCase()
@@ -825,7 +854,7 @@ async function findJobApplicationCrmLeadIntent(
   lookup: { phone?: string | null; email?: string | null },
 ) {
   const rowGroups = await Promise.all(
-    [...HIDDEN_LEAD_INTENT_OPTIONS, "all"].map((intent) =>
+    [...JOB_APPLICATION_LEAD_INTENT_OPTIONS, "all"].map((intent) =>
       listCrmLeadIntentRowsForLookup(token, lookup, intent).catch(() => [] as CrmLeadIntentRow[]),
     ),
   );
@@ -2851,6 +2880,7 @@ function LeadIntentPanel({
   const [serviceOptions, setServiceOptions] = useState<Array<{ serviceKey: string; displayName?: string | null }>>([]);
   const [languageOptions, setLanguageOptions] = useState<string[]>(LEAD_INTENT_LANGUAGE_OPTIONS);
   const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number; agentName?: string | null }>>([]);
+  const agentNameById = useMemo(() => buildAgentNameById(agentOptions), [agentOptions]);
   const showCalendlyOnlyToday = intent.toUpperCase() === "CALENDLY";
   const showContactAt = intent.toUpperCase() !== "ASAP";
   const intentTableColumns: LeadIntentSortColumn[] = [
@@ -2873,8 +2903,8 @@ function LeadIntentPanel({
   ];
   const sortedRows = useMemo(() => {
     return [...rows].sort((first, second) => {
-      const firstValue = getLeadIntentSortValue(first, sortConfig.column);
-      const secondValue = getLeadIntentSortValue(second, sortConfig.column);
+      const firstValue = getLeadIntentSortValue(first, sortConfig.column, agentNameById);
+      const secondValue = getLeadIntentSortValue(second, sortConfig.column, agentNameById);
       const result = compareLeadIntentSortValues(firstValue, secondValue);
 
       if (result !== 0) {
@@ -2883,7 +2913,7 @@ function LeadIntentPanel({
 
       return getDateTimeValue(second.createdAtUtc) - getDateTimeValue(first.createdAtUtc);
     });
-  }, [rows, sortConfig]);
+  }, [agentNameById, rows, sortConfig]);
   const intentCompositionSummary = useMemo(() => formatLeadIntentComposition(sortedRows), [sortedRows]);
 
   function toggleSort(column: LeadIntentSortColumn) {
@@ -3000,7 +3030,6 @@ function LeadIntentPanel({
         <label>Status type</label>
         <select value={statusBucket} onChange={(event) => setStatusBucket(event.target.value)}>
           <option value="nocall">NoCall</option>
-          <option value="postcallfu">PostCallFU</option>
           <option value="finished">Finished</option>
         </select>
 
@@ -3130,7 +3159,7 @@ function LeadIntentPanel({
           row.serviceDisplayName || row.serviceKey,
           row.lead?.statusOriginal,
           getLeadIntentTotalPreviousCalls(row),
-          formatLeadIntentPostIntentLastAgent(row),
+          formatLeadIntentPostIntentLastAgent(row, agentNameById),
           formatDateTime(getLeadIntentPostIntentLastCallTime(row)),
           formatLeadIntentPostIntentLastCallCode(row),
           formatLanguage(row.language),
@@ -5259,11 +5288,16 @@ function getDateTimeValue(value?: string | null) {
 }
 
 function formatAgentLabel(agentId?: number | null, agentName?: string | null) {
+  const name = String(agentName || "").trim();
+  if (name) {
+    return name;
+  }
+
   if (agentId === undefined || agentId === null) {
     return "";
   }
 
-  return agentName ? `${agentId} - ${agentName}` : String(agentId);
+  return String(agentId);
 }
 
 function getLeadIntentTotalPreviousCalls(row: CrmLeadIntentRow) {
@@ -5280,9 +5314,11 @@ function getLeadIntentPostIntentLastAgentName(row: CrmLeadIntentRow) {
   return firstNonEmpty(row.postIntentLastCallAgentName, row.lastPostIntentCallAgentName, row.lastCallAgentName);
 }
 
-function formatLeadIntentPostIntentLastAgent(row: CrmLeadIntentRow) {
+function formatLeadIntentPostIntentLastAgent(row: CrmLeadIntentRow, agentNameById?: Map<number, string>) {
   const agentId = getLeadIntentPostIntentLastAgentId(row);
-  const agentName = getLeadIntentPostIntentLastAgentName(row);
+  const mappedAgentName =
+    typeof agentId === "number" ? agentNameById?.get(agentId) : undefined;
+  const agentName = getLeadIntentPostIntentLastAgentName(row) || mappedAgentName || "";
   return agentId === null ? agentName : formatAgentLabel(agentId, agentName);
 }
 
