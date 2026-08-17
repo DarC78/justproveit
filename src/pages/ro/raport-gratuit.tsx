@@ -133,7 +133,8 @@ type ContactDetails = {
 type Faza1PreviewResult = {
   code: string;
   title: string;
-  completed: boolean;
+  flag: QuickReportDisplayFlag;
+  output: string;
   specialistFollowUp?: boolean;
 };
 
@@ -905,7 +906,12 @@ export default function FreeQuickReportPage() {
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-bold">Rezultate Faza 0</h2>
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-base font-bold">Rezultate Faza 0</h2>
+                <span className="rounded-md bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">
+                  {completion.completed}/{completion.total}
+                </span>
+              </div>
               <div className="mt-4 space-y-3">
                 {results.map((result) => (
                   <ResultItem key={result.code} result={result} />
@@ -913,8 +919,13 @@ export default function FreeQuickReportPage() {
               </div>
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-bold">Rezultate Faza 1</h2>
+            <section className="rounded-lg border border-emerald-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-base font-bold">Rezultate Faza 1</h2>
+                <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-800">
+                  {faza1Completion.completed}/{faza1Completion.total}
+                </span>
+              </div>
               <div className="mt-4 space-y-3">
                 {faza1Results.map((result) => (
                   <Faza1ResultItem key={result.code} result={result} />
@@ -1071,13 +1082,9 @@ function Faza1ResultItem({ result }: { result: Faza1PreviewResult }) {
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{result.code}</p>
           <h3 className="mt-1 text-sm font-extrabold text-slate-950">{result.title}</h3>
         </div>
-        <CompletionBadge completed={result.completed} />
+        <FlagBadge flag={result.flag} />
       </div>
-      <p className="mt-3 text-sm leading-6 text-slate-700">
-        {result.completed
-          ? "Raspunsurile sunt complete. Rezultatul final este calculat de backend la trimitere."
-          : "Completeaza raspunsurile pentru aceasta verificare."}
-      </p>
+      <p className="mt-3 text-sm leading-6 text-slate-700">{result.output}</p>
       {result.specialistFollowUp ? (
         <p className="mt-2 text-xs font-semibold text-amber-800">
           Poate necesita follow-up specialist daca se declanseaza.
@@ -1101,20 +1108,6 @@ function MetricPill({
       <p>{value}</p>
       <p className="mt-1">{label}</p>
     </div>
-  );
-}
-
-function CompletionBadge({ completed }: { completed: boolean }) {
-  return (
-    <span
-      className={`shrink-0 rounded-md border px-2 py-1 text-xs font-extrabold uppercase ${
-        completed
-          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-          : "border-slate-200 bg-slate-100 text-slate-600"
-      }`}
-    >
-      {completed ? "completat" : "lipsa"}
-    </span>
   );
 }
 
@@ -1160,145 +1153,445 @@ function formatReportPhase(phase: ReportPhase) {
 
 function buildFaza1PreviewResults(answers: Faza1FormAnswers): Faza1PreviewResult[] {
   return [
-    {
-      code: "MF02",
-      title: "Marriage Allowance",
-      completed:
-        hasYesNo(answers.marriedOrCivilPartner) &&
-        (answers.marriedOrCivilPartner !== "yes" ||
-          (hasNumberValue(answers.lowerPartnerAnnualIncome, 0) &&
-            hasYesNo(answers.higherPartnerBasicRateTaxpayer))),
-    },
-    {
-      code: "MF03",
-      title: "Overtime / holiday pay",
-      completed:
-        hasYesNo(answers.worksOvertimeOrVariableHours) &&
-        (answers.worksOvertimeOrVariableHours !== "yes" || hasYesNo(answers.holidayPayChecked)),
-    },
-    {
-      code: "MF04",
-      title: "Redundancy pay",
-      completed:
-        hasYesNo(answers.redundancyInLast3Years) &&
-        (answers.redundancyInLast3Years !== "yes" ||
-          (hasNumberValue(answers.ageAtDismissal, 16) &&
-            hasNumberValue(answers.yearsService, 0) &&
-            hasNumberValue(answers.weeklyPay, 0))),
-    },
-    {
-      code: "MF05",
-      title: "Self-assessment expenses",
-      completed:
-        hasYesNo(answers.selfAssessmentIncome) &&
-        (answers.selfAssessmentIncome !== "yes" || hasYesNo(answers.declaredUsualExpenses)),
-    },
-    {
-      code: "MF06",
-      title: "Student loan overpayment",
-      completed:
-        hasYesNo(answers.hasStudentLoan) &&
-        (answers.hasStudentLoan !== "yes" ||
-          (answers.studentLoanPlan !== "" &&
-            hasNumberValue(answers.annualIncome, 0) &&
-            hasYesNo(answers.repaymentsTaken))),
-    },
-    {
-      code: "MF07",
-      title: "Dubla impozitare RO-UK",
-      completed: hasYesNo(answers.hasRomanianIncomeWhileUkResident),
-      specialistFollowUp: true,
-    },
-    {
-      code: "PE01",
-      title: "NI record / State Pension forecast",
-      completed: hasYesNo(answers.checkedStatePensionForecast) && hasYesNo(answers.knownContributionGaps),
-    },
-    {
-      code: "PE02",
-      title: "Pensii ocupationale uitate",
-      completed: hasNumberValue(answers.ukEmployersCount, 0) && hasYesNo(answers.checkedAllWorkplacePensions),
-    },
-    {
-      code: "PE03",
-      title: "Pensia internationala RO-UK",
-      completed: hasYesNo(answers.workedInRomania),
-      specialistFollowUp: true,
-    },
-    {
-      code: "CD02",
-      title: "Car finance mis-selling",
-      completed: hasYesNo(answers.hadCarFinance2007To2024),
-    },
-    {
-      code: "CD03",
-      title: "GAP insurance / add-ons",
-      completed: hasYesNo(answers.hadGapInsuranceOrAddOns),
-    },
-    {
-      code: "CD04",
-      title: "Payday loans",
-      completed: hasYesNo(answers.hadPaydayLoans),
-    },
-    {
-      code: "CD05",
-      title: "Packaged bank accounts",
-      completed:
-        hasYesNo(answers.paysMonthlyCurrentAccountFee) &&
-        (answers.paysMonthlyCurrentAccountFee !== "yes" || hasYesNo(answers.usesIncludedBenefits)),
-    },
-    {
-      code: "CD06",
-      title: "Overdraft",
-      completed:
-        hasYesNo(answers.usesOverdraftRegularly) &&
-        (answers.usesOverdraftRegularly !== "yes" || hasNumberValue(answers.overdraftApr, 0)),
-    },
-    {
-      code: "FC01",
-      title: "Council Tax band",
-      completed: hasYesNo(answers.checkedCouncilTaxBand),
-    },
-    {
-      code: "FC03",
-      title: "Abonamente uitate",
-      completed: hasYesNo(answers.hasActiveSubscriptionsList),
-    },
-    {
-      code: "FC04",
-      title: "Tarife sociale apa/broadband",
-      completed:
-        hasYesNo(answers.receivesLowIncomeBenefit) &&
-        (answers.receivesLowIncomeBenefit !== "yes" || hasYesNo(answers.hasSocialTariff)),
-    },
-    {
-      code: "FC06",
-      title: "Remortgage check",
-      completed:
-        hasYesNo(answers.hasMortgage) &&
-        (answers.hasMortgage !== "yes" || hasNumberValue(answers.fixedRateEndsInMonths, 0)),
-    },
-    {
-      code: "AA01",
-      title: "Conturi uitate",
-      completed: hasYesNo(answers.hasOldBankAccounts),
-    },
-    {
-      code: "AA02",
-      title: "Mosteniri sau proprietati in Romania",
-      completed: hasYesNo(answers.hasRomanianInheritanceOrProperty),
-      specialistFollowUp: true,
-    },
+    evaluateMarriageAllowance(answers),
+    evaluateHolidayPay(answers),
+    evaluateRedundancyPay(answers),
+    evaluateSelfAssessmentExpenses(answers),
+    evaluateStudentLoan(answers),
+    evaluateDoubleTaxation(answers),
+    evaluateStatePensionForecast(answers),
+    evaluateWorkplacePensions(answers),
+    evaluateInternationalPension(answers),
+    evaluateCarFinance(answers),
+    evaluateGapInsurance(answers),
+    evaluatePaydayLoans(answers),
+    evaluatePackagedAccount(answers),
+    evaluateOverdraft(answers),
+    evaluateCouncilTaxBand(answers),
+    evaluateSubscriptions(answers),
+    evaluateSocialTariff(answers),
+    evaluateRemortgage(answers),
+    evaluateOldBankAccounts(answers),
+    evaluateRomanianAssets(answers),
   ];
 }
 
 function getFaza1Completion(results: Faza1PreviewResult[]) {
-  const completed = results.filter((result) => result.completed).length;
+  const completed = results.filter((result) => result.flag !== "necompletat").length;
 
   return {
     completed,
     total: results.length,
     complete: completed === results.length,
+  };
+}
+
+function evaluateMarriageAllowance(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.marriedOrCivilPartner)) {
+    return incompleteFaza1("MF02", "Marriage Allowance");
+  }
+
+  if (answers.marriedOrCivilPartner === "no") {
+    return faza1Result("MF02", "Marriage Allowance", "verde", "Nu pare aplicabila Marriage Allowance.");
+  }
+
+  if (!hasNumberValue(answers.lowerPartnerAnnualIncome, 0) || !hasYesNo(answers.higherPartnerBasicRateTaxpayer)) {
+    return incompleteFaza1("MF02", "Marriage Allowance");
+  }
+
+  if (Number(answers.lowerPartnerAnnualIncome) <= 12570 && answers.higherPartnerBasicRateTaxpayer === "yes") {
+    return faza1Result(
+      "MF02",
+      "Marriage Allowance",
+      "rosu",
+      "Poate exista drept de transfer al unei parti din personal allowance catre partenerul cu venit mai mare.",
+    );
+  }
+
+  return faza1Result("MF02", "Marriage Allowance", "verde", "Nu am identificat un semn rapid de eligibilitate.");
+}
+
+function evaluateHolidayPay(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.worksOvertimeOrVariableHours)) {
+    return incompleteFaza1("MF03", "Overtime / holiday pay");
+  }
+
+  if (answers.worksOvertimeOrVariableHours === "no") {
+    return faza1Result("MF03", "Overtime / holiday pay", "verde", "Nu pare sa existe risc rapid pe overtime holiday pay.");
+  }
+
+  if (!hasYesNo(answers.holidayPayChecked)) {
+    return incompleteFaza1("MF03", "Overtime / holiday pay");
+  }
+
+  if (answers.holidayPayChecked === "no") {
+    return faza1Result(
+      "MF03",
+      "Overtime / holiday pay",
+      "rosu",
+      "Merita verificat daca holiday pay a inclus overtime sau ore variabile.",
+    );
+  }
+
+  return faza1Result("MF03", "Overtime / holiday pay", "verde", "Clientul spune ca holiday pay a fost verificat.");
+}
+
+function evaluateRedundancyPay(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.redundancyInLast3Years)) {
+    return incompleteFaza1("MF04", "Redundancy pay");
+  }
+
+  if (answers.redundancyInLast3Years === "no") {
+    return faza1Result("MF04", "Redundancy pay", "verde", "Nu pare aplicabila verificarea redundancy pay.");
+  }
+
+  if (
+    !hasNumberValue(answers.ageAtDismissal, 16) ||
+    !hasNumberValue(answers.yearsService, 0) ||
+    !hasNumberValue(answers.weeklyPay, 0)
+  ) {
+    return incompleteFaza1("MF04", "Redundancy pay");
+  }
+
+  return faza1Result(
+    "MF04",
+    "Redundancy pay",
+    "galben",
+    "A existat redundancy. Backend-ul calculeaza suma statutorie estimata si compara cu suma primita.",
+  );
+}
+
+function evaluateSelfAssessmentExpenses(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.selfAssessmentIncome)) {
+    return incompleteFaza1("MF05", "Self-assessment expenses");
+  }
+
+  if (answers.selfAssessmentIncome === "no") {
+    return faza1Result("MF05", "Self-assessment expenses", "verde", "Nu pare aplicabila verificarea self-assessment expenses.");
+  }
+
+  if (!hasYesNo(answers.declaredUsualExpenses)) {
+    return incompleteFaza1("MF05", "Self-assessment expenses");
+  }
+
+  if (answers.declaredUsualExpenses === "no") {
+    return faza1Result(
+      "MF05",
+      "Self-assessment expenses",
+      "rosu",
+      "Poate pierde bani daca nu declara cheltuielile deductibile uzuale.",
+    );
+  }
+
+  return faza1Result("MF05", "Self-assessment expenses", "verde", "Cheltuielile uzuale par deja declarate.");
+}
+
+function evaluateStudentLoan(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.hasStudentLoan)) {
+    return incompleteFaza1("MF06", "Student loan overpayment");
+  }
+
+  if (answers.hasStudentLoan === "no") {
+    return faza1Result("MF06", "Student loan overpayment", "verde", "Nu pare aplicabila verificarea student loan.");
+  }
+
+  if (!answers.studentLoanPlan || !hasNumberValue(answers.annualIncome, 0) || !hasYesNo(answers.repaymentsTaken)) {
+    return incompleteFaza1("MF06", "Student loan overpayment");
+  }
+
+  if (answers.repaymentsTaken === "yes") {
+    return faza1Result(
+      "MF06",
+      "Student loan overpayment",
+      "galben",
+      "Exista student loan si rambursari luate. Backend-ul verifica planul, venitul si posibila supraplata.",
+    );
+  }
+
+  return faza1Result("MF06", "Student loan overpayment", "verde", "Nu apare un semn rapid de supraplata.");
+}
+
+function evaluateDoubleTaxation(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.hasRomanianIncomeWhileUkResident)) {
+    return incompleteFaza1("MF07", "Dubla impozitare RO-UK", true);
+  }
+
+  if (answers.hasRomanianIncomeWhileUkResident === "yes") {
+    return faza1Result(
+      "MF07",
+      "Dubla impozitare RO-UK",
+      "rosu",
+      "A existat venit din Romania in perioada de rezidenta UK. Cazul trebuie verificat specialist.",
+      true,
+    );
+  }
+
+  return faza1Result("MF07", "Dubla impozitare RO-UK", "verde", "Nu apare risc rapid de dubla impozitare RO-UK.", true);
+}
+
+function evaluateStatePensionForecast(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.checkedStatePensionForecast) || !hasYesNo(answers.knownContributionGaps)) {
+    return incompleteFaza1("PE01", "NI record / State Pension forecast");
+  }
+
+  if (answers.checkedStatePensionForecast === "no" || answers.knownContributionGaps === "yes") {
+    return faza1Result(
+      "PE01",
+      "NI record / State Pension forecast",
+      "rosu",
+      "Merita verificat State Pension forecast si eventualele gaps in NI contributions.",
+    );
+  }
+
+  return faza1Result("PE01", "NI record / State Pension forecast", "verde", "Forecast-ul si gaps par deja verificate.");
+}
+
+function evaluateWorkplacePensions(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasNumberValue(answers.ukEmployersCount, 0) || !hasYesNo(answers.checkedAllWorkplacePensions)) {
+    return incompleteFaza1("PE02", "Pensii ocupationale uitate");
+  }
+
+  if (Number(answers.ukEmployersCount) > 1 && answers.checkedAllWorkplacePensions === "no") {
+    return faza1Result(
+      "PE02",
+      "Pensii ocupationale uitate",
+      "rosu",
+      "A avut mai multi angajatori si nu a verificat toate workplace pensions.",
+    );
+  }
+
+  return faza1Result("PE02", "Pensii ocupationale uitate", "verde", "Nu apare un semn rapid de pensii ocupationale uitate.");
+}
+
+function evaluateInternationalPension(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.workedInRomania)) {
+    return incompleteFaza1("PE03", "Pensia internationala RO-UK", true);
+  }
+
+  if (answers.workedInRomania === "yes") {
+    return faza1Result(
+      "PE03",
+      "Pensia internationala RO-UK",
+      "rosu",
+      "A lucrat in Romania. Poate necesita verificare specialist pentru pensia internationala RO-UK.",
+      true,
+    );
+  }
+
+  return faza1Result("PE03", "Pensia internationala RO-UK", "verde", "Nu pare aplicabila pensia internationala RO-UK.", true);
+}
+
+function evaluateCarFinance(answers: Faza1FormAnswers): Faza1PreviewResult {
+  return yesNoTriggerResult(
+    "CD02",
+    "Car finance mis-selling",
+    answers.hadCarFinance2007To2024,
+    "A avut car finance intre 2007 si 2024. Poate exista oportunitate de verificare mis-selling.",
+    "Nu pare aplicabila verificarea car finance mis-selling.",
+  );
+}
+
+function evaluateGapInsurance(answers: Faza1FormAnswers): Faza1PreviewResult {
+  return yesNoTriggerResult(
+    "CD03",
+    "GAP insurance / add-ons",
+    answers.hadGapInsuranceOrAddOns,
+    "A avut GAP insurance sau add-ons. Merita verificat daca au fost vandute corect.",
+    "Nu pare aplicabila verificarea GAP insurance / add-ons.",
+  );
+}
+
+function evaluatePaydayLoans(answers: Faza1FormAnswers): Faza1PreviewResult {
+  return yesNoTriggerResult(
+    "CD04",
+    "Payday loans",
+    answers.hadPaydayLoans,
+    "A avut payday loans. Poate exista oportunitate de verificare affordability / mis-selling.",
+    "Nu pare aplicabila verificarea payday loans.",
+  );
+}
+
+function evaluatePackagedAccount(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.paysMonthlyCurrentAccountFee)) {
+    return incompleteFaza1("CD05", "Packaged bank accounts");
+  }
+
+  if (answers.paysMonthlyCurrentAccountFee === "no") {
+    return faza1Result("CD05", "Packaged bank accounts", "verde", "Nu plateste taxa lunara pentru cont curent.");
+  }
+
+  if (!hasYesNo(answers.usesIncludedBenefits)) {
+    return incompleteFaza1("CD05", "Packaged bank accounts");
+  }
+
+  if (answers.usesIncludedBenefits === "no") {
+    return faza1Result(
+      "CD05",
+      "Packaged bank accounts",
+      "rosu",
+      "Plateste taxa lunara dar nu foloseste beneficiile incluse. Merita verificat costul.",
+    );
+  }
+
+  return faza1Result("CD05", "Packaged bank accounts", "verde", "Foloseste beneficiile incluse in cont.");
+}
+
+function evaluateOverdraft(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.usesOverdraftRegularly)) {
+    return incompleteFaza1("CD06", "Overdraft");
+  }
+
+  if (answers.usesOverdraftRegularly === "no") {
+    return faza1Result("CD06", "Overdraft", "verde", "Nu foloseste overdraft regulat.");
+  }
+
+  if (!hasNumberValue(answers.overdraftApr, 0)) {
+    return incompleteFaza1("CD06", "Overdraft");
+  }
+
+  if (Number(answers.overdraftApr) >= 30) {
+    return faza1Result("CD06", "Overdraft", "rosu", "Overdraft-ul folosit regulat are APR ridicat. Merita verificat.");
+  }
+
+  return faza1Result("CD06", "Overdraft", "galben", "Foloseste overdraft regulat. Merita comparate costurile.");
+}
+
+function evaluateCouncilTaxBand(answers: Faza1FormAnswers): Faza1PreviewResult {
+  return yesNoInverseTriggerResult(
+    "FC01",
+    "Council Tax band",
+    answers.checkedCouncilTaxBand,
+    "Nu a verificat Council Tax band. Merita verificat daca banda este corecta.",
+    "Council Tax band a fost verificat.",
+  );
+}
+
+function evaluateSubscriptions(answers: Faza1FormAnswers): Faza1PreviewResult {
+  return yesNoInverseTriggerResult(
+    "FC03",
+    "Abonamente uitate",
+    answers.hasActiveSubscriptionsList,
+    "Nu are o lista activa cu abonamentele lunare. Exista risc de plati uitate.",
+    "Are o lista activa cu abonamentele lunare.",
+  );
+}
+
+function evaluateSocialTariff(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.receivesLowIncomeBenefit)) {
+    return incompleteFaza1("FC04", "Tarife sociale apa/broadband");
+  }
+
+  if (answers.receivesLowIncomeBenefit === "no") {
+    return faza1Result("FC04", "Tarife sociale apa/broadband", "verde", "Nu pare aplicabil social tariff pe baza raspunsului.");
+  }
+
+  if (!hasYesNo(answers.hasSocialTariff)) {
+    return incompleteFaza1("FC04", "Tarife sociale apa/broadband");
+  }
+
+  if (answers.hasSocialTariff === "no") {
+    return faza1Result(
+      "FC04",
+      "Tarife sociale apa/broadband",
+      "rosu",
+      "Primeste beneficiu de venit mic, dar nu are social tariff. Merita verificat.",
+    );
+  }
+
+  return faza1Result("FC04", "Tarife sociale apa/broadband", "verde", "Are deja social tariff.");
+}
+
+function evaluateRemortgage(answers: Faza1FormAnswers): Faza1PreviewResult {
+  if (!hasYesNo(answers.hasMortgage)) {
+    return incompleteFaza1("FC06", "Remortgage check");
+  }
+
+  if (answers.hasMortgage === "no") {
+    return faza1Result("FC06", "Remortgage check", "verde", "Nu are mortgage.");
+  }
+
+  if (!hasNumberValue(answers.fixedRateEndsInMonths, 0)) {
+    return incompleteFaza1("FC06", "Remortgage check");
+  }
+
+  if (Number(answers.fixedRateEndsInMonths) <= 6) {
+    return faza1Result("FC06", "Remortgage check", "rosu", "Fixed rate se termina in urmatoarele 6 luni. Merita verificat din timp.");
+  }
+
+  return faza1Result("FC06", "Remortgage check", "verde", "Fixed rate nu pare sa se termine foarte curand.");
+}
+
+function evaluateOldBankAccounts(answers: Faza1FormAnswers): Faza1PreviewResult {
+  return yesNoTriggerResult(
+    "AA01",
+    "Conturi uitate",
+    answers.hasOldBankAccounts,
+    "Are conturi vechi sau nefolosite. Merita verificat daca exista bani ramasi in conturi.",
+    "Nu pare sa aiba conturi vechi/nefolosite.",
+  );
+}
+
+function evaluateRomanianAssets(answers: Faza1FormAnswers): Faza1PreviewResult {
+  return yesNoTriggerResult(
+    "AA02",
+    "Mosteniri sau proprietati in Romania",
+    answers.hasRomanianInheritanceOrProperty,
+    "Are mostenire, teren sau proprietate in Romania. Poate necesita verificare specialist.",
+    "Nu pare aplicabila verificarea pentru active in Romania.",
+    true,
+  );
+}
+
+function yesNoTriggerResult(
+  code: string,
+  title: string,
+  value: YesNo,
+  redOutput: string,
+  greenOutput: string,
+  specialistFollowUp = false,
+) {
+  if (!hasYesNo(value)) {
+    return incompleteFaza1(code, title, specialistFollowUp);
+  }
+
+  return value === "yes"
+    ? faza1Result(code, title, "rosu", redOutput, specialistFollowUp)
+    : faza1Result(code, title, "verde", greenOutput, specialistFollowUp);
+}
+
+function yesNoInverseTriggerResult(
+  code: string,
+  title: string,
+  value: YesNo,
+  redOutput: string,
+  greenOutput: string,
+) {
+  if (!hasYesNo(value)) {
+    return incompleteFaza1(code, title);
+  }
+
+  return value === "no"
+    ? faza1Result(code, title, "rosu", redOutput)
+    : faza1Result(code, title, "verde", greenOutput);
+}
+
+function faza1Result(
+  code: string,
+  title: string,
+  flag: QuickReportFlag,
+  output: string,
+  specialistFollowUp = false,
+): Faza1PreviewResult {
+  return { code, title, flag, output, specialistFollowUp };
+}
+
+function incompleteFaza1(code: string, title: string, specialistFollowUp = false): Faza1PreviewResult {
+  return {
+    code,
+    title,
+    flag: "necompletat",
+    output: "Completeaza raspunsurile pentru aceasta verificare.",
+    specialistFollowUp,
   };
 }
 
