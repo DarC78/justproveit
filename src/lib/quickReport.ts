@@ -2,6 +2,7 @@ export type QuickReportFlag = "verde" | "galben" | "rosu";
 export type QuickReportDisplayFlag = QuickReportFlag | "necompletat";
 export type YesNo = "" | "yes" | "no";
 export type QuickReportFaza0Code = "MF01" | "CD01" | "CD07" | "FC02" | "FC05" | "FC07";
+export type QuickReportEmailScope = "faza0" | "faza1" | "full";
 
 export type QuickReportAnswers = {
   multipleJobs: YesNo;
@@ -75,11 +76,12 @@ export type SubmitQuickReportPayload = {
   domain: string;
   pageUrl: string;
   referrer: string;
+  emailScope?: QuickReportEmailScope;
   answers: {
     existingFaza0Answers: QuickReportAnswers;
   };
   results: Array<QuickReportResult & { flag: QuickReportFlag }>;
-  faza1Answers: QuickReportFaza1Answers;
+  faza1Answers?: QuickReportFaza1Answers;
 };
 
 export type SubmitQuickReportResponse = {

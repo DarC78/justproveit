@@ -14,10 +14,12 @@ The frontend keeps the same submit button and sends:
 - the existing Faza 0 answers
 - the existing Faza 0 result rows
 - `faza1Answers` for the extended checks
+- `emailScope` to choose which report section should be emailed
 
-The backend appends/calculates the Faza 1 result rows, persists the lead/report,
-sends the full report email, and marks specialist follow-up for triggered
-`MF07`, `PE03`, and `AA02`.
+The backend appends/calculates the Faza 1 result rows when `faza1Answers` is
+present, persists the lead/report, sends the email section requested by
+`emailScope`, and marks specialist follow-up for triggered `MF07`, `PE03`, and
+`AA02`.
 
 ## Frontend Payload
 
@@ -33,6 +35,7 @@ sends the full report email, and marks specialist follow-up for triggered
   "domain": "www.justproveit.co.uk",
   "pageUrl": "https://www.justproveit.co.uk/ro/raport-gratuit/",
   "referrer": "",
+  "emailScope": "faza1",
   "answers": {
     "existingFaza0Answers": {}
   },
@@ -52,6 +55,19 @@ sends the full report email, and marks specialist follow-up for triggered
   }
 }
 ```
+
+## Email Scope
+
+`emailScope` is optional for backward compatibility.
+
+- `faza0`: email only the submitted Faza 0 rows.
+- `faza1`: calculate Faza 1 from `faza1Answers` and email only the Faza 1 rows.
+- `full` or omitted: preserve the original backend behavior.
+
+The current UI has two buttons:
+
+- `Trimite raport faza zero`: sends no `faza1Answers`; it may omit `emailScope` for current backend compatibility.
+- `Trimite raport faza 1`: sends `emailScope: "faza1"` plus `faza1Answers`.
 
 ## Faza 0 Rows
 

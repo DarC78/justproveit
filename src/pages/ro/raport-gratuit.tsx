@@ -11,6 +11,7 @@ import {
   submitQuickReportFaza0,
   type QuickReportAnswers,
   type QuickReportDisplayFlag,
+  type QuickReportEmailScope,
   type QuickReportFaza1Answers,
   type QuickReportFlag,
   type QuickReportResult,
@@ -121,6 +122,21 @@ type ContactForm = {
   consentVerbal: boolean;
 };
 
+type ReportPhase = "faza0" | "faza1";
+
+type ContactDetails = {
+  fullName: string;
+  email: string;
+  phone: string;
+};
+
+type Faza1PreviewResult = {
+  code: string;
+  title: string;
+  completed: boolean;
+  specialistFollowUp?: boolean;
+};
+
 const initialContact: ContactForm = {
   fullName: "",
   email: "",
@@ -134,12 +150,15 @@ export default function FreeQuickReportPage() {
   const [contact, setContact] = useState<ContactForm>(initialContact);
   const [answers, setAnswers] = useState<QuickReportAnswers>(initialAnswers);
   const [faza1Answers, setFaza1Answers] = useState<Faza1FormAnswers>(initialFaza1Answers);
-  const [sending, setSending] = useState(false);
+  const [sendingPhase, setSendingPhase] = useState<ReportPhase | "">("");
   const [status, setStatus] = useState<"success" | "error" | "">("");
+  const [messagePhase, setMessagePhase] = useState<ReportPhase | "">("");
   const [message, setMessage] = useState("");
+  const sending = sendingPhase !== "";
   const results = useMemo(() => evaluateQuickReport(answers), [answers]);
   const completion = useMemo(() => getQuickReportCompletion(results), [results]);
-  const faza1Completion = useMemo(() => getFaza1Completion(faza1Answers), [faza1Answers]);
+  const faza1Results = useMemo(() => buildFaza1PreviewResults(faza1Answers), [faza1Answers]);
+  const faza1Completion = useMemo(() => getFaza1Completion(faza1Results), [faza1Results]);
   const totalCompletion = {
     completed: completion.completed + faza1Completion.completed,
     total: completion.total + faza1Completion.total,
@@ -201,11 +220,41 @@ export default function FreeQuickReportPage() {
     await router.push("/login");
   }
 
-  async function handleSendReport(event: FormEvent<HTMLFormElement>) {
+  async function handleSendFaza1Report(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    await sendReport("faza1");
+  }
+
+  async function handleSendFaza0Report() {
+    await sendReport("faza0");
+  }
+
+  async function sendReport(phase: ReportPhase) {
     setStatus("");
+    setMessagePhase(phase);
     setMessage("");
 
+    const contactDetails = validateContactAndAccess();
+    if (!contactDetails) {
+      return;
+    }
+
+    if (!completion.complete) {
+      setStatus("error");
+      setMessage("Completeaza toate verificarile Faza 0 inainte de trimitere.");
+      return;
+    }
+
+    if (phase === "faza1" && !faza1Completion.complete) {
+      setStatus("error");
+      setMessage("Completeaza toate verificarile Faza 1 inainte de trimitere.");
+      return;
+    }
+
+    await submitReport(phase, contactDetails);
+  }
+
+  function validateContactAndAccess(): ContactDetails | null {
     const fullName = contact.fullName.trim();
     const email = contact.email.trim();
     const phone = contact.phone.trim();
@@ -213,28 +262,32 @@ export default function FreeQuickReportPage() {
     if (!fullName || !email || !phone) {
       setStatus("error");
       setMessage("Completeaza numele, emailul si telefonul clientului.");
-      return;
+      return null;
     }
 
     if (!isValidEmail(email)) {
       setStatus("error");
       setMessage("Completeaza o adresa de email valida.");
-      return;
+      return null;
     }
 
     if (!contact.consentVerbal) {
       setStatus("error");
       setMessage("Bifeaza consimtamantul verbal inainte de trimiterea raportului.");
-      return;
-    }
-
-    if (!totalCompletion.complete) {
-      setStatus("error");
-      setMessage("Completeaza toate verificarile inainte de trimiterea raportului complet.");
-      return;
+      return null;
     }
 
     if (!token || !isCrm) {
+      setStatus("error");
+      setMessage("Autentificare CRM necesara pentru trimiterea raportului.");
+      return null;
+    }
+
+    return { fullName, email, phone };
+  }
+
+  async function submitReport(phase: ReportPhase, contactDetails: ContactDetails) {
+    if (!token) {
       setStatus("error");
       setMessage("Autentificare CRM necesara pentru trimiterea raportului.");
       return;
@@ -245,14 +298,14 @@ export default function FreeQuickReportPage() {
     );
     const browserLocation = getBrowserLocation();
 
-    setSending(true);
+    setSendingPhase(phase);
     try {
       const response = await submitQuickReportFaza0(token, {
         tenantKey: "justproveit",
         source: "raport_gratuit_faza0",
-        fullName,
-        email,
-        phone,
+        fullName: contactDetails.fullName,
+        email: contactDetails.email,
+        phone: contactDetails.phone,
         consentVerbalAt: new Date().toISOString(),
         standardTaxCode: STANDARD_TAX_CODE,
         domain: browserLocation.domain,
@@ -262,23 +315,28 @@ export default function FreeQuickReportPage() {
           existingFaza0Answers: answers,
         },
         results: completedResults,
-        faza1Answers: buildFaza1AnswersPayload(faza1Answers),
+        ...(phase === "faza1"
+          ? {
+              emailScope: getEmailScope(phase),
+              faza1Answers: buildFaza1AnswersPayload(faza1Answers),
+            }
+          : {}),
       });
       setStatus("success");
       if (response.emailSent === false) {
         setMessage(
           response.emailError
-            ? `Raportul a fost salvat, dar emailul nu a fost trimis: ${response.emailError}`
-            : "Raportul a fost salvat, dar emailul nu a fost trimis.",
+            ? `${formatReportPhase(phase)} a fost salvat, dar emailul nu a fost trimis: ${response.emailError}`
+            : `${formatReportPhase(phase)} a fost salvat, dar emailul nu a fost trimis.`,
         );
       } else {
-        setMessage(response.message || "Raportul a fost trimis pe email.");
+        setMessage(response.message || `${formatReportPhase(phase)} a fost trimis pe email.`);
       }
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Raportul nu a putut fi trimis.");
     } finally {
-      setSending(false);
+      setSendingPhase("");
     }
   }
 
@@ -352,7 +410,7 @@ export default function FreeQuickReportPage() {
         </header>
 
         <main className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,0.58fr)_minmax(320px,0.42fr)]">
-          <form onSubmit={handleSendReport} className="space-y-6 rounded-lg border border-slate-200 bg-slate-100/80 p-5 shadow-sm">
+          <form onSubmit={handleSendFaza1Report} className="space-y-6 rounded-lg border border-slate-200 bg-slate-100/80 p-5 shadow-sm">
             <div>
               <p className="text-sm font-semibold tracking-wide text-emerald-700">
                 Raport gratuit
@@ -471,6 +529,20 @@ export default function FreeQuickReportPage() {
                 />
               </CheckFields>
             </fieldset>
+
+            <div className="flex flex-col items-start gap-3 border-t border-slate-200 pt-4">
+              <button
+                type="button"
+                onClick={handleSendFaza0Report}
+                disabled={sending}
+                className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 md:w-auto"
+              >
+                {sendingPhase === "faza0" ? "Trimit raport faza zero..." : "Trimite raport faza zero"}
+              </button>
+              {message && messagePhase === "faza0" ? (
+                <StatusMessage status={status} message={message} />
+              ) : null}
+            </div>
 
             <fieldset className="space-y-4">
               <legend className="mb-2 text-base font-bold">Faza 1 - verificari extinse</legend>
@@ -797,17 +869,8 @@ export default function FreeQuickReportPage() {
               </CheckFields>
             </fieldset>
 
-            {message ? (
-              <p
-                aria-live="polite"
-                className={`rounded-lg border px-4 py-3 text-sm font-semibold ${
-                  status === "success"
-                    ? "border-emerald-200 bg-emerald-50 text-emerald-800"
-                    : "border-red-200 bg-red-50 text-red-800"
-                }`}
-              >
-                {message}
-              </p>
+            {message && messagePhase === "faza1" ? (
+              <StatusMessage status={status} message={message} />
             ) : null}
 
             <button
@@ -815,7 +878,7 @@ export default function FreeQuickReportPage() {
               disabled={sending}
               className="inline-flex w-full items-center justify-center rounded-md bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400 md:w-auto"
             >
-              {sending ? "Trimit..." : "Trimite raport"}
+              {sendingPhase === "faza1" ? "Trimit raport faza 1..." : "Trimite raport faza 1"}
             </button>
           </form>
 
@@ -849,6 +912,15 @@ export default function FreeQuickReportPage() {
                 ))}
               </div>
             </section>
+
+            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <h2 className="text-base font-bold">Rezultate Faza 1</h2>
+              <div className="mt-4 space-y-3">
+                {faza1Results.map((result) => (
+                  <Faza1ResultItem key={result.code} result={result} />
+                ))}
+              </div>
+            </section>
           </aside>
         </main>
       </div>
@@ -860,6 +932,27 @@ const yesNoOptions = [
   { value: "yes", label: "Da" },
   { value: "no", label: "Nu" },
 ];
+
+function StatusMessage({
+  status,
+  message,
+}: {
+  status: "success" | "error" | "";
+  message: string;
+}) {
+  return (
+    <p
+      aria-live="polite"
+      className={`w-full rounded-lg border px-4 py-3 text-sm font-semibold ${
+        status === "success"
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+          : "border-red-200 bg-red-50 text-red-800"
+      }`}
+    >
+      {message}
+    </p>
+  );
+}
 
 function TextInput({
   label,
@@ -970,6 +1063,30 @@ function ResultItem({ result }: { result: QuickReportResult }) {
   );
 }
 
+function Faza1ResultItem({ result }: { result: Faza1PreviewResult }) {
+  return (
+    <article className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{result.code}</p>
+          <h3 className="mt-1 text-sm font-extrabold text-slate-950">{result.title}</h3>
+        </div>
+        <CompletionBadge completed={result.completed} />
+      </div>
+      <p className="mt-3 text-sm leading-6 text-slate-700">
+        {result.completed
+          ? "Raspunsurile sunt complete. Rezultatul final este calculat de backend la trimitere."
+          : "Completeaza raspunsurile pentru aceasta verificare."}
+      </p>
+      {result.specialistFollowUp ? (
+        <p className="mt-2 text-xs font-semibold text-amber-800">
+          Poate necesita follow-up specialist daca se declanseaza.
+        </p>
+      ) : null}
+    </article>
+  );
+}
+
 function MetricPill({
   label,
   value,
@@ -984,6 +1101,20 @@ function MetricPill({
       <p>{value}</p>
       <p className="mt-1">{label}</p>
     </div>
+  );
+}
+
+function CompletionBadge({ completed }: { completed: boolean }) {
+  return (
+    <span
+      className={`shrink-0 rounded-md border px-2 py-1 text-xs font-extrabold uppercase ${
+        completed
+          ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+          : "border-slate-200 bg-slate-100 text-slate-600"
+      }`}
+    >
+      {completed ? "completat" : "lipsa"}
+    </span>
   );
 }
 
@@ -1019,52 +1150,155 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
-function getFaza1Completion(answers: Faza1FormAnswers) {
-  const checks = [
-    hasYesNo(answers.marriedOrCivilPartner) &&
-      (answers.marriedOrCivilPartner !== "yes" ||
-        (hasNumberValue(answers.lowerPartnerAnnualIncome, 0) &&
-          hasYesNo(answers.higherPartnerBasicRateTaxpayer))),
-    hasYesNo(answers.worksOvertimeOrVariableHours) &&
-      (answers.worksOvertimeOrVariableHours !== "yes" || hasYesNo(answers.holidayPayChecked)),
-    hasYesNo(answers.redundancyInLast3Years) &&
-      (answers.redundancyInLast3Years !== "yes" ||
-        (hasNumberValue(answers.ageAtDismissal, 16) &&
-          hasNumberValue(answers.yearsService, 0) &&
-          hasNumberValue(answers.weeklyPay, 0))),
-    hasYesNo(answers.selfAssessmentIncome) &&
-      (answers.selfAssessmentIncome !== "yes" || hasYesNo(answers.declaredUsualExpenses)),
-    hasYesNo(answers.hasStudentLoan) &&
-      (answers.hasStudentLoan !== "yes" ||
-        (answers.studentLoanPlan !== "" &&
-          hasNumberValue(answers.annualIncome, 0) &&
-          hasYesNo(answers.repaymentsTaken))),
-    hasYesNo(answers.hasRomanianIncomeWhileUkResident),
-    hasYesNo(answers.checkedStatePensionForecast) && hasYesNo(answers.knownContributionGaps),
-    hasNumberValue(answers.ukEmployersCount, 0) && hasYesNo(answers.checkedAllWorkplacePensions),
-    hasYesNo(answers.workedInRomania),
-    hasYesNo(answers.hadCarFinance2007To2024),
-    hasYesNo(answers.hadGapInsuranceOrAddOns),
-    hasYesNo(answers.hadPaydayLoans),
-    hasYesNo(answers.paysMonthlyCurrentAccountFee) &&
-      (answers.paysMonthlyCurrentAccountFee !== "yes" || hasYesNo(answers.usesIncludedBenefits)),
-    hasYesNo(answers.usesOverdraftRegularly) &&
-      (answers.usesOverdraftRegularly !== "yes" || hasNumberValue(answers.overdraftApr, 0)),
-    hasYesNo(answers.checkedCouncilTaxBand),
-    hasYesNo(answers.hasActiveSubscriptionsList),
-    hasYesNo(answers.receivesLowIncomeBenefit) &&
-      (answers.receivesLowIncomeBenefit !== "yes" || hasYesNo(answers.hasSocialTariff)),
-    hasYesNo(answers.hasMortgage) &&
-      (answers.hasMortgage !== "yes" || hasNumberValue(answers.fixedRateEndsInMonths, 0)),
-    hasYesNo(answers.hasOldBankAccounts),
-    hasYesNo(answers.hasRomanianInheritanceOrProperty),
+function getEmailScope(phase: ReportPhase): QuickReportEmailScope {
+  return phase;
+}
+
+function formatReportPhase(phase: ReportPhase) {
+  return phase === "faza0" ? "Raportul Faza 0" : "Raportul Faza 1";
+}
+
+function buildFaza1PreviewResults(answers: Faza1FormAnswers): Faza1PreviewResult[] {
+  return [
+    {
+      code: "MF02",
+      title: "Marriage Allowance",
+      completed:
+        hasYesNo(answers.marriedOrCivilPartner) &&
+        (answers.marriedOrCivilPartner !== "yes" ||
+          (hasNumberValue(answers.lowerPartnerAnnualIncome, 0) &&
+            hasYesNo(answers.higherPartnerBasicRateTaxpayer))),
+    },
+    {
+      code: "MF03",
+      title: "Overtime / holiday pay",
+      completed:
+        hasYesNo(answers.worksOvertimeOrVariableHours) &&
+        (answers.worksOvertimeOrVariableHours !== "yes" || hasYesNo(answers.holidayPayChecked)),
+    },
+    {
+      code: "MF04",
+      title: "Redundancy pay",
+      completed:
+        hasYesNo(answers.redundancyInLast3Years) &&
+        (answers.redundancyInLast3Years !== "yes" ||
+          (hasNumberValue(answers.ageAtDismissal, 16) &&
+            hasNumberValue(answers.yearsService, 0) &&
+            hasNumberValue(answers.weeklyPay, 0))),
+    },
+    {
+      code: "MF05",
+      title: "Self-assessment expenses",
+      completed:
+        hasYesNo(answers.selfAssessmentIncome) &&
+        (answers.selfAssessmentIncome !== "yes" || hasYesNo(answers.declaredUsualExpenses)),
+    },
+    {
+      code: "MF06",
+      title: "Student loan overpayment",
+      completed:
+        hasYesNo(answers.hasStudentLoan) &&
+        (answers.hasStudentLoan !== "yes" ||
+          (answers.studentLoanPlan !== "" &&
+            hasNumberValue(answers.annualIncome, 0) &&
+            hasYesNo(answers.repaymentsTaken))),
+    },
+    {
+      code: "MF07",
+      title: "Dubla impozitare RO-UK",
+      completed: hasYesNo(answers.hasRomanianIncomeWhileUkResident),
+      specialistFollowUp: true,
+    },
+    {
+      code: "PE01",
+      title: "NI record / State Pension forecast",
+      completed: hasYesNo(answers.checkedStatePensionForecast) && hasYesNo(answers.knownContributionGaps),
+    },
+    {
+      code: "PE02",
+      title: "Pensii ocupationale uitate",
+      completed: hasNumberValue(answers.ukEmployersCount, 0) && hasYesNo(answers.checkedAllWorkplacePensions),
+    },
+    {
+      code: "PE03",
+      title: "Pensia internationala RO-UK",
+      completed: hasYesNo(answers.workedInRomania),
+      specialistFollowUp: true,
+    },
+    {
+      code: "CD02",
+      title: "Car finance mis-selling",
+      completed: hasYesNo(answers.hadCarFinance2007To2024),
+    },
+    {
+      code: "CD03",
+      title: "GAP insurance / add-ons",
+      completed: hasYesNo(answers.hadGapInsuranceOrAddOns),
+    },
+    {
+      code: "CD04",
+      title: "Payday loans",
+      completed: hasYesNo(answers.hadPaydayLoans),
+    },
+    {
+      code: "CD05",
+      title: "Packaged bank accounts",
+      completed:
+        hasYesNo(answers.paysMonthlyCurrentAccountFee) &&
+        (answers.paysMonthlyCurrentAccountFee !== "yes" || hasYesNo(answers.usesIncludedBenefits)),
+    },
+    {
+      code: "CD06",
+      title: "Overdraft",
+      completed:
+        hasYesNo(answers.usesOverdraftRegularly) &&
+        (answers.usesOverdraftRegularly !== "yes" || hasNumberValue(answers.overdraftApr, 0)),
+    },
+    {
+      code: "FC01",
+      title: "Council Tax band",
+      completed: hasYesNo(answers.checkedCouncilTaxBand),
+    },
+    {
+      code: "FC03",
+      title: "Abonamente uitate",
+      completed: hasYesNo(answers.hasActiveSubscriptionsList),
+    },
+    {
+      code: "FC04",
+      title: "Tarife sociale apa/broadband",
+      completed:
+        hasYesNo(answers.receivesLowIncomeBenefit) &&
+        (answers.receivesLowIncomeBenefit !== "yes" || hasYesNo(answers.hasSocialTariff)),
+    },
+    {
+      code: "FC06",
+      title: "Remortgage check",
+      completed:
+        hasYesNo(answers.hasMortgage) &&
+        (answers.hasMortgage !== "yes" || hasNumberValue(answers.fixedRateEndsInMonths, 0)),
+    },
+    {
+      code: "AA01",
+      title: "Conturi uitate",
+      completed: hasYesNo(answers.hasOldBankAccounts),
+    },
+    {
+      code: "AA02",
+      title: "Mosteniri sau proprietati in Romania",
+      completed: hasYesNo(answers.hasRomanianInheritanceOrProperty),
+      specialistFollowUp: true,
+    },
   ];
-  const completed = checks.filter(Boolean).length;
+}
+
+function getFaza1Completion(results: Faza1PreviewResult[]) {
+  const completed = results.filter((result) => result.completed).length;
 
   return {
     completed,
-    total: checks.length,
-    complete: completed === checks.length,
+    total: results.length,
+    complete: completed === results.length,
   };
 }
 
