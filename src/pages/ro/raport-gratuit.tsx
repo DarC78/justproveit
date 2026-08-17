@@ -1198,7 +1198,7 @@ function AuthGateShell({
   return (
     <div className="min-h-screen bg-slate-50 px-4 py-16 text-slate-950">
       <Head>
-        <title>{title} | JustProveIt</title>
+        <title>{`${title} | JustProveIt`}</title>
         <meta name="robots" content="noindex,nofollow" />
       </Head>
       <main className="mx-auto max-w-md rounded-lg border border-slate-200 bg-white p-6 text-center shadow-sm">
