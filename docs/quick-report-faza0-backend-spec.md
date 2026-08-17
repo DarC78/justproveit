@@ -1,100 +1,114 @@
-# Raport Gratuit Faza 0 Backend Endpoint
+# Raport Gratuit Quick Report Endpoint
 
-## Context
+## Current Frontend Flow
 
-The frontend page `/ro/raport-gratuit` is implemented in this repository.
-It is CRM-authenticated and evaluates the 6 quick checks client-side.
-It sends the completed report email through the existing authenticated backend
-email route used by other admin/generic report tooling:
+The CRM-authenticated page `/ro/raport-gratuit` collects the existing Faza 0
+checks plus the extended Faza 1 answers.
 
-`POST /justproveit/admin/generic-reports/emails/generic-update`
+Submission uses the existing backend quick-report endpoint:
 
-The frontend calls this through `API_BASE_URL`, which defaults to:
+`POST /justproveit/quick-report/faza0`
 
-`https://apiprocess.azurewebsites.net/api`
+The frontend keeps the same submit button and sends:
 
-This keeps the report on the same backend environment as the international
-pension calculator and existing email infrastructure.
+- the existing Faza 0 answers
+- the existing Faza 0 result rows
+- `faza1Answers` for the extended checks
 
-## Endpoint
+The backend appends/calculates the Faza 1 result rows, persists the lead/report,
+sends the full report email, and marks specialist follow-up for triggered
+`MF07`, `PE03`, and `AA02`.
 
-`POST /justproveit/admin/generic-reports/emails/generic-update`
-
-The request includes the logged-in user's bearer token.
-
-## Request Body
+## Frontend Payload
 
 ```json
 {
-  "to": "client@example.com",
-  "customerName": "Client Name",
-  "customerSinceLabel": "Raport gratuit JustProveIt",
-  "statusLabel": "Rosu: 3 | Galben: 1 | Verde: 2",
-  "subject": "Raportul tau gratuit JustProveIt",
-  "preheader": "Cele 6 verificari rapide pentru bani pierduti in UK.",
-  "plainText": "Buna ziua Client Name...",
-  "html": "<div>...</div>"
+  "tenantKey": "justproveit",
+  "source": "raport_gratuit_faza0",
+  "fullName": "Ion Popescu",
+  "email": "ion@example.com",
+  "phone": "07123456789",
+  "consentVerbalAt": "2026-08-17T10:00:00.000Z",
+  "standardTaxCode": "1257L",
+  "domain": "www.justproveit.co.uk",
+  "pageUrl": "https://www.justproveit.co.uk/ro/raport-gratuit/",
+  "referrer": "",
+  "answers": {
+    "existingFaza0Answers": {}
+  },
+  "results": [
+    {
+      "code": "MF01",
+      "title": "Cod fiscal (tax code) gresit",
+      "flag": "rosu",
+      "output": "Text rezultat...",
+      "rawAnswer": {}
+    }
+  ],
+  "faza1Answers": {
+    "marriedOrCivilPartner": true,
+    "lowerPartnerAnnualIncome": 10000,
+    "higherPartnerBasicRateTaxpayer": true
+  }
 }
 ```
 
-`results[]` always contains 6 rows. The quick checks are:
+## Faza 0 Rows
 
-- `MF01`
-- `MF02`
-- `CD07`
-- `FC02`
-- `FC05`
-- `FC07`
+The current frontend evaluates 6 Faza 0 rows:
 
-Allowed `flag` values are:
+- `MF01` - Cod fiscal
+- `CD01` - Credit score / raport de credit
+- `CD07` - Bank switching
+- `FC02` - Asigurari auto/casa
+- `FC05` - Remitere bani spre Romania
+- `FC07` - Utilitati
 
-- `verde`
-- `galben`
-- `rosu`
+## Faza 1 Answer Keys
 
-The frontend blocks submission while any result is incomplete.
+The frontend sends booleans, numbers, and strings using these backend keys:
 
-## Persistence
-
-Reuse the existing lead/client model used by the pension calculator where
-possible:
-
-- name
-- email
-- phone
-- consent timestamp
-- source: `raport_gratuit_faza0`
-
-Persist the report results either in a new minimal table or an existing generic
-simulation-result table if one exists.
-
-Minimum result fields:
-
-- report id
-- lead id
-- optional agent/user id if the API already has an agent concept
-- check code
-- flag
-- raw answer JSON
-- output text snapshot
-- created timestamp
-
-## Email
-
-Send the client an email using the existing backend email infrastructure and
-environment already used by the pension calculator/admin backend.
-
-Email content:
-
-- the 6 submitted result rows
-- each row's `title`, `flag`, and `output`
-- use the submitted `output` text snapshots in the email so the monetary risk
-  ranges shown in the simulator are also included in the post-simulation email
-- closing CTA inviting the client to a full "radiografie financiară" call for
-  the remaining checks, including state benefits
-- compliance text approved by the business
-
-Do not invent exact monetary outcomes beyond the text supplied by the frontend.
+```json
+{
+  "marriedOrCivilPartner": true,
+  "lowerPartnerAnnualIncome": 10000,
+  "higherPartnerBasicRateTaxpayer": true,
+  "worksOvertimeOrVariableHours": true,
+  "holidayPayChecked": false,
+  "redundancyInLast3Years": true,
+  "ageAtDismissal": 45,
+  "yearsService": 10,
+  "weeklyPay": 800,
+  "redundancyAmountReceived": 5000,
+  "selfAssessmentIncome": true,
+  "declaredUsualExpenses": false,
+  "hasStudentLoan": true,
+  "studentLoanPlan": "Plan 2",
+  "annualIncome": 28000,
+  "repaymentsTaken": true,
+  "hasRomanianIncomeWhileUkResident": true,
+  "checkedStatePensionForecast": false,
+  "knownContributionGaps": true,
+  "ukEmployersCount": 3,
+  "checkedAllWorkplacePensions": false,
+  "workedInRomania": true,
+  "hadCarFinance2007To2024": true,
+  "hadGapInsuranceOrAddOns": true,
+  "hadPaydayLoans": true,
+  "paysMonthlyCurrentAccountFee": true,
+  "usesIncludedBenefits": false,
+  "usesOverdraftRegularly": true,
+  "overdraftApr": 39.9,
+  "checkedCouncilTaxBand": false,
+  "hasActiveSubscriptionsList": false,
+  "receivesLowIncomeBenefit": true,
+  "hasSocialTariff": false,
+  "hasMortgage": true,
+  "fixedRateEndsInMonths": 4,
+  "hasOldBankAccounts": true,
+  "hasRomanianInheritanceOrProperty": true
+}
+```
 
 ## Response
 
@@ -103,33 +117,12 @@ Success:
 ```json
 {
   "success": true,
-  "provider": "resend",
-  "messageId": "resend-message-id"
+  "leadId": "uuid",
+  "reportId": "uuid",
+  "emailSent": true,
+  "message": "Raportul a fost trimis pe email."
 }
 ```
 
-Email failure:
-
-```json
-{
-  "error": "Email provider error"
-}
-```
-
-Validation failure:
-
-```json
-{
-  "error": "fullName, email and phone are required."
-}
-```
-
-## Acceptance Criteria
-
-- `/ro/raport-gratuit` requires CRM authentication.
-- `Trimite raport` sends through `POST /justproveit/admin/generic-reports/emails/generic-update`.
-- The lead is saved with source `raport_gratuit_faza0`.
-- All 6 result rows are persisted with their submitted flags and raw answers.
-- The report email is sent to the submitted client email address.
-- Existing pension calculator endpoints and templates continue to work
-  unchanged.
+If the report is saved but email fails, the frontend treats the save as success
+and shows the email error.

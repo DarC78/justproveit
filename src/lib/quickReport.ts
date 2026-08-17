@@ -1,6 +1,7 @@
 export type QuickReportFlag = "verde" | "galben" | "rosu";
 export type QuickReportDisplayFlag = QuickReportFlag | "necompletat";
 export type YesNo = "" | "yes" | "no";
+export type QuickReportFaza0Code = "MF01" | "CD01" | "CD07" | "FC02" | "FC05" | "FC07";
 
 export type QuickReportAnswers = {
   multipleJobs: YesNo;
@@ -15,12 +16,87 @@ export type QuickReportAnswers = {
 };
 
 export type QuickReportResult = {
-  code: "MF01" | "MF02" | "CD07" | "FC02" | "FC05" | "FC07";
+  code: QuickReportFaza0Code;
   title: string;
   flag: QuickReportDisplayFlag;
   output: string;
   rawAnswer: Record<string, string>;
 };
+
+export type QuickReportFaza1Answers = {
+  marriedOrCivilPartner?: boolean;
+  lowerPartnerAnnualIncome?: number;
+  higherPartnerBasicRateTaxpayer?: boolean;
+  worksOvertimeOrVariableHours?: boolean;
+  holidayPayChecked?: boolean;
+  redundancyInLast3Years?: boolean;
+  ageAtDismissal?: number;
+  yearsService?: number;
+  weeklyPay?: number;
+  redundancyAmountReceived?: number;
+  selfAssessmentIncome?: boolean;
+  declaredUsualExpenses?: boolean;
+  hasStudentLoan?: boolean;
+  studentLoanPlan?: string;
+  annualIncome?: number;
+  repaymentsTaken?: boolean;
+  hasRomanianIncomeWhileUkResident?: boolean;
+  checkedStatePensionForecast?: boolean;
+  knownContributionGaps?: boolean;
+  ukEmployersCount?: number;
+  checkedAllWorkplacePensions?: boolean;
+  workedInRomania?: boolean;
+  hadCarFinance2007To2024?: boolean;
+  hadGapInsuranceOrAddOns?: boolean;
+  hadPaydayLoans?: boolean;
+  paysMonthlyCurrentAccountFee?: boolean;
+  usesIncludedBenefits?: boolean;
+  usesOverdraftRegularly?: boolean;
+  overdraftApr?: number;
+  checkedCouncilTaxBand?: boolean;
+  hasActiveSubscriptionsList?: boolean;
+  receivesLowIncomeBenefit?: boolean;
+  hasSocialTariff?: boolean;
+  hasMortgage?: boolean;
+  fixedRateEndsInMonths?: number;
+  fixedRateExpiryDate?: string;
+  hasOldBankAccounts?: boolean;
+  hasRomanianInheritanceOrProperty?: boolean;
+};
+
+export type SubmitQuickReportPayload = {
+  tenantKey: "justproveit";
+  source: "raport_gratuit_faza0";
+  fullName: string;
+  email: string;
+  phone: string;
+  consentVerbalAt: string;
+  standardTaxCode: string;
+  domain: string;
+  pageUrl: string;
+  referrer: string;
+  answers: {
+    existingFaza0Answers: QuickReportAnswers;
+  };
+  results: Array<QuickReportResult & { flag: QuickReportFlag }>;
+  faza1Answers: QuickReportFaza1Answers;
+};
+
+export type SubmitQuickReportResponse = {
+  success: boolean;
+  leadId?: string;
+  reportId?: string;
+  emailSent?: boolean;
+  emailError?: string;
+  message?: string;
+};
+
+const QUICK_REPORT_API_BASE_URL =
+  process.env.NEXT_PUBLIC_JPI_QUICK_REPORT_API_BASE_URL ??
+  process.env.VITE_JPI_QUICK_REPORT_API_BASE_URL ??
+  process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL ??
+  process.env.VITE_JPI_CRM_READ_API_BASE_URL ??
+  "https://launchingstack-func-dev.azurewebsites.net/api";
 
 export function evaluateQuickReport(answers: QuickReportAnswers): QuickReportResult[] {
   return [
@@ -100,12 +176,12 @@ function evaluateCreditReport(answers: QuickReportAnswers): QuickReportResult {
   };
 
   if (!answers.electoralRoll || !answers.creditReportChecked) {
-    return incomplete("MF02", "Credit score / raport de credit", rawAnswer);
+    return incomplete("CD01", "Credit score / raport de credit", rawAnswer);
   }
 
   if (answers.electoralRoll === "no") {
     return {
-      code: "MF02",
+      code: "CD01",
       title: "Credit score / raport de credit",
       flag: "rosu",
       output:
@@ -116,7 +192,7 @@ function evaluateCreditReport(answers: QuickReportAnswers): QuickReportResult {
 
   if (answers.creditReportChecked === "no") {
     return {
-      code: "MF02",
+      code: "CD01",
       title: "Credit score / raport de credit",
       flag: "rosu",
       output:
@@ -126,7 +202,7 @@ function evaluateCreditReport(answers: QuickReportAnswers): QuickReportResult {
   }
 
   return {
-    code: "MF02",
+    code: "CD01",
     title: "Credit score / raport de credit",
     flag: "verde",
     output: "Ești înscris pe electoral roll și ai verificat raportul de credit.",
@@ -258,4 +334,40 @@ function incomplete(
     output: "Completează răspunsurile pentru această verificare.",
     rawAnswer,
   };
+}
+
+export async function submitQuickReportFaza0(token: string, payload: SubmitQuickReportPayload) {
+  const response = await fetch(resolveQuickReportUrl("/justproveit/quick-report/faza0"), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const responsePayload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(readQuickReportApiError(responsePayload, response.statusText));
+  }
+
+  return responsePayload as SubmitQuickReportResponse;
+}
+
+function resolveQuickReportUrl(path: string) {
+  return `${QUICK_REPORT_API_BASE_URL.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function readQuickReportApiError(payload: unknown, fallback: string) {
+  if (payload && typeof payload === "object") {
+    if ("error" in payload && typeof payload.error === "string") {
+      return payload.error;
+    }
+
+    if ("message" in payload && typeof payload.message === "string") {
+      return payload.message;
+    }
+  }
+
+  return fallback || "Raportul nu a putut fi trimis.";
 }

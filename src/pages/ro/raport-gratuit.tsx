@@ -1,5 +1,4 @@
 import { useAuth } from "@/context/AuthContext";
-import { sendGenericUpdateEmail } from "@/lib/genericReports";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -9,51 +8,19 @@ import {
   evaluateQuickReport,
   getQuickReportCompletion,
   getQuickReportFlagCounts,
+  submitQuickReportFaza0,
   type QuickReportAnswers,
   type QuickReportDisplayFlag,
+  type QuickReportFaza1Answers,
   type QuickReportFlag,
   type QuickReportResult,
+  type YesNo,
 } from "@/lib/quickReport";
 
 const SITE_URL = "https://www.justproveit.co.uk";
 const PAGE_PATH = "/ro/raport-gratuit";
 const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
-const BANK_SWITCH_BONUS_EMAIL_INTRO =
-  "Banci care acorda bonusuri de £150-£220 cand va mutati un cont curent (nu cel principal, de preferinta) la ei. In total se pot castiga £1000 de la 5 banci:";
-const CREDIT_REPORT_EMAIL_NOTE =
-  "Verifica gratuit sa nu existe erori in raportul de scor de credit, folosind aplicatii gratuite precum ClearScore.";
-const CREDIT_REPORT_LINK = {
-  label: "ClearScore",
-  url: "https://www.clearscore.com/",
-};
-const INSURANCE_COMPARISON_EMAIL_NOTE =
-  "Pentru a verifica daca poti sa economisesti la 40+ tipuri de asigurari, ai comparatoare de preturi precum Confused.com.";
-const INSURANCE_COMPARISON_LINK = {
-  label: "Confused.com",
-  url: "https://www.confused.com/",
-};
-const BANK_SWITCH_BONUS_LINKS = [
-  {
-    label: "£220 Recompensa de la HSBC",
-    url: "https://www.hsbc.co.uk/current-accounts/products/bank-account/promotion/",
-  },
-  {
-    label: "£200 Recompensa de la Barclays",
-    url: "https://www.barclays.co.uk/current-accounts/switch-offer/acqagg/",
-  },
-  {
-    label: "£200 Recompensa de la Natwest",
-    url: "https://www.natwest.com/current-accounts/reward_account.html",
-  },
-  {
-    label: "£175 Recompensa de la firstDirect",
-    url: "https://www.firstdirect.com/banking/current-account-mgm",
-  },
-  {
-    label: "£200 Recompensa de la Coop Bank",
-    url: "https://www.co-operativebank.co.uk/products/bank-accounts/switch-offer/",
-  },
-];
+const STANDARD_TAX_CODE = "1257L";
 
 const initialAnswers: QuickReportAnswers = {
   multipleJobs: "",
@@ -65,6 +32,86 @@ const initialAnswers: QuickReportAnswers = {
   transferMethod: "",
   transferCompared: "",
   utilitiesCompared: "",
+};
+
+type Faza1FormAnswers = {
+  marriedOrCivilPartner: YesNo;
+  lowerPartnerAnnualIncome: string;
+  higherPartnerBasicRateTaxpayer: YesNo;
+  worksOvertimeOrVariableHours: YesNo;
+  holidayPayChecked: YesNo;
+  redundancyInLast3Years: YesNo;
+  ageAtDismissal: string;
+  yearsService: string;
+  weeklyPay: string;
+  redundancyAmountReceived: string;
+  selfAssessmentIncome: YesNo;
+  declaredUsualExpenses: YesNo;
+  hasStudentLoan: YesNo;
+  studentLoanPlan: string;
+  annualIncome: string;
+  repaymentsTaken: YesNo;
+  hasRomanianIncomeWhileUkResident: YesNo;
+  checkedStatePensionForecast: YesNo;
+  knownContributionGaps: YesNo;
+  ukEmployersCount: string;
+  checkedAllWorkplacePensions: YesNo;
+  workedInRomania: YesNo;
+  hadCarFinance2007To2024: YesNo;
+  hadGapInsuranceOrAddOns: YesNo;
+  hadPaydayLoans: YesNo;
+  paysMonthlyCurrentAccountFee: YesNo;
+  usesIncludedBenefits: YesNo;
+  usesOverdraftRegularly: YesNo;
+  overdraftApr: string;
+  checkedCouncilTaxBand: YesNo;
+  hasActiveSubscriptionsList: YesNo;
+  receivesLowIncomeBenefit: YesNo;
+  hasSocialTariff: YesNo;
+  hasMortgage: YesNo;
+  fixedRateEndsInMonths: string;
+  hasOldBankAccounts: YesNo;
+  hasRomanianInheritanceOrProperty: YesNo;
+};
+
+const initialFaza1Answers: Faza1FormAnswers = {
+  marriedOrCivilPartner: "",
+  lowerPartnerAnnualIncome: "",
+  higherPartnerBasicRateTaxpayer: "",
+  worksOvertimeOrVariableHours: "",
+  holidayPayChecked: "",
+  redundancyInLast3Years: "",
+  ageAtDismissal: "",
+  yearsService: "",
+  weeklyPay: "",
+  redundancyAmountReceived: "",
+  selfAssessmentIncome: "",
+  declaredUsualExpenses: "",
+  hasStudentLoan: "",
+  studentLoanPlan: "",
+  annualIncome: "",
+  repaymentsTaken: "",
+  hasRomanianIncomeWhileUkResident: "",
+  checkedStatePensionForecast: "",
+  knownContributionGaps: "",
+  ukEmployersCount: "",
+  checkedAllWorkplacePensions: "",
+  workedInRomania: "",
+  hadCarFinance2007To2024: "",
+  hadGapInsuranceOrAddOns: "",
+  hadPaydayLoans: "",
+  paysMonthlyCurrentAccountFee: "",
+  usesIncludedBenefits: "",
+  usesOverdraftRegularly: "",
+  overdraftApr: "",
+  checkedCouncilTaxBand: "",
+  hasActiveSubscriptionsList: "",
+  receivesLowIncomeBenefit: "",
+  hasSocialTariff: "",
+  hasMortgage: "",
+  fixedRateEndsInMonths: "",
+  hasOldBankAccounts: "",
+  hasRomanianInheritanceOrProperty: "",
 };
 
 type ContactForm = {
@@ -86,11 +133,18 @@ export default function FreeQuickReportPage() {
   const { status: authStatus, token, isCrm, logout } = useAuth();
   const [contact, setContact] = useState<ContactForm>(initialContact);
   const [answers, setAnswers] = useState<QuickReportAnswers>(initialAnswers);
+  const [faza1Answers, setFaza1Answers] = useState<Faza1FormAnswers>(initialFaza1Answers);
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<"success" | "error" | "">("");
   const [message, setMessage] = useState("");
   const results = useMemo(() => evaluateQuickReport(answers), [answers]);
   const completion = useMemo(() => getQuickReportCompletion(results), [results]);
+  const faza1Completion = useMemo(() => getFaza1Completion(faza1Answers), [faza1Answers]);
+  const totalCompletion = {
+    completed: completion.completed + faza1Completion.completed,
+    total: completion.total + faza1Completion.total,
+    complete: completion.complete && faza1Completion.complete,
+  };
   const counts = useMemo(() => getQuickReportFlagCounts(results), [results]);
 
   const jsonLd = useMemo(
@@ -174,9 +228,9 @@ export default function FreeQuickReportPage() {
       return;
     }
 
-    if (!completion.complete) {
+    if (!totalCompletion.complete) {
       setStatus("error");
-      setMessage("Completeaza toate verificarile inainte de trimiterea raportului.");
+      setMessage("Completeaza toate verificarile inainte de trimiterea raportului complet.");
       return;
     }
 
@@ -189,28 +243,37 @@ export default function FreeQuickReportPage() {
     const completedResults = results.filter(
       (result): result is QuickReportResult & { flag: QuickReportFlag } => result.flag !== "necompletat",
     );
-    const reportText = buildQuickReportEmailText({
-      fullName,
-      results: completedResults,
-    });
+    const browserLocation = getBrowserLocation();
 
     setSending(true);
     try {
-      await sendGenericUpdateEmail(token, {
-        to: email,
-        customerName: fullName,
-        customerSinceLabel: "Raport gratuit JustProveIt",
-        statusLabel: `Rosu: ${counts.rosu} | Galben: ${counts.galben} | Verde: ${counts.verde}`,
-        subject: "Raportul tau gratuit JustProveIt",
-        preheader: "Cele 6 verificari rapide pentru bani pierduti in UK.",
-        plainText: reportText,
-        html: buildQuickReportEmailHtml({
-          fullName,
-          results: completedResults,
-        }),
+      const response = await submitQuickReportFaza0(token, {
+        tenantKey: "justproveit",
+        source: "raport_gratuit_faza0",
+        fullName,
+        email,
+        phone,
+        consentVerbalAt: new Date().toISOString(),
+        standardTaxCode: STANDARD_TAX_CODE,
+        domain: browserLocation.domain,
+        pageUrl: browserLocation.pageUrl,
+        referrer: browserLocation.referrer,
+        answers: {
+          existingFaza0Answers: answers,
+        },
+        results: completedResults,
+        faza1Answers: buildFaza1AnswersPayload(faza1Answers),
       });
       setStatus("success");
-      setMessage("Raportul a fost trimis pe email.");
+      if (response.emailSent === false) {
+        setMessage(
+          response.emailError
+            ? `Raportul a fost salvat, dar emailul nu a fost trimis: ${response.emailError}`
+            : "Raportul a fost salvat, dar emailul nu a fost trimis.",
+        );
+      } else {
+        setMessage(response.message || "Raportul a fost trimis pe email.");
+      }
     } catch (error) {
       setStatus("error");
       setMessage(error instanceof Error ? error.message : "Raportul nu a putut fi trimis.");
@@ -225,6 +288,10 @@ export default function FreeQuickReportPage() {
 
   function updateAnswer<K extends keyof QuickReportAnswers>(key: K, value: QuickReportAnswers[K]) {
     setAnswers((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateFaza1Answer<K extends keyof Faza1FormAnswers>(key: K, value: Faza1FormAnswers[K]) {
+    setFaza1Answers((current) => ({ ...current, [key]: value }));
   }
 
   if (authStatus === "loading" || authStatus === "anonymous") {
@@ -254,7 +321,7 @@ export default function FreeQuickReportPage() {
         <title>Raport gratuit financiar UK | JustProveIt</title>
         <meta
           name="description"
-          content="Raport gratuit cu 6 verificari rapide pentru romanii din UK: cod fiscal, credit score, bank switching, asigurari, transfer bani si utilitati."
+          content="Raport gratuit cu verificari rapide pentru romanii din UK: fiscalitate, credit, pensii, datorii, facturi si active."
         />
         <link rel="canonical" href={CANONICAL} />
         <meta httpEquiv="content-language" content="ro-GB" />
@@ -291,7 +358,7 @@ export default function FreeQuickReportPage() {
                 Raport gratuit
               </p>
               <h1 className="mt-2 text-3xl font-extrabold tracking-normal md:text-4xl">
-                6 verificari rapide pentru bani pierduti in UK
+                Verificari rapide pentru bani pierduti in UK
               </h1>
               <p className="mt-3 max-w-3xl text-base leading-7 text-slate-700">
                 Agentul completeaza raspunsurile in timpul apelului, iar clientul primeste raportul pe email.
@@ -315,7 +382,7 @@ export default function FreeQuickReportPage() {
             </fieldset>
 
             <fieldset className="space-y-4">
-              <legend className="mb-2 text-base font-bold">Verificari rapide</legend>
+              <legend className="mb-2 text-base font-bold">Faza 0 - verificari rapide</legend>
 
               <CheckFields title="MF01 - Cod fiscal gresit">
                 <SelectInput
@@ -332,7 +399,7 @@ export default function FreeQuickReportPage() {
                 />
               </CheckFields>
 
-              <CheckFields title="MF02 - Credit score / raport de credit">
+              <CheckFields title="CD01 - Credit score / raport de credit">
                 <SelectInput
                   label="Esti inscris pe electoral roll la adresa curenta?"
                   value={answers.electoralRoll}
@@ -405,6 +472,331 @@ export default function FreeQuickReportPage() {
               </CheckFields>
             </fieldset>
 
+            <fieldset className="space-y-4">
+              <legend className="mb-2 text-base font-bold">Faza 1 - verificari extinse</legend>
+
+              <CheckFields title="MF02 - Marriage Allowance">
+                <SelectInput
+                  label="Clientul este casatorit sau in civil partnership?"
+                  value={faza1Answers.marriedOrCivilPartner}
+                  onChange={(value) => updateFaza1Answer("marriedOrCivilPartner", value as YesNo)}
+                  options={yesNoOptions}
+                />
+                {faza1Answers.marriedOrCivilPartner === "yes" ? (
+                  <>
+                    <NumberInput
+                      label="Venitul anual al partenerului cu venit mai mic"
+                      value={faza1Answers.lowerPartnerAnnualIncome}
+                      onChange={(value) => updateFaza1Answer("lowerPartnerAnnualIncome", value)}
+                      min={0}
+                      step="1"
+                    />
+                    <SelectInput
+                      label="Partenerul cu venit mai mare plateste basic rate tax?"
+                      value={faza1Answers.higherPartnerBasicRateTaxpayer}
+                      onChange={(value) => updateFaza1Answer("higherPartnerBasicRateTaxpayer", value as YesNo)}
+                      options={yesNoOptions}
+                    />
+                  </>
+                ) : null}
+              </CheckFields>
+
+              <CheckFields title="MF03 - Overtime / holiday pay">
+                <SelectInput
+                  label="Lucreaza overtime sau ore variabile?"
+                  value={faza1Answers.worksOvertimeOrVariableHours}
+                  onChange={(value) => updateFaza1Answer("worksOvertimeOrVariableHours", value as YesNo)}
+                  options={yesNoOptions}
+                />
+                {faza1Answers.worksOvertimeOrVariableHours === "yes" ? (
+                  <SelectInput
+                    label="A verificat daca holiday pay include overtime/ore variabile?"
+                    value={faza1Answers.holidayPayChecked}
+                    onChange={(value) => updateFaza1Answer("holidayPayChecked", value as YesNo)}
+                    options={yesNoOptions}
+                  />
+                ) : null}
+              </CheckFields>
+
+              <CheckFields title="MF04 - Redundancy pay">
+                <SelectInput
+                  label="A avut redundancy in ultimii 3 ani?"
+                  value={faza1Answers.redundancyInLast3Years}
+                  onChange={(value) => updateFaza1Answer("redundancyInLast3Years", value as YesNo)}
+                  options={yesNoOptions}
+                />
+                {faza1Answers.redundancyInLast3Years === "yes" ? (
+                  <>
+                    <NumberInput
+                      label="Varsta la concediere"
+                      value={faza1Answers.ageAtDismissal}
+                      onChange={(value) => updateFaza1Answer("ageAtDismissal", value)}
+                      min={16}
+                      step="1"
+                    />
+                    <NumberInput
+                      label="Ani vechime la angajator"
+                      value={faza1Answers.yearsService}
+                      onChange={(value) => updateFaza1Answer("yearsService", value)}
+                      min={0}
+                      step="1"
+                    />
+                    <NumberInput
+                      label="Salariu saptamanal brut"
+                      value={faza1Answers.weeklyPay}
+                      onChange={(value) => updateFaza1Answer("weeklyPay", value)}
+                      min={0}
+                      step="1"
+                    />
+                    <NumberInput
+                      label="Suma primita la redundancy"
+                      value={faza1Answers.redundancyAmountReceived}
+                      onChange={(value) => updateFaza1Answer("redundancyAmountReceived", value)}
+                      min={0}
+                      step="1"
+                    />
+                  </>
+                ) : null}
+              </CheckFields>
+
+              <CheckFields title="MF05 - Self-assessment expenses">
+                <SelectInput
+                  label="Are venit declarat prin self assessment?"
+                  value={faza1Answers.selfAssessmentIncome}
+                  onChange={(value) => updateFaza1Answer("selfAssessmentIncome", value as YesNo)}
+                  options={yesNoOptions}
+                />
+                {faza1Answers.selfAssessmentIncome === "yes" ? (
+                  <SelectInput
+                    label="Declara cheltuielile uzuale deductibile?"
+                    value={faza1Answers.declaredUsualExpenses}
+                    onChange={(value) => updateFaza1Answer("declaredUsualExpenses", value as YesNo)}
+                    options={yesNoOptions}
+                  />
+                ) : null}
+              </CheckFields>
+
+              <CheckFields title="MF06 - Student loan overpayment">
+                <SelectInput
+                  label="Are student loan?"
+                  value={faza1Answers.hasStudentLoan}
+                  onChange={(value) => updateFaza1Answer("hasStudentLoan", value as YesNo)}
+                  options={yesNoOptions}
+                />
+                {faza1Answers.hasStudentLoan === "yes" ? (
+                  <>
+                    <SelectInput
+                      label="Plan student loan"
+                      value={faza1Answers.studentLoanPlan}
+                      onChange={(value) => updateFaza1Answer("studentLoanPlan", value)}
+                      options={[
+                        { value: "Plan 1", label: "Plan 1" },
+                        { value: "Plan 2", label: "Plan 2" },
+                        { value: "Plan 4", label: "Plan 4" },
+                        { value: "Postgraduate Loan", label: "Postgraduate Loan" },
+                        { value: "Unknown", label: "Nu stie" },
+                      ]}
+                    />
+                    <NumberInput
+                      label="Venit anual"
+                      value={faza1Answers.annualIncome}
+                      onChange={(value) => updateFaza1Answer("annualIncome", value)}
+                      min={0}
+                      step="1"
+                    />
+                    <SelectInput
+                      label="I s-au luat rambursari din salariu?"
+                      value={faza1Answers.repaymentsTaken}
+                      onChange={(value) => updateFaza1Answer("repaymentsTaken", value as YesNo)}
+                      options={yesNoOptions}
+                    />
+                  </>
+                ) : null}
+              </CheckFields>
+
+              <CheckFields title="MF07 - Dubla impozitare RO-UK">
+                <SelectInput
+                  label="A avut venit din Romania cat timp era rezident fiscal in UK?"
+                  value={faza1Answers.hasRomanianIncomeWhileUkResident}
+                  onChange={(value) => updateFaza1Answer("hasRomanianIncomeWhileUkResident", value as YesNo)}
+                  options={yesNoOptions}
+                />
+              </CheckFields>
+
+              <CheckFields title="PE01 - NI record / State Pension forecast">
+                <SelectInput
+                  label="A verificat State Pension forecast?"
+                  value={faza1Answers.checkedStatePensionForecast}
+                  onChange={(value) => updateFaza1Answer("checkedStatePensionForecast", value as YesNo)}
+                  options={yesNoOptions}
+                />
+                <SelectInput
+                  label="Stie ca are gaps in NI contributions?"
+                  value={faza1Answers.knownContributionGaps}
+                  onChange={(value) => updateFaza1Answer("knownContributionGaps", value as YesNo)}
+                  options={yesNoOptions}
+                />
+              </CheckFields>
+
+              <CheckFields title="PE02 - Pensii ocupationale uitate">
+                <NumberInput
+                  label="Cati angajatori a avut in UK?"
+                  value={faza1Answers.ukEmployersCount}
+                  onChange={(value) => updateFaza1Answer("ukEmployersCount", value)}
+                  min={0}
+                  step="1"
+                />
+                <SelectInput
+                  label="A verificat toate workplace pensions de la angajatori?"
+                  value={faza1Answers.checkedAllWorkplacePensions}
+                  onChange={(value) => updateFaza1Answer("checkedAllWorkplacePensions", value as YesNo)}
+                  options={yesNoOptions}
+                />
+              </CheckFields>
+
+              <CheckFields title="PE03 - Pensia internationala RO-UK">
+                <SelectInput
+                  label="A lucrat in Romania?"
+                  value={faza1Answers.workedInRomania}
+                  onChange={(value) => updateFaza1Answer("workedInRomania", value as YesNo)}
+                  options={yesNoOptions}
+                />
+              </CheckFields>
+
+              <CheckFields title="CD02 - Car finance mis-selling">
+                <SelectInput
+                  label="A avut car finance intre 2007 si 2024?"
+                  value={faza1Answers.hadCarFinance2007To2024}
+                  onChange={(value) => updateFaza1Answer("hadCarFinance2007To2024", value as YesNo)}
+                  options={yesNoOptions}
+                />
+              </CheckFields>
+
+              <CheckFields title="CD03 - GAP insurance / add-ons">
+                <SelectInput
+                  label="A avut GAP insurance sau add-ons pe finance?"
+                  value={faza1Answers.hadGapInsuranceOrAddOns}
+                  onChange={(value) => updateFaza1Answer("hadGapInsuranceOrAddOns", value as YesNo)}
+                  options={yesNoOptions}
+                />
+              </CheckFields>
+
+              <CheckFields title="CD04 - Payday loans">
+                <SelectInput
+                  label="A avut payday loans?"
+                  value={faza1Answers.hadPaydayLoans}
+                  onChange={(value) => updateFaza1Answer("hadPaydayLoans", value as YesNo)}
+                  options={yesNoOptions}
+                />
+              </CheckFields>
+
+              <CheckFields title="CD05 - Packaged bank accounts">
+                <SelectInput
+                  label="Plateste taxa lunara pentru cont curent?"
+                  value={faza1Answers.paysMonthlyCurrentAccountFee}
+                  onChange={(value) => updateFaza1Answer("paysMonthlyCurrentAccountFee", value as YesNo)}
+                  options={yesNoOptions}
+                />
+                {faza1Answers.paysMonthlyCurrentAccountFee === "yes" ? (
+                  <SelectInput
+                    label="Foloseste beneficiile incluse in cont?"
+                    value={faza1Answers.usesIncludedBenefits}
+                    onChange={(value) => updateFaza1Answer("usesIncludedBenefits", value as YesNo)}
+                    options={yesNoOptions}
+                  />
+                ) : null}
+              </CheckFields>
+
+              <CheckFields title="CD06 - Overdraft">
+                <SelectInput
+                  label="Foloseste overdraft regulat?"
+                  value={faza1Answers.usesOverdraftRegularly}
+                  onChange={(value) => updateFaza1Answer("usesOverdraftRegularly", value as YesNo)}
+                  options={yesNoOptions}
+                />
+                {faza1Answers.usesOverdraftRegularly === "yes" ? (
+                  <NumberInput
+                    label="APR overdraft"
+                    value={faza1Answers.overdraftApr}
+                    onChange={(value) => updateFaza1Answer("overdraftApr", value)}
+                    min={0}
+                    step="0.1"
+                  />
+                ) : null}
+              </CheckFields>
+
+              <CheckFields title="FC01 - Council Tax band">
+                <SelectInput
+                  label="A verificat Council Tax band?"
+                  value={faza1Answers.checkedCouncilTaxBand}
+                  onChange={(value) => updateFaza1Answer("checkedCouncilTaxBand", value as YesNo)}
+                  options={yesNoOptions}
+                />
+              </CheckFields>
+
+              <CheckFields title="FC03 - Abonamente uitate">
+                <SelectInput
+                  label="Are o lista activa cu abonamentele lunare?"
+                  value={faza1Answers.hasActiveSubscriptionsList}
+                  onChange={(value) => updateFaza1Answer("hasActiveSubscriptionsList", value as YesNo)}
+                  options={yesNoOptions}
+                />
+              </CheckFields>
+
+              <CheckFields title="FC04 - Tarife sociale apa/broadband">
+                <SelectInput
+                  label="Primeste un beneficiu de venit mic?"
+                  value={faza1Answers.receivesLowIncomeBenefit}
+                  onChange={(value) => updateFaza1Answer("receivesLowIncomeBenefit", value as YesNo)}
+                  options={yesNoOptions}
+                />
+                {faza1Answers.receivesLowIncomeBenefit === "yes" ? (
+                  <SelectInput
+                    label="Are social tariff la apa sau broadband?"
+                    value={faza1Answers.hasSocialTariff}
+                    onChange={(value) => updateFaza1Answer("hasSocialTariff", value as YesNo)}
+                    options={yesNoOptions}
+                  />
+                ) : null}
+              </CheckFields>
+
+              <CheckFields title="FC06 - Remortgage check">
+                <SelectInput
+                  label="Are mortgage?"
+                  value={faza1Answers.hasMortgage}
+                  onChange={(value) => updateFaza1Answer("hasMortgage", value as YesNo)}
+                  options={yesNoOptions}
+                />
+                {faza1Answers.hasMortgage === "yes" ? (
+                  <NumberInput
+                    label="In cate luni se termina fixed rate?"
+                    value={faza1Answers.fixedRateEndsInMonths}
+                    onChange={(value) => updateFaza1Answer("fixedRateEndsInMonths", value)}
+                    min={0}
+                    step="1"
+                  />
+                ) : null}
+              </CheckFields>
+
+              <CheckFields title="AA01 - Conturi uitate">
+                <SelectInput
+                  label="Are conturi bancare vechi sau nefolosite?"
+                  value={faza1Answers.hasOldBankAccounts}
+                  onChange={(value) => updateFaza1Answer("hasOldBankAccounts", value as YesNo)}
+                  options={yesNoOptions}
+                />
+              </CheckFields>
+
+              <CheckFields title="AA02 - Mosteniri sau proprietati in Romania">
+                <SelectInput
+                  label="Are mostenire, teren sau proprietate in Romania?"
+                  value={faza1Answers.hasRomanianInheritanceOrProperty}
+                  onChange={(value) => updateFaza1Answer("hasRomanianInheritanceOrProperty", value as YesNo)}
+                  options={yesNoOptions}
+                />
+              </CheckFields>
+            </fieldset>
+
             {message ? (
               <p
                 aria-live="polite"
@@ -430,11 +822,14 @@ export default function FreeQuickReportPage() {
           <aside className="space-y-4">
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
-                Rezultat instant
+                Completare formular
               </p>
               <h2 className="mt-2 text-2xl font-extrabold tracking-normal">
-                {completion.completed}/{completion.total} verificari completate
+                {totalCompletion.completed}/{totalCompletion.total} verificari completate
               </h2>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Faza 0: {completion.completed}/{completion.total} | Faza 1: {faza1Completion.completed}/{faza1Completion.total}
+              </p>
               <div className="mt-4 grid grid-cols-4 gap-2 text-center text-xs font-bold">
                 <MetricPill label="Rosu" value={counts.rosu} tone="rosu" />
                 <MetricPill label="Galben" value={counts.galben} tone="galben" />
@@ -447,7 +842,7 @@ export default function FreeQuickReportPage() {
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-base font-bold">Rezultate pentru email</h2>
+              <h2 className="text-base font-bold">Rezultate Faza 0</h2>
               <div className="mt-4 space-y-3">
                 {results.map((result) => (
                   <ResultItem key={result.code} result={result} />
@@ -486,6 +881,34 @@ function TextInput({
         type={type}
         value={value}
         placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+        className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+      />
+    </label>
+  );
+}
+
+function NumberInput({
+  label,
+  value,
+  onChange,
+  min,
+  step,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  min?: number;
+  step?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="text-sm font-semibold text-slate-700">{label}</span>
+      <input
+        type="number"
+        value={value}
+        min={min}
+        step={step}
         onChange={(event) => onChange(event.target.value)}
         className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
       />
@@ -596,133 +1019,169 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
-function buildQuickReportEmailText({
-  fullName,
-  results,
-}: {
-  fullName: string;
-  results: Array<QuickReportResult & { flag: QuickReportFlag }>;
-}) {
-  const rows = results
-    .map(
-      (result) =>
-        `${result.code} - ${result.title}\nStatus: ${result.flag.toUpperCase()}\n${buildQuickReportResultText(result)}`,
-    )
-    .join("\n\n");
+function getFaza1Completion(answers: Faza1FormAnswers) {
+  const checks = [
+    hasYesNo(answers.marriedOrCivilPartner) &&
+      (answers.marriedOrCivilPartner !== "yes" ||
+        (hasNumberValue(answers.lowerPartnerAnnualIncome, 0) &&
+          hasYesNo(answers.higherPartnerBasicRateTaxpayer))),
+    hasYesNo(answers.worksOvertimeOrVariableHours) &&
+      (answers.worksOvertimeOrVariableHours !== "yes" || hasYesNo(answers.holidayPayChecked)),
+    hasYesNo(answers.redundancyInLast3Years) &&
+      (answers.redundancyInLast3Years !== "yes" ||
+        (hasNumberValue(answers.ageAtDismissal, 16) &&
+          hasNumberValue(answers.yearsService, 0) &&
+          hasNumberValue(answers.weeklyPay, 0))),
+    hasYesNo(answers.selfAssessmentIncome) &&
+      (answers.selfAssessmentIncome !== "yes" || hasYesNo(answers.declaredUsualExpenses)),
+    hasYesNo(answers.hasStudentLoan) &&
+      (answers.hasStudentLoan !== "yes" ||
+        (answers.studentLoanPlan !== "" &&
+          hasNumberValue(answers.annualIncome, 0) &&
+          hasYesNo(answers.repaymentsTaken))),
+    hasYesNo(answers.hasRomanianIncomeWhileUkResident),
+    hasYesNo(answers.checkedStatePensionForecast) && hasYesNo(answers.knownContributionGaps),
+    hasNumberValue(answers.ukEmployersCount, 0) && hasYesNo(answers.checkedAllWorkplacePensions),
+    hasYesNo(answers.workedInRomania),
+    hasYesNo(answers.hadCarFinance2007To2024),
+    hasYesNo(answers.hadGapInsuranceOrAddOns),
+    hasYesNo(answers.hadPaydayLoans),
+    hasYesNo(answers.paysMonthlyCurrentAccountFee) &&
+      (answers.paysMonthlyCurrentAccountFee !== "yes" || hasYesNo(answers.usesIncludedBenefits)),
+    hasYesNo(answers.usesOverdraftRegularly) &&
+      (answers.usesOverdraftRegularly !== "yes" || hasNumberValue(answers.overdraftApr, 0)),
+    hasYesNo(answers.checkedCouncilTaxBand),
+    hasYesNo(answers.hasActiveSubscriptionsList),
+    hasYesNo(answers.receivesLowIncomeBenefit) &&
+      (answers.receivesLowIncomeBenefit !== "yes" || hasYesNo(answers.hasSocialTariff)),
+    hasYesNo(answers.hasMortgage) &&
+      (answers.hasMortgage !== "yes" || hasNumberValue(answers.fixedRateEndsInMonths, 0)),
+    hasYesNo(answers.hasOldBankAccounts),
+    hasYesNo(answers.hasRomanianInheritanceOrProperty),
+  ];
+  const completed = checks.filter(Boolean).length;
 
-  return `Buna ziua ${fullName},
-
-Aveti mai jos raportul gratuit JustProveIt cu cele 6 verificari rapide pentru bani pierduti in UK.
-
-${rows}
-
-Raportul este informativ si nu reprezinta sfat financiar reglementat.
-
-Daca doriti, putem face o radiografie financiara completa si verifica si alte zone unde romanii din UK pot pierde bani, inclusiv beneficii de stat si situatii fiscale.
-
-O zi buna,
-JustProveIt`;
+  return {
+    completed,
+    total: checks.length,
+    complete: completed === checks.length,
+  };
 }
 
-function buildQuickReportEmailHtml(options: {
-  fullName: string;
-  results: Array<QuickReportResult & { flag: QuickReportFlag }>;
-}) {
-  const rows = options.results
-    .map(
-      (result) => `
-        <tr>
-          <td style="padding:12px;border:1px solid #d9e2ec;font-weight:700;vertical-align:top;">${escapeHtml(result.code)}</td>
-          <td style="padding:12px;border:1px solid #d9e2ec;vertical-align:top;">
-            <div style="font-weight:700;">${escapeHtml(result.title)}</div>
-            <div style="margin-top:4px;text-transform:uppercase;font-size:12px;font-weight:700;color:${flagColor(result.flag)};">${escapeHtml(result.flag)}</div>
-            <div style="margin-top:8px;line-height:1.55;">${buildQuickReportResultHtml(result)}</div>
-          </td>
-        </tr>`,
-    )
-    .join("");
+function buildFaza1AnswersPayload(answers: Faza1FormAnswers): QuickReportFaza1Answers {
+  const payload: QuickReportFaza1Answers = {
+    marriedOrCivilPartner: yesNoToBoolean(answers.marriedOrCivilPartner),
+    worksOvertimeOrVariableHours: yesNoToBoolean(answers.worksOvertimeOrVariableHours),
+    redundancyInLast3Years: yesNoToBoolean(answers.redundancyInLast3Years),
+    selfAssessmentIncome: yesNoToBoolean(answers.selfAssessmentIncome),
+    hasStudentLoan: yesNoToBoolean(answers.hasStudentLoan),
+    hasRomanianIncomeWhileUkResident: yesNoToBoolean(answers.hasRomanianIncomeWhileUkResident),
+    checkedStatePensionForecast: yesNoToBoolean(answers.checkedStatePensionForecast),
+    knownContributionGaps: yesNoToBoolean(answers.knownContributionGaps),
+    ukEmployersCount: numberOrUndefined(answers.ukEmployersCount),
+    checkedAllWorkplacePensions: yesNoToBoolean(answers.checkedAllWorkplacePensions),
+    workedInRomania: yesNoToBoolean(answers.workedInRomania),
+    hadCarFinance2007To2024: yesNoToBoolean(answers.hadCarFinance2007To2024),
+    hadGapInsuranceOrAddOns: yesNoToBoolean(answers.hadGapInsuranceOrAddOns),
+    hadPaydayLoans: yesNoToBoolean(answers.hadPaydayLoans),
+    paysMonthlyCurrentAccountFee: yesNoToBoolean(answers.paysMonthlyCurrentAccountFee),
+    usesOverdraftRegularly: yesNoToBoolean(answers.usesOverdraftRegularly),
+    checkedCouncilTaxBand: yesNoToBoolean(answers.checkedCouncilTaxBand),
+    hasActiveSubscriptionsList: yesNoToBoolean(answers.hasActiveSubscriptionsList),
+    receivesLowIncomeBenefit: yesNoToBoolean(answers.receivesLowIncomeBenefit),
+    hasMortgage: yesNoToBoolean(answers.hasMortgage),
+    hasOldBankAccounts: yesNoToBoolean(answers.hasOldBankAccounts),
+    hasRomanianInheritanceOrProperty: yesNoToBoolean(answers.hasRomanianInheritanceOrProperty),
+  };
 
-  return `
-    <div style="font-family:Arial,sans-serif;color:#0f172a;line-height:1.55;">
-      <p>Buna ziua ${escapeHtml(options.fullName)},</p>
-      <p>Aveti mai jos raportul gratuit JustProveIt cu cele 6 verificari rapide pentru bani pierduti in UK.</p>
-      <table style="border-collapse:collapse;width:100%;margin:20px 0;">
-        <tbody>${rows}</tbody>
-      </table>
-      <p>Raportul este informativ si nu reprezinta sfat financiar reglementat.</p>
-      <p>Daca doriti, putem face o radiografie financiara completa si verifica si alte zone unde romanii din UK pot pierde bani, inclusiv beneficii de stat si situatii fiscale.</p>
-      <p>O zi buna,<br>JustProveIt</p>
-    </div>`;
+  if (answers.marriedOrCivilPartner === "yes") {
+    payload.lowerPartnerAnnualIncome = numberOrUndefined(answers.lowerPartnerAnnualIncome);
+    payload.higherPartnerBasicRateTaxpayer = yesNoToBoolean(answers.higherPartnerBasicRateTaxpayer);
+  }
+
+  if (answers.worksOvertimeOrVariableHours === "yes") {
+    payload.holidayPayChecked = yesNoToBoolean(answers.holidayPayChecked);
+  }
+
+  if (answers.redundancyInLast3Years === "yes") {
+    payload.ageAtDismissal = numberOrUndefined(answers.ageAtDismissal);
+    payload.yearsService = numberOrUndefined(answers.yearsService);
+    payload.weeklyPay = numberOrUndefined(answers.weeklyPay);
+    payload.redundancyAmountReceived = numberOrUndefined(answers.redundancyAmountReceived);
+  }
+
+  if (answers.selfAssessmentIncome === "yes") {
+    payload.declaredUsualExpenses = yesNoToBoolean(answers.declaredUsualExpenses);
+  }
+
+  if (answers.hasStudentLoan === "yes") {
+    payload.studentLoanPlan = answers.studentLoanPlan || undefined;
+    payload.annualIncome = numberOrUndefined(answers.annualIncome);
+    payload.repaymentsTaken = yesNoToBoolean(answers.repaymentsTaken);
+  }
+
+  if (answers.paysMonthlyCurrentAccountFee === "yes") {
+    payload.usesIncludedBenefits = yesNoToBoolean(answers.usesIncludedBenefits);
+  }
+
+  if (answers.usesOverdraftRegularly === "yes") {
+    payload.overdraftApr = numberOrUndefined(answers.overdraftApr);
+  }
+
+  if (answers.receivesLowIncomeBenefit === "yes") {
+    payload.hasSocialTariff = yesNoToBoolean(answers.hasSocialTariff);
+  }
+
+  if (answers.hasMortgage === "yes") {
+    payload.fixedRateEndsInMonths = numberOrUndefined(answers.fixedRateEndsInMonths);
+  }
+
+  return removeUndefinedValues(payload);
 }
 
-function buildQuickReportResultText(result: QuickReportResult) {
-  if (result.code === "MF02") {
-    return `${result.output}\n\n${CREDIT_REPORT_EMAIL_NOTE}\n${CREDIT_REPORT_LINK.label}: ${CREDIT_REPORT_LINK.url}`;
+function getBrowserLocation() {
+  if (typeof window === "undefined") {
+    return {
+      domain: "www.justproveit.co.uk",
+      pageUrl: CANONICAL,
+      referrer: "",
+    };
   }
 
-  if (result.code === "CD07") {
-    const bankLinks = BANK_SWITCH_BONUS_LINKS.map((bank) => `${bank.label}: ${bank.url}`).join("\n");
-    return `${result.output}\n\n${BANK_SWITCH_BONUS_EMAIL_INTRO}\n\n${bankLinks}`;
-  }
-
-  if (result.code === "FC02") {
-    return `${result.output}\n\n${INSURANCE_COMPARISON_EMAIL_NOTE}\n${INSURANCE_COMPARISON_LINK.label}: ${INSURANCE_COMPARISON_LINK.url}`;
-  }
-
-  return result.output;
+  return {
+    domain: window.location.hostname || "www.justproveit.co.uk",
+    pageUrl: window.location.href,
+    referrer: document.referrer || "",
+  };
 }
 
-function buildQuickReportResultHtml(result: QuickReportResult) {
-  if (result.code === "MF02") {
-    return `
-      ${escapeHtml(result.output)}
-      <p style="margin:12px 0 0 0;">
-        ${escapeHtml(CREDIT_REPORT_EMAIL_NOTE)} <a href="${escapeHtml(CREDIT_REPORT_LINK.url)}" target="_blank" rel="noopener noreferrer" style="color:#047857;font-weight:700;">${escapeHtml(CREDIT_REPORT_LINK.label)}</a>
-      </p>`;
-  }
-
-  if (result.code === "CD07") {
-    const bankLinks = BANK_SWITCH_BONUS_LINKS.map(
-      (bank) =>
-        `<li><a href="${escapeHtml(bank.url)}" target="_blank" rel="noopener noreferrer" style="color:#047857;font-weight:700;">${escapeHtml(bank.label)}</a></li>`,
-    ).join("");
-
-    return `
-      ${escapeHtml(result.output)}
-      <div style="margin-top:12px;">
-        <p style="margin:0 0 8px 0;">${escapeHtml(BANK_SWITCH_BONUS_EMAIL_INTRO)}</p>
-        <ul style="margin:0;padding-left:20px;">${bankLinks}</ul>
-      </div>`;
-  }
-
-  if (result.code === "FC02") {
-    return `
-      ${escapeHtml(result.output)}
-      <p style="margin:12px 0 0 0;">
-        ${escapeHtml(INSURANCE_COMPARISON_EMAIL_NOTE)} <a href="${escapeHtml(INSURANCE_COMPARISON_LINK.url)}" target="_blank" rel="noopener noreferrer" style="color:#047857;font-weight:700;">${escapeHtml(INSURANCE_COMPARISON_LINK.label)}</a>
-      </p>`;
-  }
-
-  return escapeHtml(result.output);
+function hasYesNo(value: YesNo) {
+  return value === "yes" || value === "no";
 }
 
-function flagColor(flag: QuickReportFlag) {
-  if (flag === "rosu") {
-    return "#991b1b";
-  }
-  if (flag === "galben") {
-    return "#92400e";
-  }
-  return "#065f46";
+function hasNumberValue(value: string, min = 0) {
+  const numericValue = Number(value);
+  return value.trim() !== "" && Number.isFinite(numericValue) && numericValue >= min;
 }
 
-function escapeHtml(value: string) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+function numberOrUndefined(value: string) {
+  return hasNumberValue(value, Number.NEGATIVE_INFINITY) ? Number(value) : undefined;
+}
+
+function yesNoToBoolean(value: YesNo) {
+  if (value === "yes") {
+    return true;
+  }
+  if (value === "no") {
+    return false;
+  }
+  return undefined;
+}
+
+function removeUndefinedValues<T extends Record<string, unknown>>(value: T) {
+  return Object.fromEntries(
+    Object.entries(value).filter(([, entryValue]) => entryValue !== undefined),
+  ) as T;
 }
 
 function AuthGateShell({
