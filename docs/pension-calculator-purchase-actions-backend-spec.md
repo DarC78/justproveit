@@ -142,6 +142,8 @@ Safe logs may include:
 - A CRM-authenticated user can open `/ro/calculator-varsta-pensionare`.
 - Anonymous users are redirected to `/login?next=/ro/calculator-varsta-pensionare`.
 - `Email cumparare` sends the exact email body above through Resend.
+- If the email is not sent through Resend, `manual-email` must return a non-2xx response or `success: false` with a useful `message`; it must not return a success-shaped response for missing/unknown templates or provider failures.
+- On successful Resend delivery request, include the Resend message id in `result` or another stable field so the frontend/operator can correlate the send with Resend logs.
 - `SMS Cumparare` sends the exact SMS body above through Twilio.
 - Both buttons show a visible success or failure message in the frontend.
 - Existing pension calculator calculation and simulation email behavior remain unchanged.

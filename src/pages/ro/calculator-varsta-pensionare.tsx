@@ -528,7 +528,7 @@ export default function RomanianPensionCalculatorPage() {
     setError("");
 
     try {
-      await sendManualCrmEmail(token, {
+      const emailResult = await sendManualCrmEmail(token, {
         email: recipientEmail,
         firstName: form.fullName.trim(),
         emailtemplate: PURCHASE_EMAIL_TEMPLATE,
@@ -539,8 +539,9 @@ export default function RomanianPensionCalculatorPage() {
         param4: typeof document !== "undefined" ? document.referrer : "",
         agent: user?.name || user?.email || "ro-pension-calculator",
       });
+      assertSuccessfulAction(emailResult, "emailul de cumparare nu a putut fi trimis.");
       setPurchaseEmailStatus("success");
-      setPurchaseEmailMessage("Success: email cumparare trimis.");
+      setPurchaseEmailMessage(formatActionSuccess(emailResult, "email cumparare trimis."));
     } catch (purchaseError) {
       setPurchaseEmailStatus("error");
       setPurchaseEmailMessage(
@@ -576,13 +577,14 @@ export default function RomanianPensionCalculatorPage() {
     setError("");
 
     try {
-      await sendManualCrmSms(token, {
+      const smsResult = await sendManualCrmSms(token, {
         phone: recipientPhone,
         message: PURCHASE_SMS_TEXT,
         agent: user?.name || user?.email || "ro-pension-calculator",
       });
+      assertSuccessfulAction(smsResult, "SMS-ul de cumparare nu a putut fi trimis.");
       setPurchaseSmsStatus("success");
-      setPurchaseSmsMessage("Success: SMS cumparare trimis.");
+      setPurchaseSmsMessage(formatActionSuccess(smsResult, "SMS cumparare trimis."));
     } catch (smsError) {
       setPurchaseSmsStatus("error");
       setPurchaseSmsMessage(
@@ -1429,6 +1431,28 @@ function isOnlyAgePending(
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+function assertSuccessfulAction(payload: unknown, fallback: string) {
+  if (!payload || typeof payload !== "object") {
+    throw new Error(fallback);
+  }
+
+  if (!("success" in payload) || payload.success !== true) {
+    throw new Error(readActionMessage(payload) || fallback);
+  }
+}
+
+function formatActionSuccess(payload: unknown, fallback: string) {
+  return `Success: ${readActionMessage(payload) || fallback}`;
+}
+
+function readActionMessage(payload: unknown) {
+  if (!payload || typeof payload !== "object" || !("message" in payload)) {
+    return "";
+  }
+
+  return typeof payload.message === "string" ? payload.message.trim() : "";
 }
 
 function asNumber(value: string) {
