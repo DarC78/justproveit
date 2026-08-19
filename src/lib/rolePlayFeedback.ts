@@ -2,6 +2,8 @@ import { fetchJson, TENANT_KEY } from "@/lib/auth";
 
 export type RolePlayFeedbackStatus = "yes" | "partial" | "no" | "na";
 export type RolePlayParticipantRole = "agent" | "client" | "observer";
+export type RolePlayFeedbackGroup = "A" | "B";
+export type RolePlayFeedbackEmailScope = "scenario" | "group";
 
 export type RolePlayFeedbackItem = {
   id: string;
@@ -12,6 +14,7 @@ export type RolePlayFeedbackItem = {
 export type RolePlayFeedbackScenario = {
   id: string;
   title: string;
+  group: RolePlayFeedbackGroup;
   participantRole: RolePlayParticipantRole;
   feedbackItems: RolePlayFeedbackItem[];
   notes?: string;
@@ -31,6 +34,9 @@ export type RolePlayFeedbackSummary = {
 export type RolePlayFeedbackPayload = {
   tenantKey?: string;
   source: "pension-role-play-feedback";
+  feedbackGroup: RolePlayFeedbackGroup;
+  emailScope: RolePlayFeedbackEmailScope;
+  scenarioId?: string;
   agentName: string;
   agentEmail: string;
   reviewerName: string;

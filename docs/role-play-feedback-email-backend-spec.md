@@ -6,7 +6,12 @@ Frontend page:
 
 `https://www.justproveit.co.uk/admin/role-play-feedback`
 
-The page is CRM-authenticated and lets a reviewer complete six pension role play scenarios. At the end, the frontend sends the completed feedback to the evaluated agent by email.
+The page is CRM-authenticated and lets a reviewer complete pension role play feedback. CRM users are split into two groups:
+
+- `A`: can submit feedback for scenarios `scenario-1`, `scenario-2`, `scenario-3`
+- `B`: can submit feedback for scenarios `scenario-4`, `scenario-5`, `scenario-6`
+
+The frontend sends this group as `feedbackGroup`. The page can send email after each individual scenario and can also send one group summary email.
 
 ## Endpoint
 
@@ -32,6 +37,9 @@ The frontend sends:
 {
   "tenantKey": "justproveit",
   "source": "pension-role-play-feedback",
+  "feedbackGroup": "A",
+  "emailScope": "scenario",
+  "scenarioId": "scenario-1",
   "agentName": "Agent Name",
   "agentEmail": "agent@example.com",
   "reviewerName": "Reviewer Name",
@@ -58,6 +66,7 @@ The frontend sends:
     {
       "id": "scenario-1",
       "title": "Scenariul 1 - Calificare, legitimitate si pret",
+      "group": "A",
       "participantRole": "agent",
       "feedbackItems": [
         {
@@ -72,6 +81,20 @@ The frontend sends:
 }
 ```
 
+For a per-scenario email:
+
+- `emailScope` is `scenario`
+- `scenarioId` is present
+- `scenarios` contains exactly one scenario
+- `summary` and `summaryText` describe that one scenario
+
+For a group email:
+
+- `emailScope` is `group`
+- `scenarioId` is omitted
+- `scenarios` contains exactly the three scenarios for the submitted group
+- `summary` and `summaryText` describe the submitted group
+
 Allowed `participantRole` values:
 
 - `agent`
@@ -85,13 +108,24 @@ Allowed feedback item `status` values:
 - `no`
 - `na`
 
+Allowed `feedbackGroup` values:
+
+- `A`
+- `B`
+
+Allowed `emailScope` values:
+
+- `scenario`
+- `group`
+
 ## Required Email Behavior
 
 Send one email to `agentEmail`.
 
 Recommended subject:
 
-`Feedback role play pensii - {sessionDate}`
+- Scenario email: `Feedback role play pensii - Scenariul {n} - {sessionDate}`
+- Group email: `Feedback role play pensii - Tabara {feedbackGroup} - {sessionDate}`
 
 Recommended sender:
 
@@ -105,9 +139,9 @@ Email body:
 
 - Greeting with the agent name.
 - Include the summary score and counts.
-- Include all six scenario sections with every feedback point and status.
+- Include the submitted scenario section for `emailScope=scenario`, or the three group scenario sections for `emailScope=group`.
 - Include scenario notes.
-- Include final sections: strengths, improvements, overall notes.
+- Include final sections: strengths, improvements, overall notes when provided.
 - The frontend already provides `summaryText`; backend can use it directly for the plain-text body, or render a nicer HTML email from the structured `scenarios` array.
 
 ## Response
@@ -145,7 +179,12 @@ Backend should validate:
 - authenticated user has CRM/admin access
 - `agentEmail` is a valid email
 - `agentName`, `reviewerName`, `sessionDate`, `summary`, and `scenarios` are present
-- `scenarios` has the expected six scenario ids
+- `feedbackGroup` is `A` or `B`
+- `emailScope` is `scenario` or `group`
+- if `feedbackGroup=A`, only scenario ids `scenario-1`, `scenario-2`, `scenario-3` are accepted
+- if `feedbackGroup=B`, only scenario ids `scenario-4`, `scenario-5`, `scenario-6` are accepted
+- if `emailScope=scenario`, `scenarioId` is required and `scenarios` must contain exactly that one scenario
+- if `emailScope=group`, `scenarios` must contain exactly the three scenarios for the submitted group
 - all feedback items have allowed statuses
 
 ## Logging
@@ -153,6 +192,9 @@ Backend should validate:
 Safe logs may include:
 
 - scenario count
+- `feedbackGroup`
+- `emailScope`
+- `scenarioId`
 - reviewer user id/name
 - agent email domain only
 - Resend message id
@@ -162,7 +204,10 @@ Do not log full email addresses or the full feedback body unless existing compli
 
 ## Acceptance Criteria
 
-- A CRM-authenticated user can submit the completed feedback from `/admin/role-play-feedback`.
-- The evaluated agent receives one email with all six scenarios and the final debrief.
+- A CRM-authenticated user can submit completed feedback from `/admin/role-play-feedback`.
+- Group A submissions can include only scenarios 1/2/3.
+- Group B submissions can include only scenarios 4/5/6.
+- The evaluated agent can receive one email after each scenario.
+- The evaluated agent can receive a group summary email for the three scenarios in the user's group.
 - The frontend receives `success: true` and `emailSent: true` only after Resend accepts the email.
 - If Resend/template/email validation fails, the frontend receives a clear failure response and shows the error.

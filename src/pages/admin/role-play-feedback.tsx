@@ -1,5 +1,6 @@
 import { useAuth } from "@/context/AuthContext";
 import {
+  RolePlayFeedbackGroup,
   RolePlayFeedbackPayload,
   RolePlayFeedbackStatus,
   RolePlayParticipantRole,
@@ -23,6 +24,7 @@ type ScenarioDefinition = {
   id: string;
   title: string;
   focus: string;
+  group: RolePlayFeedbackGroup;
   defaultRole: RolePlayParticipantRole;
   checkpoints: CheckpointDefinition[];
 };
@@ -51,6 +53,7 @@ const SCENARIOS: ScenarioDefinition[] = [
     id: "scenario-1",
     title: "Scenariul 1",
     focus: "Calificare, legitimitate si pret",
+    group: "A",
     defaultRole: "agent",
     checkpoints: [
       {
@@ -79,6 +82,7 @@ const SCENARIOS: ScenarioDefinition[] = [
     id: "scenario-2",
     title: "Scenariul 2",
     focus: "Tari multiple si obiectie de pret",
+    group: "A",
     defaultRole: "agent",
     checkpoints: [
       {
@@ -103,6 +107,7 @@ const SCENARIOS: ScenarioDefinition[] = [
     id: "scenario-3",
     title: "Scenariul 3",
     focus: "Munca la negru si perioade relevante",
+    group: "A",
     defaultRole: "agent",
     checkpoints: [
       {
@@ -123,6 +128,7 @@ const SCENARIOS: ScenarioDefinition[] = [
     id: "scenario-4",
     title: "Scenariul 4",
     focus: "Valoare serviciu, cadru legal si callback",
+    group: "B",
     defaultRole: "client",
     checkpoints: [
       {
@@ -143,6 +149,7 @@ const SCENARIOS: ScenarioDefinition[] = [
     id: "scenario-5",
     title: "Scenariul 5",
     focus: "Citire puncte si confirmare explicita",
+    group: "B",
     defaultRole: "client",
     checkpoints: [
       {
@@ -163,6 +170,7 @@ const SCENARIOS: ScenarioDefinition[] = [
     id: "scenario-6",
     title: "Scenariul 6",
     focus: "Confuzie Adrian Defta si carnet de munca pierdut",
+    group: "B",
     defaultRole: "client",
     checkpoints: [
       {
@@ -197,6 +205,11 @@ const ROLE_OPTIONS: Array<{ value: RolePlayParticipantRole; label: string }> = [
   { value: "observer", label: "Observator" },
 ];
 
+const GROUP_OPTIONS: Array<{ value: RolePlayFeedbackGroup; label: string; description: string }> = [
+  { value: "A", label: "Tabara A", description: "Scenariile 1, 2, 3" },
+  { value: "B", label: "Tabara B", description: "Scenariile 4, 5, 6" },
+];
+
 const STATUS_LABELS: Record<RolePlayFeedbackStatus, string> = {
   yes: "Da",
   partial: "Partial",
@@ -212,11 +225,16 @@ export default function RolePlayFeedbackPage() {
   const [reviewerName, setReviewerName] = useState("");
   const [reviewerEmail, setReviewerEmail] = useState("");
   const [sessionDate, setSessionDate] = useState("");
+  const [feedbackGroup, setFeedbackGroup] = useState<RolePlayFeedbackGroup>("A");
   const [scenarioStates, setScenarioStates] = useState(createInitialScenarioStates);
   const [strengths, setStrengths] = useState("");
   const [improvements, setImprovements] = useState("");
   const [overallNotes, setOverallNotes] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendingScenarioId, setSendingScenarioId] = useState("");
+  const [scenarioMessages, setScenarioMessages] = useState<
+    Record<string, { status: ActionStatus; message: string }>
+  >({});
   const [copyMessage, setCopyMessage] = useState("");
   const [submitStatus, setSubmitStatus] = useState<ActionStatus>("");
   const [submitMessage, setSubmitMessage] = useState("");
@@ -231,6 +249,18 @@ export default function RolePlayFeedbackPage() {
   }, []);
 
   useEffect(() => {
+    if (!router.isReady) {
+      return;
+    }
+
+    const rawGroup = readQueryValue(router.query.group) || readQueryValue(router.query.tabara);
+    const normalizedGroup = rawGroup.toUpperCase();
+    if (normalizedGroup === "A" || normalizedGroup === "B") {
+      setFeedbackGroup(normalizedGroup);
+    }
+  }, [router.isReady, router.query.group, router.query.tabara]);
+
+  useEffect(() => {
     if (authStatus !== "anonymous" || !router.isReady) {
       return;
     }
@@ -238,10 +268,19 @@ export default function RolePlayFeedbackPage() {
     router.replace(`/login?next=${encodeURIComponent(PAGE_PATH)}`);
   }, [authStatus, router]);
 
-  const summary = useMemo(() => calculateSummary(scenarioStates), [scenarioStates]);
+  const activeScenarios = useMemo(
+    () => SCENARIOS.filter((scenario) => scenario.group === feedbackGroup),
+    [feedbackGroup],
+  );
+  const summary = useMemo(
+    () => calculateSummary(scenarioStates, activeScenarios),
+    [activeScenarios, scenarioStates],
+  );
   const summaryText = useMemo(
     () =>
       buildSummaryText({
+        feedbackGroup,
+        scenarios: activeScenarios,
         agentName,
         agentEmail,
         reviewerName,
@@ -254,8 +293,10 @@ export default function RolePlayFeedbackPage() {
         overallNotes,
       }),
     [
+      activeScenarios,
       agentName,
       agentEmail,
+      feedbackGroup,
       reviewerName,
       reviewerEmail,
       sessionDate,
@@ -309,6 +350,14 @@ export default function RolePlayFeedbackPage() {
     }));
   }
 
+  function updateFeedbackGroup(group: RolePlayFeedbackGroup) {
+    setFeedbackGroup(group);
+    setSubmitStatus("");
+    setSubmitMessage("");
+    setCopyMessage("");
+    setScenarioMessages({});
+  }
+
   async function handleCopySummary() {
     setCopyMessage("");
     try {
@@ -329,6 +378,7 @@ export default function RolePlayFeedbackPage() {
       reviewerName,
       sessionDate,
       scenarioStates,
+      scenarios: activeScenarios,
     });
 
     if (validationError) {
@@ -346,12 +396,14 @@ export default function RolePlayFeedbackPage() {
     const browserContext = getBrowserContext();
     const payload: RolePlayFeedbackPayload = {
       source: "pension-role-play-feedback",
+      feedbackGroup,
+      emailScope: "group",
       agentName: agentName.trim(),
       agentEmail: agentEmail.trim(),
       reviewerName: reviewerName.trim(),
       reviewerEmail: reviewerEmail.trim() || user?.email || undefined,
       sessionDate,
-      scenarios: buildScenarioPayload(scenarioStates),
+      scenarios: buildScenarioPayload(scenarioStates, activeScenarios),
       summary,
       summaryText,
       strengths: strengths.trim() || undefined,
@@ -377,6 +429,98 @@ export default function RolePlayFeedbackPage() {
     }
   }
 
+  async function handleSendScenarioFeedback(scenario: ScenarioDefinition) {
+    setScenarioMessages((current) => ({
+      ...current,
+      [scenario.id]: { status: "", message: "" },
+    }));
+
+    const validationError = validateScenarioFeedbackForm({
+      agentName,
+      agentEmail,
+      reviewerName,
+      sessionDate,
+      scenario,
+      scenarioState: scenarioStates[scenario.id],
+    });
+
+    if (validationError) {
+      setScenarioMessages((current) => ({
+        ...current,
+        [scenario.id]: { status: "error", message: validationError },
+      }));
+      return;
+    }
+
+    if (!token || !isCrm) {
+      setScenarioMessages((current) => ({
+        ...current,
+        [scenario.id]: {
+          status: "error",
+          message: "Autentificare CRM necesara pentru trimiterea feedback-ului.",
+        },
+      }));
+      return;
+    }
+
+    const scenarioSummary = calculateSummary(scenarioStates, [scenario]);
+    const scenarioSummaryText = buildSummaryText({
+      feedbackGroup,
+      scenarios: [scenario],
+      agentName,
+      agentEmail,
+      reviewerName,
+      reviewerEmail,
+      sessionDate,
+      scenarioStates,
+      summary: scenarioSummary,
+      strengths: "",
+      improvements: "",
+      overallNotes: "",
+    });
+
+    const payload: RolePlayFeedbackPayload = {
+      source: "pension-role-play-feedback",
+      feedbackGroup,
+      emailScope: "scenario",
+      scenarioId: scenario.id,
+      agentName: agentName.trim(),
+      agentEmail: agentEmail.trim(),
+      reviewerName: reviewerName.trim(),
+      reviewerEmail: reviewerEmail.trim() || user?.email || undefined,
+      sessionDate,
+      scenarios: buildScenarioPayload(scenarioStates, [scenario]),
+      summary: scenarioSummary,
+      summaryText: scenarioSummaryText,
+      ...getBrowserContext(),
+    };
+
+    setSendingScenarioId(scenario.id);
+    try {
+      const result = await sendRolePlayFeedbackEmail(token, payload);
+      setScenarioMessages((current) => ({
+        ...current,
+        [scenario.id]: {
+          status: "success",
+          message: result.message || `${scenario.title} a fost trimis pe email.`,
+        },
+      }));
+    } catch (error) {
+      setScenarioMessages((current) => ({
+        ...current,
+        [scenario.id]: {
+          status: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : `${scenario.title} nu a putut fi trimis pe email.`,
+        },
+      }));
+    } finally {
+      setSendingScenarioId("");
+    }
+  }
+
   function handleReset() {
     if (!window.confirm("Stergi feedback-ul introdus pe pagina?")) {
       return;
@@ -389,6 +533,7 @@ export default function RolePlayFeedbackPage() {
     setSubmitStatus("");
     setSubmitMessage("");
     setCopyMessage("");
+    setScenarioMessages({});
   }
 
   if (authStatus === "loading" || authStatus === "anonymous") {
@@ -455,7 +600,7 @@ export default function RolePlayFeedbackPage() {
                 Role play pensii
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Completeaza cele 6 scenarii dupa runda. La final, feedback-ul se trimite pe email agentului evaluat.
+                Selecteaza tabara, completeaza scenariile permise si trimite feedback pe email dupa fiecare scenariu.
               </p>
             </section>
 
@@ -494,20 +639,24 @@ export default function RolePlayFeedbackPage() {
                   value={sessionDate}
                   onChange={setSessionDate}
                 />
+                <GroupSelector value={feedbackGroup} onChange={updateFeedbackGroup} />
               </div>
             </section>
 
             <section className="space-y-4">
-              {SCENARIOS.map((scenario) => (
+              {activeScenarios.map((scenario) => (
                 <ScenarioCard
                   key={scenario.id}
                   scenario={scenario}
                   state={scenarioStates[scenario.id]}
+                  sending={sendingScenarioId === scenario.id}
+                  message={scenarioMessages[scenario.id]}
                   onRoleChange={(role) => updateScenarioRole(scenario.id, role)}
                   onCheckpointChange={(checkpointId, value) =>
                     updateCheckpoint(scenario.id, checkpointId, value)
                   }
                   onNotesChange={(notes) => updateScenarioNotes(scenario.id, notes)}
+                  onSend={() => handleSendScenarioFeedback(scenario)}
                 />
               ))}
             </section>
@@ -542,6 +691,9 @@ export default function RolePlayFeedbackPage() {
               <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
                 Sumar live
               </p>
+              <p className="mt-2 inline-flex rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">
+                Tabara {feedbackGroup}: {formatScenarioRange(activeScenarios)}
+              </p>
               <h2 className="mt-2 text-3xl font-extrabold">{summary.scorePercent}%</h2>
               <p className="mt-1 text-sm text-slate-600">
                 {summary.completedItems}/{summary.totalItems} puncte completate
@@ -564,9 +716,9 @@ export default function RolePlayFeedbackPage() {
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-extrabold">Trimite la final</h2>
+              <h2 className="text-lg font-extrabold">Trimite grupa</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Emailul se trimite catre agentul evaluat si include fiecare scenariu, raspunsurile si notele.
+                Emailul de grup include doar scenariile din tabara {feedbackGroup}. Pentru feedback imediat, foloseste butonul de pe fiecare scenariu.
               </p>
               <div className="mt-4 flex flex-col gap-3">
                 <button
@@ -575,7 +727,7 @@ export default function RolePlayFeedbackPage() {
                   disabled={sending}
                   className="inline-flex w-full items-center justify-center rounded-md bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
-                  {sending ? "Trimit feedback..." : "Trimite feedback pe email"}
+                  {sending ? "Trimit feedback..." : `Trimite tabara ${feedbackGroup} pe email`}
                 </button>
                 <button
                   type="button"
@@ -616,15 +768,21 @@ export default function RolePlayFeedbackPage() {
 function ScenarioCard({
   scenario,
   state,
+  sending,
+  message,
   onRoleChange,
   onCheckpointChange,
   onNotesChange,
+  onSend,
 }: {
   scenario: ScenarioDefinition;
   state: ScenarioState;
+  sending: boolean;
+  message?: { status: ActionStatus; message: string };
   onRoleChange: (role: RolePlayParticipantRole) => void;
   onCheckpointChange: (checkpointId: string, value: RolePlayFeedbackStatus) => void;
   onNotesChange: (notes: string) => void;
+  onSend: () => void;
 }) {
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
@@ -671,6 +829,22 @@ function ScenarioCard({
         placeholder="Noteaza exemple scurte din runda."
         className="mt-4"
       />
+      <div className="mt-4 flex flex-col gap-3 border-t border-slate-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-semibold text-slate-600">
+          Trimite feedback-ul pentru acest scenariu imediat dupa runda.
+        </p>
+        <button
+          type="button"
+          onClick={onSend}
+          disabled={sending}
+          className="inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        >
+          {sending ? "Trimit..." : `Trimite ${scenario.title}`}
+        </button>
+      </div>
+      {message?.message ? (
+        <ActionMessage status={message.status}>{message.message}</ActionMessage>
+      ) : null}
     </article>
   );
 }
@@ -701,6 +875,38 @@ function CheckpointRow({
         ))}
       </div>
     </div>
+  );
+}
+
+function GroupSelector({
+  value,
+  onChange,
+}: {
+  value: RolePlayFeedbackGroup;
+  onChange: (value: RolePlayFeedbackGroup) => void;
+}) {
+  return (
+    <fieldset className="block md:col-span-2">
+      <legend className="text-sm font-semibold text-slate-700">Tabara evaluator</legend>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">
+        {GROUP_OPTIONS.map((option) => (
+          <button
+            key={option.value}
+            type="button"
+            aria-pressed={value === option.value}
+            onClick={() => onChange(option.value)}
+            className={`rounded-md border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-emerald-100 ${
+              value === option.value
+                ? "border-emerald-300 bg-emerald-50 text-emerald-900"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+            }`}
+          >
+            <span className="block text-sm font-extrabold">{option.label}</span>
+            <span className="mt-1 block text-xs font-semibold">{option.description}</span>
+          </button>
+        ))}
+      </div>
+    </fieldset>
   );
 }
 
@@ -843,7 +1049,10 @@ function createScenarioState(scenario: ScenarioDefinition): ScenarioState {
   };
 }
 
-function calculateSummary(states: Record<string, ScenarioState>): SummaryCounts {
+function calculateSummary(
+  states: Record<string, ScenarioState>,
+  scenarios: ScenarioDefinition[],
+): SummaryCounts {
   const counts: SummaryCounts = {
     totalItems: 0,
     completedItems: 0,
@@ -855,7 +1064,7 @@ function calculateSummary(states: Record<string, ScenarioState>): SummaryCounts 
     scorePercent: 0,
   };
 
-  SCENARIOS.forEach((scenario) => {
+  scenarios.forEach((scenario) => {
     const state = states[scenario.id];
     scenario.checkpoints.forEach((checkpoint) => {
       counts.totalItems += 1;
@@ -893,12 +1102,14 @@ function validateFeedbackForm({
   reviewerName,
   sessionDate,
   scenarioStates,
+  scenarios,
 }: {
   agentName: string;
   agentEmail: string;
   reviewerName: string;
   sessionDate: string;
   scenarioStates: Record<string, ScenarioState>;
+  scenarios: ScenarioDefinition[];
 }) {
   if (!agentName.trim()) {
     return "Completeaza numele agentului evaluat.";
@@ -916,7 +1127,7 @@ function validateFeedbackForm({
     return "Completeaza data sesiunii.";
   }
 
-  const missingCount = SCENARIOS.reduce((count, scenario) => {
+  const missingCount = scenarios.reduce((count, scenario) => {
     const state = scenarioStates[scenario.id];
     return (
       count +
@@ -931,13 +1142,59 @@ function validateFeedbackForm({
   return "";
 }
 
-function buildScenarioPayload(states: Record<string, ScenarioState>) {
-  return SCENARIOS.map((scenario) => {
+function validateScenarioFeedbackForm({
+  agentName,
+  agentEmail,
+  reviewerName,
+  sessionDate,
+  scenario,
+  scenarioState,
+}: {
+  agentName: string;
+  agentEmail: string;
+  reviewerName: string;
+  sessionDate: string;
+  scenario: ScenarioDefinition;
+  scenarioState: ScenarioState;
+}) {
+  if (!agentName.trim()) {
+    return "Completeaza numele agentului evaluat.";
+  }
+
+  if (!isValidEmail(agentEmail)) {
+    return "Completeaza un email valid pentru agent.";
+  }
+
+  if (!reviewerName.trim()) {
+    return "Completeaza numele evaluatorului.";
+  }
+
+  if (!sessionDate) {
+    return "Completeaza data sesiunii.";
+  }
+
+  const missingCount = scenario.checkpoints.filter(
+    (checkpoint) => !scenarioState?.checkpoints[checkpoint.id],
+  ).length;
+
+  if (missingCount > 0) {
+    return `Completeaza toate punctele din ${scenario.title} inainte de trimitere. Lipsesc ${missingCount} raspunsuri.`;
+  }
+
+  return "";
+}
+
+function buildScenarioPayload(
+  states: Record<string, ScenarioState>,
+  scenarios: ScenarioDefinition[],
+) {
+  return scenarios.map((scenario) => {
     const state = states[scenario.id];
 
     return {
       id: scenario.id,
       title: `${scenario.title} - ${scenario.focus}`,
+      group: scenario.group,
       participantRole: state.participantRole,
       feedbackItems: scenario.checkpoints.map((checkpoint) => ({
         id: checkpoint.id,
@@ -950,6 +1207,8 @@ function buildScenarioPayload(states: Record<string, ScenarioState>) {
 }
 
 function buildSummaryText({
+  feedbackGroup,
+  scenarios,
   agentName,
   agentEmail,
   reviewerName,
@@ -961,6 +1220,8 @@ function buildSummaryText({
   improvements,
   overallNotes,
 }: {
+  feedbackGroup: RolePlayFeedbackGroup;
+  scenarios: ScenarioDefinition[];
   agentName: string;
   agentEmail: string;
   reviewerName: string;
@@ -975,6 +1236,7 @@ function buildSummaryText({
   const lines = [
     "Role play feedback - pensii",
     "",
+    `Tabara: ${feedbackGroup} (${formatScenarioRange(scenarios)})`,
     `Agent: ${agentName.trim() || "-"}`,
     `Email agent: ${agentEmail.trim() || "-"}`,
     `Evaluator: ${reviewerName.trim() || "-"}`,
@@ -987,7 +1249,7 @@ function buildSummaryText({
     "",
   ];
 
-  SCENARIOS.forEach((scenario) => {
+  scenarios.forEach((scenario) => {
     const state = scenarioStates[scenario.id];
     lines.push(`${scenario.title} - ${scenario.focus}`);
     lines.push(`Rol in runda: ${formatRole(state.participantRole)}`);
@@ -1062,6 +1324,18 @@ function formatRole(role: RolePlayParticipantRole) {
     default:
       return "Observator";
   }
+}
+
+function formatScenarioRange(scenarios: ScenarioDefinition[]) {
+  return scenarios.map((scenario) => scenario.title.replace("Scenariul ", "")).join("/");
+}
+
+function readQueryValue(value: string | string[] | undefined) {
+  if (Array.isArray(value)) {
+    return value[0] || "";
+  }
+
+  return value || "";
 }
 
 function isValidEmail(email: string) {
