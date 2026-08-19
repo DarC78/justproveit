@@ -1,9 +1,11 @@
 import { useAuth } from "@/context/AuthContext";
 import {
+  listRolePlayPartnerAgents,
   RolePlayFeedbackGroup,
   RolePlayFeedbackPayload,
   RolePlayFeedbackStatus,
   RolePlayParticipantRole,
+  RolePlayPartnerAgent,
   sendRolePlayFeedbackEmail,
 } from "@/lib/rolePlayFeedback";
 import Head from "next/head";
@@ -25,12 +27,11 @@ type ScenarioDefinition = {
   title: string;
   focus: string;
   group: RolePlayFeedbackGroup;
-  defaultRole: RolePlayParticipantRole;
   checkpoints: CheckpointDefinition[];
 };
 
 type ScenarioState = {
-  participantRole: RolePlayParticipantRole;
+  partnerAgentId: string;
   checkpoints: Record<string, FormFeedbackStatus>;
   notes: string;
 };
@@ -54,7 +55,6 @@ const SCENARIOS: ScenarioDefinition[] = [
     title: "Scenariul 1",
     focus: "Calificare, legitimitate si pret",
     group: "A",
-    defaultRole: "agent",
     checkpoints: [
       {
         id: "registration-number",
@@ -83,7 +83,6 @@ const SCENARIOS: ScenarioDefinition[] = [
     title: "Scenariul 2",
     focus: "Tari multiple si obiectie de pret",
     group: "A",
-    defaultRole: "agent",
     checkpoints: [
       {
         id: "countries",
@@ -108,7 +107,6 @@ const SCENARIOS: ScenarioDefinition[] = [
     title: "Scenariul 3",
     focus: "Munca la negru si perioade relevante",
     group: "A",
-    defaultRole: "agent",
     checkpoints: [
       {
         id: "black-work",
@@ -129,7 +127,6 @@ const SCENARIOS: ScenarioDefinition[] = [
     title: "Scenariul 4",
     focus: "Valoare serviciu, cadru legal si callback",
     group: "B",
-    defaultRole: "client",
     checkpoints: [
       {
         id: "custom-shoes",
@@ -150,7 +147,6 @@ const SCENARIOS: ScenarioDefinition[] = [
     title: "Scenariul 5",
     focus: "Citire puncte si confirmare explicita",
     group: "B",
-    defaultRole: "client",
     checkpoints: [
       {
         id: "four-points",
@@ -171,7 +167,6 @@ const SCENARIOS: ScenarioDefinition[] = [
     title: "Scenariul 6",
     focus: "Confuzie Adrian Defta si carnet de munca pierdut",
     group: "B",
-    defaultRole: "client",
     checkpoints: [
       {
         id: "doctor-nurse",
@@ -199,12 +194,6 @@ const STATUS_OPTIONS: Array<{
   { value: "na", label: "N/A" },
 ];
 
-const ROLE_OPTIONS: Array<{ value: RolePlayParticipantRole; label: string }> = [
-  { value: "agent", label: "Agent" },
-  { value: "client", label: "Client" },
-  { value: "observer", label: "Observator" },
-];
-
 const STATUS_LABELS: Record<RolePlayFeedbackStatus, string> = {
   yes: "Da",
   partial: "Partial",
@@ -215,23 +204,18 @@ const STATUS_LABELS: Record<RolePlayFeedbackStatus, string> = {
 export default function RolePlayFeedbackPage() {
   const router = useRouter();
   const { status: authStatus, token, user, isCrm, logout } = useAuth();
-  const [agentName, setAgentName] = useState("");
-  const [agentEmail, setAgentEmail] = useState("");
   const [reviewerName, setReviewerName] = useState("");
   const [reviewerEmail, setReviewerEmail] = useState("");
   const [sessionDate, setSessionDate] = useState("");
   const [scenarioStates, setScenarioStates] = useState(createInitialScenarioStates);
-  const [strengths, setStrengths] = useState("");
-  const [improvements, setImprovements] = useState("");
-  const [overallNotes, setOverallNotes] = useState("");
-  const [sending, setSending] = useState(false);
+  const [partnerAgents, setPartnerAgents] = useState<RolePlayPartnerAgent[]>([]);
+  const [partnerAgentsLoading, setPartnerAgentsLoading] = useState(false);
+  const [partnerAgentsError, setPartnerAgentsError] = useState("");
   const [sendingScenarioId, setSendingScenarioId] = useState("");
   const [scenarioMessages, setScenarioMessages] = useState<
     Record<string, { status: ActionStatus; message: string }>
   >({});
   const [copyMessage, setCopyMessage] = useState("");
-  const [submitStatus, setSubmitStatus] = useState<ActionStatus>("");
-  const [submitMessage, setSubmitMessage] = useState("");
 
   useEffect(() => {
     setReviewerName((current) => current || user?.name || user?.email || "");
@@ -252,59 +236,95 @@ export default function RolePlayFeedbackPage() {
 
   const feedbackGroup = useMemo(() => readRolePlayFeedbackGroup(user), [user]);
   const activeScenarios = useMemo(
-    () =>
-      feedbackGroup
-        ? SCENARIOS.filter((scenario) => scenario.group === feedbackGroup)
-        : [],
+    () => (feedbackGroup ? SCENARIOS : []),
     [feedbackGroup],
   );
+  const clientScenarios = useMemo(
+    () => activeScenarios.filter((scenario) => scenario.group === feedbackGroup),
+    [activeScenarios, feedbackGroup],
+  );
+  const partnerGroup = feedbackGroup ? getOppositeGroup(feedbackGroup) : "";
   const summary = useMemo(
-    () => calculateSummary(scenarioStates, activeScenarios),
-    [activeScenarios, scenarioStates],
+    () => calculateSummary(scenarioStates, clientScenarios),
+    [clientScenarios, scenarioStates],
   );
   const summaryText = useMemo(
     () =>
       buildSummaryText({
         feedbackGroup,
-        scenarios: activeScenarios,
-        agentName,
-        agentEmail,
+        scenarios: clientScenarios,
+        partnerAgents,
         reviewerName,
         reviewerEmail,
         sessionDate,
         scenarioStates,
         summary,
-        strengths,
-        improvements,
-        overallNotes,
       }),
     [
-      activeScenarios,
-      agentName,
-      agentEmail,
+      clientScenarios,
       feedbackGroup,
+      partnerAgents,
       reviewerName,
       reviewerEmail,
       sessionDate,
       scenarioStates,
       summary,
-      strengths,
-      improvements,
-      overallNotes,
     ],
   );
+
+  useEffect(() => {
+    if (!token || !isCrm || !partnerGroup || clientScenarios.length === 0) {
+      setPartnerAgents([]);
+      setPartnerAgentsError("");
+      setPartnerAgentsLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    const authToken = token;
+    const requestedPartnerGroup: RolePlayFeedbackGroup = partnerGroup;
+
+    async function loadPartnerAgents() {
+      setPartnerAgentsLoading(true);
+      setPartnerAgentsError("");
+
+      try {
+        const agents = await listRolePlayPartnerAgents(authToken, requestedPartnerGroup);
+        if (!cancelled) {
+          setPartnerAgents(agents);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setPartnerAgents([]);
+          setPartnerAgentsError(
+            error instanceof Error ? error.message : "Nu am putut incarca agentii parteneri.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setPartnerAgentsLoading(false);
+        }
+      }
+    }
+
+    loadPartnerAgents();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [clientScenarios.length, isCrm, partnerGroup, token]);
 
   async function handleLogout() {
     await logout();
     await router.push("/login");
   }
 
-  function updateScenarioRole(scenarioId: string, participantRole: RolePlayParticipantRole) {
+  function updateScenarioPartnerAgent(scenarioId: string, partnerAgentId: string) {
     setScenarioStates((current) => ({
       ...current,
       [scenarioId]: {
         ...current[scenarioId],
-        participantRole,
+        partnerAgentId,
       },
     }));
   }
@@ -346,86 +366,21 @@ export default function RolePlayFeedbackPage() {
     }
   }
 
-  async function handleSendFeedback() {
-    setSubmitStatus("");
-    setSubmitMessage("");
-
-    const validationError = validateFeedbackForm({
-      feedbackGroup,
-      agentName,
-      agentEmail,
-      reviewerName,
-      sessionDate,
-      scenarioStates,
-      scenarios: activeScenarios,
-    });
-
-    if (validationError) {
-      setSubmitStatus("error");
-      setSubmitMessage(validationError);
-      return;
-    }
-
-    if (!feedbackGroup) {
-      return;
-    }
-
-    if (!token || !isCrm) {
-      setSubmitStatus("error");
-      setSubmitMessage("Autentificare CRM necesara pentru trimiterea feedback-ului.");
-      return;
-    }
-
-    const browserContext = getBrowserContext();
-    const payload: RolePlayFeedbackPayload = {
-      source: "pension-role-play-feedback",
-      feedbackGroup,
-      emailScope: "group",
-      agentName: agentName.trim(),
-      agentEmail: agentEmail.trim(),
-      reviewerName: reviewerName.trim(),
-      reviewerEmail: reviewerEmail.trim() || user?.email || undefined,
-      sessionDate,
-      scenarios: buildScenarioPayload(scenarioStates, activeScenarios),
-      summary,
-      summaryText,
-      strengths: strengths.trim() || undefined,
-      improvements: improvements.trim() || undefined,
-      overallNotes: overallNotes.trim() || undefined,
-      ...browserContext,
-    };
-
-    setSending(true);
-    try {
-      const result = await sendRolePlayFeedbackEmail(token, payload);
-      setSubmitStatus("success");
-      setSubmitMessage(result.message || "Feedback-ul a fost trimis pe email.");
-    } catch (error) {
-      setSubmitStatus("error");
-      setSubmitMessage(
-        error instanceof Error
-          ? error.message
-          : "Feedback-ul nu a putut fi trimis pe email.",
-      );
-    } finally {
-      setSending(false);
-    }
-  }
-
   async function handleSendScenarioFeedback(scenario: ScenarioDefinition) {
     setScenarioMessages((current) => ({
       ...current,
       [scenario.id]: { status: "", message: "" },
     }));
 
+    const scenarioState = scenarioStates[scenario.id];
+    const partnerAgent = findPartnerAgent(partnerAgents, scenarioState.partnerAgentId);
     const validationError = validateScenarioFeedbackForm({
       feedbackGroup,
-      agentName,
-      agentEmail,
+      partnerAgent,
       reviewerName,
       sessionDate,
       scenario,
-      scenarioState: scenarioStates[scenario.id],
+      scenarioState,
     });
 
     if (validationError) {
@@ -437,6 +392,10 @@ export default function RolePlayFeedbackPage() {
     }
 
     if (!feedbackGroup) {
+      return;
+    }
+
+    if (!partnerAgent) {
       return;
     }
 
@@ -455,16 +414,12 @@ export default function RolePlayFeedbackPage() {
     const scenarioSummaryText = buildSummaryText({
       feedbackGroup,
       scenarios: [scenario],
-      agentName,
-      agentEmail,
+      partnerAgents,
       reviewerName,
       reviewerEmail,
       sessionDate,
       scenarioStates,
       summary: scenarioSummary,
-      strengths: "",
-      improvements: "",
-      overallNotes: "",
     });
 
     const payload: RolePlayFeedbackPayload = {
@@ -472,12 +427,14 @@ export default function RolePlayFeedbackPage() {
       feedbackGroup,
       emailScope: "scenario",
       scenarioId: scenario.id,
-      agentName: agentName.trim(),
-      agentEmail: agentEmail.trim(),
+      partnerAgentId: partnerAgent.id,
+      partnerAgentGroup: partnerAgent.rolePlayFeedbackGroup,
+      agentName: partnerAgent.name,
+      agentEmail: partnerAgent.email,
       reviewerName: reviewerName.trim(),
       reviewerEmail: reviewerEmail.trim() || user?.email || undefined,
       sessionDate,
-      scenarios: buildScenarioPayload(scenarioStates, [scenario]),
+      scenarios: buildScenarioPayload(scenarioStates, [scenario], partnerAgents, feedbackGroup),
       summary: scenarioSummary,
       summaryText: scenarioSummaryText,
       ...getBrowserContext(),
@@ -515,11 +472,6 @@ export default function RolePlayFeedbackPage() {
     }
 
     setScenarioStates(createInitialScenarioStates());
-    setStrengths("");
-    setImprovements("");
-    setOverallNotes("");
-    setSubmitStatus("");
-    setSubmitMessage("");
     setCopyMessage("");
     setScenarioMessages({});
   }
@@ -588,26 +540,13 @@ export default function RolePlayFeedbackPage() {
                 Role play pensii
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Tabara este citita automat din profilul CRM. Completeaza scenariile permise si trimite feedback pe email dupa fiecare scenariu.
+                Tabara este citita automat din profilul CRM. Cand esti client, alegi agentul partener si trimiti feedback dupa scenariul respectiv.
               </p>
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-extrabold">Date sesiune</h2>
               <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <TextInput
-                  label="Agent evaluat"
-                  value={agentName}
-                  onChange={setAgentName}
-                  placeholder="Nume agent"
-                />
-                <TextInput
-                  label="Email agent"
-                  type="email"
-                  value={agentEmail}
-                  onChange={setAgentEmail}
-                  placeholder="agent@example.com"
-                />
                 <TextInput
                   label="Evaluator"
                   value={reviewerName}
@@ -637,10 +576,16 @@ export default function RolePlayFeedbackPage() {
                   <ScenarioCard
                     key={scenario.id}
                     scenario={scenario}
+                    userRole={getScenarioRoleForGroup(scenario, feedbackGroup)}
                     state={scenarioStates[scenario.id]}
+                    partnerAgents={partnerAgents}
+                    partnerAgentsLoading={partnerAgentsLoading}
+                    partnerAgentsError={partnerAgentsError}
                     sending={sendingScenarioId === scenario.id}
                     message={scenarioMessages[scenario.id]}
-                    onRoleChange={(role) => updateScenarioRole(scenario.id, role)}
+                    onPartnerAgentChange={(partnerAgentId) =>
+                      updateScenarioPartnerAgent(scenario.id, partnerAgentId)
+                    }
                     onCheckpointChange={(checkpointId, value) =>
                       updateCheckpoint(scenario.id, checkpointId, value)
                     }
@@ -661,27 +606,10 @@ export default function RolePlayFeedbackPage() {
             )}
 
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-extrabold">Debrief final</h2>
-              <div className="mt-4 grid gap-4">
-                <TextareaInput
-                  label="Ce a mers bine"
-                  value={strengths}
-                  onChange={setStrengths}
-                  placeholder="Ex: a ramas calm, a pus intrebarile in ordine, a explicat pretul clar..."
-                />
-                <TextareaInput
-                  label="Ce trebuie imbunatatit"
-                  value={improvements}
-                  onChange={setImprovements}
-                  placeholder="Ex: sa foloseasca cifrele exacte, sa nu promita rezultat cert..."
-                />
-                <TextareaInput
-                  label="Observatii generale"
-                  value={overallNotes}
-                  onChange={setOverallNotes}
-                  placeholder="Note suplimentare pentru agent."
-                />
-              </div>
+              <h2 className="text-lg font-extrabold">Regula de trimitere</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Feedback-ul pe email se trimite doar din scenariile in care esti client. Scenariile in care esti agent sunt afisate doar ca reper pentru rol.
+              </p>
             </section>
           </div>
 
@@ -692,7 +620,7 @@ export default function RolePlayFeedbackPage() {
               </p>
               <p className="mt-2 inline-flex rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">
                 {feedbackGroup
-                  ? `Tabara ${feedbackGroup}: ${formatScenarioRange(activeScenarios)}`
+                  ? `Feedback tabara ${feedbackGroup}: ${formatScenarioRange(clientScenarios)}`
                   : "Tabara nesetata"}
               </p>
               <h2 className="mt-2 text-3xl font-extrabold">{summary.scorePercent}%</h2>
@@ -702,6 +630,10 @@ export default function RolePlayFeedbackPage() {
               {!feedbackGroup ? (
                 <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
                   Tabara A/B trebuie setata in profilul CRM.
+                </p>
+              ) : clientScenarios.length === 0 ? (
+                <p className="mt-3 rounded-md border border-slate-200 bg-slate-100 px-3 py-2 text-sm font-semibold text-slate-700">
+                  In aceasta tabara esti agent pentru scenariile afisate. Nu ai feedback de completat aici.
                 </p>
               ) : summary.missingItems > 0 ? (
                 <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
@@ -721,25 +653,11 @@ export default function RolePlayFeedbackPage() {
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-extrabold">Trimite grupa</h2>
+              <h2 className="text-lg font-extrabold">Actiuni</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                {feedbackGroup
-                  ? `Emailul de grup include doar scenariile din tabara ${feedbackGroup}. Pentru feedback imediat, foloseste butonul de pe fiecare scenariu.`
-                  : "Emailul poate fi trimis dupa ce tabara A/B este setata in profilul CRM."}
+                Emailul de feedback se trimite din fiecare scenariu in care esti client.
               </p>
               <div className="mt-4 flex flex-col gap-3">
-                <button
-                  type="button"
-                  onClick={handleSendFeedback}
-                  disabled={sending || !feedbackGroup}
-                  className="inline-flex w-full items-center justify-center rounded-md bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-                >
-                  {sending
-                    ? "Trimit feedback..."
-                    : feedbackGroup
-                      ? `Trimite tabara ${feedbackGroup} pe email`
-                      : "Tabara nesetata"}
-                </button>
                 <button
                   type="button"
                   onClick={handleCopySummary}
@@ -755,9 +673,6 @@ export default function RolePlayFeedbackPage() {
                   Reseteaza formularul
                 </button>
               </div>
-              {submitMessage ? (
-                <ActionMessage status={submitStatus}>{submitMessage}</ActionMessage>
-              ) : null}
               {copyMessage ? (
                 <p className="mt-3 text-sm font-semibold text-slate-600">{copyMessage}</p>
               ) : null}
@@ -778,23 +693,39 @@ export default function RolePlayFeedbackPage() {
 
 function ScenarioCard({
   scenario,
+  userRole,
   state,
+  partnerAgents,
+  partnerAgentsLoading,
+  partnerAgentsError,
   sending,
   message,
-  onRoleChange,
+  onPartnerAgentChange,
   onCheckpointChange,
   onNotesChange,
   onSend,
 }: {
   scenario: ScenarioDefinition;
+  userRole: RolePlayParticipantRole;
   state: ScenarioState;
+  partnerAgents: RolePlayPartnerAgent[];
+  partnerAgentsLoading: boolean;
+  partnerAgentsError: string;
   sending: boolean;
   message?: { status: ActionStatus; message: string };
-  onRoleChange: (role: RolePlayParticipantRole) => void;
+  onPartnerAgentChange: (partnerAgentId: string) => void;
   onCheckpointChange: (checkpointId: string, value: RolePlayFeedbackStatus) => void;
   onNotesChange: (notes: string) => void;
   onSend: () => void;
 }) {
+  if (userRole === "agent") {
+    return (
+      <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <h2 className="text-lg font-extrabold">{scenario.title} - esti agent</h2>
+      </article>
+    );
+  }
+
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 md:flex-row md:items-start md:justify-between">
@@ -806,19 +737,28 @@ function ScenarioCard({
         </div>
         <label className="block min-w-44">
           <span className="text-xs font-bold uppercase tracking-wide text-slate-500">
-            Rol in runda
+            Agent partener
           </span>
           <select
-            value={state.participantRole}
-            onChange={(event) => onRoleChange(event.target.value as RolePlayParticipantRole)}
+            value={state.partnerAgentId}
+            onChange={(event) => onPartnerAgentChange(event.target.value)}
+            disabled={partnerAgentsLoading}
             className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
           >
-            {ROLE_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
+            <option value="">
+              {partnerAgentsLoading ? "Se incarca..." : "Alege agentul"}
+            </option>
+            {partnerAgents.map((agent) => (
+              <option key={agent.id || agent.email} value={agent.id}>
+                {agent.name} ({agent.email})
               </option>
             ))}
           </select>
+          {partnerAgentsError ? (
+            <span className="mt-1 block text-xs font-semibold text-red-700">
+              {partnerAgentsError}
+            </span>
+          ) : null}
         </label>
       </div>
 
@@ -850,7 +790,7 @@ function ScenarioCard({
           disabled={sending}
           className="inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
-          {sending ? "Trimit..." : `Trimite ${scenario.title}`}
+          {sending ? "Trimit..." : "Trimite feedback pe email"}
         </button>
       </div>
       {message?.message ? (
@@ -1041,7 +981,7 @@ function createInitialScenarioStates() {
 
 function createScenarioState(scenario: ScenarioDefinition): ScenarioState {
   return {
-    participantRole: scenario.defaultRole,
+    partnerAgentId: "",
     checkpoints: Object.fromEntries(
       scenario.checkpoints.map((checkpoint) => [checkpoint.id, ""]),
     ) as Record<string, FormFeedbackStatus>,
@@ -1096,70 +1036,16 @@ function calculateSummary(
   return counts;
 }
 
-function validateFeedbackForm({
-  feedbackGroup,
-  agentName,
-  agentEmail,
-  reviewerName,
-  sessionDate,
-  scenarioStates,
-  scenarios,
-}: {
-  feedbackGroup: RolePlayFeedbackGroup | "";
-  agentName: string;
-  agentEmail: string;
-  reviewerName: string;
-  sessionDate: string;
-  scenarioStates: Record<string, ScenarioState>;
-  scenarios: ScenarioDefinition[];
-}) {
-  if (!feedbackGroup) {
-    return "Tabara A/B lipseste din profilul CRM al evaluatorului.";
-  }
-
-  if (!agentName.trim()) {
-    return "Completeaza numele agentului evaluat.";
-  }
-
-  if (!isValidEmail(agentEmail)) {
-    return "Completeaza un email valid pentru agent.";
-  }
-
-  if (!reviewerName.trim()) {
-    return "Completeaza numele evaluatorului.";
-  }
-
-  if (!sessionDate) {
-    return "Completeaza data sesiunii.";
-  }
-
-  const missingCount = scenarios.reduce((count, scenario) => {
-    const state = scenarioStates[scenario.id];
-    return (
-      count +
-      scenario.checkpoints.filter((checkpoint) => !state?.checkpoints[checkpoint.id]).length
-    );
-  }, 0);
-
-  if (missingCount > 0) {
-    return `Completeaza toate punctele de feedback inainte de trimitere. Lipsesc ${missingCount} raspunsuri.`;
-  }
-
-  return "";
-}
-
 function validateScenarioFeedbackForm({
   feedbackGroup,
-  agentName,
-  agentEmail,
+  partnerAgent,
   reviewerName,
   sessionDate,
   scenario,
   scenarioState,
 }: {
   feedbackGroup: RolePlayFeedbackGroup | "";
-  agentName: string;
-  agentEmail: string;
+  partnerAgent?: RolePlayPartnerAgent;
   reviewerName: string;
   sessionDate: string;
   scenario: ScenarioDefinition;
@@ -1169,12 +1055,8 @@ function validateScenarioFeedbackForm({
     return "Tabara A/B lipseste din profilul CRM al evaluatorului.";
   }
 
-  if (!agentName.trim()) {
-    return "Completeaza numele agentului evaluat.";
-  }
-
-  if (!isValidEmail(agentEmail)) {
-    return "Completeaza un email valid pentru agent.";
+  if (scenario.group !== feedbackGroup) {
+    return "Feedback-ul pe email se trimite doar pentru scenariile in care esti client.";
   }
 
   if (!reviewerName.trim()) {
@@ -1183,6 +1065,14 @@ function validateScenarioFeedbackForm({
 
   if (!sessionDate) {
     return "Completeaza data sesiunii.";
+  }
+
+  if (!scenarioState?.partnerAgentId) {
+    return "Alege Agent partener inainte de trimitere.";
+  }
+
+  if (!partnerAgent || !isValidEmail(partnerAgent.email)) {
+    return "Agentul partener selectat nu este valid.";
   }
 
   const missingCount = scenario.checkpoints.filter(
@@ -1199,15 +1089,22 @@ function validateScenarioFeedbackForm({
 function buildScenarioPayload(
   states: Record<string, ScenarioState>,
   scenarios: ScenarioDefinition[],
+  partnerAgents: RolePlayPartnerAgent[],
+  feedbackGroup: RolePlayFeedbackGroup,
 ) {
   return scenarios.map((scenario) => {
     const state = states[scenario.id];
+    const partnerAgent = findPartnerAgent(partnerAgents, state.partnerAgentId);
 
     return {
       id: scenario.id,
       title: `${scenario.title} - ${scenario.focus}`,
       group: scenario.group,
-      participantRole: state.participantRole,
+      participantRole: getScenarioRoleForGroup(scenario, feedbackGroup),
+      partnerAgentId: partnerAgent?.id,
+      partnerAgentName: partnerAgent?.name,
+      partnerAgentEmail: partnerAgent?.email,
+      partnerAgentGroup: partnerAgent?.rolePlayFeedbackGroup,
       feedbackItems: scenario.checkpoints.map((checkpoint) => ({
         id: checkpoint.id,
         label: checkpoint.label,
@@ -1221,36 +1118,26 @@ function buildScenarioPayload(
 function buildSummaryText({
   feedbackGroup,
   scenarios,
-  agentName,
-  agentEmail,
+  partnerAgents,
   reviewerName,
   reviewerEmail,
   sessionDate,
   scenarioStates,
   summary,
-  strengths,
-  improvements,
-  overallNotes,
 }: {
   feedbackGroup: RolePlayFeedbackGroup | "";
   scenarios: ScenarioDefinition[];
-  agentName: string;
-  agentEmail: string;
+  partnerAgents: RolePlayPartnerAgent[];
   reviewerName: string;
   reviewerEmail: string;
   sessionDate: string;
   scenarioStates: Record<string, ScenarioState>;
   summary: SummaryCounts;
-  strengths: string;
-  improvements: string;
-  overallNotes: string;
 }) {
   const lines = [
     "Role play feedback - pensii",
     "",
     `Tabara: ${feedbackGroup ? `${feedbackGroup} (${formatScenarioRange(scenarios)})` : "-"}`,
-    `Agent: ${agentName.trim() || "-"}`,
-    `Email agent: ${agentEmail.trim() || "-"}`,
     `Evaluator: ${reviewerName.trim() || "-"}`,
     `Email evaluator: ${reviewerEmail.trim() || "-"}`,
     `Data sesiune: ${sessionDate || "-"}`,
@@ -1263,8 +1150,13 @@ function buildSummaryText({
 
   scenarios.forEach((scenario) => {
     const state = scenarioStates[scenario.id];
+    const partnerAgent = findPartnerAgent(partnerAgents, state.partnerAgentId);
     lines.push(`${scenario.title} - ${scenario.focus}`);
-    lines.push(`Rol in runda: ${formatRole(state.participantRole)}`);
+    lines.push(
+      `Agent partener: ${
+        partnerAgent ? `${partnerAgent.name} <${partnerAgent.email}>` : "-"
+      }`,
+    );
     scenario.checkpoints.forEach((checkpoint) => {
       const value = state.checkpoints[checkpoint.id];
       lines.push(`- ${checkpoint.label} ${value ? STATUS_LABELS[value] : "Lipsa"}`);
@@ -1274,15 +1166,6 @@ function buildSummaryText({
     }
     lines.push("");
   });
-
-  lines.push("Ce a mers bine:");
-  lines.push(strengths.trim() || "-");
-  lines.push("");
-  lines.push("Ce trebuie imbunatatit:");
-  lines.push(improvements.trim() || "-");
-  lines.push("");
-  lines.push("Observatii generale:");
-  lines.push(overallNotes.trim() || "-");
 
   return lines.join("\n");
 }
@@ -1327,19 +1210,23 @@ function statusToneClass(status: RolePlayFeedbackStatus) {
   }
 }
 
-function formatRole(role: RolePlayParticipantRole) {
-  switch (role) {
-    case "agent":
-      return "Agent";
-    case "client":
-      return "Client";
-    default:
-      return "Observator";
-  }
-}
-
 function formatScenarioRange(scenarios: ScenarioDefinition[]) {
   return scenarios.map((scenario) => scenario.title.replace("Scenariul ", "")).join("/");
+}
+
+function getOppositeGroup(group: RolePlayFeedbackGroup): RolePlayFeedbackGroup {
+  return group === "A" ? "B" : "A";
+}
+
+function getScenarioRoleForGroup(
+  scenario: ScenarioDefinition,
+  feedbackGroup: RolePlayFeedbackGroup | "",
+): RolePlayParticipantRole {
+  return scenario.group === feedbackGroup ? "client" : "agent";
+}
+
+function findPartnerAgent(agents: RolePlayPartnerAgent[], agentId: string) {
+  return agents.find((agent) => agent.id === agentId);
 }
 
 function readRolePlayFeedbackGroup(user: unknown): RolePlayFeedbackGroup | "" {

@@ -1,9 +1,16 @@
 import { fetchJson, TENANT_KEY } from "@/lib/auth";
 
 export type RolePlayFeedbackStatus = "yes" | "partial" | "no" | "na";
-export type RolePlayParticipantRole = "agent" | "client" | "observer";
+export type RolePlayParticipantRole = "agent" | "client";
 export type RolePlayFeedbackGroup = "A" | "B";
-export type RolePlayFeedbackEmailScope = "scenario" | "group";
+export type RolePlayFeedbackEmailScope = "scenario";
+
+export type RolePlayPartnerAgent = {
+  id: string;
+  name: string;
+  email: string;
+  rolePlayFeedbackGroup: RolePlayFeedbackGroup;
+};
 
 export type RolePlayFeedbackItem = {
   id: string;
@@ -16,6 +23,10 @@ export type RolePlayFeedbackScenario = {
   title: string;
   group: RolePlayFeedbackGroup;
   participantRole: RolePlayParticipantRole;
+  partnerAgentId?: string;
+  partnerAgentName?: string;
+  partnerAgentEmail?: string;
+  partnerAgentGroup?: RolePlayFeedbackGroup;
   feedbackItems: RolePlayFeedbackItem[];
   notes?: string;
 };
@@ -37,6 +48,8 @@ export type RolePlayFeedbackPayload = {
   feedbackGroup: RolePlayFeedbackGroup;
   emailScope: RolePlayFeedbackEmailScope;
   scenarioId?: string;
+  partnerAgentId?: string;
+  partnerAgentGroup?: RolePlayFeedbackGroup;
   agentName: string;
   agentEmail: string;
   reviewerName: string;
@@ -45,9 +58,6 @@ export type RolePlayFeedbackPayload = {
   scenarios: RolePlayFeedbackScenario[];
   summary: RolePlayFeedbackSummary;
   summaryText: string;
-  strengths?: string;
-  improvements?: string;
-  overallNotes?: string;
   domain: string;
   pageUrl: string;
   referrer?: string;
@@ -61,6 +71,34 @@ export type RolePlayFeedbackEmailResponse = {
   reportId?: string | null;
   emailError?: string | null;
 };
+
+export type RolePlayPartnerAgentsResponse = {
+  success?: boolean;
+  agents?: RolePlayPartnerAgent[];
+  items?: RolePlayPartnerAgent[];
+  message?: string | null;
+};
+
+export async function listRolePlayPartnerAgents(
+  token: string,
+  partnerGroup: RolePlayFeedbackGroup,
+) {
+  const params = new URLSearchParams({ group: partnerGroup });
+  const response = await fetchJson<RolePlayPartnerAgentsResponse>(
+    `/justproveit/admin/role-play-feedback/partner-agents?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  );
+
+  if (response.success === false) {
+    throw new Error(response.message || "Nu am putut incarca agentii parteneri.");
+  }
+
+  return response.agents || response.items || [];
+}
 
 export async function sendRolePlayFeedbackEmail(
   token: string,
