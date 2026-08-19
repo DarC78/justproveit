@@ -84,14 +84,26 @@ export async function listRolePlayPartnerAgents(
   partnerGroup: RolePlayFeedbackGroup,
 ) {
   const params = new URLSearchParams({ group: partnerGroup });
-  const response = await fetchJson<RolePlayPartnerAgentsResponse>(
-    `/justproveit/admin/role-play-feedback/partner-agents?${params.toString()}`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
+  let response: RolePlayPartnerAgentsResponse;
+
+  try {
+    response = await fetchJson<RolePlayPartnerAgentsResponse>(
+      `/justproveit/admin/role-play-feedback/partner-agents?${params.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-    },
-  );
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.toLowerCase().includes("not found")) {
+      throw new Error(
+        "Endpoint-ul LaunchingStack pentru Agent partener nu este publicat inca.",
+      );
+    }
+
+    throw error;
+  }
 
   if (response.success === false) {
     throw new Error(response.message || "Nu am putut incarca agentii parteneri.");
