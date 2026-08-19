@@ -8,6 +8,11 @@ export type AuthUser = {
   permissions: string[];
   createdAt?: string;
   supportAdmin?: boolean;
+  rolePlayFeedbackGroup?: "A" | "B" | null;
+  crmProfile?: {
+    rolePlayFeedbackGroup?: "A" | "B" | null;
+    [key: string]: unknown;
+  } | null;
 };
 
 export type AdminProfile = {

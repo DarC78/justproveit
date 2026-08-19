@@ -205,11 +205,6 @@ const ROLE_OPTIONS: Array<{ value: RolePlayParticipantRole; label: string }> = [
   { value: "observer", label: "Observator" },
 ];
 
-const GROUP_OPTIONS: Array<{ value: RolePlayFeedbackGroup; label: string; description: string }> = [
-  { value: "A", label: "Tabara A", description: "Scenariile 1, 2, 3" },
-  { value: "B", label: "Tabara B", description: "Scenariile 4, 5, 6" },
-];
-
 const STATUS_LABELS: Record<RolePlayFeedbackStatus, string> = {
   yes: "Da",
   partial: "Partial",
@@ -225,7 +220,6 @@ export default function RolePlayFeedbackPage() {
   const [reviewerName, setReviewerName] = useState("");
   const [reviewerEmail, setReviewerEmail] = useState("");
   const [sessionDate, setSessionDate] = useState("");
-  const [feedbackGroup, setFeedbackGroup] = useState<RolePlayFeedbackGroup>("A");
   const [scenarioStates, setScenarioStates] = useState(createInitialScenarioStates);
   const [strengths, setStrengths] = useState("");
   const [improvements, setImprovements] = useState("");
@@ -249,18 +243,6 @@ export default function RolePlayFeedbackPage() {
   }, []);
 
   useEffect(() => {
-    if (!router.isReady) {
-      return;
-    }
-
-    const rawGroup = readQueryValue(router.query.group) || readQueryValue(router.query.tabara);
-    const normalizedGroup = rawGroup.toUpperCase();
-    if (normalizedGroup === "A" || normalizedGroup === "B") {
-      setFeedbackGroup(normalizedGroup);
-    }
-  }, [router.isReady, router.query.group, router.query.tabara]);
-
-  useEffect(() => {
     if (authStatus !== "anonymous" || !router.isReady) {
       return;
     }
@@ -268,8 +250,12 @@ export default function RolePlayFeedbackPage() {
     router.replace(`/login?next=${encodeURIComponent(PAGE_PATH)}`);
   }, [authStatus, router]);
 
+  const feedbackGroup = useMemo(() => readRolePlayFeedbackGroup(user), [user]);
   const activeScenarios = useMemo(
-    () => SCENARIOS.filter((scenario) => scenario.group === feedbackGroup),
+    () =>
+      feedbackGroup
+        ? SCENARIOS.filter((scenario) => scenario.group === feedbackGroup)
+        : [],
     [feedbackGroup],
   );
   const summary = useMemo(
@@ -350,14 +336,6 @@ export default function RolePlayFeedbackPage() {
     }));
   }
 
-  function updateFeedbackGroup(group: RolePlayFeedbackGroup) {
-    setFeedbackGroup(group);
-    setSubmitStatus("");
-    setSubmitMessage("");
-    setCopyMessage("");
-    setScenarioMessages({});
-  }
-
   async function handleCopySummary() {
     setCopyMessage("");
     try {
@@ -373,6 +351,7 @@ export default function RolePlayFeedbackPage() {
     setSubmitMessage("");
 
     const validationError = validateFeedbackForm({
+      feedbackGroup,
       agentName,
       agentEmail,
       reviewerName,
@@ -384,6 +363,10 @@ export default function RolePlayFeedbackPage() {
     if (validationError) {
       setSubmitStatus("error");
       setSubmitMessage(validationError);
+      return;
+    }
+
+    if (!feedbackGroup) {
       return;
     }
 
@@ -436,6 +419,7 @@ export default function RolePlayFeedbackPage() {
     }));
 
     const validationError = validateScenarioFeedbackForm({
+      feedbackGroup,
       agentName,
       agentEmail,
       reviewerName,
@@ -449,6 +433,10 @@ export default function RolePlayFeedbackPage() {
         ...current,
         [scenario.id]: { status: "error", message: validationError },
       }));
+      return;
+    }
+
+    if (!feedbackGroup) {
       return;
     }
 
@@ -600,7 +588,7 @@ export default function RolePlayFeedbackPage() {
                 Role play pensii
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                Selecteaza tabara, completeaza scenariile permise si trimite feedback pe email dupa fiecare scenariu.
+                Tabara este citita automat din profilul CRM. Completeaza scenariile permise si trimite feedback pe email dupa fiecare scenariu.
               </p>
             </section>
 
@@ -639,27 +627,38 @@ export default function RolePlayFeedbackPage() {
                   value={sessionDate}
                   onChange={setSessionDate}
                 />
-                <GroupSelector value={feedbackGroup} onChange={updateFeedbackGroup} />
+                <ProfileGroupPanel feedbackGroup={feedbackGroup} />
               </div>
             </section>
 
-            <section className="space-y-4">
-              {activeScenarios.map((scenario) => (
-                <ScenarioCard
-                  key={scenario.id}
-                  scenario={scenario}
-                  state={scenarioStates[scenario.id]}
-                  sending={sendingScenarioId === scenario.id}
-                  message={scenarioMessages[scenario.id]}
-                  onRoleChange={(role) => updateScenarioRole(scenario.id, role)}
-                  onCheckpointChange={(checkpointId, value) =>
-                    updateCheckpoint(scenario.id, checkpointId, value)
-                  }
-                  onNotesChange={(notes) => updateScenarioNotes(scenario.id, notes)}
-                  onSend={() => handleSendScenarioFeedback(scenario)}
-                />
-              ))}
-            </section>
+            {feedbackGroup ? (
+              <section className="space-y-4">
+                {activeScenarios.map((scenario) => (
+                  <ScenarioCard
+                    key={scenario.id}
+                    scenario={scenario}
+                    state={scenarioStates[scenario.id]}
+                    sending={sendingScenarioId === scenario.id}
+                    message={scenarioMessages[scenario.id]}
+                    onRoleChange={(role) => updateScenarioRole(scenario.id, role)}
+                    onCheckpointChange={(checkpointId, value) =>
+                      updateCheckpoint(scenario.id, checkpointId, value)
+                    }
+                    onNotesChange={(notes) => updateScenarioNotes(scenario.id, notes)}
+                    onSend={() => handleSendScenarioFeedback(scenario)}
+                  />
+                ))}
+              </section>
+            ) : (
+              <section className="rounded-lg border border-amber-200 bg-amber-50 p-5 text-amber-950">
+                <h2 className="text-lg font-extrabold">Tabara lipseste din profilul CRM</h2>
+                <p className="mt-2 text-sm leading-6">
+                  Pentru acest tool, LaunchingStack trebuie sa returneze `rolePlayFeedbackGroup`
+                  cu valoarea `A` sau `B` in profilul userului CRM. Dupa actualizare, delogare/login
+                  sau refresh de sesiune va incarca scenariile corecte.
+                </p>
+              </section>
+            )}
 
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-extrabold">Debrief final</h2>
@@ -692,13 +691,19 @@ export default function RolePlayFeedbackPage() {
                 Sumar live
               </p>
               <p className="mt-2 inline-flex rounded-md border border-slate-200 bg-slate-100 px-2 py-1 text-xs font-bold text-slate-700">
-                Tabara {feedbackGroup}: {formatScenarioRange(activeScenarios)}
+                {feedbackGroup
+                  ? `Tabara ${feedbackGroup}: ${formatScenarioRange(activeScenarios)}`
+                  : "Tabara nesetata"}
               </p>
               <h2 className="mt-2 text-3xl font-extrabold">{summary.scorePercent}%</h2>
               <p className="mt-1 text-sm text-slate-600">
                 {summary.completedItems}/{summary.totalItems} puncte completate
               </p>
-              {summary.missingItems > 0 ? (
+              {!feedbackGroup ? (
+                <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
+                  Tabara A/B trebuie setata in profilul CRM.
+                </p>
+              ) : summary.missingItems > 0 ? (
                 <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">
                   Mai lipsesc {summary.missingItems} raspunsuri.
                 </p>
@@ -718,16 +723,22 @@ export default function RolePlayFeedbackPage() {
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
               <h2 className="text-lg font-extrabold">Trimite grupa</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                Emailul de grup include doar scenariile din tabara {feedbackGroup}. Pentru feedback imediat, foloseste butonul de pe fiecare scenariu.
+                {feedbackGroup
+                  ? `Emailul de grup include doar scenariile din tabara ${feedbackGroup}. Pentru feedback imediat, foloseste butonul de pe fiecare scenariu.`
+                  : "Emailul poate fi trimis dupa ce tabara A/B este setata in profilul CRM."}
               </p>
               <div className="mt-4 flex flex-col gap-3">
                 <button
                   type="button"
                   onClick={handleSendFeedback}
-                  disabled={sending}
+                  disabled={sending || !feedbackGroup}
                   className="inline-flex w-full items-center justify-center rounded-md bg-emerald-700 px-4 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
                 >
-                  {sending ? "Trimit feedback..." : `Trimite tabara ${feedbackGroup} pe email`}
+                  {sending
+                    ? "Trimit feedback..."
+                    : feedbackGroup
+                      ? `Trimite tabara ${feedbackGroup} pe email`
+                      : "Tabara nesetata"}
                 </button>
                 <button
                   type="button"
@@ -878,35 +889,24 @@ function CheckpointRow({
   );
 }
 
-function GroupSelector({
-  value,
-  onChange,
-}: {
-  value: RolePlayFeedbackGroup;
-  onChange: (value: RolePlayFeedbackGroup) => void;
-}) {
+function ProfileGroupPanel({ feedbackGroup }: { feedbackGroup: RolePlayFeedbackGroup | "" }) {
   return (
-    <fieldset className="block md:col-span-2">
-      <legend className="text-sm font-semibold text-slate-700">Tabara evaluator</legend>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        {GROUP_OPTIONS.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={value === option.value}
-            onClick={() => onChange(option.value)}
-            className={`rounded-md border px-4 py-3 text-left transition focus:outline-none focus:ring-2 focus:ring-emerald-100 ${
-              value === option.value
-                ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-            <span className="block text-sm font-extrabold">{option.label}</span>
-            <span className="mt-1 block text-xs font-semibold">{option.description}</span>
-          </button>
-        ))}
-      </div>
-    </fieldset>
+    <div
+      className={`rounded-md border px-4 py-3 md:col-span-2 ${
+        feedbackGroup
+          ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+          : "border-amber-200 bg-amber-50 text-amber-950"
+      }`}
+    >
+      <p className="text-sm font-extrabold">
+        {feedbackGroup ? `Tabara ${feedbackGroup}` : "Tabara nesetata"}
+      </p>
+      <p className="mt-1 text-xs font-semibold">
+        {feedbackGroup
+          ? `Setata automat din profilul CRM: scenariile ${feedbackGroup === "A" ? "1, 2, 3" : "4, 5, 6"}.`
+          : "Profilul CRM trebuie sa contina rolePlayFeedbackGroup cu valoarea A sau B."}
+      </p>
+    </div>
   );
 }
 
@@ -1097,6 +1097,7 @@ function calculateSummary(
 }
 
 function validateFeedbackForm({
+  feedbackGroup,
   agentName,
   agentEmail,
   reviewerName,
@@ -1104,6 +1105,7 @@ function validateFeedbackForm({
   scenarioStates,
   scenarios,
 }: {
+  feedbackGroup: RolePlayFeedbackGroup | "";
   agentName: string;
   agentEmail: string;
   reviewerName: string;
@@ -1111,6 +1113,10 @@ function validateFeedbackForm({
   scenarioStates: Record<string, ScenarioState>;
   scenarios: ScenarioDefinition[];
 }) {
+  if (!feedbackGroup) {
+    return "Tabara A/B lipseste din profilul CRM al evaluatorului.";
+  }
+
   if (!agentName.trim()) {
     return "Completeaza numele agentului evaluat.";
   }
@@ -1143,6 +1149,7 @@ function validateFeedbackForm({
 }
 
 function validateScenarioFeedbackForm({
+  feedbackGroup,
   agentName,
   agentEmail,
   reviewerName,
@@ -1150,6 +1157,7 @@ function validateScenarioFeedbackForm({
   scenario,
   scenarioState,
 }: {
+  feedbackGroup: RolePlayFeedbackGroup | "";
   agentName: string;
   agentEmail: string;
   reviewerName: string;
@@ -1157,6 +1165,10 @@ function validateScenarioFeedbackForm({
   scenario: ScenarioDefinition;
   scenarioState: ScenarioState;
 }) {
+  if (!feedbackGroup) {
+    return "Tabara A/B lipseste din profilul CRM al evaluatorului.";
+  }
+
   if (!agentName.trim()) {
     return "Completeaza numele agentului evaluat.";
   }
@@ -1220,7 +1232,7 @@ function buildSummaryText({
   improvements,
   overallNotes,
 }: {
-  feedbackGroup: RolePlayFeedbackGroup;
+  feedbackGroup: RolePlayFeedbackGroup | "";
   scenarios: ScenarioDefinition[];
   agentName: string;
   agentEmail: string;
@@ -1236,7 +1248,7 @@ function buildSummaryText({
   const lines = [
     "Role play feedback - pensii",
     "",
-    `Tabara: ${feedbackGroup} (${formatScenarioRange(scenarios)})`,
+    `Tabara: ${feedbackGroup ? `${feedbackGroup} (${formatScenarioRange(scenarios)})` : "-"}`,
     `Agent: ${agentName.trim() || "-"}`,
     `Email agent: ${agentEmail.trim() || "-"}`,
     `Evaluator: ${reviewerName.trim() || "-"}`,
@@ -1330,12 +1342,37 @@ function formatScenarioRange(scenarios: ScenarioDefinition[]) {
   return scenarios.map((scenario) => scenario.title.replace("Scenariul ", "")).join("/");
 }
 
-function readQueryValue(value: string | string[] | undefined) {
-  if (Array.isArray(value)) {
-    return value[0] || "";
+function readRolePlayFeedbackGroup(user: unknown): RolePlayFeedbackGroup | "" {
+  const candidates = [
+    readStringField(user, "rolePlayFeedbackGroup"),
+    readNestedStringField(user, "crmProfile", "rolePlayFeedbackGroup"),
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = candidate.trim().toUpperCase();
+    if (normalized === "A" || normalized === "B") {
+      return normalized;
+    }
   }
 
-  return value || "";
+  return "";
+}
+
+function readStringField(value: unknown, key: string) {
+  if (!value || typeof value !== "object" || !(key in value)) {
+    return "";
+  }
+
+  const fieldValue = (value as Record<string, unknown>)[key];
+  return typeof fieldValue === "string" ? fieldValue : "";
+}
+
+function readNestedStringField(value: unknown, parentKey: string, childKey: string) {
+  if (!value || typeof value !== "object" || !(parentKey in value)) {
+    return "";
+  }
+
+  return readStringField((value as Record<string, unknown>)[parentKey], childKey);
 }
 
 function isValidEmail(email: string) {
