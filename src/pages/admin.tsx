@@ -173,6 +173,12 @@ export default function AdminPage() {
                   >
                     Open overdue payments
                   </Link>
+                  <Link
+                    href="/admin/role-play-feedback"
+                    className="inline-flex rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100"
+                  >
+                    Role play feedback
+                  </Link>
                 </div>
               </div>
             </section>
