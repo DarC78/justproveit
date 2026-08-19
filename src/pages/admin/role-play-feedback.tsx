@@ -292,6 +292,11 @@ export default function RolePlayFeedbackPage() {
         const agents = await listRolePlayPartnerAgents(authToken, requestedPartnerGroup);
         if (!cancelled) {
           setPartnerAgents(agents);
+          setPartnerAgentsError(
+            agents.length === 0
+              ? `Nu am primit niciun agent din tabara ${requestedPartnerGroup}.`
+              : "",
+          );
         }
       } catch (error) {
         if (!cancelled) {

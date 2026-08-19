@@ -76,6 +76,10 @@ export type RolePlayPartnerAgentsResponse = {
   success?: boolean;
   agents?: RolePlayPartnerAgent[];
   items?: RolePlayPartnerAgent[];
+  data?: unknown;
+  result?: unknown;
+  rows?: unknown;
+  users?: unknown;
   message?: string | null;
 };
 
@@ -109,7 +113,96 @@ export async function listRolePlayPartnerAgents(
     throw new Error(response.message || "Nu am putut incarca agentii parteneri.");
   }
 
-  return response.agents || response.items || [];
+  return normalizePartnerAgents(response, partnerGroup);
+}
+
+function normalizePartnerAgents(
+  response: RolePlayPartnerAgentsResponse,
+  fallbackGroup: RolePlayFeedbackGroup,
+) {
+  const rawAgents =
+    firstArray(response.agents) ||
+    firstArray(response.items) ||
+    firstArray(response.rows) ||
+    firstArray(response.users) ||
+    firstArray(response.data) ||
+    firstArray(response.result) ||
+    [];
+
+  return rawAgents
+    .map((agent) => normalizePartnerAgent(agent, fallbackGroup))
+    .filter((agent): agent is RolePlayPartnerAgent => Boolean(agent));
+}
+
+function firstArray(value: unknown): unknown[] | null {
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  return (
+    firstArray(record.agents) ||
+    firstArray(record.items) ||
+    firstArray(record.rows) ||
+    firstArray(record.users) ||
+    firstArray(record.data) ||
+    firstArray(record.result)
+  );
+}
+
+function normalizePartnerAgent(
+  value: unknown,
+  fallbackGroup: RolePlayFeedbackGroup,
+): RolePlayPartnerAgent | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  const email = readString(record, "email", "agentEmail", "userEmail", "mail");
+  const id =
+    readString(record, "id", "userId", "agentId", "crmUserId") ||
+    email;
+  const name =
+    readString(record, "name", "agentName", "displayName", "fullName", "userName") ||
+    email;
+  const group = readRolePlayGroup(record) || fallbackGroup;
+
+  if (!id || !name || !email) {
+    return null;
+  }
+
+  return {
+    id,
+    name,
+    email,
+    rolePlayFeedbackGroup: group,
+  };
+}
+
+function readString(record: Record<string, unknown>, ...keys: string[]) {
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value.trim()) {
+      return value.trim();
+    }
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+  }
+
+  return "";
+}
+
+function readRolePlayGroup(record: Record<string, unknown>): RolePlayFeedbackGroup | "" {
+  const raw = readString(record, "rolePlayFeedbackGroup", "feedbackGroup", "group");
+  const normalized = raw.toUpperCase();
+  return normalized === "A" || normalized === "B" ? normalized : "";
 }
 
 export async function sendRolePlayFeedbackEmail(
