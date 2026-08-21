@@ -31,6 +31,18 @@ type SessionPayload = {
   refreshToken?: string;
 };
 
+export class ApiError extends Error {
+  status: number;
+  payload: unknown;
+
+  constructor(message: string, status: number, payload: unknown) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.VITE_API_BASE_URL ??
@@ -195,10 +207,18 @@ export async function fetchJson<T>(path: string, options: RequestInit = {}) {
   const payload = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(readApiError(payload, response.statusText));
+    throw new ApiError(readApiError(payload, response.statusText), response.status, payload);
   }
 
   return payload as T;
+}
+
+export function isInvalidOrExpiredTokenError(error: unknown) {
+  return (
+    error instanceof ApiError &&
+    error.status === 401 &&
+    /invalid|expired|token|authentication/i.test(error.message)
+  );
 }
 
 function authHeaders(token: string) {

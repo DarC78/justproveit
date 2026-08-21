@@ -1,4 +1,5 @@
 import { useAuth } from "@/context/AuthContext";
+import { getStoredSession, isInvalidOrExpiredTokenError } from "@/lib/auth";
 import { sendManualCrmEmail, sendManualCrmSms } from "@/lib/crmAdmin";
 import Head from "next/head";
 import Link from "next/link";
@@ -227,7 +228,7 @@ const initialForm: FormState = {
 
 export default function RomanianPensionCalculatorPage() {
   const router = useRouter();
-  const { status: authStatus, token, isCrm, user, logout } = useAuth();
+  const { status: authStatus, token, isCrm, user, logout, refreshSession } = useAuth();
   const [form, setForm] = useState<FormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -528,17 +529,19 @@ export default function RomanianPensionCalculatorPage() {
     setError("");
 
     try {
-      const emailResult = await sendManualCrmEmail(token, {
-        email: recipientEmail,
-        firstName: form.fullName.trim(),
-        emailtemplate: PURCHASE_EMAIL_TEMPLATE,
-        campaign: PURCHASE_EMAIL_TEMPLATE,
-        param1: form.fullName.trim(),
-        param2: form.phone.trim(),
-        param3: typeof window !== "undefined" ? window.location.href : CANONICAL,
-        param4: typeof document !== "undefined" ? document.referrer : "",
-        agent: user?.name || user?.email || "ro-pension-calculator",
-      });
+      const emailResult = await runWithPurchaseAuthRetry((accessToken) =>
+        sendManualCrmEmail(accessToken, {
+          email: recipientEmail,
+          firstName: form.fullName.trim(),
+          emailtemplate: PURCHASE_EMAIL_TEMPLATE,
+          campaign: PURCHASE_EMAIL_TEMPLATE,
+          param1: form.fullName.trim(),
+          param2: form.phone.trim(),
+          param3: typeof window !== "undefined" ? window.location.href : CANONICAL,
+          param4: typeof document !== "undefined" ? document.referrer : "",
+          agent: user?.name || user?.email || "ro-pension-calculator",
+        }),
+      );
       assertSuccessfulAction(emailResult, "emailul de cumparare nu a putut fi trimis.");
       setPurchaseEmailStatus("success");
       setPurchaseEmailMessage(formatActionSuccess(emailResult, "email cumparare trimis."));
@@ -577,11 +580,13 @@ export default function RomanianPensionCalculatorPage() {
     setError("");
 
     try {
-      const smsResult = await sendManualCrmSms(token, {
-        phone: recipientPhone,
-        message: PURCHASE_SMS_TEXT,
-        agent: user?.name || user?.email || "ro-pension-calculator",
-      });
+      const smsResult = await runWithPurchaseAuthRetry((accessToken) =>
+        sendManualCrmSms(accessToken, {
+          phone: recipientPhone,
+          message: PURCHASE_SMS_TEXT,
+          agent: user?.name || user?.email || "ro-pension-calculator",
+        }),
+      );
       assertSuccessfulAction(smsResult, "SMS-ul de cumparare nu a putut fi trimis.");
       setPurchaseSmsStatus("success");
       setPurchaseSmsMessage(formatActionSuccess(smsResult, "SMS cumparare trimis."));
@@ -596,6 +601,30 @@ export default function RomanianPensionCalculatorPage() {
       );
     } finally {
       setSendingPurchaseSms(false);
+    }
+  }
+
+  async function runWithPurchaseAuthRetry<T>(request: (accessToken: string) => Promise<T>) {
+    if (!token) {
+      throw new Error("autentificare necesara.");
+    }
+
+    try {
+      return await request(token);
+    } catch (error) {
+      if (!isInvalidOrExpiredTokenError(error)) {
+        throw error;
+      }
+
+      const refreshed = await refreshSession();
+      const refreshedToken = getStoredSession().token;
+
+      if (!refreshed || !refreshedToken) {
+        await router.push(`/login?next=${encodeURIComponent(PAGE_PATH)}`);
+        throw new Error("Sesiunea a expirat. Te rugam sa te autentifici din nou.");
+      }
+
+      return request(refreshedToken);
     }
   }
 
