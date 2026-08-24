@@ -1,9 +1,6 @@
-import { useAuth } from "@/context/AuthContext";
-import { getStoredSession, isInvalidOrExpiredTokenError } from "@/lib/auth";
-import { sendManualCrmEmail, sendManualCrmSms } from "@/lib/crmAdmin";
+import { sendPublicManualCrmEmail, sendPublicManualCrmSms } from "@/lib/crmAdmin";
 import Head from "next/head";
 import Link from "next/link";
-import { useRouter } from "next/router";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   PensionCalculatorResponse,
@@ -127,18 +124,8 @@ SPECIAL_SITUATION_OPTIONS.forEach((option) => {
 });
 type ActionStatus = "success" | "error" | "";
 const PURCHASE_EMAIL_TEMPLATE = "ro-pension-calculator-email-cumparare";
-const PURCHASE_SMS_TEXT = `Felicitari pentru ca doriti sa vedeti exact cand iesiti la pensie in Romania si in alte tari in care ati mai muncit. 
-
-Aveti aici link-ul pentru serviciul nostru: https://www.proveitweb.co.uk/saleconsultation
-
-Costul serviciului este de £50 astazi. Daca va puteti pensiona in urmatorii 2 ani, mai platiti £47 sub forma a doua rate, una luna urmatoare si una cealalta luna. Ratele sunt in valoare de £23.5 (prin urmare inca £47 in total). Dupa cum va spuneam, daca nu va puteti pensiona in urmatorii 2 ani nu mai aveti nimic de plata. 
-
-Serviciul nostru costa in:
-1 - Simulare pe cazul dvs. sa vedeti exact cand iesiti la pensie in Romania, si cand iesiti in fiecare din tarile in care ati mai muncit. 
-2 - Va raspundem la orice intrebare in cadrul simularii.
-3 - Va facem o programare cu dl. Adrian Defta pentru a va clarifica orice alte intrebari ati avea. 
-
-Mai mult, in urmatoarele 30 de zile puteti intreba orice.`;
+const PURCHASE_SMS_TEMPLATE = "ro-pension-calculator-sms-cumparare";
+const PUBLIC_PURCHASE_AGENT = "Public pension calculator";
 
 type FormState = {
   fullName: string;
@@ -227,8 +214,6 @@ const initialForm: FormState = {
 };
 
 export default function RomanianPensionCalculatorPage() {
-  const router = useRouter();
-  const { status: authStatus, token, isCrm, user, logout, refreshSession } = useAuth();
   const [form, setForm] = useState<FormState>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -288,24 +273,6 @@ export default function RomanianPensionCalculatorPage() {
       phone: phone || current.phone,
     }));
   }, []);
-
-  useEffect(() => {
-    if (authStatus !== "anonymous" || !router.isReady) {
-      return;
-    }
-
-    const next = encodeURIComponent(
-      typeof window !== "undefined"
-        ? `${window.location.pathname}${window.location.search}`
-        : PAGE_PATH,
-    );
-    router.replace(`/login?next=${next}`);
-  }, [authStatus, router]);
-
-  async function handleLogout() {
-    await logout();
-    await router.push("/login");
-  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -503,12 +470,6 @@ export default function RomanianPensionCalculatorPage() {
   }
 
   async function handleSendPurchaseEmail() {
-    if (!token) {
-      setPurchaseEmailStatus("error");
-      setPurchaseEmailMessage("Fail: autentificare necesara.");
-      return;
-    }
-
     const recipientEmail = form.email.trim();
 
     if (!recipientEmail) {
@@ -529,19 +490,18 @@ export default function RomanianPensionCalculatorPage() {
     setError("");
 
     try {
-      const emailResult = await runWithPurchaseAuthRetry((accessToken) =>
-        sendManualCrmEmail(accessToken, {
-          email: recipientEmail,
-          firstName: form.fullName.trim(),
-          emailtemplate: PURCHASE_EMAIL_TEMPLATE,
-          campaign: PURCHASE_EMAIL_TEMPLATE,
-          param1: form.fullName.trim(),
-          param2: form.phone.trim(),
-          param3: typeof window !== "undefined" ? window.location.href : CANONICAL,
-          param4: typeof document !== "undefined" ? document.referrer : "",
-          agent: user?.name || user?.email || "ro-pension-calculator",
-        }),
-      );
+      const fullName = form.fullName.trim();
+      const emailResult = await sendPublicManualCrmEmail({
+        email: recipientEmail,
+        firstName: fullName,
+        emailtemplate: PURCHASE_EMAIL_TEMPLATE,
+        campaign: PURCHASE_EMAIL_TEMPLATE,
+        param1: fullName,
+        param2: form.phone.trim(),
+        param3: CANONICAL,
+        param4: "",
+        agent: PUBLIC_PURCHASE_AGENT,
+      });
       assertSuccessfulAction(emailResult, "emailul de cumparare nu a putut fi trimis.");
       setPurchaseEmailStatus("success");
       setPurchaseEmailMessage(formatActionSuccess(emailResult, "email cumparare trimis."));
@@ -560,12 +520,6 @@ export default function RomanianPensionCalculatorPage() {
   }
 
   async function handlePurchaseSms() {
-    if (!token) {
-      setPurchaseSmsStatus("error");
-      setPurchaseSmsMessage("Fail: autentificare necesara.");
-      return;
-    }
-
     const recipientPhone = form.phone.trim();
 
     if (!recipientPhone) {
@@ -580,13 +534,11 @@ export default function RomanianPensionCalculatorPage() {
     setError("");
 
     try {
-      const smsResult = await runWithPurchaseAuthRetry((accessToken) =>
-        sendManualCrmSms(accessToken, {
-          phone: recipientPhone,
-          message: PURCHASE_SMS_TEXT,
-          agent: user?.name || user?.email || "ro-pension-calculator",
-        }),
-      );
+      const smsResult = await sendPublicManualCrmSms({
+        phone: recipientPhone,
+        template: PURCHASE_SMS_TEMPLATE,
+        agent: PUBLIC_PURCHASE_AGENT,
+      });
       assertSuccessfulAction(smsResult, "SMS-ul de cumparare nu a putut fi trimis.");
       setPurchaseSmsStatus("success");
       setPurchaseSmsMessage(formatActionSuccess(smsResult, "SMS cumparare trimis."));
@@ -602,51 +554,6 @@ export default function RomanianPensionCalculatorPage() {
     } finally {
       setSendingPurchaseSms(false);
     }
-  }
-
-  async function runWithPurchaseAuthRetry<T>(request: (accessToken: string) => Promise<T>) {
-    if (!token) {
-      throw new Error("autentificare necesara.");
-    }
-
-    try {
-      return await request(token);
-    } catch (error) {
-      if (!isInvalidOrExpiredTokenError(error)) {
-        throw error;
-      }
-
-      const refreshed = await refreshSession();
-      const refreshedToken = getStoredSession().token;
-
-      if (!refreshed || !refreshedToken) {
-        await router.push(`/login?next=${encodeURIComponent(PAGE_PATH)}`);
-        throw new Error("Sesiunea a expirat. Te rugam sa te autentifici din nou.");
-      }
-
-      return request(refreshedToken);
-    }
-  }
-
-  if (authStatus === "loading" || authStatus === "anonymous") {
-    return (
-      <AuthGateShell
-        title="Verificam accesul"
-        message="Calculatorul de simulare pensie este disponibil dupa autentificare."
-        actionHref={`/login?next=${encodeURIComponent(PAGE_PATH)}`}
-      />
-    );
-  }
-
-  if (!isCrm || !token) {
-    return (
-      <AuthGateShell
-        title="Acces CRM necesar"
-        message="Contul autentificat nu are acces CRM pentru aceasta pagina."
-        actionLabel="Inapoi la administrare"
-        actionHref="/admin"
-      />
-    );
   }
 
 
@@ -676,13 +583,6 @@ export default function RomanianPensionCalculatorPage() {
             <Link href="/ro" className="text-sm font-semibold text-emerald-700 hover:underline">
               Ghiduri RO
             </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100"
-            >
-              Sign out
-            </button>
           </div>
         </header>
 
@@ -1009,42 +909,6 @@ function TextInput({
         className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
       />
     </label>
-  );
-}
-
-function AuthGateShell({
-  actionHref = "/login",
-  actionLabel = "Autentificare",
-  message,
-  title,
-}: {
-  actionHref?: string;
-  actionLabel?: string;
-  message: string;
-  title: string;
-}) {
-  return (
-    <>
-      <Head>
-        <title>{title} | JustProveIt</title>
-        <meta name="robots" content="noindex,nofollow" />
-      </Head>
-      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-10 text-slate-950">
-        <section className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <Link href="/ro" className="text-lg font-extrabold">
-            Just<span className="text-emerald-700">ProveIt</span>
-          </Link>
-          <h1 className="mt-6 text-2xl font-extrabold">{title}</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-700">{message}</p>
-          <Link
-            href={actionHref}
-            className="mt-5 inline-flex rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800"
-          >
-            {actionLabel}
-          </Link>
-        </section>
-      </main>
-    </>
   );
 }
 

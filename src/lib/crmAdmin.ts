@@ -495,6 +495,13 @@ export type ManualCrmSmsPayload = {
   agent?: string;
 };
 
+export type PublicManualCrmSmsPayload = {
+  phone: string;
+  template: string;
+  message?: string;
+  agent?: string;
+};
+
 export type CloseCrmInboundSmsCasePayload = {
   inboundSmsId?: string | number | null;
   smsId?: string | number | null;
@@ -802,10 +809,24 @@ export function sendManualCrmEmail(token: string, payload: ManualCrmEmailPayload
   });
 }
 
+export function sendPublicManualCrmEmail(payload: ManualCrmEmailPayload) {
+  return fetchJson<{ success: boolean; result?: string; message?: string }>(`${BASE_PATH}/manual-email`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function sendManualCrmSms(token: string, payload: ManualCrmSmsPayload) {
   return fetchJson<{ success: boolean; result?: string; message?: string }>(`${BASE_PATH}/manual-sms`, {
     method: "POST",
     headers: authHeaders(token),
+    body: JSON.stringify(payload),
+  });
+}
+
+export function sendPublicManualCrmSms(payload: PublicManualCrmSmsPayload) {
+  return fetchJson<{ success: boolean; result?: string; message?: string }>(`${BASE_PATH}/manual-sms`, {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 }

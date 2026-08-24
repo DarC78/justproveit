@@ -6,14 +6,16 @@ The frontend page:
 
 `https://www.justproveit.co.uk/ro/calculator-varsta-pensionare`
 
-is now CRM-authenticated and uses existing authenticated backend CRM messaging patterns.
+is fully public. It must not require CRM login.
 
 The frontend sends:
 
 - purchase email through `POST /api/justproveit/admin/crm/manual-email`
 - purchase SMS through `POST /api/justproveit/admin/crm/manual-sms`
 
-Both requests include the logged-in user's bearer token.
+These public purchase requests do not include `Authorization: Bearer ...`.
+
+The existing simulation email flow remains public and unchanged.
 
 ## Required Backend Email Work
 
@@ -32,8 +34,8 @@ The frontend payload is:
   "param1": "Client Name",
   "param2": "07123456789",
   "param3": "https://www.justproveit.co.uk/ro/calculator-varsta-pensionare",
-  "param4": "referrer",
-  "agent": "Agent Name"
+  "param4": "",
+  "agent": "Public pension calculator"
 }
 ```
 
@@ -91,12 +93,18 @@ Payload:
 ```json
 {
   "phone": "07123456789",
-  "message": "SMS body",
-  "agent": "Agent Name"
+  "template": "ro-pension-calculator-sms-cumparare",
+  "agent": "Public pension calculator"
 }
 ```
 
-The SMS body is:
+The backend should use the approved SMS text server-side for template:
+
+`ro-pension-calculator-sms-cumparare`
+
+Existing frontend callers that still send the old exact `message` body may continue to work for backward compatibility, but the public pension calculator now sends `template`.
+
+Approved SMS body:
 
 ```text
 Felicitari pentru ca doriti sa vedeti exact cand iesiti la pensie in Romania si in alte tari in care ati mai muncit. 
@@ -123,7 +131,14 @@ If `manual-sms` already sends immediately through Twilio, no new SMS endpoint is
 
 ## Auth
 
-Both endpoints should keep existing CRM/admin bearer-token authorization. This page is not public anymore.
+The pension calculator purchase actions are public. Backend must allow these two specific template-driven sends without a bearer token:
+
+- `manual-email` with `emailtemplate: "ro-pension-calculator-email-cumparare"`
+- `manual-sms` with `template: "ro-pension-calculator-sms-cumparare"`
+
+Do not require CRM login for `/ro/calculator-varsta-pensionare`, `Email cumparare`, or `SMS Cumparare`.
+
+Other admin/manual messaging templates can keep their existing CRM authorization rules.
 
 ## Logging
 
@@ -134,16 +149,19 @@ Safe logs may include:
 - template key
 - provider message id
 - phone last 4 or last 6 digits
-- authenticated agent name/id
+- agent label
 - success/failure code
 
 ## Acceptance Criteria
 
-- A CRM-authenticated user can open `/ro/calculator-varsta-pensionare`.
-- Anonymous users are redirected to `/login?next=/ro/calculator-varsta-pensionare`.
+- Anonymous users can open `/ro/calculator-varsta-pensionare`.
+- The page does not redirect to login.
+- `Email Simulare` keeps the current public flow unchanged.
 - `Email cumparare` sends the exact email body above through Resend.
+- `Email cumparare` does not send `Authorization: Bearer ...`.
 - If the email is not sent through Resend, `manual-email` must return a non-2xx response or `success: false` with a useful `message`; it must not return a success-shaped response for missing/unknown templates or provider failures.
 - On successful Resend delivery request, include the Resend message id in `result` or another stable field so the frontend/operator can correlate the send with Resend logs.
 - `SMS Cumparare` sends the exact SMS body above through Twilio.
+- `SMS Cumparare` sends `template: "ro-pension-calculator-sms-cumparare"` and does not send `Authorization: Bearer ...`.
 - Both buttons show a visible success or failure message in the frontend.
 - Existing pension calculator calculation and simulation email behavior remain unchanged.
