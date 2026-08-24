@@ -495,11 +495,13 @@ export default function RomanianPensionCalculatorPage() {
         email: recipientEmail,
         firstName: fullName,
         emailtemplate: PURCHASE_EMAIL_TEMPLATE,
+        templateKey: PURCHASE_EMAIL_TEMPLATE,
         campaign: PURCHASE_EMAIL_TEMPLATE,
         param1: fullName,
         param2: form.phone.trim(),
         param3: CANONICAL,
         param4: "",
+        pageUrl: CANONICAL,
         agent: PUBLIC_PURCHASE_AGENT,
       });
       assertSuccessfulAction(emailResult, "emailul de cumparare nu a putut fi trimis.");
@@ -537,6 +539,8 @@ export default function RomanianPensionCalculatorPage() {
       const smsResult = await sendPublicManualCrmSms({
         phone: recipientPhone,
         template: PURCHASE_SMS_TEMPLATE,
+        templateKey: PURCHASE_SMS_TEMPLATE,
+        pageUrl: CANONICAL,
         agent: PUBLIC_PURCHASE_AGENT,
       });
       assertSuccessfulAction(smsResult, "SMS-ul de cumparare nu a putut fi trimis.");

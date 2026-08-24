@@ -14,6 +14,7 @@ The frontend sends:
 - purchase SMS through `POST /api/justproveit/admin/crm/manual-sms`
 
 These public purchase requests do not include `Authorization: Bearer ...`.
+For the public pension calculator, the frontend should call the CRM/LaunchingStack base URL (`NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL`, currently `https://launchingstack-func-dev.azurewebsites.net/api`) because that is where the public template bypass is implemented. The authenticated admin CRM manual-send functions can keep using the normal admin API base.
 
 The existing simulation email flow remains public and unchanged.
 
@@ -30,11 +31,13 @@ The frontend payload is:
   "email": "recipient@example.com",
   "firstName": "Client Name",
   "emailtemplate": "ro-pension-calculator-email-cumparare",
+  "templateKey": "ro-pension-calculator-email-cumparare",
   "campaign": "ro-pension-calculator-email-cumparare",
   "param1": "Client Name",
   "param2": "07123456789",
   "param3": "https://www.justproveit.co.uk/ro/calculator-varsta-pensionare",
   "param4": "",
+  "pageUrl": "https://www.justproveit.co.uk/ro/calculator-varsta-pensionare",
   "agent": "Public pension calculator"
 }
 ```
@@ -94,6 +97,8 @@ Payload:
 {
   "phone": "07123456789",
   "template": "ro-pension-calculator-sms-cumparare",
+  "templateKey": "ro-pension-calculator-sms-cumparare",
+  "pageUrl": "https://www.justproveit.co.uk/ro/calculator-varsta-pensionare",
   "agent": "Public pension calculator"
 }
 ```

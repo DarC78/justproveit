@@ -479,6 +479,7 @@ export type ManualCrmEmailPayload = {
   firstName?: string;
   lastName?: string;
   emailtemplate: string;
+  templateKey?: string;
   campaign?: string;
   leadid?: string;
   param1?: string;
@@ -486,6 +487,7 @@ export type ManualCrmEmailPayload = {
   param3?: string;
   param4?: string;
   param5?: string;
+  pageUrl?: string;
   agent?: string;
 };
 
@@ -498,6 +500,8 @@ export type ManualCrmSmsPayload = {
 export type PublicManualCrmSmsPayload = {
   phone: string;
   template: string;
+  templateKey?: string;
+  pageUrl?: string;
   message?: string;
   agent?: string;
 };
@@ -810,7 +814,7 @@ export function sendManualCrmEmail(token: string, payload: ManualCrmEmailPayload
 }
 
 export function sendPublicManualCrmEmail(payload: ManualCrmEmailPayload) {
-  return fetchJson<{ success: boolean; result?: string; message?: string }>(`${BASE_PATH}/manual-email`, {
+  return fetchCanonicalCrmReadJson<{ success: boolean; result?: string; message?: string }>(`${BASE_PATH}/manual-email`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -825,7 +829,7 @@ export function sendManualCrmSms(token: string, payload: ManualCrmSmsPayload) {
 }
 
 export function sendPublicManualCrmSms(payload: PublicManualCrmSmsPayload) {
-  return fetchJson<{ success: boolean; result?: string; message?: string }>(`${BASE_PATH}/manual-sms`, {
+  return fetchCanonicalCrmReadJson<{ success: boolean; result?: string; message?: string }>(`${BASE_PATH}/manual-sms`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
