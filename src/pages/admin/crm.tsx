@@ -2932,7 +2932,7 @@ function LeadIntentPanel({
   onError: (message: string) => void;
 }) {
   const [createdLastDays, setCreatedLastDays] = useState("30");
-  const [statusBucket, setStatusBucket] = useState("nocall");
+  const [statusBucket, setStatusBucket] = useState("all");
   const [intent, setIntent] = useState("all");
   const [service, setService] = useState("all");
   const [language, setLanguage] = useState("all");
@@ -3003,17 +3003,18 @@ function LeadIntentPanel({
 
   async function loadIntents() {
     setLoading(true);
+    const shouldFilterStatus = statusBucket !== "all";
     try {
       const result = await listCrmLeadIntents(token, {
         createdLastDays,
-        statusBucket,
+        statusBucket: shouldFilterStatus ? statusBucket : undefined,
         toBeContacted,
         intent,
         service,
         language,
         phone,
         lastCallAgentId,
-        closed: false,
+        closed: shouldFilterStatus ? false : undefined,
         includeMissedCalls: showMissedCalls,
         calendlyOnlyToday: showCalendlyOnlyToday && calendlyOnlyToday,
         limit: 300,
@@ -3102,6 +3103,7 @@ function LeadIntentPanel({
 
         <label>Status type</label>
         <select value={statusBucket} onChange={(event) => setStatusBucket(event.target.value)}>
+          <option value="all">All</option>
           <option value="nocall">NoCall</option>
           <option value="finished">Finished</option>
         </select>
