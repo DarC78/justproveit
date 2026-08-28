@@ -6,7 +6,7 @@ The JustProveIt admin CRM sales tab calls:
 
 `GET /justproveit/admin/crm/sales`
 
-The route is deployed in Azure Function app `apiprocess`, function `justProveItNativeCrmSales`, script file `justproveitcrmnative.js`, from the `DarC78/proveitweb-live` repository.
+The route should be deployed in Azure Function app `launchingstack-func-dev`.
 
 This frontend repository only renders the returned fields.
 

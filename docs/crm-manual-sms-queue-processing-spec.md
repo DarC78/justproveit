@@ -30,17 +30,17 @@ That function posts to:
 
 using `API_BASE_URL`, which defaults to:
 
-`https://apiprocess.azurewebsites.net/api`
+`https://launchingstack-func-dev.azurewebsites.net/api`
 
 So the live frontend sends one-off manual SMS requests to:
 
-`https://apiprocess.azurewebsites.net/api/justproveit/admin/crm/manual-sms`
+`https://launchingstack-func-dev.azurewebsites.net/api/justproveit/admin/crm/manual-sms`
 
 ## Observed Live Behavior
 
 Historical behavior before the frontend was changed:
 
-Application Insights for `apiprocess` shows successful queue API calls:
+Application Insights for the previous backend host showed successful queue API calls:
 
 - `2026-06-29T10:15:36Z` `justProveItNativeCrmSmsCampaigns` returned `201`
 - `2026-06-29T10:34:17Z` `justProveItNativeCrmSmsCampaigns` returned `201`

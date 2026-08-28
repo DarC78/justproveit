@@ -46,7 +46,7 @@ export class ApiError extends Error {
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.VITE_API_BASE_URL ??
-  "https://apiprocess.azurewebsites.net/api";
+  "https://launchingstack-func-dev.azurewebsites.net/api";
 
 export const TENANT_KEY = "justproveit";
 

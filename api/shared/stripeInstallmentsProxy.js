@@ -1,5 +1,5 @@
 const DEFAULT_ADMIN_API_BASE_URL =
-  "https://apiprocess.azurewebsites.net/api";
+  "https://launchingstack-func-dev.azurewebsites.net/api";
 
 async function handleProxy(context, req, config) {
   const authorization = getAuthorization(req);

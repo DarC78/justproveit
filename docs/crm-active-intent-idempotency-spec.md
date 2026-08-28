@@ -19,10 +19,9 @@ Required behavior:
 
 This logic belongs in the backend repository that owns JustProveIt CRM intent creation and inbound webhook/API routes.
 
-Known frontend API hosts that may need to stay aligned:
+Official frontend API host:
 
 - `https://launchingstack-func-dev.azurewebsites.net/api`
-- `https://apiprocess.azurewebsites.net/api`
 
 Question the backend/API that owns these routes and event handlers:
 

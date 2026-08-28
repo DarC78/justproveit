@@ -33,7 +33,7 @@ The `email` query parameter is optional for the frontend but recommended for bac
 Current frontend auth API base:
 
 ```text
-https://apiprocess.azurewebsites.net/api
+https://launchingstack-func-dev.azurewebsites.net/api
 ```
 
 The backend should expose:
@@ -46,8 +46,8 @@ POST /auth/reset-password
 Full production URLs:
 
 ```text
-POST https://apiprocess.azurewebsites.net/api/auth/forgot-password
-POST https://apiprocess.azurewebsites.net/api/auth/reset-password
+POST https://launchingstack-func-dev.azurewebsites.net/api/auth/forgot-password
+POST https://launchingstack-func-dev.azurewebsites.net/api/auth/reset-password
 ```
 
 ## Endpoint 1: Request Password Reset

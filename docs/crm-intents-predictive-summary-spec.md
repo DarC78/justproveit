@@ -32,11 +32,7 @@ So this backend change must be deployed to the CRM function app serving:
 
 `https://launchingstack-func-dev.azurewebsites.net/api/justproveit/admin/crm/lead-intents`
 
-There is also an `apiprocess` implementation at:
-
-`https://apiprocess.azurewebsites.net/api/justproveit/admin/crm/lead-intents`
-
-That endpoint returned the desired fields during testing, but it is not the source of truth for this CRM screen. Keep `apiprocess` aligned for parity, but do not route this frontend screen away from `launchingstack-func-dev` as the fix.
+The frontend source of truth for this CRM screen is `launchingstack-func-dev`; do not route this frontend screen away from `launchingstack-func-dev` as the fix.
 
 ## Current Problem
 
@@ -113,7 +109,7 @@ Optional aliases are tolerated by the frontend, but the preferred canonical name
 
 `finishedLeadsToAg` should count finished leads whose final/most relevant finished state means they should go to an agent or appointment/follow-up workflow.
 
-Use the business classification already implemented in `apiprocess` if available. During testing, `apiprocess` returned:
+Use the business classification implemented in LaunchingStack. During testing, the expected values were:
 
 - `SIMULATOR_PENSII_JUNE_2026_REAL_TIME`: `finishedLeadsToAg = 57`
 - `MISSED_CALLS`: `finishedLeadsToAg = 48`
@@ -122,7 +118,7 @@ Use the business classification already implemented in `apiprocess` if available
 
 `finishedNotAg` should count finished leads that are completed but should not go to an agent.
 
-During testing, `apiprocess` returned:
+During testing, the expected values were:
 
 - `SIMULATOR_PENSII_JUNE_2026_REAL_TIME`: `finishedNotAg = 0`
 - `MISSED_CALLS`: `finishedNotAg = 25`
@@ -176,7 +172,7 @@ For `SIMULATOR_PENSII_JUNE_2026_REAL_TIME`, the page should show something like:
 - An authenticated browser request from `https://www.justproveit.co.uk/admin/crm?tab=intents` to `launchingstack-func-dev` returns `200` JSON for `/justproveit/admin/crm/lead-intents` and does not show `Failed to load CRM lead intents`.
 - CORS preflight from `https://www.justproveit.co.uk` allows `GET` and the `authorization` header on `/justproveit/admin/crm/lead-intents`.
 - `launchingstack-func-dev` returns `finishedLeadsToAg`, `finishedNotAg`, and populated `topCallCodes`.
-- `apiprocess` and `launchingstack-func-dev` return equivalent `predictiveCampaignSummary` for the same filters, unless there is a documented reason they differ.
+- `launchingstack-func-dev` returns a stable `predictiveCampaignSummary` for the same filters, unless there is a documented reason results differ over time.
 - `VoiceMails` equals the count for call code `5`.
 - Call code `5` does not appear in the frontend top-five frequency list because the frontend separates it into `VoiceMails`.
 - The top-five frequency list shows the most frequent non-zero, non-5 call codes.

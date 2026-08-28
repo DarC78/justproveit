@@ -20,12 +20,11 @@ Implement this in the backend repository that owns the JustProveIt CRM API route
 
 `/justproveit/admin/crm/*`
 
-Current known CRM API hosts:
+Official CRM API host:
 
 - `https://launchingstack-func-dev.azurewebsites.net/api`
-- `https://apiprocess.azurewebsites.net/api`
 
-The frontend calls CRM read endpoints through `NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL`, currently defaulting to `launchingstack-func-dev` in this frontend repository. Deploy the new route to the backend host used by production, or keep both hosts aligned.
+The frontend calls CRM read endpoints through `NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL`, currently defaulting to `launchingstack-func-dev` in this frontend repository. Deploy the new route to `launchingstack-func-dev`.
 
 Do not implement this as a frontend-only calculation.
 

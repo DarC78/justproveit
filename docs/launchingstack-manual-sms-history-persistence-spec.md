@@ -10,9 +10,7 @@ The selected phone history is read from the canonical CRM read API:
 
 `GET /justproveit/admin/crm/activity?phone={phone}&limit=500`
 
-In the frontend, `sendManualCrmSms()` currently posts to the default API base
-(`https://apiprocess.azurewebsites.net/api` unless overridden), while
-`searchCrmActivity()` reads from LaunchingStack
+In the frontend, `sendManualCrmSms()` and `searchCrmActivity()` use LaunchingStack
 (`https://launchingstack-func-dev.azurewebsites.net/api` unless overridden).
 
 If the SMS is sent successfully but does not appear in the SMS history after a refresh,
@@ -48,7 +46,7 @@ returns the thread with `status = "answered"` or equivalent answer metadata such
   `GET /justproveit/admin/crm/activity?phone=...`
 - Inbound SMS list/read model:
   `GET /justproveit/admin/crm/inbound-sms`
-- Any sync job or shared store between `apiprocess` manual sends and LaunchingStack CRM reads
+- Any sync job or shared store between manual sends and LaunchingStack CRM reads
 
 ## Acceptance Criteria
 

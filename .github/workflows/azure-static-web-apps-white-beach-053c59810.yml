@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     env:
+      NEXT_PUBLIC_API_BASE_URL: https://launchingstack-func-dev.azurewebsites.net/api
       NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL: https://launchingstack-func-dev.azurewebsites.net/api
     steps:
       - uses: actions/checkout@v3
