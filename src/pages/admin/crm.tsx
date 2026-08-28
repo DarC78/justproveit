@@ -3014,7 +3014,7 @@ function LeadIntentPanel({
         language,
         phone,
         lastCallAgentId,
-        closed: shouldFilterStatus ? false : undefined,
+        closed: shouldFilterStatus ? false : "all",
         includeMissedCalls: showMissedCalls,
         calendlyOnlyToday: showCalendlyOnlyToday && calendlyOnlyToday,
         limit: 300,
