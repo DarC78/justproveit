@@ -521,7 +521,7 @@ export default function FreeQuickReportPage() {
                 disabled={sending}
                 className="inline-flex w-full items-center justify-center rounded-md bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400 md:w-auto"
               >
-                {sendingPhase === "faza0" ? "Trimit raport faza zero..." : "Trimite raport faza zero"}
+                {sendingPhase === "faza0" ? "Trimit Raport Gratuit..." : "Trimite Raport Gratuit"}
               </button>
               {message && messagePhase === "faza0" ? (
                 <StatusMessage status={status} message={message} />
