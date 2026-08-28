@@ -801,16 +801,16 @@ function mergeAgentOptions(
 ) {
   const byId = new Map<number, { agentId: number; agentName?: string | null }>();
   for (const option of options) {
-    const agentId = Number(option.agentId);
-    if (Number.isInteger(agentId) && agentId > 0) {
-      byId.set(agentId, { agentId, agentName: option.agentName });
+    const agentId = parseAgentId(option.agentId);
+    if (agentId) {
+      byId.set(agentId, { agentId, agentName: getReadableAgentName(option.agentName) || null });
     }
   }
 
   const unique = Array.from(byId.values()).sort((a, b) => a.agentId - b.agentId);
-  const currentValue = Number.parseInt(String(current || ""), 10);
+  const currentValue = parseAgentId(current);
 
-  if (!Number.isInteger(currentValue) || currentValue <= 0 || byId.has(currentValue)) {
+  if (!currentValue || byId.has(currentValue)) {
     return unique;
   }
 
@@ -821,14 +821,29 @@ function buildAgentNameById(options: Array<{ agentId: number; agentName?: string
   const names = new Map<number, string>();
 
   for (const option of options) {
-    const agentId = Number(option.agentId);
-    const agentName = String(option.agentName || "").trim();
-    if (Number.isInteger(agentId) && agentId > 0 && agentName) {
+    const agentId = parseAgentId(option.agentId);
+    const agentName = getReadableAgentName(option.agentName);
+    if (agentId && agentName) {
       names.set(agentId, agentName);
     }
   }
 
   return names;
+}
+
+function parseAgentId(value?: unknown) {
+  const text = String(value ?? "").trim();
+  if (!/^\d+$/.test(text)) {
+    return null;
+  }
+
+  const agentId = Number(text);
+  return Number.isSafeInteger(agentId) && agentId > 0 ? agentId : null;
+}
+
+function getReadableAgentName(value?: string | null) {
+  const name = String(value || "").trim();
+  return parseAgentId(name) ? "" : name;
 }
 
 function isCarFinanceIntent(row?: CrmLeadIntentRow | null) {
@@ -5362,17 +5377,13 @@ function getDateTimeValue(value?: string | null) {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
-function formatAgentLabel(agentId?: number | null, agentName?: string | null) {
-  const name = String(agentName || "").trim();
+function formatAgentLabel(agentId?: number | string | null, agentName?: string | null) {
+  const name = getReadableAgentName(agentName);
   if (name) {
     return name;
   }
 
-  if (agentId === undefined || agentId === null) {
-    return "";
-  }
-
-  return String(agentId);
+  return String(parseAgentId(agentId) || "");
 }
 
 function getLeadIntentTotalPreviousCalls(row: CrmLeadIntentRow) {
@@ -5390,11 +5401,12 @@ function getLeadIntentPostIntentLastAgentName(row: CrmLeadIntentRow) {
 }
 
 function formatLeadIntentPostIntentLastAgent(row: CrmLeadIntentRow, agentNameById?: Map<number, string>) {
-  const agentId = getLeadIntentPostIntentLastAgentId(row);
-  const mappedAgentName =
-    typeof agentId === "number" ? agentNameById?.get(agentId) : undefined;
-  const agentName = getLeadIntentPostIntentLastAgentName(row) || mappedAgentName || "";
-  return agentId === null ? agentName : formatAgentLabel(agentId, agentName);
+  const rawAgentName = getLeadIntentPostIntentLastAgentName(row);
+  const agentId = parseAgentId(getLeadIntentPostIntentLastAgentId(row)) || parseAgentId(rawAgentName);
+  const mappedAgentName = agentId ? agentNameById?.get(agentId) : undefined;
+  const agentName = mappedAgentName || getReadableAgentName(rawAgentName);
+
+  return agentName || String(agentId || "");
 }
 
 function getLeadIntentPostIntentLastCallTime(row: CrmLeadIntentRow) {
