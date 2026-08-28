@@ -73,16 +73,23 @@ export default function JoinClubPage() {
               <h1 className="mt-3 max-w-4xl text-4xl font-extrabold leading-tight tracking-normal md:text-6xl">
                 Clubul Aici Sunt Banii Dumneavoastra
               </h1>
-              <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-100">
-                Intră într-un program în care verificăm, pe rând, zonele unde mulți români din UK pierd bani fără să
-                știe: taxe, credit, pensii, facturi, asigurări, conturi uitate și drepturi neaccesate.
-              </p>
+              <div className="mt-5 max-w-3xl space-y-4 text-lg leading-8 text-slate-100">
+                <p>
+                  Intră într-un program în care verificam sa nu pierzi bani si iti aratam cum sa accesezi banii tai.
+                  Intalniri saptamanale in care poti intreba orice. Grup de suport whatsapp si email in care iti
+                  raspundem la orice intrebare ai avea!
+                </p>
+                <p>
+                  Apasa butonul &quot;programeaza discutie&quot; si unul din operatori te va suna sa iti spuna mai multe
+                  detalii.
+                </p>
+              </div>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <a
                   href={CALENDLY_URL}
                   className="inline-flex h-12 items-center justify-center rounded-md bg-emerald-600 px-5 text-sm font-extrabold text-white shadow-sm hover:bg-emerald-500"
                 >
-                  Programeaza discutia
+                  Programeaza discutie
                 </a>
                 <a
                   href="#verificari"
@@ -97,7 +104,7 @@ export default function JoinClubPage() {
           <section className="border-b border-slate-200 bg-white">
             <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 md:grid-cols-3">
               <Metric value="20" label="verificări financiare extinse" />
-              <Metric value="30 zile" label="întrebări și clarificări" />
+              <Metric value="90 de zile" label="întrebări și clarificări" />
               <Metric value="RO" label="explicații simple, în română" />
             </div>
           </section>
@@ -157,7 +164,7 @@ export default function JoinClubPage() {
                 href={CALENDLY_URL}
                 className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-md bg-slate-950 px-5 text-sm font-extrabold text-white hover:bg-slate-800"
               >
-                Programeaza discutia
+                Programeaza discutie
               </a>
               <a
                 href="mailto:adriandefta@proveitweb.co.uk?subject=Clubul%20Aici%20Sunt%20Banii%20Dumneavoastra"

@@ -320,7 +320,7 @@ export default function ReportResultsPage() {
                     </h3>
                     <Link
                       href={CLUB_PATH}
-                      className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-slate-950 px-4 text-center text-sm font-extrabold text-white hover:bg-slate-800"
+                      className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-emerald-700 px-4 text-center text-sm font-extrabold text-white shadow-sm hover:bg-emerald-600"
                     >
                       Hai in Clubul Aici Sunt Banii Dumneavoastra
                     </Link>
