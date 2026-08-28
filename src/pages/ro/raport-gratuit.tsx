@@ -119,7 +119,6 @@ type ContactForm = {
   fullName: string;
   email: string;
   phone: string;
-  consentVerbal: boolean;
 };
 
 type ReportPhase = "faza0" | "faza1";
@@ -142,7 +141,6 @@ const initialContact: ContactForm = {
   fullName: "",
   email: "",
   phone: "",
-  consentVerbal: false,
 };
 
 export default function FreeQuickReportPage() {
@@ -187,9 +185,9 @@ export default function FreeQuickReportPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const fullName = params.get("name") ?? params.get("fullName") ?? params.get("nume") ?? "";
-    const email = params.get("email") ?? "";
-    const phone = params.get("phone") ?? params.get("telefon") ?? params.get("tel") ?? "";
+    const fullName = getFirstQueryValue(params, ["MCC_FULLNAME", "name", "fullName", "nume"]);
+    const email = getFirstQueryValue(params, ["MCC_EMAIL", "email"]);
+    const phone = getFirstQueryValue(params, ["MCC_ANI", "phone", "telefon", "tel"]);
 
     if (!fullName && !email && !phone) {
       return;
@@ -269,12 +267,6 @@ export default function FreeQuickReportPage() {
     if (!isValidEmail(email)) {
       setStatus("error");
       setMessage("Completeaza o adresa de email valida.");
-      return null;
-    }
-
-    if (!contact.consentVerbal) {
-      setStatus("error");
-      setMessage("Bifeaza consimtamantul verbal inainte de trimiterea raportului.");
       return null;
     }
 
@@ -429,15 +421,6 @@ export default function FreeQuickReportPage() {
               <TextInput label="Nume complet" value={contact.fullName} onChange={(value) => updateContact("fullName", value)} />
               <TextInput label="Email" type="email" value={contact.email} onChange={(value) => updateContact("email", value)} />
               <TextInput label="Telefon" type="tel" value={contact.phone} onChange={(value) => updateContact("phone", value)} />
-              <label className="flex gap-3 text-sm leading-6 text-slate-700 md:col-span-3">
-                <input
-                  type="checkbox"
-                  checked={contact.consentVerbal}
-                  onChange={(event) => updateContact("consentVerbal", event.target.checked)}
-                  className="mt-1 h-4 w-4 rounded border-slate-300 text-emerald-700 focus:ring-emerald-700"
-                />
-                <span>Confirm ca am obtinut consimtamant verbal pentru trimiterea raportului pe email.</span>
-              </label>
             </fieldset>
 
             <fieldset className="space-y-4">
@@ -1141,6 +1124,17 @@ function formatFlag(flag: QuickReportDisplayFlag) {
 
 function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+}
+
+function getFirstQueryValue(params: URLSearchParams, keys: string[]) {
+  for (const key of keys) {
+    const value = params.get(key)?.trim();
+    if (value) {
+      return value;
+    }
+  }
+
+  return "";
 }
 
 function getEmailScope(phase: ReportPhase): QuickReportEmailScope {
