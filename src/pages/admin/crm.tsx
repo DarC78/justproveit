@@ -523,7 +523,10 @@ function formatLeadIntentComposition(rows: CrmLeadIntentRow[]) {
   const counts = new Map<string, number>();
 
   for (const row of rows) {
-    const serviceName = String(row.serviceDisplayName || row.serviceKey || "Unknown Service").trim();
+    const serviceName = formatLeadIntentServiceDisplay(
+      row.serviceDisplayName || row.serviceKey,
+      "Unknown Service",
+    );
     const intentName = String(row.interestType || "Unknown Intent").trim();
     const key = `${serviceName} ${intentName}`;
     counts.set(key, (counts.get(key) || 0) + 1);
@@ -635,7 +638,7 @@ function getLeadIntentSortValue(
     case "Intent":
       return row.interestType || "";
     case "Service":
-      return row.serviceDisplayName || row.serviceKey || "";
+      return formatLeadIntentServiceDisplay(row.serviceDisplayName, row.serviceKey);
     case "CRM Status":
       return row.lead?.statusOriginal || "";
     case "TotalPreviousCalls":
@@ -686,12 +689,62 @@ function mergeLanguageOptions(options: string[]) {
   return merged;
 }
 
+const MONEY_CHECK_SERVICE_KEY = "FreeMoneyCheck";
+const MONEY_CHECK_SERVICE_LABEL = "Money Check";
+const MONEY_CHECK_SERVICE_ALIASES = [MONEY_CHECK_SERVICE_KEY, MONEY_CHECK_SERVICE_LABEL, "free_money_check"];
+const MONEY_CHECK_SERVICE_OPTION: CrmLeadIntentServiceOption = {
+  serviceKey: MONEY_CHECK_SERVICE_KEY,
+  displayName: MONEY_CHECK_SERVICE_LABEL,
+};
+
 const HIDDEN_LEAD_INTENT_SERVICE_OPTIONS = ["Book Call", "Inbound SMS", "Missed Calls"];
 const DEFAULT_NEW_ASAP_SERVICE_OPTIONS: CrmLeadIntentServiceOption[] = [
   { serviceKey: "simulator pensie", displayName: "simulator pensie" },
-  { serviceKey: "FreeMoneyCheck", displayName: "FreeMoneyCheck" },
+  MONEY_CHECK_SERVICE_OPTION,
   { serviceKey: "other", displayName: "other" },
 ];
+
+function isMoneyCheckServiceValue(value?: string | null) {
+  const normalized = normalizeLeadIntentType(value);
+  return Boolean(
+    normalized &&
+      MONEY_CHECK_SERVICE_ALIASES.some((alias) => normalizeLeadIntentType(alias) === normalized),
+  );
+}
+
+function normalizeLeadIntentServiceOption(item: { serviceKey?: string | null; displayName?: string | null }) {
+  const serviceKey = String(item.serviceKey || "").trim();
+  const displayName = String(item.displayName || "").trim();
+
+  if (!serviceKey) {
+    return null;
+  }
+
+  if (isMoneyCheckServiceValue(serviceKey) || isMoneyCheckServiceValue(displayName)) {
+    return MONEY_CHECK_SERVICE_OPTION;
+  }
+
+  return { serviceKey, displayName: displayName || null };
+}
+
+function formatLeadIntentServiceDisplay(
+  value?: string | null,
+  fallback?: string | null,
+) {
+  if (isMoneyCheckServiceValue(value) || isMoneyCheckServiceValue(fallback)) {
+    return MONEY_CHECK_SERVICE_LABEL;
+  }
+
+  return String(value || fallback || "").trim();
+}
+
+function matchesServiceOption(item: { serviceKey: string; displayName?: string | null }, value: string) {
+  const normalizedValue = normalizeLeadIntentType(value);
+  return (
+    normalizeLeadIntentType(item.serviceKey) === normalizedValue ||
+    normalizeLeadIntentType(item.displayName) === normalizedValue
+  );
+}
 
 function isHiddenLeadIntentServiceValue(value?: string | null) {
   const normalized = normalizeLeadIntentType(value);
@@ -708,18 +761,38 @@ function mergeServiceOptions(
   options: Array<{ serviceKey: string; displayName?: string | null }>,
   current?: string | null,
 ) {
-  const serviceOptions = options.filter((item) => item.serviceKey && !isHiddenLeadIntentServiceOption(item));
+  const seen = new Set<string>();
+  const serviceOptions: Array<{ serviceKey: string; displayName?: string | null }> = [];
+
+  for (const item of [...options, MONEY_CHECK_SERVICE_OPTION]) {
+    const normalizedItem = normalizeLeadIntentServiceOption(item);
+    if (!normalizedItem || isHiddenLeadIntentServiceOption(normalizedItem)) {
+      continue;
+    }
+
+    const key = normalizeLeadIntentType(normalizedItem.serviceKey);
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    serviceOptions.push(normalizedItem);
+  }
+
   const currentValue = String(current || "").trim();
   if (
     !currentValue ||
     currentValue === "all" ||
     isHiddenLeadIntentServiceValue(currentValue) ||
-    serviceOptions.some((item) => item.serviceKey === currentValue)
+    serviceOptions.some((item) => matchesServiceOption(item, currentValue))
   ) {
     return serviceOptions;
   }
 
-  return [{ serviceKey: currentValue, displayName: currentValue }, ...serviceOptions];
+  return [
+    { serviceKey: currentValue, displayName: formatLeadIntentServiceDisplay(currentValue) || currentValue },
+    ...serviceOptions,
+  ];
 }
 
 function mergeAgentOptions(
@@ -778,7 +851,7 @@ function getLeadIntentServiceKey(row?: CrmLeadIntentRow | null) {
 }
 
 function getLeadIntentServiceLabel(row?: CrmLeadIntentRow | null) {
-  return String(row?.serviceDisplayName || row?.serviceKey || "n/a").trim();
+  return formatLeadIntentServiceDisplay(row?.serviceDisplayName, row?.serviceKey) || "n/a";
 }
 
 function resolveNewAsapServiceSelection(
@@ -2208,7 +2281,7 @@ function NewLeadPanel({
           onChange={(event) => setService(event.target.value as "simulator pensie" | "FreeMoneyCheck" | "other")}
         >
           <option value="simulator pensie">simulator pensie</option>
-          <option value="FreeMoneyCheck">FreeMoneyCheck</option>
+          <option value="FreeMoneyCheck">Money Check</option>
           <option value="other">other</option>
         </select>
         <button type="submit" className="orange" disabled={saving}>
@@ -3156,7 +3229,7 @@ function LeadIntentPanel({
           row.lead?.phoneNumber,
           row.lead?.email,
           row.interestType,
-          row.serviceDisplayName || row.serviceKey,
+          formatLeadIntentServiceDisplay(row.serviceDisplayName, row.serviceKey),
           row.lead?.statusOriginal,
           getLeadIntentTotalPreviousCalls(row),
           formatLeadIntentPostIntentLastAgent(row, agentNameById),
