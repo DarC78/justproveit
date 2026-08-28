@@ -316,9 +316,9 @@ export default function FreeQuickReportPage() {
           existingFaza0Answers: answers,
         },
         results: completedResults,
+        emailScope: getEmailScope(phase),
         ...(phase === "faza1"
           ? {
-              emailScope: getEmailScope(phase),
               faza1Answers: buildFaza1AnswersPayload(faza1Answers),
             }
           : {}),

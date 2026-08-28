@@ -93,6 +93,25 @@ export type SubmitQuickReportResponse = {
   message?: string;
 };
 
+export type PublicQuickReportResult = {
+  code: string;
+  title: string;
+  flag: QuickReportFlag;
+  output: string;
+};
+
+export type PublicQuickReportResultsResponse = {
+  success: boolean;
+  tenantKey?: string;
+  reportId?: string | null;
+  leadId?: string | null;
+  emailScope?: QuickReportEmailScope;
+  fullName?: string;
+  firstName?: string;
+  results?: PublicQuickReportResult[];
+  error?: string;
+};
+
 const QUICK_REPORT_API_BASE_URL =
   process.env.NEXT_PUBLIC_JPI_QUICK_REPORT_API_BASE_URL ??
   process.env.VITE_JPI_QUICK_REPORT_API_BASE_URL ??
@@ -146,7 +165,7 @@ function evaluateTaxReclaim(answers: QuickReportAnswers): QuickReportResult {
       title: "Cod fiscal (tax code) greșit",
       flag: "rosu",
       output:
-        "Ai avut mai multe joburi și nu ai recuperat taxele pe ultimii 5 ani. Este posibil să fi plătit taxe în plus; valoarea medie care poate fi recuperată este £1,250–£4,000. Recomandăm verificare directă cu HMRC.",
+        "Ai avut mai multe joburi și nu ai recuperat taxele pe ultimii 5 ani. Este posibil să fi plătit taxe în plus; valoarea uzuala care poate fi recuperată este £1,250–£4,000. Recomandăm logare in cont pe gov.uk (Government Gateway ID) si verificare.",
       rawAnswer,
     };
   }
@@ -354,6 +373,25 @@ export async function submitQuickReportFaza0(token: string, payload: SubmitQuick
   }
 
   return responsePayload as SubmitQuickReportResponse;
+}
+
+export async function fetchQuickReportPublicResults(token: string) {
+  const response = await fetch(
+    resolveQuickReportUrl(`/justproveit/quick-report/public-results?token=${encodeURIComponent(token)}`),
+  );
+  const responsePayload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(readQuickReportApiError(responsePayload, "Nu am putut incarca rezultatele raportului."));
+  }
+
+  const payload = responsePayload as PublicQuickReportResultsResponse;
+
+  if (!payload.success || !Array.isArray(payload.results)) {
+    throw new Error(payload.error || "Linkul raportului este invalid sau expirat.");
+  }
+
+  return payload;
 }
 
 function resolveQuickReportUrl(path: string) {
