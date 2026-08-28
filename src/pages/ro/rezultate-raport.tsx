@@ -26,6 +26,11 @@ type FreeCheck = {
   title: string;
 };
 
+type CheckAction = {
+  label: string;
+  href: string;
+};
+
 type ReportDetails = {
   clientName: string;
   resultsByCode: Record<string, ReportResult>;
@@ -52,6 +57,53 @@ const FREE_CHECKS: FreeCheck[] = [
   { code: "FC05", title: "Comisioane remitere bani spre România" },
   { code: "FC07", title: "Facturi de utilități" },
 ];
+
+const FREE_CHECK_ACTIONS: Record<string, CheckAction[]> = {
+  MF01: [
+    {
+      label: "Verifica tax code pe gov.uk",
+      href: "https://www.gov.uk/log-in-register-hmrc-online-services",
+    },
+  ],
+  CD01: [
+    {
+      label: "Verifica gratuit pe ClearScore",
+      href: "https://www.clearscore.com/",
+    },
+  ],
+  CD07: [
+    {
+      label: "HSBC",
+      href: "http://www.moneysavingexpert.com/redir/4b83e3d7",
+    },
+    {
+      label: "NatWest",
+      href: "http://www.moneysavingexpert.com/redir/209477a1",
+    },
+    {
+      label: "firstDirect",
+      href: "http://www.moneysavingexpert.com/redir/971055e7",
+    },
+    {
+      label: "Coop",
+      href: "http://www.moneysavingexpert.com/redir/b06f0944",
+    },
+    {
+      label: "Nationwide",
+      href: "http://www.moneysavingexpert.com/redir/cc846506",
+    },
+    {
+      label: "Starling",
+      href: "http://www.moneysavingexpert.com/redir/666bb0fa",
+    },
+  ],
+  FC07: [
+    {
+      label: "Programeaza apel gratuit de revizuire a facturilor",
+      href: "https://calendly.com/proveitweb/verificare-facturi-utilitati",
+    },
+  ],
+};
 
 const CLUB_CHECKS: FreeCheck[] = [
   { code: "MF02", title: "Marriage Allowance" },
@@ -226,6 +278,7 @@ export default function ReportResultsPage() {
             <div className="mt-6 grid gap-4 lg:grid-cols-2">
               {FREE_CHECKS.map((check) => {
                 const result = resultsByCode[check.code];
+                const actions = FREE_CHECK_ACTIONS[check.code] ?? [];
 
                 return (
                   <article key={check.code} className="rounded-lg border border-slate-200 bg-slate-50 p-5 shadow-sm">
@@ -241,6 +294,7 @@ export default function ReportResultsPage() {
                     <p className="mt-4 text-sm leading-7 text-slate-700">
                       {result?.output || "Rezultatul acestei verificări apare după completarea raportului gratuit."}
                     </p>
+                    {actions.length > 0 ? <CheckActions actions={actions} /> : null}
                   </article>
                 );
               })}
@@ -318,6 +372,24 @@ function FlagBadge({ flag }: { flag: ReportFlag }) {
     <span className={`shrink-0 rounded-md border px-2 py-1 text-xs font-extrabold uppercase ${flagToneClass(flag)}`}>
       {flag === "necompletat" ? "lipsa" : flag}
     </span>
+  );
+}
+
+function CheckActions({ actions }: { actions: CheckAction[] }) {
+  return (
+    <div className="mt-5 flex flex-wrap gap-2">
+      {actions.map((action) => (
+        <a
+          key={`${action.label}-${action.href}`}
+          href={action.href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-11 items-center justify-center rounded-md bg-emerald-700 px-4 text-center text-sm font-extrabold text-white shadow-sm hover:bg-emerald-600"
+        >
+          {action.label}
+        </a>
+      ))}
+    </div>
   );
 }
 
