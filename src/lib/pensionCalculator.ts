@@ -281,7 +281,22 @@ export async function submitPensionCalculator(payload: PensionCalculatorPayload)
       return calculatePensionLocally(payload, "endpoint-ul LS /justproveit/pension-calculator/calculate a raspuns Not Found");
     }
 
-    throw new Error(readApiError(body, response.statusText));
+    const apiError = readApiError(body, response.statusText);
+    if (response.status >= 500) {
+      return calculatePensionLocally(
+        payload,
+        `endpoint-ul LS /justproveit/pension-calculator/calculate a raspuns ${response.status}: ${apiError}`,
+      );
+    }
+
+    throw new Error(apiError);
+  }
+
+  if (!isPensionCalculatorResponse(body)) {
+    return calculatePensionLocally(
+      payload,
+      "endpoint-ul LS /justproveit/pension-calculator/calculate a returnat un raspuns incomplet",
+    );
   }
 
   return body as PensionCalculatorResponse;
@@ -1001,4 +1016,14 @@ function readApiError(payload: unknown, fallback: string) {
   }
 
   return fallback || "Cererea nu a putut fi procesata.";
+}
+
+function isPensionCalculatorResponse(payload: unknown): payload is PensionCalculatorResponse {
+  return (
+    payload !== null &&
+    typeof payload === "object" &&
+    "success" in payload &&
+    "resultId" in payload &&
+    "result" in payload
+  );
 }

@@ -10,7 +10,8 @@ Frontend primary API call:
 
 `POST https://launchingstack-func-dev.azurewebsites.net/api/justproveit/pension-calculator/calculate`
 
-As of 2026-08-29, this endpoint returns `404 Not Found`. The frontend now falls back to a local informational calculation so the page does not break, but backend support is still required for persistence and automated result email.
+As of 2026-08-29, this endpoint returns `500 Internal Server Error` with
+`Failed to calculate pension result.` for a valid calculator payload. The frontend now falls back to a local informational calculation for `404` and `5xx` responses so the page does not break, but backend support is still required for persistence and automated result email.
 
 ## Required Backend Endpoints
 
