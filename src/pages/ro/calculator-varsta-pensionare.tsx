@@ -1047,6 +1047,7 @@ function ResultPanel({
   }
 
   const { result } = response;
+  const isLocalOnly = response.localOnly || response.resultId.startsWith("local-");
   const standardScenario = result.scenarios.find(
     (scenario) => scenario.type === "limita_varsta_standard",
   );
@@ -1055,8 +1056,14 @@ function ResultPanel({
   return (
     <section className="rounded-lg border border-emerald-200 bg-white p-5 shadow-sm">
       <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">
-        Rezultat salvat
+        {isLocalOnly ? "Rezultat calculat local" : "Rezultat salvat"}
       </p>
+      {isLocalOnly ? (
+        <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-900">
+          API-ul LS pentru salvarea calculatorului nu este disponibil momentan. Rezultatul este afisat, dar
+          trimiterea automata pe email va functiona dupa ce endpoint-ul backend este activ.
+        </p>
+      ) : null}
       <div className="mt-3 space-y-5">
         <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
           <h2 className="text-lg font-extrabold">Romania</h2>
@@ -1240,11 +1247,17 @@ function ResultPanel({
         </p>
         <button
           type="button"
-          disabled={sendingEmail || response.emailSent}
+          disabled={sendingEmail || response.emailSent || isLocalOnly}
           onClick={onSendEmail}
           className="mt-3 inline-flex w-full items-center justify-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400"
         >
-          {sendingEmail ? "Trimit..." : response.emailSent ? "Email trimis" : "Trimite rezultatul pe email"}
+          {sendingEmail
+            ? "Trimit..."
+            : response.emailSent
+              ? "Email trimis"
+              : isLocalOnly
+                ? "Email indisponibil momentan"
+                : "Trimite rezultatul pe email"}
         </button>
         {emailMessage ? (
           <p className="mt-2 text-sm font-semibold text-slate-700">{emailMessage}</p>
