@@ -2425,6 +2425,27 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
       setHistoryMessage("");
       onError("");
     } catch (error) {
+      if (isNotFoundError(error)) {
+        try {
+          const fallbackHistory = await loadSaleActivityHistoryFallback(token, sale);
+          if (fallbackHistory) {
+            setSelectedHistory(fallbackHistory);
+            setHistoryMessage("Sales history endpoint is not available in LaunchingStack yet. Showing contact activity instead.");
+            setHistoryMessageType("info");
+            onError("");
+            return;
+          }
+        } catch (fallbackError) {
+          const fallbackMessage =
+            fallbackError instanceof Error ? fallbackError.message : "Nu am putut incarca istoricul de contact.";
+          setSelectedHistory(null);
+          setHistoryMessage(`Sales history endpoint returned Not Found. Contact activity fallback also failed: ${fallbackMessage}`);
+          setHistoryMessageType("error");
+          onError(fallbackMessage);
+          return;
+        }
+      }
+
       setSelectedHistory(null);
       const message = formatSaleHistoryError(error);
       setHistoryMessage(message);
@@ -2454,8 +2475,8 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
           sale.email,
           formatMoney(sale.amountTotalMajor),
           formatDate(sale.wixCreatedDateUtc),
-          sale.dialerowner || "",
-          sale.dialerlast || "N/A",
+          formatDialerAgentWithDate(sale.dialerowner, getDialerFirstCallDate(sale)),
+          formatDialerAgentWithDate(sale.dialerlast, getDialerLastCallDate(sale)) || "N/A",
           <button
             key={`history-${getSaleKey(sale)}`}
             type="button"
@@ -2659,6 +2680,12 @@ function SaleHistoryPanel({
         }
         .type-call {
           background: #b45f00;
+        }
+        .type-sms {
+          background: #007a5a;
+        }
+        .type-email {
+          background: #0c389d;
         }
         .type-default {
           background: #555;
@@ -6055,6 +6082,145 @@ function buildSaleHistoryParams(sale: CrmSale) {
   };
 }
 
+async function loadSaleActivityHistoryFallback(token: string, sale: CrmSale) {
+  const params = buildSaleActivityHistoryFallbackParams(sale);
+  if (!params) {
+    return null;
+  }
+
+  const result = await searchCrmActivity(token, params);
+  const activities = result.activities || result.items || [];
+  const events = buildSaleHistoryEventsFromActivities(activities, sale);
+
+  return {
+    sale,
+    events,
+    total: events.length,
+    limit: params.limit,
+  };
+}
+
+function buildSaleActivityHistoryFallbackParams(sale: CrmSale) {
+  const phone = firstNonEmpty(sale.normalizedPhone, sale.phone);
+  const email = firstNonEmpty(sale.email);
+
+  if (!phone && !email) {
+    return null;
+  }
+
+  return {
+    phone: phone || undefined,
+    email: email || undefined,
+    limit: 500,
+  };
+}
+
+function buildSaleHistoryEventsFromActivities(activities: CrmActivity[], sale: CrmSale): CrmSaleHistoryEvent[] {
+  const historyWindow = buildSaleHistoryWindow(sale);
+  const from = getDateTimeValue(historyWindow.occurredFromUtc);
+  const to = getDateTimeValue(historyWindow.occurredToUtc);
+
+  return activities
+    .filter((activity) => {
+      const timestamp = getDateTimeValue(getActivityTimestamp(activity));
+      if (!timestamp) {
+        return true;
+      }
+      if (from && timestamp < from) {
+        return false;
+      }
+      if (to && timestamp > to) {
+        return false;
+      }
+      return true;
+    })
+    .map((activity, index) => ({
+      eventId: activity.eventId || `activity-${getActivityTimestamp(activity) || index}-${index}`,
+      eventType: inferSaleActivityEventType(activity),
+      occurredAtUtc: getActivityTimestamp(activity),
+      title: formatSaleActivityTitle(activity),
+      description: formatSaleActivityDescription(activity),
+      metadata: {
+        agentId: firstDefined(activity.agentId, null),
+        agentName: firstNonEmpty(activity.agentName, activity.agent),
+        callCodeDetails: firstNonEmpty(activity.state, activity.param1),
+      },
+    }))
+    .sort((first, second) => getDateTimeValue(first.occurredAtUtc) - getDateTimeValue(second.occurredAtUtc));
+}
+
+function getActivityTimestamp(activity: CrmActivity) {
+  return activity.timestamp || activity.occurredAtUtc || activity.createdAtUtc || activity.updatedAtUtc || null;
+}
+
+function inferSaleActivityEventType(activity: CrmActivity) {
+  const haystack = [activity.eventType, activity.type, activity.action, activity.state, activity.direction]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (haystack.includes("call") || haystack.includes("dial")) {
+    return "dialler_call";
+  }
+  if (haystack.includes("sms") || haystack.includes("text message")) {
+    return "sms";
+  }
+  if (haystack.includes("email")) {
+    return "email";
+  }
+
+  return activity.eventType || activity.type || "activity";
+}
+
+function formatSaleActivityTitle(activity: CrmActivity) {
+  return firstNonEmpty(activity.action, activity.state, activity.type, activity.eventType) || "Activity";
+}
+
+function formatSaleActivityDescription(activity: CrmActivity) {
+  return firstNonEmpty(
+    activity.message,
+    activity.body,
+    activity.smsBody,
+    activity.text,
+    activity.content,
+    activity.param2,
+    activity.param3,
+    activity.param4,
+    activity.param5,
+  );
+}
+
+function getDialerFirstCallDate(sale: CrmSale) {
+  return firstNonEmpty(
+    sale.dialerownerCallDateUtc,
+    sale.dialerOwnerCallDateUtc,
+    sale.dialerownerAtUtc,
+    sale.dialerFirstCallDateUtc,
+    sale.dialerfirstCallDateUtc,
+    sale.dialerfirstAtUtc,
+    sale.firstDialerCallAtUtc,
+  );
+}
+
+function getDialerLastCallDate(sale: CrmSale) {
+  return firstNonEmpty(
+    sale.dialerlastCallDateUtc,
+    sale.dialerLastCallDateUtc,
+    sale.dialerlastAtUtc,
+    sale.lastDialerCallAtUtc,
+  );
+}
+
+function formatDialerAgentWithDate(agent?: string | null, callDate?: string | null) {
+  const name = String(agent || "").trim();
+  if (!name) {
+    return "";
+  }
+
+  const formattedDate = formatDateTime(callDate);
+  return formattedDate ? `${name} (${formattedDate})` : name;
+}
+
 function buildSaleHistoryWindow(sale: CrmSale) {
   const saleDate = getSaleHistoryStartDate(sale);
   if (!saleDate) {
@@ -6101,6 +6267,14 @@ function formatSaleHistoryError(error: unknown) {
   return error instanceof Error ? error.message : "Nu am putut incarca istoricul vanzarii.";
 }
 
+function isNotFoundError(error: unknown) {
+  if (error && typeof error === "object" && "status" in error && Number(error.status) === 404) {
+    return true;
+  }
+
+  return error instanceof Error && /not found/i.test(error.message);
+}
+
 function formatSourceRecord(sourceSystem?: string | null, sourceRecordId?: string | null) {
   const system = String(sourceSystem || "").trim();
   const record = String(sourceRecordId || "").trim();
@@ -6123,6 +6297,10 @@ function getSaleHistoryEventClass(eventType?: string | null) {
       return "type-sale";
     case "dialler_call":
       return "type-call";
+    case "sms":
+      return "type-sms";
+    case "email":
+      return "type-email";
     default:
       return "type-default";
   }
@@ -6140,6 +6318,10 @@ function getSaleHistoryEventIcon(eventType?: string | null) {
       return "SA";
     case "dialler_call":
       return "DC";
+    case "sms":
+      return "SMS";
+    case "email":
+      return "EM";
     default:
       return "EV";
   }

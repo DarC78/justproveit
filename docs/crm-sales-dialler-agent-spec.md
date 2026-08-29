@@ -16,8 +16,11 @@ Update `/justproveit/admin/crm/sales` so each sale row returns:
 
 - `dialerowner`: the dialler agent who first spoke with the sale phone number within the last 30 days.
 - `dialerlast`: the dialler agent who most recently spoke with the sale phone number.
+- `dialerownerCallDateUtc`: the UTC timestamp of the call used for `dialerowner`.
+- `dialerlastCallDateUtc`: the UTC timestamp of the call used for `dialerlast`.
 
 The existing frontend labels these fields as `DialerFirst` and `DialerLast`.
+The frontend displays the agent and date as `Agent Name (DD/MM/YYYY, HH:mm)` when the timestamp fields are present.
 
 ## Matching Rules
 
@@ -39,13 +42,22 @@ Do not remove existing fields. The frontend currently consumes:
 - `wixCreatedDateUtc`
 - `dialerowner`
 - `dialerlast`
+- `dialerownerCallDateUtc`
+- `dialerlastCallDateUtc`
 
 `storeowner` may remain in the response for backwards compatibility, but the JustProveIt sales tab no longer displays it.
+
+For backwards compatibility, the frontend also accepts these timestamp aliases:
+
+- first call: `dialerOwnerCallDateUtc`, `dialerownerAtUtc`, `dialerFirstCallDateUtc`, `dialerfirstCallDateUtc`, `dialerfirstAtUtc`, `firstDialerCallAtUtc`
+- last call: `dialerLastCallDateUtc`, `dialerlastAtUtc`, `lastDialerCallAtUtc`
 
 ## Acceptance Criteria
 
 - A sale whose phone number has multiple connected dialler calls in the last 30 days shows the earliest connected-call agent in `DialerFirst`.
+- `DialerFirst` also shows the earliest connected-call timestamp in brackets.
 - The same sale shows the latest connected-call agent in `DialerLast`.
+- `DialerLast` also shows the latest connected-call timestamp in brackets.
 - A sale whose phone number has no connected calls shows blank/`N/A` in those columns.
 - Existing email and phone filters on `/justproveit/admin/crm/sales` continue to work.
 - `limit` and `offset` behaviour is unchanged.

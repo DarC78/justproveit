@@ -2,7 +2,7 @@
 
 ## Objective
 
-Fix timeouts on:
+Implement and keep performant:
 
 `GET /justproveit/admin/crm/sales/history`
 
@@ -10,7 +10,20 @@ The JustProveIt frontend renders this from the Sales tab on:
 
 `https://www.justproveit.co.uk/admin/crm?tab=sales`
 
-Users click `History` on a sale row. The frontend currently times out after 20 seconds.
+Users click `History` on a sale row.
+
+As of 2026-08-29, LaunchingStack returns `404 Not Found` for this endpoint:
+
+```text
+GET https://launchingstack-func-dev.azurewebsites.net/api/justproveit/admin/crm/sales/history?limit=150
+```
+
+This route should exist on the LaunchingStack Function App and require the same CRM/admin bearer token auth as the other
+CRM admin routes. An unauthenticated request should return `401`/`403`, not `404`.
+
+The frontend has a temporary fallback: if this endpoint returns 404, it calls `/justproveit/admin/crm/activity` by sale
+phone/email and displays contact activity. That fallback is only partial; the dedicated sale history endpoint is still
+required for the complete per-sale timeline.
 
 ## Current Frontend Behavior
 

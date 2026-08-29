@@ -64,9 +64,15 @@ export type CrmContactPhone = {
 
 export type CrmActivity = {
   timestamp?: string | null;
+  occurredAtUtc?: string | null;
+  createdAtUtc?: string | null;
+  updatedAtUtc?: string | null;
+  eventId?: string | number | null;
   action?: string | null;
   state?: string | null;
   agent?: string | null;
+  agentId?: string | number | null;
+  agentName?: string | null;
   direction?: string | null;
   type?: string | null;
   eventType?: string | null;
@@ -153,6 +159,17 @@ export type CrmSale = {
   storeowner?: string | null;
   dialerowner?: string | null;
   dialerlast?: string | null;
+  dialerownerCallDateUtc?: string | null;
+  dialerOwnerCallDateUtc?: string | null;
+  dialerownerAtUtc?: string | null;
+  dialerFirstCallDateUtc?: string | null;
+  dialerfirstCallDateUtc?: string | null;
+  dialerfirstAtUtc?: string | null;
+  firstDialerCallAtUtc?: string | null;
+  dialerlastCallDateUtc?: string | null;
+  dialerLastCallDateUtc?: string | null;
+  dialerlastAtUtc?: string | null;
+  lastDialerCallAtUtc?: string | null;
 };
 
 export type CrmSaleHistoryEvent = {
@@ -644,7 +661,7 @@ export function listCrmSales(
   token: string,
   params: Record<string, string | number | boolean | null | undefined>,
 ) {
-  return fetchJson<CrmSalesResponse>(`${BASE_PATH}/sales${buildQuery(params)}`, {
+  return fetchCanonicalCrmReadJson<CrmSalesResponse>(`${BASE_PATH}/sales${buildQuery(params)}`, {
     headers: authHeaders(token),
   });
 }
@@ -657,7 +674,7 @@ export async function getCrmSaleHistory(
   const timeout = window.setTimeout(() => controller.abort(), 20000);
 
   try {
-    return await fetchJson<CrmSaleHistoryResponse>(`${BASE_PATH}/sales/history${buildQuery(params)}`, {
+    return await fetchCanonicalCrmReadJson<CrmSaleHistoryResponse>(`${BASE_PATH}/sales/history${buildQuery(params)}`, {
       headers: authHeaders(token),
       signal: controller.signal,
     });
