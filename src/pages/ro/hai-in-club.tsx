@@ -11,7 +11,7 @@ const CLUB_CHECKOUT_API_URL =
 const CONTACT_EMAIL = "adriandefta@proveitweb.co.uk";
 const FULL_PRICE = "£297";
 const MONTHLY_PRICE = "£99";
-const INSTALLMENTS_API_PLAN = "monthly-99x3-trial";
+const INSTALLMENTS_API_PLAN = "installments";
 
 const CLUB_CHECKS = [
   "MF02 - Marriage Allowance",

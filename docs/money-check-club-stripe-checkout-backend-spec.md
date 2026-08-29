@@ -36,7 +36,7 @@ Currency:
 Plans:
 
 - `full`: one payment of `£297` (`29700` pence)
-- `monthly-99x3-trial`: three monthly instalments of `£99` (`9900` pence each), no interest, total `£297`
+- `installments`: three monthly instalments of `£99` (`9900` pence each), no interest, total `£297`
 
 Frontend display label for the instalment plan remains:
 
@@ -46,7 +46,7 @@ Live check on 2026-08-29:
 
 - `plan=full` returns `200` with a Stripe Checkout URL and `amountTotal=29700`
 - `plan=monthly-99x3-trial` returns `200` with a Stripe Checkout URL and `amountTotal=29700`
-- `plan=installments` returned `500`, so the frontend uses `monthly-99x3-trial`
+- `plan=installments` now returns `200` with a Stripe Checkout URL and `amountTotal=29700`, so the frontend uses `installments`
 
 For the instalment plan, expected business behaviour:
 
@@ -90,7 +90,7 @@ For instalments:
 ```json
 {
   "tenantKey": "justproveit",
-  "plan": "monthly-99x3-trial",
+  "plan": "installments",
   "source": "ro-hai-in-club",
   "pageUrl": "https://www.justproveit.co.uk/ro/hai-in-club",
   "successUrl": "https://www.justproveit.co.uk/ro/hai-in-club?checkout=success&plan=installments&session_id={CHECKOUT_SESSION_ID}",
@@ -198,7 +198,7 @@ Persist enough data to support CRM/admin follow-up:
 - payment intent id
 - subscription id / schedule id for instalments
 - customer name/email/phone
-- plan key (`full` or `monthly-99x3-trial`)
+- plan key (`full` or `installments`)
 - amount/currency
 - payment status
 - created/paid/failed timestamps
@@ -216,12 +216,12 @@ Recommended CRM linkage:
 
 The frontend replaces the previous `mailto:` CTAs with a click handler:
 
-1. `POST /justproveit/money-check/club/checkout-session` with `plan: "full"` or `plan: "monthly-99x3-trial"`.
+1. `POST /justproveit/money-check/club/checkout-session` with `plan: "full"` or `plan: "installments"`.
 2. Read `response.url`.
 3. Redirect browser with `window.location.assign(response.url)`.
 4. Show a visible error if the endpoint fails.
 
-Current frontend implementation uses `plan: "monthly-99x3-trial"` for the instalment CTA because that is the working LS plan key.
+Current frontend implementation uses `plan: "installments"` for the instalment CTA.
 
 If LS instead provides two static Stripe Payment Links, frontend can simply set:
 
