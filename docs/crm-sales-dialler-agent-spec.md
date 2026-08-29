@@ -49,8 +49,10 @@ Do not remove existing fields. The frontend currently consumes:
 
 For backwards compatibility, the frontend also accepts these timestamp aliases:
 
-- first call: `dialerOwnerCallDateUtc`, `dialerownerAtUtc`, `dialerFirstCallDateUtc`, `dialerfirstCallDateUtc`, `dialerfirstAtUtc`, `firstDialerCallAtUtc`
-- last call: `dialerLastCallDateUtc`, `dialerlastAtUtc`, `lastDialerCallAtUtc`
+- first call: `dialerOwnerCallDateUtc`, `dialerownerCallDate`, `dialerOwnerCallDate`, `dialerownerCallTimeUtc`, `dialerOwnerCallTimeUtc`, `dialerownerAtUtc`, `dialerOwnerAtUtc`, `dialerFirstCallDateUtc`, `dialerfirstCallDateUtc`, `dialerFirstCallDate`, `dialerfirstCallDate`, `dialerFirstCallTimeUtc`, `dialerfirstCallTimeUtc`, `dialerFirstCallAtUtc`, `dialerfirstCallAtUtc`, `dialerFirstAtUtc`, `dialerfirstAtUtc`, `firstDialerCallAtUtc`, `firstDialerCallDateUtc`, `firstDialerCallDate`, `firstDiallerCallAtUtc`, `firstDiallerCallDateUtc`, `firstCallAtUtc`, `firstCallDateUtc`, `dialerFirstDate`
+- last call: `dialerLastCallDateUtc`, `dialerlastCallDate`, `dialerLastCallDate`, `dialerlastCallTimeUtc`, `dialerLastCallTimeUtc`, `dialerlastAtUtc`, `dialerLastAtUtc`, `dialerlastCallAtUtc`, `dialerLastCallAtUtc`, `lastDialerCallAtUtc`, `lastDialerCallDateUtc`, `lastDialerCallDate`, `lastDiallerCallAtUtc`, `lastDiallerCallDateUtc`, `lastCallAtUtc`, `lastCallDateUtc`, `dialerLastDate`
+
+Alias matching in the frontend is case-insensitive, but the canonical field names above are preferred.
 
 ## Acceptance Criteria
 

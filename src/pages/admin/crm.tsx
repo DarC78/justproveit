@@ -6191,24 +6191,91 @@ function formatSaleActivityDescription(activity: CrmActivity) {
 }
 
 function getDialerFirstCallDate(sale: CrmSale) {
-  return firstNonEmpty(
-    sale.dialerownerCallDateUtc,
-    sale.dialerOwnerCallDateUtc,
-    sale.dialerownerAtUtc,
-    sale.dialerFirstCallDateUtc,
-    sale.dialerfirstCallDateUtc,
-    sale.dialerfirstAtUtc,
-    sale.firstDialerCallAtUtc,
-  );
+  return readSaleStringField(sale, [
+    "dialerownerCallDateUtc",
+    "dialerOwnerCallDateUtc",
+    "dialerownerCallDate",
+    "dialerOwnerCallDate",
+    "dialerownerCallTimeUtc",
+    "dialerOwnerCallTimeUtc",
+    "dialerownerAtUtc",
+    "dialerOwnerAtUtc",
+    "dialerFirstCallDateUtc",
+    "dialerfirstCallDateUtc",
+    "dialerFirstCallDate",
+    "dialerfirstCallDate",
+    "dialerFirstCallTimeUtc",
+    "dialerfirstCallTimeUtc",
+    "dialerFirstCallAtUtc",
+    "dialerfirstCallAtUtc",
+    "dialerFirstAtUtc",
+    "dialerfirstAtUtc",
+    "firstDialerCallAtUtc",
+    "firstDialerCallDateUtc",
+    "firstDialerCallDate",
+    "firstDiallerCallAtUtc",
+    "firstDiallerCallDateUtc",
+    "firstCallAtUtc",
+    "firstCallDateUtc",
+    "dialerFirstDate",
+  ]);
 }
 
 function getDialerLastCallDate(sale: CrmSale) {
-  return firstNonEmpty(
-    sale.dialerlastCallDateUtc,
-    sale.dialerLastCallDateUtc,
-    sale.dialerlastAtUtc,
-    sale.lastDialerCallAtUtc,
+  return readSaleStringField(sale, [
+    "dialerlastCallDateUtc",
+    "dialerLastCallDateUtc",
+    "dialerlastCallDate",
+    "dialerLastCallDate",
+    "dialerlastCallTimeUtc",
+    "dialerLastCallTimeUtc",
+    "dialerlastAtUtc",
+    "dialerLastAtUtc",
+    "dialerlastCallAtUtc",
+    "dialerLastCallAtUtc",
+    "lastDialerCallAtUtc",
+    "lastDialerCallDateUtc",
+    "lastDialerCallDate",
+    "lastDiallerCallAtUtc",
+    "lastDiallerCallDateUtc",
+    "lastCallAtUtc",
+    "lastCallDateUtc",
+    "dialerLastDate",
+  ]);
+}
+
+function readSaleStringField(sale: CrmSale, keys: string[]) {
+  const fields = sale as Record<string, unknown>;
+
+  for (const key of keys) {
+    const value = formatSaleFieldValue(fields[key]);
+    if (value) {
+      return value;
+    }
+  }
+
+  const caseInsensitiveFields = new Map(
+    Object.entries(fields).map(([key, value]) => [key.toLowerCase(), value]),
   );
+  for (const key of keys) {
+    const value = formatSaleFieldValue(caseInsensitiveFields.get(key.toLowerCase()));
+    if (value) {
+      return value;
+    }
+  }
+
+  return "";
+}
+
+function formatSaleFieldValue(value: unknown) {
+  if (typeof value === "string") {
+    return value.trim();
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  return "";
 }
 
 function formatDialerAgentWithDate(agent?: string | null, callDate?: string | null) {
