@@ -26,6 +26,17 @@ type FreeCheck = {
   title: string;
 };
 
+type ProveitService = {
+  title: string;
+  description: string;
+};
+
+type ProveitServiceCategory = {
+  name: string;
+  intro: string;
+  services: ProveitService[];
+};
+
 type CheckAction = {
   label: string;
   href: string;
@@ -105,28 +116,328 @@ const FREE_CHECK_ACTIONS: Record<string, CheckAction[]> = {
   ],
 };
 
-const CLUB_CHECKS: FreeCheck[] = [
-  { code: "MF02", title: "Marriage Allowance" },
-  { code: "MF03", title: "Overtime / holiday pay" },
-  { code: "MF04", title: "Redundancy pay" },
-  { code: "MF05", title: "Self-assessment expenses" },
-  { code: "MF06", title: "Student loan overpayment" },
-  { code: "MF07", title: "Dublă impozitare RO-UK" },
-  { code: "PE01", title: "NI record / State Pension forecast" },
-  { code: "PE02", title: "Pensii ocupaționale uitate" },
-  { code: "PE03", title: "Pensia internațională RO-UK" },
-  { code: "CD02", title: "Car finance mis-selling" },
-  { code: "CD03", title: "GAP insurance / add-ons" },
-  { code: "CD04", title: "Payday loans" },
-  { code: "CD05", title: "Packaged bank accounts" },
-  { code: "CD06", title: "Overdraft" },
-  { code: "FC01", title: "Council Tax band" },
-  { code: "FC03", title: "Abonamente uitate" },
-  { code: "FC04", title: "Tarife sociale apă/broadband" },
-  { code: "FC06", title: "Remortgage check" },
-  { code: "AA01", title: "Conturi uitate" },
-  { code: "AA02", title: "Moșteniri sau proprietăți în România" },
+const PROVEIT_SERVICE_CATEGORIES: ProveitServiceCategory[] = [
+  {
+    name: "Scor de credit",
+    intro:
+      "Instrumente pentru verificarea scorului si raportului de credit, utile inainte de carduri, imprumuturi, chirii sau finantari.",
+    services: [
+      {
+        title: "ClearScore",
+        description: "Verifica gratuit scorul de credit (Equifax) si primesti sfaturi generale de imbunatatire.",
+      },
+      {
+        title: "Experian",
+        description: "Raport si scor de credit propriu; una din cele 3 agentii oficiale de credit din UK.",
+      },
+      {
+        title: "Equifax",
+        description: "A doua agentie oficiala de credit; raport si scor propriu.",
+      },
+      {
+        title: "TotallyMoney",
+        description:
+          "Scor de credit gratuit (TransUnion) + verificare eligibilitate pentru carduri/imprumuturi inainte de a aplica.",
+      },
+    ],
+  },
+  {
+    name: "Comparatoare asigurari auto & casa",
+    intro:
+      "Comparatoare care te ajuta sa verifici rapid piata pentru polite auto, casa sau alte asigurari, fara sa ramai blocat la prima oferta.",
+    services: [
+      {
+        title: "Compare the Market",
+        description: "Cel mai cunoscut comparator general de asigurari din UK.",
+      },
+      {
+        title: "Confused.com",
+        description: "Unul din primele comparatoare de asigurari auto din UK.",
+      },
+      {
+        title: "MoneySuperMarket",
+        description: "Comparator general: asigurari, energie, carduri, credite.",
+      },
+    ],
+  },
+  {
+    name: "Energie & utilitati",
+    intro:
+      "Instrumente pentru verificarea tarifelor la gaz, electricitate si utilitati, utile cand vrei sa reduci costurile lunare.",
+    services: [
+      {
+        title: "uSwitch",
+        description: "Comparator specializat pe energie, mobil, internet.",
+      },
+      {
+        title: "MoneySuperMarket Energie",
+        description: "Comparare facturi de gaz/electricitate.",
+      },
+    ],
+  },
+  {
+    name: "Mobil & internet",
+    intro:
+      "Comparatoare pentru broadband, mobil si TV, bune pentru verificarea contractelor scumpe sau pentru schimbarea furnizorului.",
+    services: [
+      {
+        title: "uSwitch Broadband",
+        description: "Comparare abonamente internet/mobil.",
+      },
+      {
+        title: "broadbandchoices",
+        description: "Comparator specializat pe internet/TV.",
+      },
+    ],
+  },
+  {
+    name: "Cont curent bancar",
+    intro:
+      "Resurse pentru schimbarea contului bancar si verificarea bonusurilor disponibile, cu accent pe mutarea simpla a contului curent.",
+    services: [
+      {
+        title: "Current Account Switch Service",
+        description:
+          "Serviciul oficial si gratuit prin care schimbi banca fara batai de cap (totul se muta automat).",
+      },
+      {
+        title: "MoneySuperMarket Conturi",
+        description: "Comparare conturi curente si bonusuri de schimbare.",
+      },
+    ],
+  },
+  {
+    name: "Carduri de credit",
+    intro:
+      "Comparatoare si ghiduri care te ajuta sa verifici eligibilitatea, transferurile de sold si perioadele cu dobanda redusa.",
+    services: [
+      {
+        title: "MoneySavingExpert Carduri",
+        description: "Ghiduri si comparator de carduri de credit (transfer sold, 0% dobanda etc.).",
+      },
+      {
+        title: "MoneySuperMarket Carduri",
+        description: "Comparare carduri de credit cu verificare eligibilitate.",
+      },
+      {
+        title: "Compare the Market Carduri",
+        description: "Comparare carduri de credit.",
+      },
+      {
+        title: "TotallyMoney Eligibilitate",
+        description: "Verifici sansele de aprobare inainte de a aplica, fara impact asupra scorului.",
+      },
+    ],
+  },
+  {
+    name: "Imprumuturi personale",
+    intro:
+      "Comparatoare pentru imprumuturi personale, utile ca sa verifici costuri, eligibilitate si alternative inainte de o aplicatie.",
+    services: [
+      {
+        title: "MoneySuperMarket Imprumuturi",
+        description: "Comparare imprumuturi personale.",
+      },
+      {
+        title: "Compare the Market Imprumuturi",
+        description: "Comparare imprumuturi personale.",
+      },
+    ],
+  },
+  {
+    name: "Finantare auto (masina in rate)",
+    intro:
+      "Instrumente pentru compararea finantarii auto si intelegerea optiunilor cand cumperi sau verifici o masina cu plata in rate.",
+    services: [
+      {
+        title: "Zuto",
+        description: "Broker de finantare auto; compara oferte de la mai multi creditori.",
+      },
+      {
+        title: "CarFinance247",
+        description: "Broker de finantare auto.",
+      },
+      {
+        title: "Carwow",
+        description: "Cumperi masina noua/second-hand si compari oferte de finantare.",
+      },
+      {
+        title: "Confused.com Car Finance",
+        description: "Comparare oferte de finantare auto.",
+      },
+      {
+        title: "MoneySuperMarket Car Finance",
+        description: "Comparare oferte de finantare auto.",
+      },
+    ],
+  },
+  {
+    name: "Cumparare/vanzare masina",
+    intro:
+      "Platforme utile pentru orientare de pret, cumparare sau vanzare de masina, mai ales cand vrei sa compari piata din UK.",
+    services: [
+      {
+        title: "AutoTrader",
+        description: "Cel mai mare marketplace auto din UK.",
+      },
+      {
+        title: "Cinch",
+        description: "Cumperi masina second-hand online, cu garantie inclusa.",
+      },
+    ],
+  },
+  {
+    name: "Pensii pierdute & pensie de stat",
+    intro:
+      "Servicii pentru verificarea pensiei de stat, gasirea pensiilor private vechi si intelegerea optiunilor disponibile in UK.",
+    services: [
+      {
+        title: "Pension Tracing Service (gov.uk)",
+        description:
+          "Serviciul oficial si gratuit al guvernului pentru gasirea datelor de contact ale unei pensii vechi.",
+      },
+      {
+        title: "MoneyHelper - Pensii pierdute",
+        description: "Ghid gratuit, sustinut de guvern, despre cum gasesti pensii vechi.",
+      },
+      {
+        title: "Check your State Pension",
+        description: "Verifici gratuit cat va fi pensia de stat si de la ce varsta o poti lua.",
+      },
+      {
+        title: "Pension Wise",
+        description:
+          "Programare gratuita de consiliere guvernamentala pentru cei peste 50 de ani cu pensie privata.",
+      },
+    ],
+  },
+  {
+    name: "Bani/conturi uitate",
+    intro:
+      "Resurse care ajuta la cautarea conturilor, pensiilor, economiilor sau produselor financiare pierdute din vedere.",
+    services: [
+      {
+        title: "My Lost Account",
+        description: "Serviciul oficial pentru gasirea conturilor bancare/de economii uitate.",
+      },
+      {
+        title: "Gretel",
+        description: "Serviciu gratuit care cauta simultan pensii, conturi si investitii uitate.",
+      },
+      {
+        title: "NS&I",
+        description: "Verifici Premium Bonds sau economii uitate la National Savings & Investments.",
+      },
+    ],
+  },
+  {
+    name: "Beneficii guvernamentale",
+    intro:
+      "Calculatoare si ghiduri pentru verificarea beneficiilor la care poti avea dreptul si a ajutoarelor disponibile.",
+    services: [
+      {
+        title: "gov.uk Benefits Calculators",
+        description: "Pagina oficiala cu calculatoarele de beneficii recunoscute de guvern.",
+      },
+      {
+        title: "entitledto",
+        description: "Calculator independent de beneficii, foarte folosit.",
+      },
+      {
+        title: "Turn2us",
+        description: "Calculator de beneficii + cautare de granturi caritabile.",
+      },
+    ],
+  },
+  {
+    name: "Cashback & vouchere",
+    intro:
+      "Platforme pentru bani inapoi, coduri de reducere si oferte, utile pentru cumparaturi recurente sau achizitii mai mari.",
+    services: [
+      {
+        title: "TopCashback",
+        description: "Primesti bani inapoi pentru cumparaturi online.",
+      },
+      {
+        title: "Quidco",
+        description: "Al doilea mare site de cashback din UK.",
+      },
+      {
+        title: "VoucherCodes",
+        description: "Coduri de reducere pentru magazine online.",
+      },
+      {
+        title: "HotUKDeals",
+        description: "Comunitate care distribuie cele mai bune oferte gasite de utilizatori.",
+      },
+    ],
+  },
+  {
+    name: "Ajutor gratuit cu datorii",
+    intro:
+      "Organizatii gratuite care pot ajuta cand datoriile devin greu de gestionat si ai nevoie de un plan realist.",
+    services: [
+      {
+        title: "StepChange",
+        description: "Cea mai mare caritate de consiliere pentru datorii din UK, complet gratuita.",
+      },
+      {
+        title: "National Debtline",
+        description: "Linie telefonica si ghiduri gratuite pentru probleme de datorii.",
+      },
+    ],
+  },
+  {
+    name: "Verificare firme & protectie consumator",
+    intro:
+      "Servicii pentru reclamatii, verificari si intelegerea protectiei consumatorului cand o firma financiara nu a procedat corect.",
+    services: [
+      {
+        title: "Financial Ombudsman Service",
+        description: "Unde depui gratuit o plangere impotriva unei firme financiare autorizate.",
+      },
+      {
+        title: "MoneyHelper",
+        description: "Serviciu gratuit, sustinut de guvern, cu ghiduri impartiale pe orice tema financiara.",
+      },
+    ],
+  },
+  {
+    name: "Cont fiscal & asigurari sociale",
+    intro:
+      "Instrumente oficiale pentru verificarea taxelor, contributiilor National Insurance si a obligatiilor personale din UK.",
+    services: [
+      {
+        title: "HMRC Personal Tax Account",
+        description: "Contul oficial unde vezi taxele, codul fiscal, rambursarile.",
+      },
+      {
+        title: "Check National Insurance record",
+        description: "Verifici anii de contributie la asigurari sociale (afecteaza pensia de stat).",
+      },
+      {
+        title: "Student Loan Repayment",
+        description: "Verifici si gestionezi rambursarea imprumutului de studii.",
+      },
+    ],
+  },
+  {
+    name: "Prevenire frauda & protectie identitate",
+    intro:
+      "Protectie suplimentara cand exista risc de furt de identitate sau cand vrei sa reduci sansele unei fraude financiare.",
+    services: [
+      {
+        title: "Cifas",
+        description: "Inregistrare de protectie daca ti-a fost furata identitatea.",
+      },
+    ],
+  },
 ];
+
+const PROVEIT_SERVICE_COUNT = PROVEIT_SERVICE_CATEGORIES.reduce(
+  (total, category) => total + category.services.length,
+  0,
+);
 
 export default function ReportResultsPage() {
   const router = useRouter();
@@ -197,7 +508,7 @@ export default function ReportResultsPage() {
         <title>Rezultatele raportului gratuit | JustProveIt</title>
         <meta
           name="description"
-          content="Rezultatele celor 6 verificari rapide si lista verificarilor extinse din Clubul Aici Sunt Banii Dumneavoastra."
+          content="Rezultatele celor 6 verificari rapide si serviciile prin care Proveit te poate ghida in UK."
         />
         <link rel="canonical" href={CANONICAL} />
         <meta httpEquiv="content-language" content="ro-GB" />
@@ -236,8 +547,8 @@ export default function ReportResultsPage() {
               </h1>
               <p className="mt-5 max-w-3xl text-lg leading-8 text-slate-100">
                 {clientName
-                  ? `${clientName}, ai mai jos verificările rapide completate și cele 20 de zone pe care le analizăm în club.`
-                  : "Ai mai jos verificările rapide completate și cele 20 de zone pe care le analizăm în club."}
+                  ? `${clientName}, ai mai jos verificările rapide completate și cateva zone importante unde Proveit te poate ghida mai departe.`
+                  : "Ai mai jos verificările rapide completate și cateva zone importante unde Proveit te poate ghida mai departe."}
               </p>
               <Link
                 href={CLUB_PATH}
@@ -251,8 +562,8 @@ export default function ReportResultsPage() {
           <section className="border-b border-slate-200 bg-white">
             <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 md:grid-cols-3">
               <Metric value="6" label="verificări gratuite" />
-              <Metric value="20" label="verificări în club" />
-              <Metric value="RO" label="explicații în limba română" />
+              <Metric value={String(PROVEIT_SERVICE_COUNT)} label="servicii utile" />
+              <Metric value={String(PROVEIT_SERVICE_CATEGORIES.length)} label="categorii de ajutor" />
             </div>
           </section>
 
@@ -304,27 +615,34 @@ export default function ReportResultsPage() {
           <section className="border-t border-slate-200 bg-slate-50">
             <div className="mx-auto max-w-6xl px-4 py-12">
               <div className="max-w-3xl">
-                <p className="text-sm font-extrabold uppercase tracking-[0.14em] text-sky-700">
-                  Club
+                <p className="text-sm font-extrabold uppercase tracking-[0.14em] text-emerald-700">
+                  Ghid practic in UK
                 </p>
                 <h2 className="mt-2 text-3xl font-extrabold tracking-normal">
-                  Cele 20 de verificări extinse
+                  Cu ce altceva vă poate ajuta Proveit
                 </h2>
+                <p className="mt-4 text-base leading-8 text-slate-700">
+                  Mai jos sunt serviciile marcate pentru implementare in lista Proveit. Le-am grupat pe categorii ca sa
+                  fie mai usor de gasit zona in care ai nevoie de ajutor.
+                </p>
               </div>
-              <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {CLUB_CHECKS.map((check) => (
-                  <article key={check.code} className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-                    <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{check.code}</p>
-                    <h3 className="mt-1 min-h-12 text-base font-extrabold leading-6 text-slate-950">
-                      {check.title}
-                    </h3>
-                    <Link
-                      href={CLUB_PATH}
-                      className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-md bg-emerald-700 px-4 text-center text-sm font-extrabold text-white shadow-sm hover:bg-emerald-600"
-                    >
-                      Hai in Clubul Aici Sunt Banii Dumneavoastra
-                    </Link>
-                  </article>
+              <div className="mt-8 space-y-8">
+                {PROVEIT_SERVICE_CATEGORIES.map((category) => (
+                  <section key={category.name} className="border-t border-slate-200 pt-8">
+                    <div className="max-w-4xl">
+                      <h3 className="text-2xl font-extrabold tracking-normal text-slate-950">{category.name}</h3>
+                      <p className="mt-3 text-sm leading-7 text-slate-700">{category.intro}</p>
+                    </div>
+                    <div className="mt-5 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {category.services.map((service) => (
+                        <ServiceBiscuit
+                          key={`${category.name}-${service.title}`}
+                          title={service.title}
+                          description={service.description}
+                        />
+                      ))}
+                    </div>
+                  </section>
                 ))}
               </div>
             </div>
@@ -390,6 +708,30 @@ function CheckActions({ actions }: { actions: CheckAction[] }) {
         </a>
       ))}
     </div>
+  );
+}
+
+function ServiceBiscuit({ title, description }: ProveitService) {
+  return (
+    <article className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="aspect-video bg-slate-900 p-4 text-white">
+        <div className="flex h-full items-center justify-center rounded-md border border-white/20 bg-white/5">
+          <div className="text-center">
+            <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-emerald-600 text-base font-extrabold text-white">
+              <span aria-hidden="true" className="ml-1 h-0 w-0 border-y-[7px] border-l-[11px] border-y-transparent border-l-white" />
+            </span>
+            <p className="mt-3 text-xs font-extrabold uppercase tracking-[0.14em] text-emerald-100">
+              Video explicativ
+            </p>
+            <p className="mt-1 text-xs font-semibold text-slate-300">In curand</p>
+          </div>
+        </div>
+      </div>
+      <div className="p-5">
+        <h4 className="text-base font-extrabold leading-6 tracking-normal text-slate-950">{title}</h4>
+        <p className="mt-3 text-sm leading-7 text-slate-700">{description}</p>
+      </div>
+    </article>
   );
 }
 
