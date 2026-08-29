@@ -619,11 +619,11 @@ export default function ReportResultsPage() {
                   Ghid practic in UK
                 </p>
                 <h2 className="mt-2 text-3xl font-extrabold tracking-normal">
-                  Cu ce altceva vă poate ajuta Proveit
+                  Hai In Clubul Aici Sunt Banii Dumneavoastra
                 </h2>
                 <p className="mt-4 text-base leading-8 text-slate-700">
-                  Mai jos sunt serviciile marcate pentru implementare in lista Proveit. Le-am grupat pe categorii ca sa
-                  fie mai usor de gasit zona in care ai nevoie de ajutor.
+                  In club primiti ajutor cu aproate toate aspectele ale vietii financiare in UK. Va explicam cum sa
+                  folositi fiecare din aceste website-uri si aplicatii asa cum le foloseste un nativ!
                 </p>
               </div>
               <div className="mt-8 space-y-8">
