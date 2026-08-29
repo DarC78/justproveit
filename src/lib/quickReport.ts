@@ -3,6 +3,8 @@ export type QuickReportDisplayFlag = QuickReportFlag | "necompletat";
 export type YesNo = "" | "yes" | "no";
 export type QuickReportFaza0Code = "MF01" | "CD01" | "CD07" | "FC02" | "FC05" | "FC07";
 export type QuickReportEmailScope = "faza0" | "faza1" | "full";
+export type UkEmploymentType = "" | "employee" | "selfEmployed" | "both" | "notWorked" | "unknown";
+export type CreditScoreLevel = "" | "low" | "medium" | "high";
 
 export type QuickReportAnswers = {
   multipleJobs: YesNo;
@@ -65,6 +67,15 @@ export type QuickReportFaza1Answers = {
   hasRomanianInheritanceOrProperty?: boolean;
 };
 
+export type QuickReportInternalAnswers = {
+  ukEmploymentType: UkEmploymentType;
+  knowsAllPrivatePensions: YesNo;
+  hadCarFinanceBeforeNov2024: YesNo;
+  hasCreditCardOverdraftOrPaydayLoansDebt: YesNo;
+  checkedCouncilTaxBand: YesNo;
+  creditScoreLevel: CreditScoreLevel;
+};
+
 export type SubmitQuickReportPayload = {
   tenantKey: "justproveit";
   source: "raport_gratuit_faza0";
@@ -84,6 +95,22 @@ export type SubmitQuickReportPayload = {
   faza1Answers?: QuickReportFaza1Answers;
 };
 
+export type SaveQuickReportInternalAnswersPayload = {
+  tenantKey: "justproveit";
+  source: "raport_gratuit_crm_internal";
+  reportId?: string;
+  leadId?: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  domain: string;
+  pageUrl: string;
+  referrer: string;
+  answers: QuickReportInternalAnswers;
+  faza0Answers: QuickReportAnswers;
+  faza0Results: Array<QuickReportResult & { flag: QuickReportFlag }>;
+};
+
 export type SubmitQuickReportResponse = {
   success: boolean;
   leadId?: string;
@@ -91,6 +118,14 @@ export type SubmitQuickReportResponse = {
   emailSent?: boolean;
   emailError?: string;
   message?: string;
+};
+
+export type SaveQuickReportInternalAnswersResponse = {
+  success: boolean;
+  leadId?: string | null;
+  reportId?: string | null;
+  message?: string;
+  error?: string;
 };
 
 export type PublicQuickReportResult = {
@@ -375,6 +410,27 @@ export async function submitQuickReportFaza0(token: string, payload: SubmitQuick
   return responsePayload as SubmitQuickReportResponse;
 }
 
+export async function saveQuickReportInternalAnswers(
+  token: string,
+  payload: SaveQuickReportInternalAnswersPayload,
+) {
+  const response = await fetch(resolveQuickReportUrl("/justproveit/quick-report/internal-answers"), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  const responsePayload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(readQuickReportApiError(responsePayload, response.statusText));
+  }
+
+  return responsePayload as SaveQuickReportInternalAnswersResponse;
+}
+
 export async function fetchQuickReportPublicResults(token: string) {
   const response = await fetch(
     resolveQuickReportUrl(`/justproveit/quick-report/public-results?token=${encodeURIComponent(token)}`),
@@ -402,6 +458,16 @@ function readQuickReportApiError(payload: unknown, fallback: string) {
   if (payload && typeof payload === "object") {
     if ("error" in payload && typeof payload.error === "string") {
       return payload.error;
+    }
+
+    if (
+      "error" in payload &&
+      payload.error &&
+      typeof payload.error === "object" &&
+      "message" in payload.error &&
+      typeof payload.error.message === "string"
+    ) {
+      return payload.error.message;
     }
 
     if ("message" in payload && typeof payload.message === "string") {
