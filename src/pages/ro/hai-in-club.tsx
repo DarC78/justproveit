@@ -1,15 +1,17 @@
 import Head from "next/head";
 import Link from "next/link";
+import { useState } from "react";
 
 const SITE_URL = "https://www.justproveit.co.uk";
 const PAGE_PATH = "/ro/hai-in-club";
 const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
 const CALENDLY_URL = "https://calendly.com/proveitweb/verificare-sa-nu-pierdeti-bani";
+const CLUB_CHECKOUT_API_URL =
+  "https://launchingstack-func-dev.azurewebsites.net/api/justproveit/money-check/club/checkout-session";
 const CONTACT_EMAIL = "adriandefta@proveitweb.co.uk";
 const FULL_PRICE = "£297";
 const MONTHLY_PRICE = "£99";
-const FULL_JOIN_URL = `mailto:${CONTACT_EMAIL}?subject=Hai%20in%20Club%20-%20%C2%A3297`;
-const MONTHLY_JOIN_URL = `mailto:${CONTACT_EMAIL}?subject=Hai%20in%20Club%20-%203%20rate%20lunare`;
+const INSTALLMENTS_API_PLAN = "monthly-99x3-trial";
 
 const CLUB_CHECKS = [
   "MF02 - Marriage Allowance",
@@ -262,34 +264,100 @@ export default function JoinClubPage() {
 }
 
 function ClubCtas({ className = "", stacked = false }: { className?: string; stacked?: boolean }) {
+  const [loadingPlan, setLoadingPlan] = useState("");
+  const [checkoutError, setCheckoutError] = useState("");
   const containerClass = stacked
     ? "flex flex-col gap-3"
     : "flex flex-col gap-3 sm:flex-row sm:flex-wrap";
+  const isLoading = Boolean(loadingPlan);
+
+  async function startCheckout(apiPlan: "full" | typeof INSTALLMENTS_API_PLAN, displayPlan: "full" | "installments") {
+    setCheckoutError("");
+    setLoadingPlan(apiPlan);
+
+    try {
+      const pageUrl = typeof window !== "undefined" ? `${window.location.origin}${PAGE_PATH}` : CANONICAL;
+      const query = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : new URLSearchParams();
+      const response = await fetch(CLUB_CHECKOUT_API_URL, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          tenantKey: "justproveit",
+          plan: apiPlan,
+          source: "ro-hai-in-club",
+          pageUrl,
+          successUrl: `${pageUrl}?checkout=success&plan=${displayPlan}&session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${pageUrl}?checkout=cancelled&plan=${displayPlan}`,
+          leadId: query.get("leadId") || "",
+          reportId: query.get("reportId") || "",
+          reportToken: query.get("reportToken") || query.get("token") || "",
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok || !payload || typeof payload.url !== "string") {
+        throw new Error(readCheckoutError(payload, response.statusText));
+      }
+
+      window.location.assign(payload.url);
+    } catch (error) {
+      setCheckoutError(
+        error instanceof Error
+          ? error.message
+          : "Nu am putut deschide plata prin Stripe. Incearca din nou.",
+      );
+      setLoadingPlan("");
+    }
+  }
 
   return (
-    <div className={`${className} ${containerClass}`}>
-      <a
-        href={FULL_JOIN_URL}
-        className="inline-flex min-h-12 items-center justify-center rounded-md bg-emerald-600 px-5 text-center text-sm font-extrabold text-white shadow-sm hover:bg-emerald-500"
-      >
-        Hai in Club : {FULL_PRICE}
-      </a>
-      <a
-        href={MONTHLY_JOIN_URL}
-        className="inline-flex min-h-12 items-center justify-center rounded-md border border-emerald-200 bg-white px-5 text-center text-sm font-extrabold text-emerald-800 shadow-sm hover:bg-emerald-50"
-      >
-        Hai in Club: {MONTHLY_PRICE} * 3 luni
-      </a>
-      <a
-        href={CALENDLY_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex min-h-12 items-center justify-center rounded-md border border-slate-300 bg-white px-5 text-center text-sm font-extrabold text-slate-950 shadow-sm hover:bg-slate-100"
-      >
-        Programeaza un apel
-      </a>
+    <div className={className}>
+      <div className={containerClass}>
+        <button
+          type="button"
+          disabled={isLoading}
+          onClick={() => startCheckout("full", "full")}
+          className="inline-flex min-h-12 items-center justify-center rounded-md bg-emerald-600 px-5 text-center text-sm font-extrabold text-white shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-400"
+        >
+          {loadingPlan === "full" ? "Se deschide Stripe..." : `Hai in Club : ${FULL_PRICE}`}
+        </button>
+        <button
+          type="button"
+          disabled={isLoading}
+          onClick={() => startCheckout(INSTALLMENTS_API_PLAN, "installments")}
+          className="inline-flex min-h-12 items-center justify-center rounded-md border border-emerald-200 bg-white px-5 text-center text-sm font-extrabold text-emerald-800 shadow-sm hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-slate-300 disabled:bg-slate-100 disabled:text-slate-500"
+        >
+          {loadingPlan === INSTALLMENTS_API_PLAN ? "Se deschide Stripe..." : `Hai in Club: ${MONTHLY_PRICE} * 3 luni`}
+        </button>
+        <a
+          href={CALENDLY_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex min-h-12 items-center justify-center rounded-md border border-slate-300 bg-white px-5 text-center text-sm font-extrabold text-slate-950 shadow-sm hover:bg-slate-100"
+        >
+          Programeaza un apel
+        </a>
+      </div>
+      {checkoutError ? (
+        <p className="mt-3 max-w-xl rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold leading-6 text-red-800">
+          {checkoutError}
+        </p>
+      ) : null}
     </div>
   );
+}
+
+function readCheckoutError(payload: unknown, fallback: string) {
+  if (payload && typeof payload === "object") {
+    const error = "error" in payload ? payload.error : "message" in payload ? payload.message : null;
+    if (typeof error === "string" && error.trim()) {
+      return error;
+    }
+  }
+
+  return fallback || "Nu am putut deschide plata prin Stripe. Incearca din nou.";
 }
 
 function SectionTitle({ eyebrow, title }: { eyebrow: string; title: string }) {
