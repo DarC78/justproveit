@@ -1052,6 +1052,7 @@ function ResultPanel({
     (scenario) => scenario.type === "limita_varsta_standard",
   );
   const recommendedScenario = result.recommended;
+  const sortedScenarios = sortPensionScenariosForDisplay(result.scenarios);
 
   return (
     <section className="rounded-lg border border-emerald-200 bg-white p-5 shadow-sm">
@@ -1143,7 +1144,7 @@ function ResultPanel({
                 </tr>
               </thead>
               <tbody>
-                {result.scenarios.map((scenario) => (
+                {sortedScenarios.map((scenario) => (
                   <tr key={scenario.type} className="border-b border-slate-200 bg-white/70">
                     <td className="px-3 py-2 font-semibold">{scenario.label}</td>
                     <td className="px-3 py-2">{formatScenarioAge(scenario)}</td>
@@ -1293,6 +1294,48 @@ function formatBreakdownClassification(classification?: string) {
   }
 }
 
+function sortPensionScenariosForDisplay(
+  scenarios: PensionCalculatorResponse["result"]["scenarios"],
+) {
+  return scenarios
+    .map((scenario, index) => ({ scenario, index }))
+    .sort((left, right) => {
+      const leftRank = getScenarioChronologyRank(left.scenario);
+      const rightRank = getScenarioChronologyRank(right.scenario);
+
+      if (leftRank !== rightRank) {
+        return leftRank - rightRank;
+      }
+
+      return left.index - right.index;
+    })
+    .map(({ scenario }) => scenario);
+}
+
+function getScenarioChronologyRank(
+  scenario: PensionCalculatorResponse["result"]["scenarios"][number],
+) {
+  if (scenario.notApplicable) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  const dateRank = parseYearMonthRank(scenario.retirementDate);
+  if (dateRank !== null) {
+    return dateRank;
+  }
+
+  return Number.POSITIVE_INFINITY;
+}
+
+function parseYearMonthRank(value: string) {
+  const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(value.trim());
+  if (!match) {
+    return null;
+  }
+
+  return Number(match[1]) * 12 + Number(match[2]);
+}
+
 function formatAge(age: AgeYM) {
   if (age.months === 0) {
     return `${age.years} ani`;
@@ -1324,7 +1367,7 @@ function formatScenarioAge(
 function formatScenarioDate(
   scenario: PensionCalculatorResponse["result"]["scenarios"][number],
 ) {
-  return scenario.notApplicable ? "N/A" : scenario.retirementDate;
+  return scenario.notApplicable || !scenario.retirementDate ? "N/A" : scenario.retirementDate;
 }
 
 function isOnlyAgePending(
