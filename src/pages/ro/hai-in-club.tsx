@@ -5,6 +5,11 @@ const SITE_URL = "https://www.justproveit.co.uk";
 const PAGE_PATH = "/ro/hai-in-club";
 const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
 const CALENDLY_URL = "https://calendly.com/proveitweb/verificare-sa-nu-pierdeti-bani";
+const CONTACT_EMAIL = "adriandefta@proveitweb.co.uk";
+const FULL_PRICE = "£297";
+const MONTHLY_PRICE = "£99";
+const FULL_JOIN_URL = `mailto:${CONTACT_EMAIL}?subject=Hai%20in%20Club%20-%20%C2%A3297`;
+const MONTHLY_JOIN_URL = `mailto:${CONTACT_EMAIL}?subject=Hai%20in%20Club%20-%203%20rate%20lunare`;
 
 const CLUB_CHECKS = [
   "MF02 - Marriage Allowance",
@@ -29,6 +34,29 @@ const CLUB_CHECKS = [
   "AA02 - Mosteniri sau proprietati in Romania",
 ];
 
+const FOCUS_AREAS = [
+  {
+    title: "Bank account switching",
+    text:
+      "Plan practic pentru bonusurile de la banci, cu tinta de pana la aproximativ £1,000 in cateva luni, in functie de ofertele active si eligibilitate.",
+  },
+  {
+    title: "Pensii private pierdute",
+    text:
+      "Verifici pensiile ramase la fosti angajatori si inveti cum sa pornesti cautarea lor fara sa te pierzi in formulare.",
+  },
+  {
+    title: "Council Tax band",
+    text:
+      "Intelegi daca merita verificata banda de council tax si ce pasi trebuie urmati ca sa ceri revizuirea.",
+  },
+  {
+    title: "Masina cu plata in rate",
+    text:
+      "Primul pas pentru verificarea unui posibil caz de car finance mis-selling si demararea procesului de recuperare.",
+  },
+];
+
 export default function JoinClubPage() {
   return (
     <>
@@ -36,7 +64,7 @@ export default function JoinClubPage() {
         <title>Clubul Aici Sunt Banii Dumneavoastra | JustProveIt</title>
         <meta
           name="description"
-          content="Serviciul complet JustProveIt pentru romanii din UK care vor sa verifice taxele, creditul, pensiile, facturile si banii neaccesati."
+          content="Clubul JustProveIt pentru romanii din UK: 26 de verificari, explicatii video pas cu pas, intalniri saptamanale si suport WhatsApp/email."
         />
         <link rel="canonical" href={CANONICAL} />
         <meta httpEquiv="content-language" content="ro-GB" />
@@ -76,59 +104,105 @@ export default function JoinClubPage() {
               <div className="mt-5 max-w-3xl space-y-4 text-lg leading-8 text-slate-100">
                 <p>
                   Intră într-un program în care verificam sa nu pierzi bani si iti aratam cum sa accesezi banii tai.
-                  Intalniri saptamanale in care poti intreba orice. Grup de suport whatsapp si email in care iti
-                  raspundem la orice intrebare ai avea!
+                  Primesti 26 de verificari, explicatii clare si video-uri in care vezi pas cu pas cum sa rezolvi
+                  problema respectiva, nu doar cum sa afli ca exista.
                 </p>
                 <p>
-                  Apasa butonul &quot;programeaza discutie&quot; si unul din operatori te va suna sa iti spuna mai multe
-                  detalii.
+                  Ai intalniri saptamanale in care poti intreba orice, grup special de suport pe WhatsApp si email la
+                  care poti cere raspunsuri despre bani, acte, servicii si viata de zi cu zi in UK.
                 </p>
               </div>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <a
-                  href={CALENDLY_URL}
-                  className="inline-flex h-12 items-center justify-center rounded-md bg-emerald-600 px-5 text-sm font-extrabold text-white shadow-sm hover:bg-emerald-500"
-                >
-                  Programeaza discutie
-                </a>
-                <a
-                  href="#verificari"
-                  className="inline-flex h-12 items-center justify-center rounded-md border border-white/50 px-5 text-sm font-extrabold text-white hover:bg-white/10"
-                >
-                  Vezi cele 20 de verificari
-                </a>
-              </div>
+              <ClubCtas className="mt-7" />
             </div>
           </section>
 
           <section className="border-b border-slate-200 bg-white">
-            <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 md:grid-cols-3">
-              <Metric value="20" label="verificări financiare extinse" />
-              <Metric value="90 de zile" label="întrebări și clarificări" />
-              <Metric value="RO" label="explicații simple, în română" />
+            <div className="mx-auto grid max-w-6xl gap-4 px-4 py-6 md:grid-cols-4">
+              <Metric value="26" label="verificari + solutii pas cu pas" />
+              <Metric value="Video" label="ghiduri clare pentru fiecare problema" />
+              <Metric value="Saptamanal" label="intalniri unde poti intreba orice" />
+              <Metric value="Suport" label="WhatsApp si email pentru viata in UK" />
             </div>
           </section>
 
           <section className="mx-auto max-w-6xl px-4 py-12">
-            <SectionTitle eyebrow="Ce primesti" title="Un plan clar pentru banii pe care ii poti recupera sau opri din pierdere" />
-            <div className="mt-6 grid gap-4 md:grid-cols-3">
-              <Feature title="Verificări ghidate">
-                Luăm fiecare zonă pe rând și îți arătăm unde merită să verifici mai departe, fără să îți cerem parole
-                sau date bancare.
+            <SectionTitle
+              eyebrow="Ce primesti"
+              title="26 de verificari, explicatii si ajutor practic ca sa treci la actiune"
+            />
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <Feature title="26 de verificari complete">
+                Verificam zonele unde poti pierde bani in UK: taxe, credit, pensii private, council tax, facturi,
+                conturi uitate, beneficii neaccesate si posibile recuperari din car finance.
               </Feature>
-              <Feature title="Pași concreți">
-                Primești explicații simple despre ce conturi, instituții sau documente trebuie verificate pentru cazul
-                tău.
+              <Feature title="Video-uri pas cu pas">
+                Pentru fiecare verificare nu ramai doar cu un diagnostic. Primesti explicatii si video-uri care iti
+                arata ce pagina sa deschizi, ce date sa cauti si ce urmator pas sa faci.
               </Feature>
-              <Feature title="Follow-up în română">
-                După verificarea inițială, poți reveni cu întrebări ca să nu rămâi blocat la jumătatea drumului.
+              <Feature title="Focus pe bani care se pot misca repede">
+                Punem accent pe bank account switching, unde multe persoane pot strange bonusuri de pana la aproximativ
+                £1,000 in cateva luni daca indeplinesc conditiile bancilor.
               </Feature>
+              <Feature title="Pensii private pierdute">
+                Iti aratam cum sa cauti pensiile de la fosti angajatori, ce informatii iti trebuie si cum sa nu lasi
+                bani uitati in sisteme pe care nu le-ai mai verificat de ani de zile.
+              </Feature>
+              <Feature title="Council Tax si car finance">
+                Ai ghidaj pentru verificarea benzii de council tax si pentru primul pas in demararea verificarii unei
+                masini luate cu plata in rate, daca exista risc de recuperare.
+              </Feature>
+              <Feature title="Suport pentru viata in UK">
+                Ai intalniri saptamanale, grup WhatsApp si email unde poti intreba despre facturi, banci, formulare,
+                institutii, scrisori primite, pasi urmatori si lucruri pe care altfel le-ai amana sau le-ai face gresit.
+              </Feature>
+            </div>
+            <div className="mt-8 border-t border-slate-200 pt-8">
+              <h3 className="text-xl font-extrabold tracking-normal text-slate-950">Unde punem accentul la inceput</h3>
+              <div className="mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                {FOCUS_AREAS.map((area) => (
+                  <article key={area.title} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                    <h4 className="text-base font-extrabold text-slate-950">{area.title}</h4>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">{area.text}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          <section className="border-y border-slate-200 bg-slate-950 text-white">
+            <div className="mx-auto grid max-w-6xl gap-8 px-4 py-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.55fr)]">
+              <div>
+                <p className="text-sm font-extrabold uppercase tracking-[0.14em] text-emerald-200">Pret</p>
+                <h2 className="mt-2 text-3xl font-extrabold tracking-normal">Intri in club cu {FULL_PRICE}</h2>
+                <p className="mt-4 max-w-3xl text-base leading-8 text-slate-200">
+                  Plata se poate face integral sau in 3 rate lunare fara dobanda. Varianta in rate este {MONTHLY_PRICE}
+                  /luna timp de 3 luni, ca sa poti incepe verificarea fara sa blochezi tot bugetul din prima zi.
+                </p>
+              </div>
+              <div className="rounded-lg border border-white/15 bg-white/10 p-6">
+                <p className="text-sm font-bold uppercase tracking-wide text-emerald-200">Oferta completa</p>
+                <p className="mt-3 text-5xl font-extrabold tracking-normal">{FULL_PRICE}</p>
+                <p className="mt-2 text-sm font-semibold text-slate-200">sau {MONTHLY_PRICE}/luna timp de 3 luni</p>
+                <ClubCtas className="mt-6" stacked />
+              </div>
             </div>
           </section>
 
           <section id="verificari" className="border-y border-slate-200 bg-slate-50">
             <div className="mx-auto max-w-6xl px-4 py-12">
               <SectionTitle eyebrow="Lista completa" title="Cele 20 de verificari din club" />
+              <div className="mt-4 max-w-4xl space-y-3 text-base leading-8 text-slate-700">
+                <p>
+                  Acestea vin peste cele 6 verificari din raportul gratuit. Pentru fiecare zona primesti nu doar lista
+                  de verificat, ci si explicatii clare si video-uri pas cu pas despre cum accesezi beneficiul sau cum
+                  pornesti procesul.
+                </p>
+                <p>
+                  Daca te blochezi, intrebi in intalnirile saptamanale, in grupul special de WhatsApp sau pe email.
+                  Scopul este sa nu ramai singur cu formulare, termene, scrisori, conturi online sau decizii pe care nu
+                  stii cum sa le interpretezi.
+                </p>
+              </div>
               <div className="mt-6 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
                 {CLUB_CHECKS.map((check) => (
                   <div key={check} className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
@@ -141,15 +215,17 @@ export default function JoinClubPage() {
 
           <section className="mx-auto grid max-w-6xl gap-8 px-4 py-12 lg:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.55fr)]">
             <div>
-              <SectionTitle eyebrow="Pentru cine este" title="Pentru romanii din UK care vor sa nu lase bani pe masa" />
+              <SectionTitle eyebrow="Pentru cine este" title="Pentru romanii din UK care vor sprijin real, nu doar informatii" />
               <div className="mt-5 space-y-4 text-base leading-8 text-slate-700">
                 <p>
-                  Clubul este pentru oameni care au muncit în UK, au schimbat joburi, au avut credite, au trimis bani
-                  în România, au plătit facturi ani la rând sau au contribuții de pensie pe care nu le-au mai verificat.
+                  Clubul este pentru oameni care au muncit in UK, au schimbat joburi, au avut credite, au trimis bani
+                  in Romania, au platit facturi ani la rand sau au contributii de pensie pe care nu le-au mai verificat.
                 </p>
                 <p>
-                  Unele verificări pot duce la recuperări directe. Altele te ajută să oprești pierderi lunare sau să
-                  găsești bani și drepturi care există deja, dar nu sunt accesate.
+                  Sprijinul conteaza mai ales cand nu stii ce inseamna o scrisoare, ce formular trebuie completat, ce
+                  institutie trebuie contactata sau ce termen nu trebuie ratat. Cu un ghid langa tine, eviti amanari,
+                  greseli costisitoare, plati lunare inutile si situatii in care renunti doar pentru ca procesul pare
+                  complicat.
                 </p>
               </div>
             </div>
@@ -157,21 +233,10 @@ export default function JoinClubPage() {
             <aside id="inscriere" className="rounded-lg border border-emerald-200 bg-emerald-50 p-6">
               <h2 className="text-2xl font-extrabold tracking-normal">Hai in club</h2>
               <p className="mt-3 text-sm leading-7 text-slate-700">
-                Începem cu situația ta, identificăm verificările relevante și stabilim ce pași merită făcuți imediat.
-                Textul și oferta vor fi ajustate, dar pagina este pregătită pentru serviciul complet.
+                Alege plata integrala, plata in 3 rate fara dobanda sau programeaza un apel daca vrei sa iti explice
+                cineva ce include clubul si cum poti incepe.
               </p>
-              <a
-                href={CALENDLY_URL}
-                className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-md bg-slate-950 px-5 text-sm font-extrabold text-white hover:bg-slate-800"
-              >
-                Programeaza discutie
-              </a>
-              <a
-                href="mailto:adriandefta@proveitweb.co.uk?subject=Clubul%20Aici%20Sunt%20Banii%20Dumneavoastra"
-                className="mt-3 inline-flex h-12 w-full items-center justify-center rounded-md border border-slate-300 bg-white px-5 text-sm font-extrabold text-slate-950 hover:bg-slate-100"
-              >
-                Trimite email
-              </a>
+              <ClubCtas className="mt-5" stacked />
             </aside>
           </section>
         </main>
@@ -187,12 +252,43 @@ export default function JoinClubPage() {
             <div>
               <strong className="text-slate-950">Contact</strong>
               <p className="mt-2">+44 7447 707829</p>
-              <p>adriandefta@proveitweb.co.uk</p>
+              <p>{CONTACT_EMAIL}</p>
             </div>
           </div>
         </footer>
       </div>
     </>
+  );
+}
+
+function ClubCtas({ className = "", stacked = false }: { className?: string; stacked?: boolean }) {
+  const containerClass = stacked
+    ? "flex flex-col gap-3"
+    : "flex flex-col gap-3 sm:flex-row sm:flex-wrap";
+
+  return (
+    <div className={`${className} ${containerClass}`}>
+      <a
+        href={FULL_JOIN_URL}
+        className="inline-flex min-h-12 items-center justify-center rounded-md bg-emerald-600 px-5 text-center text-sm font-extrabold text-white shadow-sm hover:bg-emerald-500"
+      >
+        Hai in Club : {FULL_PRICE}
+      </a>
+      <a
+        href={MONTHLY_JOIN_URL}
+        className="inline-flex min-h-12 items-center justify-center rounded-md border border-emerald-200 bg-white px-5 text-center text-sm font-extrabold text-emerald-800 shadow-sm hover:bg-emerald-50"
+      >
+        Hai in Club: {MONTHLY_PRICE} * 3 luni
+      </a>
+      <a
+        href={CALENDLY_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex min-h-12 items-center justify-center rounded-md border border-slate-300 bg-white px-5 text-center text-sm font-extrabold text-slate-950 shadow-sm hover:bg-slate-100"
+      >
+        Programeaza un apel
+      </a>
+    </div>
   );
 }
 
