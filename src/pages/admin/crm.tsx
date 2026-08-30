@@ -5546,7 +5546,7 @@ function buildObservationHistory(previousObservation?: string | null, currentObs
 
   const timestamp = formatDateTime(new Date().toISOString()) || new Date().toISOString();
   const entry = `${timestamp} - ${current}`;
-  return previous ? `${previous}\n${entry}` : entry;
+  return previous ? `${entry}\n${previous}` : entry;
 }
 
 function getInboundSmsId(sms?: CrmInboundSms | null) {
