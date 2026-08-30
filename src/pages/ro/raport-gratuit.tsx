@@ -24,6 +24,8 @@ const SITE_URL = "https://www.justproveit.co.uk";
 const PAGE_PATH = "/ro/raport-gratuit";
 const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
 const STANDARD_TAX_CODE = "1257L";
+const MONEY_CHECK_CALENDLY_URL = "https://calendly.com/proveitweb/verificare-sa-nu-pierdeti-bani";
+const INTERNAL_DRAFT_STORAGE_KEY = "justproveit:money-check:internal-draft";
 
 const initialAnswers: QuickReportAnswers = {
   multipleJobs: "",
@@ -68,6 +70,13 @@ type SavedQuickReportReference = {
   phone: string;
 };
 
+type InternalDraftRecord = {
+  contact: ContactForm;
+  internalAnswers: QuickReportInternalAnswers;
+  savedReport: SavedQuickReportReference | null;
+  updatedAt: string;
+};
+
 const initialContact: ContactForm = {
   fullName: "",
   email: "",
@@ -86,11 +95,26 @@ export default function FreeQuickReportPage() {
   const [message, setMessage] = useState("");
   const [internalStatus, setInternalStatus] = useState<"success" | "error" | "">("");
   const [internalMessage, setInternalMessage] = useState("");
+  const [internalDraftHydrated, setInternalDraftHydrated] = useState(false);
+  const [internalDraftNotice, setInternalDraftNotice] = useState("");
+  const [lastSavedInternalDraftSignature, setLastSavedInternalDraftSignature] = useState("");
+  const [calendlyFallbackUrl, setCalendlyFallbackUrl] = useState("");
   const sending = sendingAction !== "";
   const results = useMemo(() => evaluateQuickReport(answers), [answers]);
   const completion = useMemo(() => getQuickReportCompletion(results), [results]);
   const internalCompletion = useMemo(() => getInternalAnswersCompletion(internalAnswers), [internalAnswers]);
   const counts = useMemo(() => getQuickReportFlagCounts(results), [results]);
+  const internalDraftSignature = useMemo(
+    () => buildInternalDraftSignature(contact, internalAnswers),
+    [contact, internalAnswers],
+  );
+  const hasUnsavedInternalAnswers =
+    internalDraftHydrated &&
+    hasAnyInternalAnswers(internalAnswers) &&
+    internalDraftSignature !== lastSavedInternalDraftSignature;
+  const agentDisplayName = user?.name || user?.email || "[Nume]";
+  const clientDisplayName = contact.fullName.trim() || "<X>";
+  const clientEmailDisplay = contact.email.trim() || "<adresa>";
 
   const jsonLd = useMemo(
     () => ({
@@ -115,17 +139,47 @@ export default function FreeQuickReportPage() {
     const fullName = getFirstQueryValue(params, ["MCC_FULLNAME", "name", "fullName", "nume"]);
     const email = getFirstQueryValue(params, ["MCC_EMAIL", "email"]);
     const phone = getFirstQueryValue(params, ["MCC_ANI", "phone", "telefon", "tel"]);
+    const queryContact = {
+      fullName,
+      email,
+      phone,
+    };
+    const storedDraft = readStoredInternalDraft();
+    const hasQueryContact = hasAnyContactDetails(queryContact);
 
-    if (!fullName && !email && !phone) {
-      return;
+    if (storedDraft) {
+      if (!hasQueryContact || contactsReferToSameClient(queryContact, storedDraft.contact)) {
+        setContact({
+          fullName: fullName || storedDraft.contact.fullName,
+          email: email || storedDraft.contact.email,
+          phone: phone || storedDraft.contact.phone,
+        });
+        setInternalAnswers(storedDraft.internalAnswers);
+        setSavedReport(storedDraft.savedReport);
+        setInternalDraftNotice(
+          `Am reincarcat informatii interne nesalvate pentru ${formatDraftContact(storedDraft.contact)}.`,
+        );
+        setInternalDraftHydrated(true);
+        return;
+      }
+
+      setInternalDraftNotice(
+        `Atentie: exista informatii interne nesalvate pentru ${formatDraftContact(
+          storedDraft.contact,
+        )}, de la ${formatDraftDate(storedDraft.updatedAt)}. Salvati-le inainte de urmatorul apel.`,
+      );
     }
 
-    setContact((current) => ({
-      ...current,
-      fullName: fullName || current.fullName,
-      email: email || current.email,
-      phone: phone || current.phone,
-    }));
+    if (hasQueryContact) {
+      setContact((current) => ({
+        ...current,
+        fullName: fullName || current.fullName,
+        email: email || current.email,
+        phone: phone || current.phone,
+      }));
+    }
+
+    setInternalDraftHydrated(true);
   }, []);
 
   useEffect(() => {
@@ -140,6 +194,37 @@ export default function FreeQuickReportPage() {
     );
     router.replace(`/login?next=${next}`);
   }, [authStatus, router]);
+
+  useEffect(() => {
+    if (!internalDraftHydrated) {
+      return;
+    }
+
+    if (hasUnsavedInternalAnswers) {
+      writeStoredInternalDraft({
+        contact,
+        internalAnswers,
+        savedReport,
+        updatedAt: new Date().toISOString(),
+      });
+    } else if (hasAnyInternalAnswers(internalAnswers)) {
+      clearStoredInternalDraft();
+    }
+  }, [contact, hasUnsavedInternalAnswers, internalAnswers, internalDraftHydrated, savedReport]);
+
+  useEffect(() => {
+    if (!hasUnsavedInternalAnswers) {
+      return;
+    }
+
+    function handleBeforeUnload(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedInternalAnswers]);
 
   async function handleLogout() {
     await logout();
@@ -249,6 +334,7 @@ export default function FreeQuickReportPage() {
   async function handleSaveInternalAnswers() {
     setInternalStatus("");
     setInternalMessage("");
+    setCalendlyFallbackUrl("");
 
     const contactDetails = validateContactAndAccess();
     if (!contactDetails) {
@@ -279,6 +365,7 @@ export default function FreeQuickReportPage() {
       return;
     }
 
+    const calendlyWindow = openPendingCalendlyWindow();
     const completedResults = results.filter(
       (result): result is QuickReportResult & { flag: QuickReportFlag } => result.flag !== "necompletat",
     );
@@ -321,9 +408,26 @@ export default function FreeQuickReportPage() {
           ? " Observatia agent a fost salvata in Observatii lead."
           : ""
         : ` Observatia agent nu a fost salvata: ${observationFallback.message}`;
+      const calendlyUrl = buildCalendlyUrl(contactDetails);
+      const calendlyOpened = openCalendlyBooking(calendlyUrl, calendlyWindow);
+      if (!calendlyOpened) {
+        setCalendlyFallbackUrl(calendlyUrl);
+      }
+      if (observationFallback.saved) {
+        setLastSavedInternalDraftSignature(internalDraftSignature);
+        setInternalDraftNotice("");
+        clearStoredInternalDraft();
+      }
       setInternalStatus("success");
-      setInternalMessage(`${response.message || "Informatiile interne au fost salvate in CRM."}${fallbackMessage}`);
+      setInternalMessage(
+        `${response.message || "Informatiile interne au fost salvate in CRM."}${fallbackMessage}${
+          calendlyOpened
+            ? " Calendly se deschide pentru programare."
+            : " Browserul a blocat fereastra Calendly. Folositi linkul de mai jos."
+        }`,
+      );
     } catch (error) {
+      closePendingCalendlyWindow(calendlyWindow);
       setInternalStatus("error");
       const errorMessage = error instanceof Error ? error.message : "Informatiile interne nu au putut fi salvate.";
       setInternalMessage(`Salvare Informatii interne CRM: ${errorMessage}`);
@@ -347,6 +451,7 @@ export default function FreeQuickReportPage() {
     setInternalAnswers((current) => ({ ...current, [key]: value }));
     setInternalStatus("");
     setInternalMessage("");
+    setCalendlyFallbackUrl("");
   }
 
   if (authStatus === "loading" || authStatus === "anonymous") {
@@ -426,6 +531,8 @@ export default function FreeQuickReportPage() {
               <TextInput label="Email" type="email" value={contact.email} onChange={(value) => updateContact("email", value)} />
               <TextInput label="Telefon" type="tel" value={contact.phone} onChange={(value) => updateContact("phone", value)} />
             </fieldset>
+
+            <AgentOpeningScript agentName={agentDisplayName} clientName={clientDisplayName} />
 
             <fieldset className="space-y-4">
               <legend className="mb-2 text-base font-bold">Faza 0 - verificari rapide</legend>
@@ -519,6 +626,7 @@ export default function FreeQuickReportPage() {
             </fieldset>
 
             <div className="flex flex-col items-start gap-3 border-t border-slate-200 pt-4">
+              <AgentReportSendScript email={clientEmailDisplay} />
               <button
                 type="button"
                 onClick={handleSendFaza0Report}
@@ -535,6 +643,15 @@ export default function FreeQuickReportPage() {
               <p className="text-sm leading-6 text-slate-600">
                 Aceste raspunsuri se salveaza doar in CRM si nu apar in raportul trimis clientului.
               </p>
+              <ScriptCallout title="Script trecere catre Club">
+                <p>
+                  Va spuneam ca aceste prime 6 verificari gratuite fac parte dintr-un program mai mare, numit Clubul
+                  Aici Sunt Banii Dumneavoastra. Dl. Adrian Defta conduce acest club si ofera o discutie gratuita,
+                  similara cu cea pe care am avut-o noi, astfel incat sa descopere si alte posibilitati ca
+                  dumneavoastra sa nu pierdeti bani in UK. Pot sa va mai adresez cateva intrebari sa vedem daca va
+                  calificati pentru acea discutie gratuita?
+                </p>
+              </ScriptCallout>
 
               <CheckFields title="1 - Munca in UK si pensii private">
                 <SelectInput
@@ -609,15 +726,36 @@ export default function FreeQuickReportPage() {
             </fieldset>
 
             <div className="flex flex-col items-start gap-3 border-t border-slate-200 pt-4">
+              <AgentScheduleScript />
+              {hasUnsavedInternalAnswers ? (
+                <p className="w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold leading-6 text-amber-900">
+                  Aveti informatii interne nesalvate. Inainte sa treceti la urmatorul apel, apasati Programeaza apel.
+                </p>
+              ) : null}
+              {internalDraftNotice ? (
+                <p className="w-full rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold leading-6 text-amber-900">
+                  {internalDraftNotice}
+                </p>
+              ) : null}
               <button
                 type="button"
                 onClick={handleSaveInternalAnswers}
                 disabled={sending}
                 className="inline-flex w-full items-center justify-center rounded-md bg-emerald-700 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400 md:w-auto"
               >
-                {sendingAction === "internal" ? "Salvez in CRM..." : "Salveaza informatiile in CRM"}
+                {sendingAction === "internal" ? "Salvez si deschid Calendly..." : "Programeaza apel"}
               </button>
               {internalMessage ? <StatusMessage status={internalStatus} message={internalMessage} /> : null}
+              {calendlyFallbackUrl ? (
+                <a
+                  href={calendlyFallbackUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center justify-center rounded-md border border-emerald-200 bg-white px-4 text-sm font-bold text-emerald-800 hover:bg-emerald-50"
+                >
+                  Deschide Calendly manual
+                </a>
+              ) : null}
             </div>
           </div>
 
@@ -676,6 +814,16 @@ export default function FreeQuickReportPage() {
                   Trimite Raportul Gratuit inainte de salvarea informatiilor interne.
                 </p>
               )}
+              {hasUnsavedInternalAnswers ? (
+                <p className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-900">
+                  Informatii interne nesalvate. Apasati Programeaza apel inainte de urmatorul apel.
+                </p>
+              ) : null}
+              <div className="mt-4 space-y-3">
+                {INTERNAL_AGENT_TALK_TRACK.map((item) => (
+                  <InternalTalkTrackItem key={item.title} title={item.title} text={item.text} />
+                ))}
+              </div>
             </section>
           </aside>
         </main>
@@ -702,6 +850,124 @@ const creditScoreOptions = [
   { value: "medium", label: "Mediu" },
   { value: "high", label: "Mare" },
 ];
+
+const INTERNAL_AGENT_TALK_TRACK = [
+  {
+    title: "1 - Munca in UK si pensii private",
+    text:
+      "Va intreb pentru ca fiecare angajator va inscrie de obicei intr-un fond de pensie privata. Cand schimbati jobul, este foarte usor sa pierdeti urma acestor pensii si sa lasati bani pe care ii aveti deja stransi.",
+  },
+  {
+    title: "2 - Masina cu plata in rate",
+    text:
+      "Aceasta verificare conteaza pentru ca multe contracte auto cu plata in rate pot avea dobanzi sau comisioane care merita verificate. Daca masina a fost luata inainte de Noiembrie 2024, poate exista o sansa de recuperare.",
+  },
+  {
+    title: "3 - Datorii pe carduri sau overdraft",
+    text:
+      "Va intreb pentru ca datoriile pe carduri, overdraft sau payday loans pot costa foarte mult lunar. Uneori exista variante mai bune de organizare, reducere a costurilor sau verificare daca imprumutul a fost acordat corect.",
+  },
+  {
+    title: "4 - Banda de taxa de consiliu",
+    text:
+      "Unele proprietati sunt incadrate gresit la council tax si oamenii platesc prea mult ani la rand. Daca banda este gresita, se poate cere verificare si uneori se pot recupera bani platiti in plus.",
+  },
+  {
+    title: "5 - Scor de credit",
+    text:
+      "Scorul de credit influenteaza chirii, carduri, imprumuturi, dobanzi si uneori chiar accesul la servicii. O eroare mica in raport poate costa mult in timp, asa ca merita verificat periodic.",
+  },
+];
+
+function AgentOpeningScript({ agentName, clientName }: { agentName: string; clientName: string }) {
+  return (
+    <ScriptCallout title="AGENT - script inceput apel">
+      <div className="space-y-4">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Versiunea scurta</p>
+          <p>
+            Buna ziua, dl./dna. {clientName}! Sunt {agentName}, din partea Proveit. Noi ajutam comunitatea de romani
+            din UK sa isi apere drepturile financiare impotriva firmelor. V-ati lasat numarul de telefon mai demult la
+            noi iar acum lansam un serviciu nou care va poate aduce mii de lire. Saptamana asta va oferim o mostra
+            total gratuita. Aveti acum 5-10 minute?
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-wide text-slate-500">Versiunea lunga</p>
+          <p>
+            Buna ziua, dl./dna. {clientName}! Sunt {agentName}, din partea Proveit. Noi ajutam comunitatea de romani
+            din UK sa isi apere drepturile financiare impotriva firmelor. V-ati lasat numarul de telefon mai demult la
+            noi iar acum lansam un serviciu nou care va poate aduce mii de lire. Prin urmare saptamana asta va oferim o
+            mostra total gratuita. Facem 6 verificari sa vedem daca exista bani la care aveti dreptul si nu ii
+            accesati. Aveti acum 5-10 minute sa facem aceste verificari? Nu avem nevoie de date personale.
+          </p>
+        </div>
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-900">
+          <p className="text-xs font-extrabold uppercase tracking-wide">Obligatoriu - nu se modifica substanta</p>
+          <p className="mt-2 italic">
+            Inainte sa continuam, o formalitate scurta: sunt {agentName} si reprezint Proveit, firma inregistrata in
+            Marea Britanie cu numarul 14007642. Apelul este inregistrat. Pot sa continui?
+          </p>
+        </div>
+        <p>
+          Ca sa va ajut cat mai exact, va pun cateva intrebari scurte, fara date personale, notez raspunsurile si, la
+          final, va trimit tot raportul pe email, structurat clar.
+        </p>
+      </div>
+    </ScriptCallout>
+  );
+}
+
+function AgentReportSendScript({ email }: { email: string }) {
+  return (
+    <ScriptCallout title="Script trimitere raport">
+      <div className="space-y-3">
+        <p>
+          Perfect, asta a fost tot - 6 verificari, facute chiar acum, la telefon. Va trimit imediat raportul pe email,
+          cu tot ce am gasit, scris clar. Am in sistem adresa: {email}. E OK?
+        </p>
+        <p className="font-bold">[trimite email]</p>
+        <p>OK. L-am trimis. L-ati primit? Verificati si la spam daca nu apare in 30 de secunde.</p>
+        <p>
+          Bun. Aveti acolo toate verificarile, inclusiv link-uri la cele 5 banci care va platesc acum bani. Puteti sa
+          vedeti link-urile? Aveti acolo tot ce va trebuie pentru a nu pierde bani.
+        </p>
+        <p>Spuneti-mi daca sunt intrebari.</p>
+        <p className="italic">&lt;asteptam sa vedem ce intrebari au si le raspundem&gt;</p>
+      </div>
+    </ScriptCallout>
+  );
+}
+
+function AgentScheduleScript() {
+  return (
+    <ScriptCallout title="Script programare apel">
+      <p>
+        Perfect. Va calificati pentru o programare cu dl. Adrian Defta pentru a aprofunda aceste subiecte. Este un apel
+        gratuit, dureaza aproximativ 15 minute. Puteti sa intrebati orice in legatura cu aceste probleme, si in general
+        despre orice probleme aveti in UK. Cand sa va fac aceasta programare? Urmatoarea data disponibila este...
+      </p>
+    </ScriptCallout>
+  );
+}
+
+function ScriptCallout({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-700">
+      <h2 className="text-sm font-extrabold text-slate-950">{title}</h2>
+      <div className="mt-3">{children}</div>
+    </div>
+  );
+}
+
+function InternalTalkTrackItem({ title, text }: { title: string; text: string }) {
+  return (
+    <article className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+      <h3 className="text-sm font-extrabold text-slate-950">{title}</h3>
+      <p className="mt-2 text-sm leading-6 text-slate-700">{text}</p>
+    </article>
+  );
+}
 
 function StatusMessage({
   status,
@@ -863,6 +1129,197 @@ function getFirstQueryValue(params: URLSearchParams, keys: string[]) {
   }
 
   return "";
+}
+
+function hasAnyContactDetails(contact: ContactForm) {
+  return Boolean(contact.fullName.trim() || contact.email.trim() || contact.phone.trim());
+}
+
+function normalizePhone(value: string) {
+  return value.replace(/\D/g, "");
+}
+
+function contactsReferToSameClient(first: ContactForm, second: ContactForm) {
+  const firstPhone = normalizePhone(first.phone);
+  const secondPhone = normalizePhone(second.phone);
+  if (firstPhone && secondPhone && firstPhone === secondPhone) {
+    return true;
+  }
+
+  const firstEmail = first.email.trim().toLowerCase();
+  const secondEmail = second.email.trim().toLowerCase();
+  return Boolean(firstEmail && secondEmail && firstEmail === secondEmail);
+}
+
+function formatDraftContact(contact: ContactForm) {
+  return contact.fullName.trim() || contact.email.trim() || contact.phone.trim() || "un client fara nume";
+}
+
+function formatDraftDate(value: string) {
+  if (!value) {
+    return "o data necunoscuta";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "o data necunoscuta";
+  }
+
+  return date.toLocaleString("ro-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function hasAnyInternalAnswers(answers: QuickReportInternalAnswers) {
+  return Object.values(answers).some((value) => String(value || "").trim());
+}
+
+function buildInternalDraftSignature(contact: ContactForm, answers: QuickReportInternalAnswers) {
+  return JSON.stringify({
+    contact: {
+      fullName: contact.fullName.trim(),
+      email: contact.email.trim().toLowerCase(),
+      phone: normalizePhone(contact.phone),
+    },
+    answers: {
+      ukEmploymentType: answers.ukEmploymentType,
+      knowsAllPrivatePensions: answers.knowsAllPrivatePensions,
+      hadCarFinanceBeforeNov2024: answers.hadCarFinanceBeforeNov2024,
+      hasCreditCardOverdraftOrPaydayLoansDebt: answers.hasCreditCardOverdraftOrPaydayLoansDebt,
+      checkedCouncilTaxBand: answers.checkedCouncilTaxBand,
+      creditScoreLevel: answers.creditScoreLevel,
+      agentObservations: answers.agentObservations.trim(),
+    },
+  });
+}
+
+function readStoredInternalDraft(): InternalDraftRecord | null {
+  try {
+    const rawDraft = window.localStorage.getItem(INTERNAL_DRAFT_STORAGE_KEY);
+    if (!rawDraft) {
+      return null;
+    }
+
+    const parsed = JSON.parse(rawDraft) as Partial<InternalDraftRecord>;
+    const internalAnswers = normalizeInternalAnswers(parsed.internalAnswers);
+    if (!hasAnyInternalAnswers(internalAnswers)) {
+      return null;
+    }
+
+    return {
+      contact: normalizeContact(parsed.contact),
+      internalAnswers,
+      savedReport: normalizeSavedReport(parsed.savedReport),
+      updatedAt: typeof parsed.updatedAt === "string" ? parsed.updatedAt : "",
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredInternalDraft(record: InternalDraftRecord) {
+  try {
+    window.localStorage.setItem(INTERNAL_DRAFT_STORAGE_KEY, JSON.stringify(record));
+  } catch {
+    // Local draft persistence is a convenience; CRM saving remains the source of truth.
+  }
+}
+
+function clearStoredInternalDraft() {
+  try {
+    window.localStorage.removeItem(INTERNAL_DRAFT_STORAGE_KEY);
+  } catch {
+    // Ignore localStorage failures.
+  }
+}
+
+function normalizeContact(value: unknown): ContactForm {
+  const record = value && typeof value === "object" ? (value as Partial<ContactForm>) : {};
+  return {
+    fullName: typeof record.fullName === "string" ? record.fullName : "",
+    email: typeof record.email === "string" ? record.email : "",
+    phone: typeof record.phone === "string" ? record.phone : "",
+  };
+}
+
+function normalizeInternalAnswers(value: unknown): QuickReportInternalAnswers {
+  const record = value && typeof value === "object" ? (value as Partial<QuickReportInternalAnswers>) : {};
+  return {
+    ukEmploymentType: record.ukEmploymentType || "",
+    knowsAllPrivatePensions: record.knowsAllPrivatePensions || "",
+    hadCarFinanceBeforeNov2024: record.hadCarFinanceBeforeNov2024 || "",
+    hasCreditCardOverdraftOrPaydayLoansDebt: record.hasCreditCardOverdraftOrPaydayLoansDebt || "",
+    checkedCouncilTaxBand: record.checkedCouncilTaxBand || "",
+    creditScoreLevel: record.creditScoreLevel || "",
+    agentObservations: typeof record.agentObservations === "string" ? record.agentObservations : "",
+  };
+}
+
+function normalizeSavedReport(value: unknown): SavedQuickReportReference | null {
+  const record = value && typeof value === "object" ? (value as Partial<SavedQuickReportReference>) : null;
+  if (!record) {
+    return null;
+  }
+
+  const email = typeof record.email === "string" ? record.email : "";
+  const phone = typeof record.phone === "string" ? record.phone : "";
+  const reportId = typeof record.reportId === "string" ? record.reportId : "";
+  const leadId = typeof record.leadId === "string" ? record.leadId : "";
+
+  if (!email && !phone && !reportId && !leadId) {
+    return null;
+  }
+
+  return {
+    reportId: reportId || undefined,
+    leadId: leadId || undefined,
+    email,
+    phone,
+  };
+}
+
+function openPendingCalendlyWindow() {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const popup = window.open("", "_blank");
+  if (popup) {
+    popup.opener = null;
+  }
+  return popup;
+}
+
+function closePendingCalendlyWindow(popup: Window | null) {
+  if (!popup || popup.closed) {
+    return;
+  }
+
+  popup.close();
+}
+
+function buildCalendlyUrl(contactDetails: ContactDetails) {
+  const calendlyUrl = new URL(MONEY_CHECK_CALENDLY_URL);
+  calendlyUrl.searchParams.set("name", contactDetails.fullName);
+  calendlyUrl.searchParams.set("email", contactDetails.email);
+  return calendlyUrl.toString();
+}
+
+function openCalendlyBooking(calendlyUrl: string, popup: Window | null) {
+  if (popup && !popup.closed) {
+    popup.location.href = calendlyUrl;
+    return true;
+  }
+
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return Boolean(window.open(calendlyUrl, "_blank", "noopener,noreferrer"));
 }
 
 function getBrowserLocation() {
