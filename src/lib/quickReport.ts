@@ -205,7 +205,7 @@ function evaluateTaxReclaim(answers: QuickReportAnswers): QuickReportResult {
       title: "Cod fiscal (tax code) greșit",
       flag: "rosu",
       output:
-        "Ai avut mai multe joburi și nu ai recuperat taxele pe ultimii 5 ani. Este posibil să fi plătit taxe în plus; valoarea uzuala care poate fi recuperată este £1,250–£4,000. Recomandăm logare in cont pe gov.uk (Government Gateway ID) si verificare.",
+        "Ati avut mai multe joburi și nu ati recuperat taxele pe ultimii 5 ani. Este posibil să fi plătit taxe în plus; valoarea uzuala care poate fi recuperată este intre £1,250–£4,000. O sa primiti in raportul de pe email link catre gov.uk pentru a va recupera",
       rawAnswer,
     };
   }
@@ -216,7 +216,7 @@ function evaluateTaxReclaim(answers: QuickReportAnswers): QuickReportResult {
       title: "Cod fiscal (tax code) greșit",
       flag: "galben",
       output:
-        "Există multe spețe pe care se pot recupera taxe, de la marriage allowance până la tax allowance. Se pot pierde sute și mii de lire, iar taxele se pot recupera pe ultimii 5 ani.",
+        "Există multe spețe pe care se pot recupera taxe, de la marriage allowance până la tax allowance. Se pot pierde sute și mii de lire, iar taxele se pot recupera pe ultimii 5 ani. O sa primiti mai multe detalii in emailul cu raportul de dupa aceasta convorbire",
       rawAnswer,
     };
   }
@@ -225,7 +225,7 @@ function evaluateTaxReclaim(answers: QuickReportAnswers): QuickReportResult {
     code: "MF01",
     title: "Cod fiscal (tax code) greșit",
     flag: "verde",
-    output: "Nu am identificat un risc rapid de taxe nerecuperate pe baza răspunsurilor.",
+    output: "Felicitari! Nu multi romani si-au recuperat taxele",
     rawAnswer,
   };
 }
@@ -246,7 +246,7 @@ function evaluateCreditReport(answers: QuickReportAnswers): QuickReportResult {
       title: "Credit score / raport de credit",
       flag: "rosu",
       output:
-        "Nu ești înscris pe electoral roll — asta îți poate limita accesul la credit și scorul de credit. O eroare în raportul de credit vă poate costa între £1,000 și £5,000 în doar câțiva ani, prin dobânzi mai mari și acces limitat la finanțare. În cazurile grave, pierderile pot depăși £10,000.",
+        "Nu sunteti inscrisi pe electoral roll — asta va poate limita accesul la credit și scorul de credit. O eroare în raportul de credit vă poate costa între £1,000 și £5,000 în doar câțiva ani, prin dobânzi mai mari și acces limitat la finanțare. În cazurile grave, pierderile pot depăși £10,000.",
       rawAnswer,
     };
   }
@@ -266,7 +266,8 @@ function evaluateCreditReport(answers: QuickReportAnswers): QuickReportResult {
     code: "CD01",
     title: "Credit score / raport de credit",
     flag: "verde",
-    output: "Ești înscris pe electoral roll și ai verificat raportul de credit.",
+    output:
+      "Felicitari ca sunteti inscrisi in rolul electoral si ca ati verificat raportul de credit! Nu multi romani au facut asta!",
     rawAnswer,
   };
 }
@@ -284,7 +285,7 @@ function evaluateBankSwitch(answers: QuickReportAnswers): QuickReportResult {
       title: "Bank switching bonus neaccesat",
       flag: "rosu",
       output:
-        "Poți accesa un bonus de schimbare a unui cont curent (nu cel principal) — de obicei £150-200, uneori mai mult combinând oferte. In general poti face aceasta schimbare de 4-5 ori pe an, astfel incat sa primesti aproximativ £1000. Daca sunteti 2 adulti, primiti £2000 impreuna. O vacanta de o saptamana total gratuita!",
+        "Puteti accesa un bonus de schimbare a unui cont curent (nu cel principal) — de obicei £150-200, uneori mai mult combinând oferte. In general puteti face aceasta schimbare de 4-5 ori pe an, astfel incat sa primiti aproximativ £1000. Daca sunteti 2 adulti, primiti £2000 impreuna. O vacanta de o saptamana total gratuita!",
       rawAnswer,
     };
   }
@@ -293,7 +294,8 @@ function evaluateBankSwitch(answers: QuickReportAnswers): QuickReportResult {
     code: "CD07",
     title: "Bank switching bonus neaccesat",
     flag: "verde",
-    output: "Ai schimbat contul curent în ultimele 12 luni — ai folosit deja această oportunitate recent.",
+    output:
+      "Ati schimbat contul curent în ultimele 12 luni — daca nu ati primit un bonus de £150...£200 la schimbare, puteti sa va interesati de alte banci care ofera un astfel de bonus",
     rawAnswer,
   };
 }
@@ -351,7 +353,7 @@ function evaluateTransferFees(answers: QuickReportAnswers): QuickReportResult {
     code: "FC05",
     title: "Comisioane mari remitere bani spre România",
     flag: "verde",
-    output: "Metoda de trimitere bani pare deja comparată cu alternative mai ieftine.",
+    output: "Metoda pe care o folositi pentru trimitere bani pare deja comparată cu alternative mai ieftine.",
     rawAnswer,
   };
 }
@@ -378,7 +380,7 @@ function evaluateUtilitySwitch(answers: QuickReportAnswers): QuickReportResult {
     code: "FC07",
     title: "Facturi de utilități — schimbare furnizor",
     flag: "verde",
-    output: "Ai comparat sau schimbat furnizorul în ultimele 12 luni.",
+    output: "Ati comparat sau schimbat furnizorul în ultimele 12 luni.",
     rawAnswer,
   };
 }

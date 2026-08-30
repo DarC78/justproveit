@@ -432,13 +432,13 @@ export default function FreeQuickReportPage() {
 
               <CheckFields title="MF01 - Cod fiscal gresit">
                 <SelectInput
-                  label="Ai avut mai multe joburi in acest an fiscal sau in ultimii 5 ani?"
+                  label="Ati avut mai multe joburi in acest an fiscal sau in ultimii 5 ani?"
                   value={answers.multipleJobs}
                   onChange={(value) => updateAnswer("multipleJobs", value as QuickReportAnswers["multipleJobs"])}
                   options={yesNoOptions}
                 />
                 <SelectInput
-                  label="Ai recuperat taxele pe ultimii 5 ani?"
+                  label="Ati recuperat taxele pe ultimii 5 ani?"
                   value={answers.taxRecoveredLast5Years}
                   onChange={(value) => updateAnswer("taxRecoveredLast5Years", value as QuickReportAnswers["taxRecoveredLast5Years"])}
                   options={yesNoOptions}
@@ -447,13 +447,13 @@ export default function FreeQuickReportPage() {
 
               <CheckFields title="CD01 - Credit score / raport de credit">
                 <SelectInput
-                  label="Esti inscris pe electoral roll la adresa curenta?"
+                  label="Sunteti inscrisi pe electoral roll la adresa curenta?"
                   value={answers.electoralRoll}
                   onChange={(value) => updateAnswer("electoralRoll", value as QuickReportAnswers["electoralRoll"])}
                   options={yesNoOptions}
                 />
                 <SelectInput
-                  label="Ai verificat vreodata raportul de credit pentru erori?"
+                  label="Ati verificat vreodata raportul de credit pentru erori?"
                   value={answers.creditReportChecked}
                   onChange={(value) => updateAnswer("creditReportChecked", value as QuickReportAnswers["creditReportChecked"])}
                   options={yesNoOptions}
@@ -462,7 +462,7 @@ export default function FreeQuickReportPage() {
 
               <CheckFields title="CD07 - Bank switching bonus neaccesat">
                 <SelectInput
-                  label="Cand ai schimbat ultima data un cont curent de la orice banca?"
+                  label="Cand ati schimbat ultima data un cont curent de la orice banca?"
                   value={answers.bankSwitchLast}
                   onChange={(value) => updateAnswer("bankSwitchLast", value as QuickReportAnswers["bankSwitchLast"])}
                   options={[
@@ -475,7 +475,7 @@ export default function FreeQuickReportPage() {
 
               <CheckFields title="FC02 - Asigurari auto/casa">
                 <SelectInput
-                  label="Cand ai reinnoit ultima data asigurarea auto sau de casa si ai comparat pretul cu piata?"
+                  label="Cand ati reinnoit ultima data asigurarea auto sau de casa si ati comparat pretul cu piata?"
                   value={answers.insuranceRenewal}
                   onChange={(value) => updateAnswer("insuranceRenewal", value as QuickReportAnswers["insuranceRenewal"])}
                   options={[
@@ -488,7 +488,7 @@ export default function FreeQuickReportPage() {
 
               <CheckFields title="FC05 - Comisioane remitere bani spre Romania">
                 <SelectInput
-                  label="Ce metoda folosesti ca sa trimiti bani in Romania?"
+                  label="Ce metoda folositi ca sa trimiteti bani in Romania?"
                   value={answers.transferMethod}
                   onChange={(value) => updateAnswer("transferMethod", value as QuickReportAnswers["transferMethod"])}
                   options={[
@@ -501,7 +501,7 @@ export default function FreeQuickReportPage() {
                   ]}
                 />
                 <SelectInput
-                  label="Ai comparat vreodata cu Wise/Revolut?"
+                  label="Ati comparat vreodata cu Wise/Revolut?"
                   value={answers.transferCompared}
                   onChange={(value) => updateAnswer("transferCompared", value as QuickReportAnswers["transferCompared"])}
                   options={yesNoOptions}
@@ -510,7 +510,7 @@ export default function FreeQuickReportPage() {
 
               <CheckFields title="FC07 - Facturi de utilitati">
                 <SelectInput
-                  label="Ai comparat sau schimbat furnizorul de energie/broadband/mobile in ultimele 12 luni?"
+                  label="Ati comparat sau schimbat furnizorul de energie/broadband/mobile in ultimele 12 luni?"
                   value={answers.utilitiesCompared}
                   onChange={(value) => updateAnswer("utilitiesCompared", value as QuickReportAnswers["utilitiesCompared"])}
                   options={yesNoOptions}
