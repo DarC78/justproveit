@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 const SITE_URL = "https://www.justproveit.co.uk";
 const PAGE_PATH = "/ro/hai-in-club";
@@ -12,6 +12,8 @@ const CONTACT_EMAIL = "adriandefta@proveitweb.co.uk";
 const FULL_PRICE = "£297";
 const MONTHLY_PRICE = "£99";
 const INSTALLMENTS_API_PLAN = "installments";
+const CALENDLY_NAME_QUERY_KEYS = ["MCC_FULLNAME", "name", "fullName", "nume"];
+const CALENDLY_EMAIL_QUERY_KEYS = ["MCC_EMAIL", "email"];
 
 const CLUB_CHECKS = [
   "MF02 - Marriage Allowance",
@@ -266,10 +268,15 @@ export default function JoinClubPage() {
 function ClubCtas({ className = "", stacked = false }: { className?: string; stacked?: boolean }) {
   const [loadingPlan, setLoadingPlan] = useState("");
   const [checkoutError, setCheckoutError] = useState("");
+  const [calendlyUrl, setCalendlyUrl] = useState(CALENDLY_URL);
   const containerClass = stacked
     ? "flex flex-col gap-3"
     : "flex flex-col gap-3 sm:flex-row sm:flex-wrap";
   const isLoading = Boolean(loadingPlan);
+
+  useEffect(() => {
+    setCalendlyUrl(buildPrefilledCalendlyUrl(window.location.search));
+  }, []);
 
   async function startCheckout(apiPlan: "full" | typeof INSTALLMENTS_API_PLAN, displayPlan: "full" | "installments") {
     setCheckoutError("");
@@ -332,7 +339,7 @@ function ClubCtas({ className = "", stacked = false }: { className?: string; sta
           {loadingPlan === INSTALLMENTS_API_PLAN ? "Se deschide Stripe..." : `Hai in Club: ${MONTHLY_PRICE} * 3 luni`}
         </button>
         <a
-          href={CALENDLY_URL}
+          href={calendlyUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex min-h-12 items-center justify-center rounded-md border border-slate-300 bg-white px-5 text-center text-sm font-extrabold text-slate-950 shadow-sm hover:bg-slate-100"
@@ -347,6 +354,34 @@ function ClubCtas({ className = "", stacked = false }: { className?: string; sta
       ) : null}
     </div>
   );
+}
+
+function buildPrefilledCalendlyUrl(search: string) {
+  const pageParams = new URLSearchParams(search);
+  const name = getFirstQueryValue(pageParams, CALENDLY_NAME_QUERY_KEYS);
+  const email = getFirstQueryValue(pageParams, CALENDLY_EMAIL_QUERY_KEYS);
+  const calendlyUrl = new URL(CALENDLY_URL);
+
+  if (name) {
+    calendlyUrl.searchParams.set("name", name);
+  }
+
+  if (email) {
+    calendlyUrl.searchParams.set("email", email);
+  }
+
+  return calendlyUrl.toString();
+}
+
+function getFirstQueryValue(params: URLSearchParams, keys: string[]) {
+  for (const key of keys) {
+    const value = params.get(key)?.trim();
+    if (value) {
+      return value;
+    }
+  }
+
+  return "";
 }
 
 function readCheckoutError(payload: unknown, fallback: string) {
