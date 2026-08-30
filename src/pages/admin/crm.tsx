@@ -1647,8 +1647,11 @@ function LeadDetailsPanel({
     setSaving(true);
     try {
       const payloadEmail = newEmail.trim() || draft.email || "";
+      const nextObservation = isJobApplication
+        ? String(draft.observation || "")
+        : buildObservationHistory(draft.observation, newObservation);
       const updatePayload = {
-        observation: isJobApplication ? String(draft.observation || "") : newObservation,
+        observation: nextObservation,
         financeCompany: draft.financeCompany || "",
         statusOriginal: draft.statusOriginal || "",
         language: draft.language || "",
@@ -1674,7 +1677,9 @@ function LeadDetailsPanel({
           : {}),
       };
       const result = await updateCrmLeadByCandidateIds(token, updateIds, updatePayload);
-      const updatedLead = isJobApplication ? { ...draft, ...result.lead } : result.lead;
+      const updatedLead = isJobApplication
+        ? { ...draft, ...result.lead }
+        : { ...draft, ...result.lead, observation: result.lead?.observation ?? nextObservation };
       setDraft(updatedLead);
       onLeadChange(updatedLead);
       setNewObservation("");
@@ -5527,6 +5532,21 @@ function formatDateTime(value?: string | null) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function buildObservationHistory(previousObservation?: string | null, currentObservation?: string) {
+  const previous = String(previousObservation || "").trim();
+  const current = String(currentObservation || "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!current) {
+    return previous;
+  }
+
+  const timestamp = formatDateTime(new Date().toISOString()) || new Date().toISOString();
+  const entry = `${timestamp} - ${current}`;
+  return previous ? `${previous}\n${entry}` : entry;
 }
 
 function getInboundSmsId(sms?: CrmInboundSms | null) {
