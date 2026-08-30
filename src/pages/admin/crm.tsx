@@ -5,7 +5,6 @@ import {
   createCrmAsapIntent,
   CrmActivity,
   CrmAgentReportPauseBreakdownRow,
-  CrmAgentReportResponse,
   CrmAgentReportRow,
   CrmContactPhone,
   CrmHighLevelFunnelRow,
@@ -3978,10 +3977,7 @@ function InboundSmsPanel({
 }
 
 const AGENT_REPORT_TIMEZONE = "Europe/Bucharest";
-const AGENT_REPORT_WEEKDAY_WINDOW_START = 18;
-const AGENT_REPORT_WEEKDAY_WINDOW_END = 22;
-const AGENT_REPORT_SATURDAY_WINDOW_START = 11;
-const AGENT_REPORT_SATURDAY_WINDOW_END = 17;
+const AGENT_REPORT_WINDOW_SCHEDULE = "weekday:18-22,saturday:11-17";
 
 function AgentReportPanel({ token, onError }: { token: string; onError: (message: string) => void }) {
   const [dateBegin, setDateBegin] = useState(() => getDateInputDaysAgo(30));
@@ -3990,7 +3986,6 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
   const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number | string; agentName?: string | null }>>([]);
   const [rows, setRows] = useState<CrmAgentReportRow[]>([]);
   const [pauseRows, setPauseRows] = useState<CrmAgentReportPauseBreakdownRow[]>([]);
-  const [windowPauseRows, setWindowPauseRows] = useState<CrmAgentReportPauseBreakdownRow[]>([]);
   const [loading, setLoading] = useState(false);
   const summary = useMemo(() => summarizeAgentReportRows(rows), [rows]);
 
@@ -4002,27 +3997,15 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
   async function loadReport() {
     setLoading(true);
     try {
-      const baseParams = {
+      const result = await listCrmAgentReport(token, {
         from: dateBegin,
         to: dateEnd,
         agentId: agentId === "all" ? undefined : agentId,
-      };
-      const [weekdayResult, saturdayResult] = await Promise.all([
-        listCrmAgentReport(token, {
-          ...baseParams,
-          windowStartHour: AGENT_REPORT_WEEKDAY_WINDOW_START,
-          windowEndHour: AGENT_REPORT_WEEKDAY_WINDOW_END,
-        }),
-        listCrmAgentReport(token, {
-          ...baseParams,
-          windowStartHour: AGENT_REPORT_SATURDAY_WINDOW_START,
-          windowEndHour: AGENT_REPORT_SATURDAY_WINDOW_END,
-        }),
-      ]);
-      setRows(sortAgentReportRows(mergeAgentReportRowsForSchedule(weekdayResult, saturdayResult)));
-      setPauseRows(getAgentReportResponsePauseRows(weekdayResult));
-      setWindowPauseRows(mergeAgentReportPauseRowsForSchedule(weekdayResult, saturdayResult));
-      setAgentOptions(mergeAgentReportAgentOptions(weekdayResult, saturdayResult));
+        windowSchedule: AGENT_REPORT_WINDOW_SCHEDULE,
+      });
+      setRows(sortAgentReportRows(getAgentReportResponseRows(result)));
+      setPauseRows(getAgentReportResponsePauseRows(result));
+      setAgentOptions(result.options?.agents || result.agents || []);
       onError("");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Nu am putut incarca Agent Report.");
@@ -4056,9 +4039,7 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
       </div>
 
       <p className="green-label">
-        Timezone: Romania ({AGENT_REPORT_TIMEZONE}) | interval special: L-V {AGENT_REPORT_WEEKDAY_WINDOW_START}:00-
-        {AGENT_REPORT_WEEKDAY_WINDOW_END}:00, sambata {AGENT_REPORT_SATURDAY_WINDOW_START}:00-
-        {AGENT_REPORT_SATURDAY_WINDOW_END}:00
+        Timezone: Romania ({AGENT_REPORT_TIMEZONE}) | interval special: L-V 18:00-22:00, sambata 11:00-17:00
       </p>
 
       <div className="agent-report-summary">
@@ -4138,7 +4119,7 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
           ),
           <PauseBreakdownCell
             key={`evening-pause-${getAgentReportRowKey(row)}`}
-            items={getAgentReportPauseBreakdown(row, windowPauseRows, true)}
+            items={getAgentReportPauseBreakdown(row, pauseRows, true)}
           />,
           formatDurationHhMmSs(
             getAgentReportSeconds(row, [
@@ -7426,201 +7407,19 @@ type AgentReportSummary = {
   eveningClericalSeconds: number;
 };
 
-const AGENT_REPORT_WINDOW_FIELDS = [
-  "windowLoggedSeconds",
-  "windowLoggedMinutes",
-  "eveningLoggedSeconds",
-  "eveningLoggedMinutes",
-  "eveningLoggedTimeSeconds",
-  "eveningLoggedTimeMinutes",
-  "logged1822Seconds",
-  "logged1822Minutes",
-  "logged18To22Seconds",
-  "logged18To22Minutes",
-  "windowPauseSeconds",
-  "windowPauseMinutes",
-  "pauseEveningSeconds",
-  "pauseEveningMinutes",
-  "eveningPauseSeconds",
-  "eveningPauseMinutes",
-  "eveningPauseTimeSeconds",
-  "eveningPauseTimeMinutes",
-  "pause1822Seconds",
-  "pause1822Minutes",
-  "pause18To22Seconds",
-  "pause18To22Minutes",
-  "windowTalkedSeconds",
-  "windowTalkedMinutes",
-  "eveningTalkedSeconds",
-  "eveningTalkedMinutes",
-  "eveningTalkedTimeSeconds",
-  "eveningTalkedTimeMinutes",
-  "talked1822Seconds",
-  "talked1822Minutes",
-  "talked18To22Seconds",
-  "talked18To22Minutes",
-  "windowClericalSeconds",
-  "windowClericalMinutes",
-  "eveningClericalSeconds",
-  "eveningClericalMinutes",
-  "eveningClericalTimeSeconds",
-  "eveningClericalTimeMinutes",
-  "clerical1822Seconds",
-  "clerical1822Minutes",
-  "clerical18To22Seconds",
-  "clerical18To22Minutes",
-];
-
-const AGENT_REPORT_WINDOW_BREAKDOWN_FIELDS = [
-  "eveningPauseBreakdown",
-  "eveningPausesByType",
-  "pauseBreakdown1822",
-];
-
-function getAgentReportResponseRows(response: CrmAgentReportResponse) {
+function getAgentReportResponseRows(response: {
+  rows?: CrmAgentReportRow[];
+  daily?: CrmAgentReportRow[];
+  items?: CrmAgentReportRow[];
+}) {
   return response.rows || response.daily || response.items || [];
 }
 
-function getAgentReportResponsePauseRows(response: CrmAgentReportResponse) {
+function getAgentReportResponsePauseRows(response: {
+  pauseRows?: CrmAgentReportPauseBreakdownRow[];
+  pauses?: CrmAgentReportPauseBreakdownRow[];
+}) {
   return response.pauseRows || response.pauses || [];
-}
-
-function mergeAgentReportRowsForSchedule(
-  weekdayResult: CrmAgentReportResponse,
-  saturdayResult: CrmAgentReportResponse,
-) {
-  const weekdayRows = getAgentReportResponseRows(weekdayResult);
-  const saturdayRows = getAgentReportResponseRows(saturdayResult);
-  const saturdayRowsByKey = new Map(saturdayRows.map((row) => [getAgentReportMergeKey(row), row]));
-  const mergedRows = weekdayRows.map((row) => {
-    if (isAgentReportSaturday(row)) {
-      return copyAgentReportWindowFields(row, saturdayRowsByKey.get(getAgentReportMergeKey(row)));
-    }
-
-    if (isAgentReportWeekday(row)) {
-      return row;
-    }
-
-    return clearAgentReportWindowFields(row);
-  });
-  const knownKeys = new Set(weekdayRows.map(getAgentReportMergeKey));
-
-  for (const row of saturdayRows) {
-    const key = getAgentReportMergeKey(row);
-    if (isAgentReportSaturday(row) && !knownKeys.has(key)) {
-      mergedRows.push(row);
-    }
-  }
-
-  return mergedRows;
-}
-
-function mergeAgentReportPauseRowsForSchedule(
-  weekdayResult: CrmAgentReportResponse,
-  saturdayResult: CrmAgentReportResponse,
-) {
-  return [
-    ...getAgentReportResponsePauseRows(weekdayResult).filter(isAgentReportWeekday),
-    ...getAgentReportResponsePauseRows(saturdayResult).filter(isAgentReportSaturday),
-  ];
-}
-
-function mergeAgentReportAgentOptions(
-  weekdayResult: CrmAgentReportResponse,
-  saturdayResult: CrmAgentReportResponse,
-) {
-  return mergeAgentOptions(
-    [
-      ...(weekdayResult.options?.agents || []),
-      ...(weekdayResult.agents || []),
-      ...(saturdayResult.options?.agents || []),
-      ...(saturdayResult.agents || []),
-    ],
-    "all",
-  );
-}
-
-function copyAgentReportWindowFields(baseRow: CrmAgentReportRow, sourceRow?: CrmAgentReportRow) {
-  const next = { ...baseRow };
-  const nextFields = next as Record<string, unknown>;
-  const sourceFields = sourceRow ? (sourceRow as Record<string, unknown>) : {};
-
-  for (const field of AGENT_REPORT_WINDOW_FIELDS) {
-    nextFields[field] = sourceFields[field] ?? 0;
-  }
-
-  for (const field of AGENT_REPORT_WINDOW_BREAKDOWN_FIELDS) {
-    nextFields[field] = sourceFields[field] ?? [];
-  }
-
-  return next;
-}
-
-function clearAgentReportWindowFields(row: CrmAgentReportRow) {
-  return copyAgentReportWindowFields(row);
-}
-
-function getAgentReportMergeKey(row: {
-  day?: string | null;
-  date?: string | null;
-  reportDate?: string | null;
-  agentId?: string | number | null;
-  agentName?: string | null;
-}) {
-  const agentId = parseAgentId(row.agentId);
-  const agentKey = agentId ? String(agentId) : formatAgentReportAgent(row).toLowerCase();
-  return `${normalizeAgentReportDayKey(getAgentReportDayValue(row))}|${agentKey}`;
-}
-
-function isAgentReportWeekday(row: {
-  day?: string | null;
-  date?: string | null;
-  reportDate?: string | null;
-}) {
-  const dayOfWeek = getAgentReportRomanianDayOfWeek(getAgentReportDayValue(row));
-  return dayOfWeek !== null && dayOfWeek >= 1 && dayOfWeek <= 5;
-}
-
-function isAgentReportSaturday(row: {
-  day?: string | null;
-  date?: string | null;
-  reportDate?: string | null;
-}) {
-  return getAgentReportRomanianDayOfWeek(getAgentReportDayValue(row)) === 6;
-}
-
-function getAgentReportRomanianDayOfWeek(value: string) {
-  if (!value) {
-    return null;
-  }
-
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    return new Date(`${value}T12:00:00Z`).getUTCDay();
-  }
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-
-  const weekday = new Intl.DateTimeFormat("en-US", {
-    timeZone: AGENT_REPORT_TIMEZONE,
-    weekday: "short",
-  })
-    .format(date)
-    .slice(0, 3)
-    .toLowerCase();
-  const dayByLabel: Record<string, number> = {
-    sun: 0,
-    mon: 1,
-    tue: 2,
-    wed: 3,
-    thu: 4,
-    fri: 5,
-    sat: 6,
-  };
-
-  return dayByLabel[weekday] ?? null;
 }
 
 function summarizeAgentReportRows(rows: CrmAgentReportRow[]): AgentReportSummary {
