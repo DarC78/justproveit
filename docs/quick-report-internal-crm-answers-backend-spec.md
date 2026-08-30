@@ -120,11 +120,27 @@ The yes/no fields are:
 
 Attach the internal answers to the saved Faza 0 free-report simulation.
 
-Preferred lookup order:
+The quick-report save must also be linked to a real CRM lead/contact. The `leadId` returned by LS must be the same CRM lead identifier accepted by:
+
+`POST /api/justproveit/admin/crm/leads/{leadId}`
+
+Do not return a report id, interest id, intent id, or other internal id in the `leadId` response field unless the CRM lead update endpoint accepts that same id.
+
+CRM lead lookup/create order:
+
+1. Normalize the phone from `phone`.
+2. Search for an existing CRM lead/contact by normalized phone first.
+3. If no phone match exists, search by normalized/lowercase `email`.
+4. If neither phone nor email finds a record, create a new CRM lead/contact with `fullName`, `email`, `phone`, tenant `justproveit`, and service/source metadata for `FreeMoneyCheck`.
+5. Attach the Faza 0 answers/results and the internal CRM answers to that CRM lead/contact.
+6. Return the canonical CRM `leadId` and, when available, `contactId` / `canonicalContactId`.
+
+Report lookup order:
 
 1. `reportId`
-2. `leadId`
-3. latest matching `FreeMoneyCheck` / quick-report record for the same tenant + email/phone
+2. canonical CRM `leadId`
+3. latest matching `FreeMoneyCheck` / quick-report record for the same tenant + normalized phone
+4. latest matching `FreeMoneyCheck` / quick-report record for the same tenant + normalized email
 
 Store the raw answer keys and enough labels for CRM display. Recommended labels:
 
@@ -135,6 +151,13 @@ Store the raw answer keys and enough labels for CRM display. Recommended labels:
 - `checkedCouncilTaxBand`: "A verificat banda de council tax?"
 - `creditScoreLevel`: "Scor de credit"
 - `agentObservations`: "Observatii agent"
+
+When LS supports `agentObservations`, save it in the same linked CRM context:
+
+- persist it with the internal quick-report answers as `internalAnswers.agentObservations`
+- also append or store it in the CRM lead observation area if that is the operational CRM field agents use
+- make the save idempotent for retries, so the same note is not duplicated when a request is repeated
+- do not return success if the structured internal answers save succeeds but the required lead link/create step fails
 
 ## Response
 
