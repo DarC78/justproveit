@@ -3978,6 +3978,7 @@ function InboundSmsPanel({
 
 const AGENT_REPORT_TIMEZONE = "Europe/Bucharest";
 const AGENT_REPORT_WINDOW_SCHEDULE = "weekday:18-22,saturday:11-17";
+const AGENT_REPORT_PAYMENT_RATE_EURO = 7;
 
 function AgentReportPanel({ token, onError }: { token: string; onError: (message: string) => void }) {
   const [dateBegin, setDateBegin] = useState(() => getDateInputDaysAgo(30));
@@ -3988,6 +3989,9 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
   const [pauseRows, setPauseRows] = useState<CrmAgentReportPauseBreakdownRow[]>([]);
   const [loading, setLoading] = useState(false);
   const summary = useMemo(() => summarizeAgentReportRows(rows), [rows]);
+  const paymentSummarySeconds =
+    summary.eveningLoggedSeconds + summary.outsideTalkedSeconds + summary.outsideClericalSeconds;
+  const paymentSummaryAmount = (paymentSummarySeconds / 3600) * AGENT_REPORT_PAYMENT_RATE_EURO;
 
   useEffect(() => {
     loadReport();
@@ -4037,6 +4041,16 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
           {loading ? "Se incarca..." : "Filter"}
         </button>
       </div>
+
+      <p className="agent-payment-summary">
+        <strong>Summary for payment:</strong> Logged interval RO ({formatDurationHhMmSs(summary.eveningLoggedSeconds)})
+        {" + "}
+        Talked outside interval ({formatDurationHhMmSs(summary.outsideTalkedSeconds)})
+        {" + "}
+        Clerical outside interval ({formatDurationHhMmSs(summary.outsideClericalSeconds)}) ={" "}
+        {formatDurationHhMmSs(paymentSummarySeconds)} * {AGENT_REPORT_PAYMENT_RATE_EURO} Euro ={" "}
+        {formatEuroAmount(paymentSummaryAmount)}
+      </p>
 
       <p className="green-label">
         Timezone: Romania ({AGENT_REPORT_TIMEZONE}) | interval special: L-V 18:00-22:00, sambata 11:00-17:00
@@ -4111,6 +4125,20 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 10px;
           margin-top: 14px;
+        }
+        .agent-payment-summary {
+          margin: 14px 0 6px;
+          border: 1px solid #b9dfc2;
+          border-radius: 8px;
+          background: #f4fbf6;
+          color: #163c20;
+          font-weight: 700;
+          line-height: 1.45;
+          padding: 12px 14px;
+        }
+        .agent-payment-summary strong {
+          color: #008a1e;
+          font-weight: 900;
         }
         @media (max-width: 980px) {
           .agent-report-summary {
@@ -7873,6 +7901,13 @@ function formatDurationHhMmSs(value: number) {
   const minutes = Math.floor((totalSeconds % 3600) / 60);
   const seconds = totalSeconds % 60;
   return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
+function formatEuroAmount(value: number) {
+  return `${value.toLocaleString("en-GB", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })} Euro`;
 }
 
 function getFunnelLeadCount(row: CrmHighLevelFunnelRow) {
