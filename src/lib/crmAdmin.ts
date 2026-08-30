@@ -496,6 +496,42 @@ export type CrmAgentReportRow = {
   pauseBreakdown1822?: CrmAgentReportPauseBreakdownRow[] | Record<string, number | string | null> | null;
 };
 
+export type CrmAgentReportPaymentSummaryWeek = {
+  label?: string | null;
+  weekLabel?: string | null;
+  start?: string | null;
+  end?: string | null;
+  weekStart?: string | null;
+  weekEnd?: string | null;
+  approvedPauseHours?: number | string | null;
+  approvedPauseSeconds?: number | string | null;
+  windowPauseSeconds?: number | string | null;
+  pauseAdjustmentSeconds?: number | string | null;
+};
+
+export type CrmAgentReportPaymentSummary = {
+  loggedIntervalSeconds?: number | string | null;
+  loggedIntervalMinutes?: number | string | null;
+  talkedOutsideIntervalSeconds?: number | string | null;
+  talkedOutsideIntervalMinutes?: number | string | null;
+  clericalOutsideIntervalSeconds?: number | string | null;
+  clericalOutsideIntervalMinutes?: number | string | null;
+  pauseAdjustmentSeconds?: number | string | null;
+  pauseAdjustmentMinutes?: number | string | null;
+  payableSeconds?: number | string | null;
+  payableMinutes?: number | string | null;
+  amountEur?: number | string | null;
+  hourlyRateEur?: number | string | null;
+  weeks?: CrmAgentReportPaymentSummaryWeek[];
+};
+
+export type CrmAgentReportAgentOption = {
+  agentId: number | string;
+  agentName?: string | null;
+  paymentSummary?: CrmAgentReportPaymentSummary | null;
+  payment?: CrmAgentReportPaymentSummary | null;
+};
+
 export type CrmAgentReportResponse = {
   rows?: CrmAgentReportRow[];
   daily?: CrmAgentReportRow[];
@@ -504,10 +540,12 @@ export type CrmAgentReportResponse = {
   pauses?: CrmAgentReportPauseBreakdownRow[];
   totals?: CrmAgentReportRow | null;
   total?: number;
-  agents?: Array<{ agentId: number | string; agentName?: string | null }>;
+  agents?: CrmAgentReportAgentOption[];
+  paymentSummary?: CrmAgentReportPaymentSummary | null;
+  payment?: CrmAgentReportPaymentSummary | null;
   filters?: Record<string, string | number | null>;
   options?: {
-    agents?: Array<{ agentId: number | string; agentName?: string | null }>;
+    agents?: CrmAgentReportAgentOption[];
     pauseTypes?: string[];
   };
 };

@@ -4,6 +4,7 @@ import {
   closeCrmInboundSmsCase,
   createCrmAsapIntent,
   CrmActivity,
+  CrmAgentReportPaymentSummary,
   CrmAgentReportPauseBreakdownRow,
   CrmAgentReportRow,
   CrmContactPhone,
@@ -3987,11 +3988,37 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
   const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number | string; agentName?: string | null }>>([]);
   const [rows, setRows] = useState<CrmAgentReportRow[]>([]);
   const [pauseRows, setPauseRows] = useState<CrmAgentReportPauseBreakdownRow[]>([]);
+  const [paymentSummary, setPaymentSummary] = useState<CrmAgentReportPaymentSummary | null>(null);
+  const [approvedPauseHoursByWeek, setApprovedPauseHoursByWeek] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const approvedPauseWeeks = useMemo(() => getAgentReportWeekRanges(dateBegin, dateEnd), [dateBegin, dateEnd]);
   const summary = useMemo(() => summarizeAgentReportRows(rows), [rows]);
+  const paymentLoggedIntervalSeconds =
+    getAgentReportPaymentDurationSeconds(paymentSummary, ["loggedIntervalSeconds", "loggedIntervalMinutes"]) ??
+    summary.eveningLoggedSeconds;
+  const paymentPauseAdjustmentSeconds =
+    getAgentReportPaymentDurationSeconds(paymentSummary, ["pauseAdjustmentSeconds", "pauseAdjustmentMinutes"]) ?? 0;
+  const paymentTalkedOutsideSeconds =
+    getAgentReportPaymentDurationSeconds(paymentSummary, [
+      "talkedOutsideIntervalSeconds",
+      "talkedOutsideIntervalMinutes",
+    ]) ?? summary.outsideTalkedSeconds;
+  const paymentClericalOutsideSeconds =
+    getAgentReportPaymentDurationSeconds(paymentSummary, [
+      "clericalOutsideIntervalSeconds",
+      "clericalOutsideIntervalMinutes",
+    ]) ?? summary.outsideClericalSeconds;
+  const paymentRateEur = getAgentReportPaymentRateEur(paymentSummary) ?? AGENT_REPORT_PAYMENT_RATE_EURO;
   const paymentSummarySeconds =
-    summary.eveningLoggedSeconds + summary.outsideTalkedSeconds + summary.outsideClericalSeconds;
-  const paymentSummaryAmount = (paymentSummarySeconds / 3600) * AGENT_REPORT_PAYMENT_RATE_EURO;
+    getAgentReportPaymentDurationSeconds(paymentSummary, ["payableSeconds", "payableMinutes"]) ??
+    Math.max(0, paymentLoggedIntervalSeconds - paymentPauseAdjustmentSeconds + paymentTalkedOutsideSeconds + paymentClericalOutsideSeconds);
+  const paymentSummaryAmount =
+    getAgentReportPaymentAmountEur(paymentSummary) ?? (paymentSummarySeconds / 3600) * paymentRateEur;
+  const approvedPauseText = formatAgentReportApprovedPauseSummary(
+    paymentSummary?.weeks,
+    approvedPauseWeeks,
+    approvedPauseHoursByWeek,
+  );
 
   useEffect(() => {
     loadReport();
@@ -4001,15 +4028,22 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
   async function loadReport() {
     setLoading(true);
     try {
+      const weeklyApprovedPauseHours = buildAgentReportWeeklyApprovedPauseHours(
+        approvedPauseWeeks,
+        approvedPauseHoursByWeek,
+      );
       const result = await listCrmAgentReport(token, {
         from: dateBegin,
         to: dateEnd,
         agentId: agentId === "all" ? undefined : agentId,
         windowSchedule: AGENT_REPORT_WINDOW_SCHEDULE,
+        weeklyApprovedPauseHours,
+        hourlyRateEur: AGENT_REPORT_PAYMENT_RATE_EURO,
       });
       setRows(sortAgentReportRows(getAgentReportResponseRows(result)));
       setPauseRows(getAgentReportResponsePauseRows(result));
       setAgentOptions(result.options?.agents || result.agents || []);
+      setPaymentSummary(result.paymentSummary || result.payment || null);
       onError("");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Nu am putut incarca Agent Report.");
@@ -4042,13 +4076,40 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
         </button>
       </div>
 
+      <div className="agent-approved-pause-panel">
+        <strong>Approved pause / meeting hours by week</strong>
+        <div className="agent-approved-pause-grid">
+          {approvedPauseWeeks.map((week) => (
+            <label key={week.start}>
+              <span>{week.label}</span>
+              <input
+                type="number"
+                min="0"
+                step="0.25"
+                placeholder="0"
+                value={approvedPauseHoursByWeek[week.start] || ""}
+                onChange={(event) =>
+                  setApprovedPauseHoursByWeek((current) => ({
+                    ...current,
+                    [week.start]: event.target.value,
+                  }))
+                }
+              />
+            </label>
+          ))}
+        </div>
+      </div>
+
       <p className="agent-payment-summary">
-        <strong>Summary for payment:</strong> Logged interval RO ({formatDurationHhMmSs(summary.eveningLoggedSeconds)})
+        <strong>Summary for payment:</strong> Logged interval RO ({formatDurationHhMmSs(paymentLoggedIntervalSeconds)})
+        {" - "}
+        Pause Adjustments ({formatDurationHhMmSs(paymentPauseAdjustmentSeconds)}; Diff between Pause interval RO and the
+        allowed pause: {approvedPauseText})
         {" + "}
-        Talked outside interval ({formatDurationHhMmSs(summary.outsideTalkedSeconds)})
+        Talked outside interval ({formatDurationHhMmSs(paymentTalkedOutsideSeconds)})
         {" + "}
-        Clerical outside interval ({formatDurationHhMmSs(summary.outsideClericalSeconds)}) ={" "}
-        {formatDurationHhMmSs(paymentSummarySeconds)} * {AGENT_REPORT_PAYMENT_RATE_EURO} Euro ={" "}
+        Clerical outside interval ({formatDurationHhMmSs(paymentClericalOutsideSeconds)}) ={" "}
+        {formatDurationHhMmSs(paymentSummarySeconds)} * {formatAgentReportHourlyRate(paymentRateEur)} Euro ={" "}
         {formatEuroAmount(paymentSummaryAmount)}
       </p>
 
@@ -4125,6 +4186,34 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
           grid-template-columns: repeat(4, minmax(0, 1fr));
           gap: 10px;
           margin-top: 14px;
+        }
+        .agent-approved-pause-panel {
+          display: grid;
+          gap: 10px;
+          margin: 14px 0 0;
+          border: 1px solid #d7dde7;
+          border-radius: 8px;
+          background: #fafbfc;
+          padding: 12px 14px;
+        }
+        .agent-approved-pause-panel > strong {
+          font-size: 13px;
+          font-weight: 900;
+        }
+        .agent-approved-pause-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+          gap: 10px;
+        }
+        .agent-approved-pause-grid label {
+          display: grid;
+          gap: 5px;
+          font-size: 12px;
+          font-weight: 800;
+        }
+        .agent-approved-pause-grid input {
+          width: 100%;
+          height: 31px;
         }
         .agent-payment-summary {
           margin: 14px 0 6px;
@@ -7375,6 +7464,12 @@ function getDateInputDaysAgo(daysAgo: number) {
   return `${date.getFullYear()}-${month}-${day}`;
 }
 
+type AgentReportWeekRange = {
+  start: string;
+  end: string;
+  label: string;
+};
+
 type AgentReportSummary = {
   loggedSeconds: number;
   pauseSeconds: number;
@@ -7403,6 +7498,78 @@ function getAgentReportResponsePauseRows(response: {
   pauses?: CrmAgentReportPauseBreakdownRow[];
 }) {
   return response.pauseRows || response.pauses || [];
+}
+
+function getAgentReportWeekRanges(from: string, to: string): AgentReportWeekRange[] {
+  const fromDate = parseDateInputUtc(from);
+  const toDate = parseDateInputUtc(to);
+  if (!fromDate || !toDate || fromDate.getTime() > toDate.getTime()) {
+    return [];
+  }
+
+  const weeks: AgentReportWeekRange[] = [];
+  let cursor = getMondayUtc(fromDate);
+
+  while (cursor.getTime() <= toDate.getTime()) {
+    const weekStart = formatDateInputUtc(cursor);
+    const weekEnd = formatDateInputUtc(addUtcDays(cursor, 6));
+    weeks.push({
+      start: weekStart,
+      end: weekEnd,
+      label: `${formatAgentReportShortDate(weekStart)} - ${formatAgentReportShortDate(weekEnd)}`,
+    });
+    cursor = addUtcDays(cursor, 7);
+  }
+
+  return weeks;
+}
+
+function parseDateInputUtc(value: string) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) {
+    return null;
+  }
+
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getMondayUtc(date: Date) {
+  const day = date.getUTCDay();
+  const daysSinceMonday = day === 0 ? 6 : day - 1;
+  return addUtcDays(date, -daysSinceMonday);
+}
+
+function addUtcDays(date: Date, days: number) {
+  const next = new Date(date.getTime());
+  next.setUTCDate(next.getUTCDate() + days);
+  return next;
+}
+
+function formatDateInputUtc(date: Date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatAgentReportShortDate(value: string) {
+  const match = value.match(/^\d{4}-(\d{2})-(\d{2})$/);
+  return match ? `${match[2]}.${match[1]}` : value;
+}
+
+function buildAgentReportWeeklyApprovedPauseHours(
+  weeks: AgentReportWeekRange[],
+  approvedPauseHoursByWeek: Record<string, string>,
+) {
+  const entries = weeks
+    .map((week) => {
+      const hours = coerceReportNumber(approvedPauseHoursByWeek[week.start]);
+      return hours !== null && hours > 0 ? `${week.start}:${formatAgentReportParamNumber(hours)}` : null;
+    })
+    .filter((entry): entry is string => Boolean(entry));
+
+  return entries.join(";");
 }
 
 const AGENT_REPORT_LOGGED_KEYS = [
@@ -7703,6 +7870,122 @@ function coerceReportDurationSeconds(value: unknown, keyHint = ""): number | nul
   }
 
   return null;
+}
+
+function coerceReportNumber(value: unknown): number | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+
+  const numeric = Number(String(value).trim().replace(/,/g, ""));
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function formatAgentReportParamNumber(value: number) {
+  return Number.isInteger(value) ? String(value) : String(Number(value.toFixed(2)));
+}
+
+function getAgentReportPaymentDurationSeconds(
+  paymentSummary: CrmAgentReportPaymentSummary | null,
+  keys: string[],
+) {
+  if (!paymentSummary) {
+    return null;
+  }
+
+  for (const key of keys) {
+    const value = readAgentReportPaymentField(paymentSummary, key);
+    const seconds = coerceReportDurationSeconds(value, key);
+    if (seconds !== null) {
+      return seconds;
+    }
+  }
+
+  return null;
+}
+
+function getAgentReportPaymentRateEur(paymentSummary: CrmAgentReportPaymentSummary | null) {
+  if (!paymentSummary) {
+    return null;
+  }
+
+  return coerceReportNumber(readAgentReportPaymentField(paymentSummary, "hourlyRateEur"));
+}
+
+function getAgentReportPaymentAmountEur(paymentSummary: CrmAgentReportPaymentSummary | null) {
+  if (!paymentSummary) {
+    return null;
+  }
+
+  return coerceReportNumber(readAgentReportPaymentField(paymentSummary, "amountEur"));
+}
+
+function readAgentReportPaymentField(paymentSummary: CrmAgentReportPaymentSummary, key: string) {
+  const fields = paymentSummary as Record<string, unknown>;
+  if (fields[key] !== undefined && fields[key] !== null) {
+    return fields[key];
+  }
+
+  const loweredKey = key.toLowerCase();
+  const matchingEntry = Object.entries(fields).find(([fieldKey]) => fieldKey.toLowerCase() === loweredKey);
+  return matchingEntry ? matchingEntry[1] : undefined;
+}
+
+function formatAgentReportApprovedPauseSummary(
+  paymentWeeks: CrmAgentReportPaymentSummary["weeks"] | undefined,
+  fallbackWeeks: AgentReportWeekRange[],
+  approvedPauseHoursByWeek: Record<string, string>,
+) {
+  if (paymentWeeks?.length) {
+    const items = paymentWeeks
+      .map((week) => {
+        const hours =
+          coerceReportNumber(week.approvedPauseHours) ??
+          secondsToHours(coerceReportDurationSeconds(week.approvedPauseSeconds, "seconds"));
+        if (hours === null || hours <= 0) {
+          return null;
+        }
+
+        const start = firstNonEmpty(week.weekStart, week.start);
+        const end = firstNonEmpty(week.weekEnd, week.end);
+        const label =
+          firstNonEmpty(week.label, week.weekLabel) ||
+          (start && end ? `${formatAgentReportShortDate(start)} - ${formatAgentReportShortDate(end)}` : start || "");
+
+        return `${formatAgentReportApprovedHours(hours)} for week ${label || "selected"}`;
+      })
+      .filter((item): item is string => Boolean(item));
+
+    return items.length ? items.join("; ") : "0h approved";
+  }
+
+  const fallbackItems = fallbackWeeks
+    .map((week) => {
+      const hours = coerceReportNumber(approvedPauseHoursByWeek[week.start]);
+      return hours !== null && hours > 0
+        ? `${formatAgentReportApprovedHours(hours)} for week ${week.label}`
+        : null;
+    })
+    .filter((item): item is string => Boolean(item));
+
+  return fallbackItems.length ? fallbackItems.join("; ") : "0h approved";
+}
+
+function secondsToHours(value: number | null) {
+  return value === null ? null : value / 3600;
+}
+
+function formatAgentReportApprovedHours(value: number) {
+  const hours = Number.isInteger(value) ? String(value) : value.toLocaleString("en-GB", { maximumFractionDigits: 2 });
+  return `${hours}h`;
+}
+
+function formatAgentReportHourlyRate(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toLocaleString("en-GB", { maximumFractionDigits: 2 });
 }
 
 type AgentReportPauseBreakdownMode = "total" | "window" | "outside";
