@@ -12,10 +12,13 @@ import {
   CrmLeadIntentRow,
   CrmMissedCall,
   CrmPredictiveCampaignSummary,
+  CrmQuickReportDetails,
+  CrmQuickReportResult,
   CrmSale,
   CrmSaleHistoryEvent,
   CrmSaleHistoryResponse,
   findCrmLeadByPhone,
+  getCrmLeadQuickReport,
   getCrmSaleHistory,
   insertManualCrmLead,
   listCrmInboundSms,
@@ -265,6 +268,81 @@ const FINANCE_COMPANIES = [
   "Altul",
   "Nu stiu",
 ];
+
+const QUICK_REPORT_FREE_CHECK_ORDER = ["MF01", "CD01", "CD07", "FC02", "FC05", "FC07"];
+
+const QUICK_REPORT_FREE_CHECK_LABELS: Record<string, string> = {
+  MF01: "Cod fiscal (tax code) gresit",
+  CD01: "Credit score / raport de credit",
+  CD07: "Bank switching bonus neaccesat",
+  FC02: "Asigurari auto/casa",
+  FC05: "Comisioane remitere bani spre Romania",
+  FC07: "Facturi de utilitati",
+};
+
+const QUICK_REPORT_FAZA0_ANSWER_LABELS: Record<string, string> = {
+  multipleJobs: "A avut mai multe joburi?",
+  taxRecoveredLast5Years: "A recuperat taxele pe ultimii 5 ani?",
+  electoralRoll: "Este inscris pe electoral roll?",
+  creditReportChecked: "A verificat raportul de credit pentru erori?",
+  bankSwitchLast: "Cand a schimbat ultima data banca?",
+  insuranceRenewal: "Cum a reinnoit asigurarea auto/casa?",
+  transferMethod: "Cum trimite bani in Romania?",
+  transferCompared: "A comparat comisioanele de transfer?",
+  utilitiesCompared: "A comparat facturile de utilitati?",
+};
+
+const QUICK_REPORT_INTERNAL_ANSWER_LABELS: Record<string, string> = {
+  ukEmploymentType: "A muncit in UK ca angajat/self-employed?",
+  knowsAllPrivatePensions: "Stie toate pensiile private?",
+  hadCarFinanceBeforeNov2024: "Masina cu plata in rate inainte de Noiembrie 2024?",
+  hasCreditCardOverdraftOrPaydayLoansDebt: "Datorii pe carduri de credit / overdraft / payday loans?",
+  checkedCouncilTaxBand: "A verificat banda de council tax?",
+  creditScoreLevel: "Scor de credit",
+};
+
+const QUICK_REPORT_VALUE_LABELS: Record<string, Record<string, string>> = {
+  multipleJobs: { yes: "Da", no: "Nu" },
+  taxRecoveredLast5Years: { yes: "Da", no: "Nu" },
+  electoralRoll: { yes: "Da", no: "Nu" },
+  creditReportChecked: { yes: "Da", no: "Nu" },
+  transferCompared: { yes: "Da", no: "Nu" },
+  utilitiesCompared: { yes: "Da", no: "Nu" },
+  knowsAllPrivatePensions: { yes: "Da", no: "Nu" },
+  hadCarFinanceBeforeNov2024: { yes: "Da", no: "Nu" },
+  hasCreditCardOverdraftOrPaydayLoansDebt: { yes: "Da", no: "Nu" },
+  checkedCouncilTaxBand: { yes: "Da", no: "Nu" },
+  bankSwitchLast: {
+    within12: "In ultimele 12 luni",
+    over12: "Acum mai mult de 12 luni",
+    never: "Niciodata",
+  },
+  insuranceRenewal: {
+    compared: "A comparat ofertele",
+    autoNoCompare: "Reinnoire automata fara comparatie",
+    notApplicable: "Nu se aplica",
+  },
+  transferMethod: {
+    bank: "Banca",
+    westernUnion: "Western Union",
+    moneyGram: "MoneyGram",
+    wise: "Wise",
+    revolut: "Revolut",
+    other: "Alta metoda",
+  },
+  ukEmploymentType: {
+    employee: "Angajat",
+    selfEmployed: "Self-employed",
+    both: "Angajat si self-employed",
+    notWorked: "Nu a muncit in UK",
+    unknown: "Nu stie / necunoscut",
+  },
+  creditScoreLevel: {
+    low: "Mic",
+    medium: "Mediu",
+    high: "Mare",
+  },
+};
 
 const LEAD_FIELD_LABELS: Record<string, string> = {
   id: "Lead ID",
@@ -1498,6 +1576,9 @@ function LeadDetailsPanel({
   const [activityLookup, setActivityLookup] = useState("");
   const [activityRows, setActivityRows] = useState<CrmActivity[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
+  const [quickReport, setQuickReport] = useState<CrmQuickReportDetails | null>(null);
+  const [quickReportLoading, setQuickReportLoading] = useState(false);
+  const [quickReportMessage, setQuickReportMessage] = useState("");
   const isCarFinance = isCarFinanceIntent(selectedIntent);
   const isJobApplication = isJobApplicationLeadContext(draft, selectedIntent, forceJobApplication);
   const emailSequenceOptions = isCarFinance ? EMAIL_SEQUENCE_OPTIONS : DEFAULT_EMAIL_SEQUENCE_OPTIONS;
@@ -1516,7 +1597,10 @@ function LeadDetailsPanel({
     setLastContactTime(toInputTime(lastContactValue));
     setActivityLookup(getLeadLookupValue(lead));
     setActivityRows([]);
+    setQuickReport(null);
+    setQuickReportMessage("");
     void loadLeadHistory(lead, { silent: true });
+    void loadLeadQuickReport(lead, selectedIntent, { silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead, selectedIntent]);
 
@@ -1752,6 +1836,39 @@ function LeadDetailsPanel({
     }
   }
 
+  async function loadLeadQuickReport(
+    leadForReport: CrmLead = draft,
+    intentForReport: CrmLeadIntentRow | null = selectedIntent,
+    options: { silent?: boolean } = {},
+  ) {
+    const params = buildLeadQuickReportParams(leadForReport, intentForReport);
+    if (!hasLeadQuickReportLookup(params)) {
+      setQuickReport(null);
+      if (!options.silent) {
+        setQuickReportMessage("Introdu telefonul sau emailul pentru a cauta raportul gratuit.");
+      }
+      return;
+    }
+
+    setQuickReportLoading(true);
+    setQuickReportMessage("");
+    try {
+      const result = await getCrmLeadQuickReport(token, params);
+      const report = getQuickReportDetailsFromResponse(result);
+      setQuickReport(report);
+      setQuickReportMessage(report ? "" : "Nu am gasit un raport gratuit salvat pentru acest lead.");
+    } catch (error) {
+      setQuickReport(null);
+      const message = formatQuickReportDetailsError(error);
+      setQuickReportMessage(message);
+      if (!options.silent) {
+        onError(message);
+      }
+    } finally {
+      setQuickReportLoading(false);
+    }
+  }
+
   async function handleActivitySearch() {
     await loadLeadHistory(draft, { lookup: activityLookup.trim() });
   }
@@ -1865,6 +1982,13 @@ function LeadDetailsPanel({
           {statusUpdateBusy ? "Sending..." : "send status update"}
         </button>
       </div>
+
+      <QuickReportCrmPanel
+        report={quickReport}
+        loading={quickReportLoading}
+        message={quickReportMessage}
+        onReload={() => loadLeadQuickReport(draft, selectedIntent)}
+      />
 
       <hr />
 
@@ -2160,6 +2284,115 @@ function JobApplicationLeadPanel({
 
       <AvailableFieldsSection title="Toate informatiile lead-ului" fields={leadFields} />
       {selectedIntent ? <AvailableFieldsSection title="Informatii lead intent" fields={intentFields} /> : null}
+    </section>
+  );
+}
+
+function QuickReportCrmPanel({
+  report,
+  loading,
+  message,
+  onReload,
+}: {
+  report: CrmQuickReportDetails | null;
+  loading: boolean;
+  message: string;
+  onReload: () => void;
+}) {
+  const results = getQuickReportResults(report);
+  const faza0Answers = getQuickReportFaza0Answers(report);
+  const internalAnswers = getQuickReportInternalAnswers(report);
+  const answeredFaza0 = getLabeledAnswerRows(faza0Answers, QUICK_REPORT_FAZA0_ANSWER_LABELS);
+  const answeredInternal = getLabeledAnswerRows(internalAnswers, QUICK_REPORT_INTERNAL_ANSWER_LABELS);
+
+  return (
+    <section className="quick-report-panel">
+      <div className="quick-report-heading">
+        <div>
+          <h2>Money Check - raport gratuit</h2>
+          <p>
+            {report
+              ? `Raport ${getQuickReportReference(report)}${getQuickReportDate(report) ? ` | ${formatDateTime(getQuickReportDate(report))}` : ""}`
+              : "Ultimul raport gratuit atasat acestui lead."}
+          </p>
+        </div>
+        <button type="button" className="orange small" onClick={onReload} disabled={loading}>
+          {loading ? "Se incarca..." : "Reincarca raport"}
+        </button>
+      </div>
+
+      {message ? <p className="quick-report-message">{message}</p> : null}
+
+      {report ? (
+        <>
+          <div className="quick-report-meta">
+            <LabelValue label="Nume:" value={report.fullName} />
+            <LabelValue label="Email:" value={report.email} />
+            <LabelValue label="Telefon:" value={report.phone || report.phoneNumber || report.normalizedPhone} />
+            <LabelValue label="Lead ID:" value={report.leadId} />
+          </div>
+
+          <QuickReportResultSection results={results} />
+          <QuickReportAnswerSection title="Raspunsuri Faza Zero" rows={answeredFaza0} />
+          <QuickReportAnswerSection title="Informatii interne CRM" rows={answeredInternal} />
+        </>
+      ) : null}
+    </section>
+  );
+}
+
+function QuickReportResultSection({ results }: { results: CrmQuickReportResult[] }) {
+  const byCode = new Map(results.map((result) => [String(result.code || "").trim().toUpperCase(), result]));
+  const orderedResults = QUICK_REPORT_FREE_CHECK_ORDER.map((code) => byCode.get(code)).filter(
+    (result): result is CrmQuickReportResult => Boolean(result),
+  );
+  const extraResults = results.filter(
+    (result) => !QUICK_REPORT_FREE_CHECK_ORDER.includes(String(result.code || "").trim().toUpperCase()),
+  );
+  const visibleResults = [...orderedResults, ...extraResults];
+
+  return (
+    <section className="quick-report-subsection">
+      <h3>Rezultatele celor 6 verificari</h3>
+      {visibleResults.length ? (
+        <div className="quick-report-results">
+          {visibleResults.map((result, index) => {
+            const code = String(result.code || "").trim().toUpperCase();
+            return (
+              <article key={`${code || "check"}-${index}`} className="quick-report-result-card">
+                <div className="quick-report-result-title">
+                  <span>{code || `Check ${index + 1}`}</span>
+                  <strong>{result.title || QUICK_REPORT_FREE_CHECK_LABELS[code] || "Verificare"}</strong>
+                  <em className={quickReportFlagClass(result.flag)}>{formatQuickReportFlag(result.flag)}</em>
+                </div>
+                <p>{result.output || "Nu exista rezultat salvat pentru aceasta verificare."}</p>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <p className="quick-report-empty">Nu exista rezultate salvate pentru cele 6 verificari.</p>
+      )}
+    </section>
+  );
+}
+
+function QuickReportAnswerSection({ title, rows }: { title: string; rows: Array<{ label: string; value: string }> }) {
+  return (
+    <section className="quick-report-subsection">
+      <h3>{title}</h3>
+      {rows.length ? (
+        <div className="quick-report-answer-grid">
+          {rows.map((row) => (
+            <div key={row.label} className="quick-report-answer-row">
+              <span>{row.label}</span>
+              <strong>{row.value}</strong>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="quick-report-empty">Nu exista informatii salvate.</p>
+      )}
     </section>
   );
 }
@@ -4696,6 +4929,138 @@ const panelStyles = `
   .selected-lead-actions .orange.small {
     min-width: 160px;
   }
+  .quick-report-panel {
+    display: grid;
+    gap: 16px;
+    margin-top: 18px;
+    border: 1px solid #d6dbe8;
+    background: #f8fafc;
+    padding: 16px;
+  }
+  .quick-report-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) max-content;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .quick-report-heading h2,
+  .quick-report-subsection h3 {
+    margin: 0;
+    color: #111;
+    line-height: 1.25;
+  }
+  .quick-report-heading h2 {
+    font-size: 18px;
+  }
+  .quick-report-heading p {
+    margin: 4px 0 0;
+    color: #555;
+    font-size: 12px;
+    font-weight: 800;
+    word-break: break-word;
+  }
+  .quick-report-message,
+  .quick-report-empty {
+    margin: 0;
+    color: #555;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .quick-report-meta,
+  .quick-report-answer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 16px;
+  }
+  .quick-report-subsection {
+    display: grid;
+    gap: 10px;
+  }
+  .quick-report-subsection h3 {
+    font-size: 15px;
+  }
+  .quick-report-results {
+    display: grid;
+    gap: 10px;
+  }
+  .quick-report-result-card {
+    display: grid;
+    gap: 8px;
+    border: 1px solid #d6dbe8;
+    background: #fff;
+    padding: 12px;
+  }
+  .quick-report-result-card p {
+    margin: 0;
+    color: #111;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .quick-report-result-title {
+    display: grid;
+    grid-template-columns: 58px minmax(0, 1fr) max-content;
+    align-items: center;
+    gap: 10px;
+  }
+  .quick-report-result-title span {
+    color: #555;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .quick-report-result-title strong {
+    color: #111;
+    font-size: 13px;
+    line-height: 1.25;
+    word-break: break-word;
+  }
+  .quick-report-flag {
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 900;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .quick-report-flag-red {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  .quick-report-flag-yellow {
+    background: #fef3c7;
+    color: #92400e;
+  }
+  .quick-report-flag-green {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .quick-report-flag-incomplete,
+  .quick-report-flag-default {
+    background: #e5e7eb;
+    color: #374151;
+  }
+  .quick-report-answer-row {
+    display: grid;
+    gap: 4px;
+    border: 1px solid #d6dbe8;
+    background: #fff;
+    padding: 10px 12px;
+    min-width: 0;
+  }
+  .quick-report-answer-row span {
+    color: #555;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.3;
+  }
+  .quick-report-answer-row strong {
+    color: #111;
+    font-size: 13px;
+    line-height: 1.35;
+    word-break: break-word;
+  }
   .job-application-panel {
     display: grid;
     gap: 22px;
@@ -5103,6 +5468,10 @@ const panelStyles = `
     .phone-detail,
     .add-phone-row,
     .selected-lead-actions,
+    .quick-report-heading,
+    .quick-report-meta,
+    .quick-report-result-title,
+    .quick-report-answer-grid,
     .job-application-heading,
     .job-application-edit-grid,
     .available-field-row,
@@ -5871,6 +6240,284 @@ function formatLeadSaveError(error: unknown, isJobApplication: boolean) {
   }
 
   return error instanceof Error ? error.message : "Nu am putut salva lead-ul.";
+}
+
+function buildLeadQuickReportParams(lead?: CrmLead | null, intent?: CrmLeadIntentRow | null) {
+  return {
+    leadId: firstNonEmpty(intent?.leadId, lead?.leadid, lead?.id, lead?.wixId, lead?._id),
+    contactId: firstNonEmpty(intent?.contactId, lead?.contactId),
+    canonicalContactId: firstNonEmpty(intent?.canonicalContactId, lead?.canonicalContactId, lead?.canonical?.contactId),
+    intentId: firstNonEmpty(intent?.interestId),
+    email: getLeadEmailValues(lead)[0] || getLeadEmailValue(lead),
+    phone: getLeadPhoneValues(lead)[0] || getLeadPhoneValue(lead),
+    serviceKey: firstNonEmpty(intent?.serviceKey, intent?.serviceDisplayName),
+  };
+}
+
+function hasLeadQuickReportLookup(params: Record<string, string>) {
+  return Boolean(params.leadId || params.contactId || params.canonicalContactId || params.intentId || params.email || params.phone);
+}
+
+function getQuickReportDetailsFromResponse(response: unknown): CrmQuickReportDetails | null {
+  if (!response || typeof response !== "object") {
+    return null;
+  }
+
+  const record = response as {
+    report?: CrmQuickReportDetails | null;
+    quickReport?: CrmQuickReportDetails | null;
+    item?: CrmQuickReportDetails | null;
+    latest?: CrmQuickReportDetails | null;
+    reports?: CrmQuickReportDetails[] | null;
+    items?: CrmQuickReportDetails[] | null;
+  };
+
+  return (
+    record.report ||
+    record.quickReport ||
+    record.item ||
+    record.latest ||
+    record.reports?.[0] ||
+    record.items?.[0] ||
+    null
+  );
+}
+
+function formatQuickReportDetailsError(error: unknown) {
+  if (isNotFoundError(error)) {
+    return "Nu am gasit raport gratuit salvat pentru acest lead sau endpointul LS nu este disponibil inca.";
+  }
+
+  return error instanceof Error ? error.message : "Nu am putut incarca raportul gratuit pentru acest lead.";
+}
+
+function getQuickReportResults(report: CrmQuickReportDetails | null) {
+  if (!report) {
+    return [];
+  }
+
+  const reportRecord = asQuickReportRecord(report);
+  const faza0Record = asQuickReportRecord(reportRecord?.faza0);
+  const internalRecord = asQuickReportRecord(reportRecord?.internal);
+  const candidates = [
+    report.faza0Results,
+    report.results,
+    faza0Record?.results,
+    faza0Record?.faza0Results,
+    internalRecord?.faza0Results,
+    reportRecord?.faza0ResultRows,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      const normalized = candidate
+        .map((item) => normalizeQuickReportResult(item))
+        .filter((item): item is CrmQuickReportResult => Boolean(item));
+      if (normalized.length) {
+        return normalized;
+      }
+    }
+  }
+
+  return [];
+}
+
+function normalizeQuickReportResult(value: unknown): CrmQuickReportResult | null {
+  const record = asQuickReportRecord(value);
+  if (!record) {
+    return null;
+  }
+
+  const code = firstNonEmpty(
+    quickReportString(record.code),
+    quickReportString(record.Code),
+    quickReportString(record.checkCode),
+    quickReportString(record.resultCode),
+  );
+  const title = firstNonEmpty(
+    quickReportString(record.title),
+    quickReportString(record.Title),
+    quickReportString(record.name),
+    quickReportString(record.checkName),
+  );
+  const flag = firstNonEmpty(
+    quickReportString(record.flag),
+    quickReportString(record.Flag),
+    quickReportString(record.status),
+    quickReportString(record.risk),
+  );
+  const output = firstNonEmpty(
+    quickReportString(record.output),
+    quickReportString(record.Output),
+    quickReportString(record.result),
+    quickReportString(record.resultText),
+    quickReportString(record.description),
+  );
+
+  if (!code && !title && !output) {
+    return null;
+  }
+
+  return {
+    code,
+    title,
+    flag,
+    output,
+    rawAnswer: asQuickReportRecord(record.rawAnswer) || asQuickReportRecord(record.rawAnswers),
+  };
+}
+
+function getQuickReportFaza0Answers(report: CrmQuickReportDetails | null) {
+  if (!report) {
+    return {};
+  }
+
+  const reportRecord = asQuickReportRecord(report);
+  const answersRecord = asQuickReportRecord(report.answers);
+  const faza0Record = asQuickReportRecord(reportRecord?.faza0);
+
+  return (
+    firstQuickReportRecord(
+      report.faza0Answers,
+      answersRecord?.existingFaza0Answers,
+      answersRecord?.faza0Answers,
+      faza0Record?.answers,
+      faza0Record?.faza0Answers,
+      reportRecord?.existingFaza0Answers,
+    ) || {}
+  );
+}
+
+function getQuickReportInternalAnswers(report: CrmQuickReportDetails | null) {
+  if (!report) {
+    return {};
+  }
+
+  const reportRecord = asQuickReportRecord(report);
+  const internalRecord = asQuickReportRecord(report.internal);
+
+  return (
+    firstQuickReportRecord(
+      report.internalAnswers,
+      internalRecord?.answers,
+      internalRecord?.internalAnswers,
+      reportRecord?.crmInternalAnswers,
+      reportRecord?.internalCrmAnswers,
+    ) || {}
+  );
+}
+
+function getLabeledAnswerRows(
+  answers: Record<string, unknown>,
+  labels: Record<string, string>,
+): Array<{ label: string; value: string }> {
+  const extraKeys = Object.keys(answers).filter((key) => !labels[key]);
+  return [...Object.keys(labels), ...extraKeys]
+    .map((key) => ({
+      label: labels[key] || humanizeQuickReportKey(key),
+      value: formatQuickReportAnswerValue(key, answers[key]),
+    }))
+    .filter((row) => row.value);
+}
+
+function formatQuickReportAnswerValue(key: string, value: unknown): string {
+  if (value === undefined || value === null || value === "") {
+    return "";
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Da" : "Nu";
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => formatQuickReportAnswerValue(key, item)).filter(Boolean).join(", ");
+  }
+
+  if (typeof value === "object") {
+    return JSON.stringify(value);
+  }
+
+  const text = String(value).trim();
+  if (!text) {
+    return "";
+  }
+
+  return QUICK_REPORT_VALUE_LABELS[key]?.[text] || (text === "yes" ? "Da" : text === "no" ? "Nu" : text);
+}
+
+function getQuickReportReference(report: CrmQuickReportDetails) {
+  return firstNonEmpty(report.reportId, report.id, report.leadId) || "fara ID";
+}
+
+function getQuickReportDate(report: CrmQuickReportDetails) {
+  return firstNonEmpty(report.submittedAtUtc, report.createdAtUtc, report.updatedAtUtc);
+}
+
+function formatQuickReportFlag(flag?: string | null) {
+  const normalized = normalizeQuickReportFlag(flag);
+  if (normalized === "red") {
+    return "Rosu";
+  }
+  if (normalized === "yellow") {
+    return "Galben";
+  }
+  if (normalized === "green") {
+    return "Verde";
+  }
+  if (normalized === "incomplete") {
+    return "Necompletat";
+  }
+
+  return quickReportString(flag) || "Rezultat";
+}
+
+function quickReportFlagClass(flag?: string | null) {
+  return `quick-report-flag quick-report-flag-${normalizeQuickReportFlag(flag) || "default"}`;
+}
+
+function normalizeQuickReportFlag(flag?: string | null) {
+  const text = quickReportString(flag).toLowerCase();
+  if (text === "rosu" || text === "red") {
+    return "red";
+  }
+  if (text === "galben" || text === "yellow") {
+    return "yellow";
+  }
+  if (text === "verde" || text === "green") {
+    return "green";
+  }
+  if (text === "necompletat" || text === "incomplete") {
+    return "incomplete";
+  }
+
+  return "";
+}
+
+function firstQuickReportRecord(...values: unknown[]) {
+  for (const value of values) {
+    const record = asQuickReportRecord(value);
+    if (record && Object.keys(record).length) {
+      return record;
+    }
+  }
+
+  return null;
+}
+
+function asQuickReportRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+}
+
+function quickReportString(value: unknown) {
+  return value === undefined || value === null ? "" : String(value).trim();
+}
+
+function humanizeQuickReportKey(key: string) {
+  return key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function getLeadEmailValue(lead?: CrmLead | null) {

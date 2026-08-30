@@ -435,6 +435,53 @@ export type CrmInboundSmsResponse = {
   filters?: Record<string, string | number | null>;
 };
 
+export type CrmQuickReportResult = {
+  code?: string | null;
+  title?: string | null;
+  flag?: string | null;
+  output?: string | null;
+  rawAnswer?: Record<string, unknown> | null;
+};
+
+export type CrmQuickReportDetails = {
+  reportId?: string | null;
+  id?: string | null;
+  leadId?: string | null;
+  contactId?: string | null;
+  canonicalContactId?: string | null;
+  fullName?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  phoneNumber?: string | null;
+  normalizedPhone?: string | null;
+  source?: string | null;
+  createdAtUtc?: string | null;
+  submittedAtUtc?: string | null;
+  updatedAtUtc?: string | null;
+  faza0Answers?: Record<string, unknown> | null;
+  answers?: Record<string, unknown> | null;
+  faza0Results?: CrmQuickReportResult[] | null;
+  results?: CrmQuickReportResult[] | null;
+  internalAnswers?: Record<string, unknown> | null;
+  internal?: {
+    answers?: Record<string, unknown> | null;
+    createdAtUtc?: string | null;
+    updatedAtUtc?: string | null;
+  } | null;
+};
+
+export type CrmQuickReportDetailsResponse = {
+  success?: boolean;
+  report?: CrmQuickReportDetails | null;
+  quickReport?: CrmQuickReportDetails | null;
+  item?: CrmQuickReportDetails | null;
+  latest?: CrmQuickReportDetails | null;
+  reports?: CrmQuickReportDetails[] | null;
+  items?: CrmQuickReportDetails[] | null;
+  message?: string | null;
+  error?: string | { code?: string; message?: string } | null;
+};
+
 export type CrmLeadUpdatePayload = {
   observation?: string;
   newObservation?: string;
@@ -697,6 +744,18 @@ export function listCrmSales(
   return fetchCanonicalCrmReadJson<CrmSalesResponse>(`${BASE_PATH}/sales${buildQuery(params)}`, {
     headers: authHeaders(token),
   });
+}
+
+export function getCrmLeadQuickReport(
+  token: string,
+  params: Record<string, string | number | boolean | null | undefined>,
+) {
+  return fetchCanonicalCrmReadJson<CrmQuickReportDetailsResponse>(
+    `${BASE_PATH}/quick-report/latest${buildQuery(params)}`,
+    {
+      headers: authHeaders(token),
+    },
+  );
 }
 
 export async function getCrmSaleHistory(
