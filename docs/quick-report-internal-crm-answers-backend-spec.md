@@ -48,7 +48,8 @@ Authentication:
     "hadCarFinanceBeforeNov2024": "yes",
     "hasCreditCardOverdraftOrPaydayLoansDebt": "yes",
     "checkedCouncilTaxBand": "no",
-    "creditScoreLevel": "medium"
+    "creditScoreLevel": "medium",
+    "agentObservations": "Clientul pare interesat de bank switching si pensii private pierdute."
   },
   "faza0Answers": {
     "multipleJobs": "yes",
@@ -101,6 +102,13 @@ The yes/no fields are:
 - `medium`
 - `high`
 
+`agentObservations`:
+
+- optional free-text field written by the CRM agent
+- store as internal CRM-only text
+- do not require it for completion
+- recommended limit: at least 4,000 characters
+
 ## Persistence
 
 Attach the internal answers to the saved Faza 0 free-report simulation.
@@ -119,6 +127,7 @@ Store the raw answer keys and enough labels for CRM display. Recommended labels:
 - `hasCreditCardOverdraftOrPaydayLoansDebt`: "Datorii pe carduri de credit / overdraft / payday loans?"
 - `checkedCouncilTaxBand`: "A verificat banda de council tax?"
 - `creditScoreLevel`: "Scor de credit"
+- `agentObservations`: "Observatii agent"
 
 ## Response
 
@@ -170,5 +179,7 @@ They should be internal CRM fields only. Do not expose them on:
 - A CRM user can send the Faza 0 free report as before.
 - After Faza 0 is saved, a CRM user can save the internal questionnaire.
 - Saved internal answers are attached to the same free-report simulation/lead.
+- Saved agent observations are attached to the same free-report simulation/lead.
 - Saved internal answers are visible in CRM.
+- Saved agent observations are visible in CRM.
 - Saved internal answers are not visible to the customer and are not included in emails.

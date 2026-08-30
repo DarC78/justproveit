@@ -42,6 +42,7 @@ const initialInternalAnswers: QuickReportInternalAnswers = {
   hasCreditCardOverdraftOrPaydayLoansDebt: "",
   checkedCouncilTaxBand: "",
   creditScoreLevel: "",
+  agentObservations: "",
 };
 
 type ContactForm = {
@@ -576,6 +577,17 @@ export default function FreeQuickReportPage() {
                   options={creditScoreOptions}
                 />
               </CheckFields>
+
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">Observatii agent</span>
+                <textarea
+                  value={internalAnswers.agentObservations}
+                  onChange={(event) => updateInternalAnswer("agentObservations", event.target.value)}
+                  rows={5}
+                  placeholder="Scrie aici orice observatii interne pentru CRM."
+                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                />
+              </label>
             </fieldset>
 
             <div className="flex flex-col items-start gap-3 border-t border-slate-200 pt-4">

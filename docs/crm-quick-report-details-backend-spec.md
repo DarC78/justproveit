@@ -117,7 +117,8 @@ Return `200` with `report: null` when no report exists. Do not return `404` for 
       "hadCarFinanceBeforeNov2024": "yes",
       "hasCreditCardOverdraftOrPaydayLoansDebt": "yes",
       "checkedCouncilTaxBand": "no",
-      "creditScoreLevel": "medium"
+      "creditScoreLevel": "medium",
+      "agentObservations": "Clientul pare interesat de bank switching si pensii private pierdute."
     }
   }
 }
@@ -190,6 +191,12 @@ medium
 high
 ```
 
+`agentObservations`:
+
+```text
+optional free-text CRM-only observation written by the agent
+```
+
 ## Data Linkage Requirement
 
 The existing submit endpoints should persist enough identifiers to make this lookup reliable:
@@ -208,7 +215,7 @@ When saving Faza Zero, LS should create/link the CRM lead and store:
 - `faza0Answers`
 - `faza0Results`
 
-When saving `Informatii interne CRM`, LS should attach the internal answers to the same saved quick-report simulation, preferably by `reportId`, then `leadId`, then normalized email/phone.
+When saving `Informatii interne CRM`, LS should attach the internal answers, including `internalAnswers.agentObservations` when supplied, to the same saved quick-report simulation, preferably by `reportId`, then `leadId`, then normalized email/phone.
 
 ## Privacy
 
@@ -224,6 +231,7 @@ This endpoint is CRM-only. Do not expose `internalAnswers` through:
 - The CRM details panel displays all 6 free assessment result rows returned by LS.
 - The panel displays the saved Faza Zero answer values.
 - The panel displays the saved `Informatii interne CRM` answer values.
+- The panel displays the saved `agentObservations` text when present.
 - `Observatii curente` and `Informatii precedente` remain visible in the lead details view.
 - If no report exists, the endpoint returns `200` with `report: null`, and the CRM shows a friendly empty state.
 - Anonymous calls are rejected.

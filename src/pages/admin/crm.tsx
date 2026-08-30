@@ -299,6 +299,7 @@ const QUICK_REPORT_INTERNAL_ANSWER_LABELS: Record<string, string> = {
   hasCreditCardOverdraftOrPaydayLoansDebt: "Datorii pe carduri de credit / overdraft / payday loans?",
   checkedCouncilTaxBand: "A verificat banda de council tax?",
   creditScoreLevel: "Scor de credit",
+  agentObservations: "Observatii agent",
 };
 
 const QUICK_REPORT_VALUE_LABELS: Record<string, Record<string, string>> = {

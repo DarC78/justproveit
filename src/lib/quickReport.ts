@@ -74,6 +74,7 @@ export type QuickReportInternalAnswers = {
   hasCreditCardOverdraftOrPaydayLoansDebt: YesNo;
   checkedCouncilTaxBand: YesNo;
   creditScoreLevel: CreditScoreLevel;
+  agentObservations: string;
 };
 
 export type SubmitQuickReportPayload = {
