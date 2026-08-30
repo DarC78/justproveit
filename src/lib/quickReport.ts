@@ -77,6 +77,10 @@ export type QuickReportInternalAnswers = {
   agentObservations: string;
 };
 
+export type QuickReportInternalAnswersPayload = Omit<QuickReportInternalAnswers, "agentObservations"> & {
+  agentObservations?: string;
+};
+
 export type SubmitQuickReportPayload = {
   tenantKey: "justproveit";
   source: "raport_gratuit_faza0";
@@ -107,7 +111,7 @@ export type SaveQuickReportInternalAnswersPayload = {
   domain: string;
   pageUrl: string;
   referrer: string;
-  answers: QuickReportInternalAnswers;
+  answers: QuickReportInternalAnswersPayload;
   faza0Answers: QuickReportAnswers;
   faza0Results: Array<QuickReportResult & { flag: QuickReportFlag }>;
 };

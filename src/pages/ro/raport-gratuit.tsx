@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
+import { updateCrmLead } from "@/lib/crmAdmin";
 import {
   evaluateQuickReport,
   getQuickReportCompletion,
@@ -14,6 +15,7 @@ import {
   type QuickReportDisplayFlag,
   type QuickReportFlag,
   type QuickReportInternalAnswers,
+  type QuickReportInternalAnswersPayload,
   type QuickReportResult,
   type YesNo,
 } from "@/lib/quickReport";
@@ -74,7 +76,7 @@ const initialContact: ContactForm = {
 
 export default function FreeQuickReportPage() {
   const router = useRouter();
-  const { status: authStatus, token, isCrm, logout } = useAuth();
+  const { status: authStatus, token, isCrm, logout, user } = useAuth();
   const [contact, setContact] = useState<ContactForm>(initialContact);
   const [answers, setAnswers] = useState<QuickReportAnswers>(initialAnswers);
   const [internalAnswers, setInternalAnswers] = useState<QuickReportInternalAnswers>(initialInternalAnswers);
@@ -280,9 +282,12 @@ export default function FreeQuickReportPage() {
       (result): result is QuickReportResult & { flag: QuickReportFlag } => result.flag !== "necompletat",
     );
     const browserLocation = getBrowserLocation();
+    const agentObservations = internalAnswers.agentObservations.trim();
+    const agentName = user?.name || user?.email || "";
 
     setSendingAction("internal");
     try {
+      let savedAgentObservationsInQuickReport = Boolean(agentObservations);
       const response = await saveQuickReportInternalAnswers(token, {
         tenantKey: "justproveit",
         source: "raport_gratuit_crm_internal",
@@ -294,9 +299,30 @@ export default function FreeQuickReportPage() {
         domain: browserLocation.domain,
         pageUrl: browserLocation.pageUrl,
         referrer: browserLocation.referrer,
-        answers: internalAnswers,
+        answers: buildInternalAnswersPayload(internalAnswers, Boolean(agentObservations)),
         faza0Answers: answers,
         faza0Results: completedResults,
+      }).catch(async (error) => {
+        if (!agentObservations) {
+          throw error;
+        }
+
+        savedAgentObservationsInQuickReport = false;
+        return saveQuickReportInternalAnswers(token, {
+          tenantKey: "justproveit",
+          source: "raport_gratuit_crm_internal",
+          reportId: savedReport.reportId,
+          leadId: savedReport.leadId,
+          fullName: contactDetails.fullName,
+          email: contactDetails.email,
+          phone: contactDetails.phone,
+          domain: browserLocation.domain,
+          pageUrl: browserLocation.pageUrl,
+          referrer: browserLocation.referrer,
+          answers: buildInternalAnswersPayload(internalAnswers, false),
+          faza0Answers: answers,
+          faza0Results: completedResults,
+        });
       });
       setSavedReport({
         reportId: response.reportId || savedReport.reportId,
@@ -304,8 +330,17 @@ export default function FreeQuickReportPage() {
         email: contactDetails.email,
         phone: contactDetails.phone,
       });
+
+      const observationFallback = savedAgentObservationsInQuickReport
+        ? { saved: false, message: "" }
+        : await saveAgentObservationFallback(token, response.leadId || savedReport.leadId, agentObservations, agentName);
+      const fallbackMessage = savedAgentObservationsInQuickReport
+        ? ""
+        : observationFallback.saved
+          ? " Observatia agent a fost salvata in Observatii lead pana LS activeaza campul dedicat."
+          : ` Observatia agent nu a fost salvata: ${observationFallback.message}`;
       setInternalStatus("success");
-      setInternalMessage(response.message || "Informatiile interne au fost salvate in CRM.");
+      setInternalMessage(`${response.message || "Informatiile interne au fost salvate in CRM."}${fallbackMessage}`);
     } catch (error) {
       setInternalStatus("error");
       setInternalMessage(error instanceof Error ? error.message : "Informatiile interne nu au putut fi salvate.");
@@ -861,6 +896,49 @@ function getBrowserLocation() {
     pageUrl: window.location.href,
     referrer: document.referrer || "",
   };
+}
+
+function buildInternalAnswersPayload(
+  answers: QuickReportInternalAnswers,
+  includeAgentObservations: boolean,
+): QuickReportInternalAnswersPayload {
+  const { agentObservations, ...questionAnswers } = answers;
+  const observation = agentObservations.trim();
+
+  return includeAgentObservations && observation
+    ? { ...questionAnswers, agentObservations: observation }
+    : questionAnswers;
+}
+
+async function saveAgentObservationFallback(
+  token: string,
+  leadId: string | null | undefined,
+  observation: string,
+  agentName: string,
+) {
+  const cleanObservation = observation.trim();
+  const cleanLeadId = String(leadId || "").trim();
+
+  if (!cleanObservation) {
+    return { saved: true, message: "" };
+  }
+
+  if (!cleanLeadId) {
+    return { saved: false, message: "lipseste leadId pentru salvarea observatiei." };
+  }
+
+  try {
+    await updateCrmLead(token, cleanLeadId, {
+      observation: `Money Check - Observatii agent:\n${cleanObservation}`,
+      agent: agentName || "Money Check",
+    });
+    return { saved: true, message: "" };
+  } catch (error) {
+    return {
+      saved: false,
+      message: error instanceof Error ? error.message : "eroare necunoscuta la salvarea observatiei.",
+    };
+  }
 }
 
 function hasYesNo(value: YesNo) {
