@@ -30,6 +30,12 @@ Authentication:
 
 ## Request
 
+Current frontend compatibility note:
+
+- until LS confirms support for `answers.agentObservations`, the live frontend sends only the six structured internal answer fields to this endpoint
+- the free-text agent observation is currently written to the CRM lead observation field through the existing CRM update endpoint
+- once LS implements `answers.agentObservations`, the frontend can send it in this payload and display it from the dedicated quick-report details endpoint
+
 ```json
 {
   "tenantKey": "justproveit",
@@ -108,6 +114,7 @@ The yes/no fields are:
 - store as internal CRM-only text
 - do not require it for completion
 - recommended limit: at least 4,000 characters
+- not currently sent by the frontend until LS confirms the field is accepted and persisted
 
 ## Persistence
 

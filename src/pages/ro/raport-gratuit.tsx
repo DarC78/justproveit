@@ -239,7 +239,8 @@ export default function FreeQuickReportPage() {
       }
     } catch (error) {
       setStatus("error");
-      setMessage(error instanceof Error ? error.message : "Raportul nu a putut fi trimis.");
+      const errorMessage = error instanceof Error ? error.message : "Raportul nu a putut fi trimis.";
+      setMessage(`Salvare Raport Gratuit: ${errorMessage}`);
     } finally {
       setSendingAction("");
     }
@@ -287,7 +288,6 @@ export default function FreeQuickReportPage() {
 
     setSendingAction("internal");
     try {
-      let savedAgentObservationsInQuickReport = Boolean(agentObservations);
       const response = await saveQuickReportInternalAnswers(token, {
         tenantKey: "justproveit",
         source: "raport_gratuit_crm_internal",
@@ -299,30 +299,9 @@ export default function FreeQuickReportPage() {
         domain: browserLocation.domain,
         pageUrl: browserLocation.pageUrl,
         referrer: browserLocation.referrer,
-        answers: buildInternalAnswersPayload(internalAnswers, Boolean(agentObservations)),
+        answers: buildInternalAnswersPayload(internalAnswers, false),
         faza0Answers: answers,
         faza0Results: completedResults,
-      }).catch(async (error) => {
-        if (!agentObservations) {
-          throw error;
-        }
-
-        savedAgentObservationsInQuickReport = false;
-        return saveQuickReportInternalAnswers(token, {
-          tenantKey: "justproveit",
-          source: "raport_gratuit_crm_internal",
-          reportId: savedReport.reportId,
-          leadId: savedReport.leadId,
-          fullName: contactDetails.fullName,
-          email: contactDetails.email,
-          phone: contactDetails.phone,
-          domain: browserLocation.domain,
-          pageUrl: browserLocation.pageUrl,
-          referrer: browserLocation.referrer,
-          answers: buildInternalAnswersPayload(internalAnswers, false),
-          faza0Answers: answers,
-          faza0Results: completedResults,
-        });
       });
       setSavedReport({
         reportId: response.reportId || savedReport.reportId,
@@ -331,19 +310,23 @@ export default function FreeQuickReportPage() {
         phone: contactDetails.phone,
       });
 
-      const observationFallback = savedAgentObservationsInQuickReport
-        ? { saved: false, message: "" }
-        : await saveAgentObservationFallback(token, response.leadId || savedReport.leadId, agentObservations, agentName);
-      const fallbackMessage = savedAgentObservationsInQuickReport
-        ? ""
-        : observationFallback.saved
-          ? " Observatia agent a fost salvata in Observatii lead pana LS activeaza campul dedicat."
-          : ` Observatia agent nu a fost salvata: ${observationFallback.message}`;
+      const observationFallback = await saveAgentObservationFallback(
+        token,
+        response.leadId || savedReport.leadId,
+        agentObservations,
+        agentName,
+      );
+      const fallbackMessage = observationFallback.saved
+        ? agentObservations
+          ? " Observatia agent a fost salvata in Observatii lead."
+          : ""
+        : ` Observatia agent nu a fost salvata: ${observationFallback.message}`;
       setInternalStatus("success");
       setInternalMessage(`${response.message || "Informatiile interne au fost salvate in CRM."}${fallbackMessage}`);
     } catch (error) {
       setInternalStatus("error");
-      setInternalMessage(error instanceof Error ? error.message : "Informatiile interne nu au putut fi salvate.");
+      const errorMessage = error instanceof Error ? error.message : "Informatiile interne nu au putut fi salvate.";
+      setInternalMessage(`Salvare Informatii interne CRM: ${errorMessage}`);
     } finally {
       setSendingAction("");
     }
