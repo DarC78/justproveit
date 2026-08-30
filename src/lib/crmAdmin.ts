@@ -388,6 +388,71 @@ export type CrmHighLevelFunnelResponse = {
   };
 };
 
+export type CrmAgentReportPauseBreakdownRow = {
+  pauseType?: string | null;
+  type?: string | null;
+  label?: string | null;
+  seconds?: number | string | null;
+  durationSeconds?: number | string | null;
+  minutes?: number | string | null;
+  durationMinutes?: number | string | null;
+  duration?: number | string | null;
+};
+
+export type CrmAgentReportRow = {
+  day?: string | null;
+  date?: string | null;
+  reportDate?: string | null;
+  agentId?: string | number | null;
+  agentName?: string | null;
+  loggedSeconds?: number | string | null;
+  loggedTimeSeconds?: number | string | null;
+  totalLoggedSeconds?: number | string | null;
+  pauseSeconds?: number | string | null;
+  pauseTimeSeconds?: number | string | null;
+  totalPauseSeconds?: number | string | null;
+  talkedSeconds?: number | string | null;
+  talkedTimeSeconds?: number | string | null;
+  totalTalkedSeconds?: number | string | null;
+  clericalSeconds?: number | string | null;
+  clericalTimeSeconds?: number | string | null;
+  totalClericalSeconds?: number | string | null;
+  eveningLoggedSeconds?: number | string | null;
+  eveningLoggedTimeSeconds?: number | string | null;
+  logged1822Seconds?: number | string | null;
+  logged18To22Seconds?: number | string | null;
+  pauseEveningSeconds?: number | string | null;
+  eveningPauseSeconds?: number | string | null;
+  eveningPauseTimeSeconds?: number | string | null;
+  pause1822Seconds?: number | string | null;
+  pause18To22Seconds?: number | string | null;
+  eveningTalkedSeconds?: number | string | null;
+  eveningTalkedTimeSeconds?: number | string | null;
+  talked1822Seconds?: number | string | null;
+  talked18To22Seconds?: number | string | null;
+  eveningClericalSeconds?: number | string | null;
+  eveningClericalTimeSeconds?: number | string | null;
+  clerical1822Seconds?: number | string | null;
+  clerical18To22Seconds?: number | string | null;
+  pauseBreakdown?: CrmAgentReportPauseBreakdownRow[] | Record<string, number | string | null> | null;
+  pausesByType?: CrmAgentReportPauseBreakdownRow[] | Record<string, number | string | null> | null;
+  pauseTypes?: CrmAgentReportPauseBreakdownRow[] | Record<string, number | string | null> | null;
+  eveningPauseBreakdown?: CrmAgentReportPauseBreakdownRow[] | Record<string, number | string | null> | null;
+  eveningPausesByType?: CrmAgentReportPauseBreakdownRow[] | Record<string, number | string | null> | null;
+  pauseBreakdown1822?: CrmAgentReportPauseBreakdownRow[] | Record<string, number | string | null> | null;
+};
+
+export type CrmAgentReportResponse = {
+  rows?: CrmAgentReportRow[];
+  items?: CrmAgentReportRow[];
+  totals?: CrmAgentReportRow | null;
+  total?: number;
+  filters?: Record<string, string | number | null>;
+  options?: {
+    agents?: Array<{ agentId: number | string; agentName?: string | null }>;
+  };
+};
+
 export type CrmLeadListResponse = {
   leads: CrmLead[];
   total: number;
@@ -817,6 +882,15 @@ export function listCrmHighLevelFunnels(
       headers: authHeaders(token),
     },
   );
+}
+
+export function listCrmAgentReport(
+  token: string,
+  params: Record<string, string | number | boolean | null | undefined>,
+) {
+  return fetchCanonicalCrmReadJson<CrmAgentReportResponse>(`${BASE_PATH}/agent-report${buildQuery(params)}`, {
+    headers: authHeaders(token),
+  });
 }
 
 export function updateCrmLead(token: string, id: string, payload: CrmLeadUpdatePayload) {

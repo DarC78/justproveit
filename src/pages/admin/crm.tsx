@@ -4,6 +4,8 @@ import {
   closeCrmInboundSmsCase,
   createCrmAsapIntent,
   CrmActivity,
+  CrmAgentReportPauseBreakdownRow,
+  CrmAgentReportRow,
   CrmContactPhone,
   CrmHighLevelFunnelRow,
   CrmInboundSms,
@@ -21,6 +23,7 @@ import {
   getCrmLeadQuickReport,
   getCrmSaleHistory,
   insertManualCrmLead,
+  listCrmAgentReport,
   listCrmInboundSms,
   listCrmLeadIntents,
   listCrmHighLevelFunnels,
@@ -49,6 +52,7 @@ type TabKey =
   | "all"
   | "intents"
   | "inboundSms"
+  | "agentreport"
   | "manual"
   | "highLevelFunnels"
   | "missed";
@@ -81,10 +85,10 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "all", label: "All Leads CRM" },
   { key: "intents", label: "Lead Intents" },
   { key: "inboundSms", label: "InboundSMS" },
+  { key: "agentreport", label: "Agent Report" },
   { key: "manual", label: "Send Manual Email/SMS" },
-  { key: "highLevelFunnels", label: "High Level Funnels" },
 ];
-const ROUTABLE_TABS = new Set<TabKey>([...TABS.map((item) => item.key), "missed"]);
+const ROUTABLE_TABS = new Set<TabKey>([...TABS.map((item) => item.key), "missed", "highLevelFunnels"]);
 
 function getInitialTab(): TabKey {
   if (typeof window === "undefined") {
@@ -875,7 +879,7 @@ function mergeServiceOptions(
 }
 
 function mergeAgentOptions(
-  options: Array<{ agentId: number; agentName?: string | null }>,
+  options: Array<{ agentId: number | string; agentName?: string | null }>,
   current?: string | null,
 ) {
   const byId = new Map<number, { agentId: number; agentName?: string | null }>();
@@ -1329,6 +1333,10 @@ export default function AdminCrmPage() {
                   onStatus={setStatusMessage}
                   onError={setErrorMessage}
                 />
+              ) : null}
+
+              {activeTab === "agentreport" ? (
+                <AgentReportPanel token={token} onError={setErrorMessage} />
               ) : null}
 
               {activeTab === "highLevelFunnels" ? (
@@ -3968,6 +3976,226 @@ function InboundSmsPanel({
   );
 }
 
+const AGENT_REPORT_TIMEZONE = "Europe/Bucharest";
+const AGENT_REPORT_EVENING_START = 18;
+const AGENT_REPORT_EVENING_END = 22;
+
+function AgentReportPanel({ token, onError }: { token: string; onError: (message: string) => void }) {
+  const [dateBegin, setDateBegin] = useState(() => getDateInputDaysAgo(30));
+  const [dateEnd, setDateEnd] = useState(() => getDateInputDaysAgo(0));
+  const [agentId, setAgentId] = useState("all");
+  const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number | string; agentName?: string | null }>>([]);
+  const [rows, setRows] = useState<CrmAgentReportRow[]>([]);
+  const [loading, setLoading] = useState(false);
+  const summary = useMemo(() => summarizeAgentReportRows(rows), [rows]);
+
+  useEffect(() => {
+    loadReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadReport() {
+    setLoading(true);
+    try {
+      const result = await listCrmAgentReport(token, {
+        dateBegin,
+        dateEnd,
+        agentId,
+        timezone: AGENT_REPORT_TIMEZONE,
+        windowStartHour: AGENT_REPORT_EVENING_START,
+        windowEndHour: AGENT_REPORT_EVENING_END,
+      });
+      setRows(sortAgentReportRows(result.rows || result.items || []));
+      setAgentOptions(result.options?.agents || []);
+      onError("");
+    } catch (error) {
+      onError(error instanceof Error ? error.message : "Nu am putut incarca Agent Report.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <CrmCard title="Agent Report" className="wide-card">
+      <div className="filter-grid agent-report-filter">
+        <label>Date begin</label>
+        <input type="date" value={dateBegin} onChange={(event) => setDateBegin(event.target.value)} />
+
+        <label>Date end</label>
+        <input type="date" value={dateEnd} onChange={(event) => setDateEnd(event.target.value)} />
+
+        <label>Agent</label>
+        <select value={agentId} onChange={(event) => setAgentId(event.target.value)}>
+          <option value="all">all</option>
+          {mergeAgentOptions(agentOptions, agentId).map((item) => (
+            <option key={item.agentId} value={item.agentId}>
+              {formatAgentLabel(item.agentId, item.agentName)}
+            </option>
+          ))}
+        </select>
+
+        <button type="button" className="orange small" onClick={loadReport} disabled={loading}>
+          {loading ? "Se incarca..." : "Filter"}
+        </button>
+      </div>
+
+      <p className="green-label">
+        Timezone: Romania ({AGENT_REPORT_TIMEZONE}) | interval special: {AGENT_REPORT_EVENING_START}:00-
+        {AGENT_REPORT_EVENING_END}:00
+      </p>
+
+      <div className="agent-report-summary">
+        <AgentReportMetric label="Logged total" seconds={summary.loggedSeconds} />
+        <AgentReportMetric label="Pause total" seconds={summary.pauseSeconds} />
+        <AgentReportMetric label="Talked total" seconds={summary.talkedSeconds} />
+        <AgentReportMetric label="Clerical total" seconds={summary.clericalSeconds} />
+        <AgentReportMetric label="Logged 18-22 RO" seconds={summary.eveningLoggedSeconds} />
+        <AgentReportMetric label="Pause 18-22 RO" seconds={summary.eveningPauseSeconds} />
+        <AgentReportMetric label="Talked 18-22 RO" seconds={summary.eveningTalkedSeconds} />
+        <AgentReportMetric label="Clerical 18-22 RO" seconds={summary.eveningClericalSeconds} />
+      </div>
+
+      <DataTable
+        columns={[
+          "Day",
+          "Agent",
+          "Logged",
+          "Pause by type",
+          "Talked",
+          "Clerical",
+          "Logged 18-22 RO",
+          "Pause 18-22 RO by type",
+          "Talked 18-22 RO",
+          "Clerical 18-22 RO",
+        ]}
+        rows={rows.map((row) => [
+          formatAgentReportDay(row),
+          formatAgentReportAgent(row),
+          formatDurationHhMm(getAgentReportSeconds(row, ["loggedSeconds", "loggedTimeSeconds", "totalLoggedSeconds"])),
+          <PauseBreakdownCell key={`pause-${getAgentReportRowKey(row)}`} items={getAgentReportPauseBreakdown(row, false)} />,
+          formatDurationHhMm(getAgentReportSeconds(row, ["talkedSeconds", "talkedTimeSeconds", "totalTalkedSeconds"])),
+          formatDurationHhMm(getAgentReportSeconds(row, ["clericalSeconds", "clericalTimeSeconds", "totalClericalSeconds"])),
+          formatDurationHhMm(
+            getAgentReportSeconds(row, [
+              "eveningLoggedSeconds",
+              "eveningLoggedTimeSeconds",
+              "logged1822Seconds",
+              "logged18To22Seconds",
+            ]),
+          ),
+          <PauseBreakdownCell key={`evening-pause-${getAgentReportRowKey(row)}`} items={getAgentReportPauseBreakdown(row, true)} />,
+          formatDurationHhMm(
+            getAgentReportSeconds(row, [
+              "eveningTalkedSeconds",
+              "eveningTalkedTimeSeconds",
+              "talked1822Seconds",
+              "talked18To22Seconds",
+            ]),
+          ),
+          formatDurationHhMm(
+            getAgentReportSeconds(row, [
+              "eveningClericalSeconds",
+              "eveningClericalTimeSeconds",
+              "clerical1822Seconds",
+              "clerical18To22Seconds",
+            ]),
+          ),
+        ])}
+        loading={loading}
+        minWidth={1320}
+        className="agent-report-table"
+      />
+
+      <style jsx>{panelStyles}</style>
+      <style jsx>{`
+        .agent-report-summary {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 10px;
+          margin-top: 14px;
+        }
+        @media (max-width: 980px) {
+          .agent-report-summary {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+        }
+        @media (max-width: 560px) {
+          .agent-report-summary {
+            grid-template-columns: 1fr;
+          }
+        }
+      `}</style>
+    </CrmCard>
+  );
+}
+
+function AgentReportMetric({ label, seconds }: { label: string; seconds: number }) {
+  return (
+    <div className="agent-report-metric">
+      <span>{label}</span>
+      <strong>{formatDurationHhMm(seconds)}</strong>
+      <style jsx>{`
+        .agent-report-metric {
+          display: grid;
+          gap: 4px;
+          min-height: 70px;
+          align-content: center;
+          border: 1px solid #d6e8da;
+          border-radius: 8px;
+          background: #f4fbf6;
+          padding: 10px 12px;
+        }
+        span {
+          color: #34513c;
+          font-size: 12px;
+          font-weight: 800;
+        }
+        strong {
+          color: #008a1e;
+          font-size: 18px;
+          font-weight: 900;
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function PauseBreakdownCell({ items }: { items: Array<{ pauseType: string; seconds: number }> }) {
+  if (!items.length) {
+    return "0:00";
+  }
+
+  return (
+    <div className="pause-breakdown-cell">
+      {items.map((item) => (
+        <div key={item.pauseType}>
+          <strong>{item.pauseType}</strong>
+          <span>{formatDurationHhMm(item.seconds)}</span>
+        </div>
+      ))}
+      <style jsx>{`
+        .pause-breakdown-cell {
+          display: grid;
+          gap: 4px;
+          text-align: left;
+        }
+        div {
+          display: flex;
+          justify-content: space-between;
+          gap: 8px;
+          line-height: 1.35;
+        }
+        strong {
+          font-weight: 800;
+        }
+        span {
+          white-space: nowrap;
+        }
+      `}</style>
+    </div>
+  );
+}
+
 function HighLevelFunnelsPanel({ token, onError }: { token: string; onError: (message: string) => void }) {
   const [dateBegin, setDateBegin] = useState(() => getDateInputDaysAgo(30));
   const [dateEnd, setDateEnd] = useState(() => getDateInputDaysAgo(0));
@@ -4550,6 +4778,15 @@ function DataTable({
           max-width: 90px;
           white-space: normal;
           word-break: break-word;
+        }
+        .agent-report-table :global(table) {
+          table-layout: fixed;
+        }
+        .agent-report-table :global(th),
+        .agent-report-table :global(td) {
+          white-space: normal;
+          word-break: break-word;
+          vertical-align: top;
         }
       `}</style>
     </div>
@@ -5353,6 +5590,10 @@ const panelStyles = `
     width: min(1160px, 100%);
     grid-template-columns: 140px minmax(90px, 1fr) 70px minmax(140px, 1fr) 60px minmax(150px, 1fr) minmax(190px, max-content) 100px;
   }
+  .agent-report-filter {
+    width: min(960px, 100%);
+    grid-template-columns: 90px minmax(140px, 1fr) 70px minmax(140px, 1fr) 60px minmax(150px, 1fr) 100px;
+  }
   .in-progress-filter {
     display: inline-flex;
     align-items: center;
@@ -5494,6 +5735,7 @@ const panelStyles = `
     .new-asap-row,
     .intent-filter,
     .inbound-sms-filter,
+    .agent-report-filter,
     .inbound-sms-detail,
     .high-level-filter {
       width: 100%;
@@ -7103,6 +7345,276 @@ function getDateInputDaysAgo(daysAgo: number) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${date.getFullYear()}-${month}-${day}`;
+}
+
+type AgentReportSummary = {
+  loggedSeconds: number;
+  pauseSeconds: number;
+  talkedSeconds: number;
+  clericalSeconds: number;
+  eveningLoggedSeconds: number;
+  eveningPauseSeconds: number;
+  eveningTalkedSeconds: number;
+  eveningClericalSeconds: number;
+};
+
+function summarizeAgentReportRows(rows: CrmAgentReportRow[]): AgentReportSummary {
+  return rows.reduce<AgentReportSummary>(
+    (summary, row) => ({
+      loggedSeconds:
+        summary.loggedSeconds +
+        getAgentReportSeconds(row, ["loggedSeconds", "loggedTimeSeconds", "totalLoggedSeconds"]),
+      pauseSeconds:
+        summary.pauseSeconds +
+        getAgentReportSeconds(row, ["pauseSeconds", "pauseTimeSeconds", "totalPauseSeconds"]),
+      talkedSeconds:
+        summary.talkedSeconds +
+        getAgentReportSeconds(row, ["talkedSeconds", "talkedTimeSeconds", "totalTalkedSeconds"]),
+      clericalSeconds:
+        summary.clericalSeconds +
+        getAgentReportSeconds(row, ["clericalSeconds", "clericalTimeSeconds", "totalClericalSeconds"]),
+      eveningLoggedSeconds:
+        summary.eveningLoggedSeconds +
+        getAgentReportSeconds(row, [
+          "eveningLoggedSeconds",
+          "eveningLoggedTimeSeconds",
+          "logged1822Seconds",
+          "logged18To22Seconds",
+        ]),
+      eveningPauseSeconds:
+        summary.eveningPauseSeconds +
+        getAgentReportSeconds(row, [
+          "pauseEveningSeconds",
+          "eveningPauseSeconds",
+          "eveningPauseTimeSeconds",
+          "pause1822Seconds",
+          "pause18To22Seconds",
+        ]),
+      eveningTalkedSeconds:
+        summary.eveningTalkedSeconds +
+        getAgentReportSeconds(row, [
+          "eveningTalkedSeconds",
+          "eveningTalkedTimeSeconds",
+          "talked1822Seconds",
+          "talked18To22Seconds",
+        ]),
+      eveningClericalSeconds:
+        summary.eveningClericalSeconds +
+        getAgentReportSeconds(row, [
+          "eveningClericalSeconds",
+          "eveningClericalTimeSeconds",
+          "clerical1822Seconds",
+          "clerical18To22Seconds",
+        ]),
+    }),
+    {
+      loggedSeconds: 0,
+      pauseSeconds: 0,
+      talkedSeconds: 0,
+      clericalSeconds: 0,
+      eveningLoggedSeconds: 0,
+      eveningPauseSeconds: 0,
+      eveningTalkedSeconds: 0,
+      eveningClericalSeconds: 0,
+    },
+  );
+}
+
+function sortAgentReportRows(rows: CrmAgentReportRow[]) {
+  return [...rows].sort((left, right) => {
+    const dateDiff = getAgentReportDayTime(right) - getAgentReportDayTime(left);
+    if (dateDiff) {
+      return dateDiff;
+    }
+
+    return formatAgentReportAgent(left).localeCompare(formatAgentReportAgent(right), undefined, {
+      sensitivity: "base",
+    });
+  });
+}
+
+function getAgentReportDayTime(row: CrmAgentReportRow) {
+  const value = getAgentReportDayValue(row);
+  if (!value) {
+    return 0;
+  }
+
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00Z`) : new Date(value);
+  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
+}
+
+function formatAgentReportDay(row: CrmAgentReportRow) {
+  const value = getAgentReportDayValue(row);
+  if (!value) {
+    return "";
+  }
+
+  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnly) {
+    return `${dateOnly[3]}/${dateOnly[2]}/${dateOnly[1]}`;
+  }
+
+  return formatDate(value) || value;
+}
+
+function getAgentReportDayValue(row: CrmAgentReportRow) {
+  return firstNonEmpty(row.day, row.date, row.reportDate);
+}
+
+function formatAgentReportAgent(row: CrmAgentReportRow) {
+  const name = getReadableAgentName(row.agentName);
+  if (name) {
+    return name;
+  }
+
+  const agentId = parseAgentId(row.agentId);
+  return agentId ? String(agentId) : String(row.agentId || "").trim();
+}
+
+function getAgentReportRowKey(row: CrmAgentReportRow) {
+  return `${getAgentReportDayValue(row) || "day"}-${formatAgentReportAgent(row) || "agent"}`;
+}
+
+function getAgentReportSeconds(row: CrmAgentReportRow, keys: string[]) {
+  for (const key of keys) {
+    const value = readAgentReportField(row, key);
+    const seconds = coerceReportDurationSeconds(value, key);
+    if (seconds !== null) {
+      return seconds;
+    }
+  }
+
+  return 0;
+}
+
+function readAgentReportField(row: CrmAgentReportRow, key: string) {
+  const fields = row as Record<string, unknown>;
+  if (fields[key] !== undefined && fields[key] !== null) {
+    return fields[key];
+  }
+
+  const loweredKey = key.toLowerCase();
+  const matchingEntry = Object.entries(fields).find(([fieldKey]) => fieldKey.toLowerCase() === loweredKey);
+  return matchingEntry ? matchingEntry[1] : undefined;
+}
+
+function coerceReportDurationSeconds(value: unknown, keyHint = ""): number | null {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      return null;
+    }
+    return keyHint.toLowerCase().includes("minute") ? value * 60 : value;
+  }
+
+  const text = String(value).trim();
+  if (!text) {
+    return null;
+  }
+
+  if (/^-?\d+(\.\d+)?$/.test(text)) {
+    const numeric = Number(text);
+    return keyHint.toLowerCase().includes("minute") ? numeric * 60 : numeric;
+  }
+
+  const colonParts = text.split(":").map((part) => Number(part));
+  if (colonParts.length === 2 && colonParts.every((part) => Number.isFinite(part))) {
+    return colonParts[0] * 3600 + colonParts[1] * 60;
+  }
+  if (colonParts.length === 3 && colonParts.every((part) => Number.isFinite(part))) {
+    return colonParts[0] * 3600 + colonParts[1] * 60 + colonParts[2];
+  }
+
+  const hours = Number(text.match(/(\d+(?:\.\d+)?)\s*h/i)?.[1] || 0);
+  const minutes = Number(text.match(/(\d+(?:\.\d+)?)\s*m/i)?.[1] || 0);
+  const seconds = Number(text.match(/(\d+(?:\.\d+)?)\s*s/i)?.[1] || 0);
+  if (hours || minutes || seconds) {
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  return null;
+}
+
+function getAgentReportPauseBreakdown(row: CrmAgentReportRow, evening: boolean) {
+  const keys = evening
+    ? ["eveningPauseBreakdown", "eveningPausesByType", "pauseBreakdown1822"]
+    : ["pauseBreakdown", "pausesByType", "pauseTypes"];
+
+  for (const key of keys) {
+    const breakdown = normalizeAgentReportPauseBreakdown(readAgentReportField(row, key));
+    if (breakdown.length) {
+      return breakdown;
+    }
+  }
+
+  const totalSeconds = evening
+    ? getAgentReportSeconds(row, [
+        "pauseEveningSeconds",
+        "eveningPauseSeconds",
+        "eveningPauseTimeSeconds",
+        "pause1822Seconds",
+        "pause18To22Seconds",
+      ])
+    : getAgentReportSeconds(row, ["pauseSeconds", "pauseTimeSeconds", "totalPauseSeconds"]);
+
+  return totalSeconds > 0 ? [{ pauseType: "Total", seconds: totalSeconds }] : [];
+}
+
+function normalizeAgentReportPauseBreakdown(value: unknown) {
+  const rows: Array<{ pauseType: string; seconds: number }> = [];
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const normalized = normalizeAgentReportPauseItem(item);
+      if (normalized) {
+        rows.push(normalized);
+      }
+    }
+  } else if (value && typeof value === "object") {
+    for (const [pauseType, durationValue] of Object.entries(value as Record<string, unknown>)) {
+      const seconds =
+        durationValue && typeof durationValue === "object"
+          ? getPauseItemSeconds(durationValue as CrmAgentReportPauseBreakdownRow)
+          : coerceReportDurationSeconds(durationValue, pauseType);
+      if (seconds !== null && seconds > 0) {
+        rows.push({ pauseType: pauseType || "Fara tip", seconds });
+      }
+    }
+  }
+
+  return rows.sort((left, right) => left.pauseType.localeCompare(right.pauseType, undefined, { sensitivity: "base" }));
+}
+
+function normalizeAgentReportPauseItem(value: unknown) {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  const item = value as CrmAgentReportPauseBreakdownRow;
+  const pauseType = firstNonEmpty(item.pauseType, item.type, item.label) || "Fara tip";
+  const seconds = getPauseItemSeconds(item);
+
+  return seconds !== null && seconds > 0 ? { pauseType, seconds } : null;
+}
+
+function getPauseItemSeconds(item: CrmAgentReportPauseBreakdownRow) {
+  return (
+    coerceReportDurationSeconds(item.seconds, "seconds") ??
+    coerceReportDurationSeconds(item.durationSeconds, "seconds") ??
+    coerceReportDurationSeconds(item.minutes, "minutes") ??
+    coerceReportDurationSeconds(item.durationMinutes, "minutes") ??
+    coerceReportDurationSeconds(item.duration, "duration")
+  );
+}
+
+function formatDurationHhMm(value: number) {
+  const totalMinutes = Math.max(0, Math.round(value / 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}:${String(minutes).padStart(2, "0")}`;
 }
 
 function getFunnelLeadCount(row: CrmHighLevelFunnelRow) {
