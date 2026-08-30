@@ -389,9 +389,26 @@ export type CrmHighLevelFunnelResponse = {
 };
 
 export type CrmAgentReportPauseBreakdownRow = {
+  day?: string | null;
+  date?: string | null;
+  reportDate?: string | null;
+  agentId?: string | number | null;
+  agentName?: string | null;
   pauseType?: string | null;
   type?: string | null;
   label?: string | null;
+  pauseSeconds?: number | string | null;
+  pauseMinutes?: number | string | null;
+  windowPauseSeconds?: number | string | null;
+  windowPauseMinutes?: number | string | null;
+  pauseWindowSeconds?: number | string | null;
+  pauseWindowMinutes?: number | string | null;
+  pause1822Seconds?: number | string | null;
+  pause1822Minutes?: number | string | null;
+  pause18To22Seconds?: number | string | null;
+  pause18To22Minutes?: number | string | null;
+  eveningPauseSeconds?: number | string | null;
+  eveningPauseMinutes?: number | string | null;
   seconds?: number | string | null;
   durationSeconds?: number | string | null;
   minutes?: number | string | null;
@@ -406,34 +423,71 @@ export type CrmAgentReportRow = {
   agentId?: string | number | null;
   agentName?: string | null;
   loggedSeconds?: number | string | null;
+  loggedMinutes?: number | string | null;
   loggedTimeSeconds?: number | string | null;
+  loggedTimeMinutes?: number | string | null;
   totalLoggedSeconds?: number | string | null;
+  totalLoggedMinutes?: number | string | null;
   pauseSeconds?: number | string | null;
+  pauseMinutes?: number | string | null;
   pauseTimeSeconds?: number | string | null;
+  pauseTimeMinutes?: number | string | null;
   totalPauseSeconds?: number | string | null;
+  totalPauseMinutes?: number | string | null;
   talkedSeconds?: number | string | null;
+  talkedMinutes?: number | string | null;
   talkedTimeSeconds?: number | string | null;
+  talkedTimeMinutes?: number | string | null;
   totalTalkedSeconds?: number | string | null;
+  totalTalkedMinutes?: number | string | null;
   clericalSeconds?: number | string | null;
+  clericalMinutes?: number | string | null;
   clericalTimeSeconds?: number | string | null;
+  clericalTimeMinutes?: number | string | null;
   totalClericalSeconds?: number | string | null;
+  totalClericalMinutes?: number | string | null;
+  windowLoggedSeconds?: number | string | null;
+  windowLoggedMinutes?: number | string | null;
   eveningLoggedSeconds?: number | string | null;
+  eveningLoggedMinutes?: number | string | null;
   eveningLoggedTimeSeconds?: number | string | null;
+  eveningLoggedTimeMinutes?: number | string | null;
   logged1822Seconds?: number | string | null;
+  logged1822Minutes?: number | string | null;
   logged18To22Seconds?: number | string | null;
+  logged18To22Minutes?: number | string | null;
+  windowPauseSeconds?: number | string | null;
+  windowPauseMinutes?: number | string | null;
   pauseEveningSeconds?: number | string | null;
+  pauseEveningMinutes?: number | string | null;
   eveningPauseSeconds?: number | string | null;
+  eveningPauseMinutes?: number | string | null;
   eveningPauseTimeSeconds?: number | string | null;
+  eveningPauseTimeMinutes?: number | string | null;
   pause1822Seconds?: number | string | null;
+  pause1822Minutes?: number | string | null;
   pause18To22Seconds?: number | string | null;
+  pause18To22Minutes?: number | string | null;
+  windowTalkedSeconds?: number | string | null;
+  windowTalkedMinutes?: number | string | null;
   eveningTalkedSeconds?: number | string | null;
+  eveningTalkedMinutes?: number | string | null;
   eveningTalkedTimeSeconds?: number | string | null;
+  eveningTalkedTimeMinutes?: number | string | null;
   talked1822Seconds?: number | string | null;
+  talked1822Minutes?: number | string | null;
   talked18To22Seconds?: number | string | null;
+  talked18To22Minutes?: number | string | null;
+  windowClericalSeconds?: number | string | null;
+  windowClericalMinutes?: number | string | null;
   eveningClericalSeconds?: number | string | null;
+  eveningClericalMinutes?: number | string | null;
   eveningClericalTimeSeconds?: number | string | null;
+  eveningClericalTimeMinutes?: number | string | null;
   clerical1822Seconds?: number | string | null;
+  clerical1822Minutes?: number | string | null;
   clerical18To22Seconds?: number | string | null;
+  clerical18To22Minutes?: number | string | null;
   pauseBreakdown?: CrmAgentReportPauseBreakdownRow[] | Record<string, number | string | null> | null;
   pausesByType?: CrmAgentReportPauseBreakdownRow[] | Record<string, number | string | null> | null;
   pauseTypes?: CrmAgentReportPauseBreakdownRow[] | Record<string, number | string | null> | null;
@@ -444,12 +498,17 @@ export type CrmAgentReportRow = {
 
 export type CrmAgentReportResponse = {
   rows?: CrmAgentReportRow[];
+  daily?: CrmAgentReportRow[];
   items?: CrmAgentReportRow[];
+  pauseRows?: CrmAgentReportPauseBreakdownRow[];
+  pauses?: CrmAgentReportPauseBreakdownRow[];
   totals?: CrmAgentReportRow | null;
   total?: number;
+  agents?: Array<{ agentId: number | string; agentName?: string | null }>;
   filters?: Record<string, string | number | null>;
   options?: {
     agents?: Array<{ agentId: number | string; agentName?: string | null }>;
+    pauseTypes?: string[];
   };
 };
 
@@ -888,7 +947,7 @@ export function listCrmAgentReport(
   token: string,
   params: Record<string, string | number | boolean | null | undefined>,
 ) {
-  return fetchCanonicalCrmReadJson<CrmAgentReportResponse>(`${BASE_PATH}/agent-report${buildQuery(params)}`, {
+  return fetchCanonicalCrmReadJson<CrmAgentReportResponse>(`${BASE_PATH}/agent-activity${buildQuery(params)}`, {
     headers: authHeaders(token),
   });
 }

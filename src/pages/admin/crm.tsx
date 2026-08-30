@@ -3986,6 +3986,7 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
   const [agentId, setAgentId] = useState("all");
   const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number | string; agentName?: string | null }>>([]);
   const [rows, setRows] = useState<CrmAgentReportRow[]>([]);
+  const [pauseRows, setPauseRows] = useState<CrmAgentReportPauseBreakdownRow[]>([]);
   const [loading, setLoading] = useState(false);
   const summary = useMemo(() => summarizeAgentReportRows(rows), [rows]);
 
@@ -3998,15 +3999,15 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
     setLoading(true);
     try {
       const result = await listCrmAgentReport(token, {
-        dateBegin,
-        dateEnd,
-        agentId,
-        timezone: AGENT_REPORT_TIMEZONE,
+        from: dateBegin,
+        to: dateEnd,
+        agentId: agentId === "all" ? undefined : agentId,
         windowStartHour: AGENT_REPORT_EVENING_START,
         windowEndHour: AGENT_REPORT_EVENING_END,
       });
-      setRows(sortAgentReportRows(result.rows || result.items || []));
-      setAgentOptions(result.options?.agents || []);
+      setRows(sortAgentReportRows(result.rows || result.daily || result.items || []));
+      setPauseRows(result.pauseRows || result.pauses || []);
+      setAgentOptions(result.options?.agents || result.agents || []);
       onError("");
     } catch (error) {
       onError(error instanceof Error ? error.message : "Nu am putut incarca Agent Report.");
@@ -4071,33 +4072,84 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
         rows={rows.map((row) => [
           formatAgentReportDay(row),
           formatAgentReportAgent(row),
-          formatDurationHhMm(getAgentReportSeconds(row, ["loggedSeconds", "loggedTimeSeconds", "totalLoggedSeconds"])),
-          <PauseBreakdownCell key={`pause-${getAgentReportRowKey(row)}`} items={getAgentReportPauseBreakdown(row, false)} />,
-          formatDurationHhMm(getAgentReportSeconds(row, ["talkedSeconds", "talkedTimeSeconds", "totalTalkedSeconds"])),
-          formatDurationHhMm(getAgentReportSeconds(row, ["clericalSeconds", "clericalTimeSeconds", "totalClericalSeconds"])),
           formatDurationHhMm(
             getAgentReportSeconds(row, [
+              "loggedSeconds",
+              "loggedMinutes",
+              "loggedTimeSeconds",
+              "loggedTimeMinutes",
+              "totalLoggedSeconds",
+              "totalLoggedMinutes",
+            ]),
+          ),
+          <PauseBreakdownCell
+            key={`pause-${getAgentReportRowKey(row)}`}
+            items={getAgentReportPauseBreakdown(row, pauseRows, false)}
+          />,
+          formatDurationHhMm(
+            getAgentReportSeconds(row, [
+              "talkedSeconds",
+              "talkedMinutes",
+              "talkedTimeSeconds",
+              "talkedTimeMinutes",
+              "totalTalkedSeconds",
+              "totalTalkedMinutes",
+            ]),
+          ),
+          formatDurationHhMm(
+            getAgentReportSeconds(row, [
+              "clericalSeconds",
+              "clericalMinutes",
+              "clericalTimeSeconds",
+              "clericalTimeMinutes",
+              "totalClericalSeconds",
+              "totalClericalMinutes",
+            ]),
+          ),
+          formatDurationHhMm(
+            getAgentReportSeconds(row, [
+              "windowLoggedSeconds",
+              "windowLoggedMinutes",
               "eveningLoggedSeconds",
+              "eveningLoggedMinutes",
               "eveningLoggedTimeSeconds",
+              "eveningLoggedTimeMinutes",
               "logged1822Seconds",
+              "logged1822Minutes",
               "logged18To22Seconds",
+              "logged18To22Minutes",
             ]),
           ),
-          <PauseBreakdownCell key={`evening-pause-${getAgentReportRowKey(row)}`} items={getAgentReportPauseBreakdown(row, true)} />,
+          <PauseBreakdownCell
+            key={`evening-pause-${getAgentReportRowKey(row)}`}
+            items={getAgentReportPauseBreakdown(row, pauseRows, true)}
+          />,
           formatDurationHhMm(
             getAgentReportSeconds(row, [
+              "windowTalkedSeconds",
+              "windowTalkedMinutes",
               "eveningTalkedSeconds",
+              "eveningTalkedMinutes",
               "eveningTalkedTimeSeconds",
+              "eveningTalkedTimeMinutes",
               "talked1822Seconds",
+              "talked1822Minutes",
               "talked18To22Seconds",
+              "talked18To22Minutes",
             ]),
           ),
           formatDurationHhMm(
             getAgentReportSeconds(row, [
+              "windowClericalSeconds",
+              "windowClericalMinutes",
               "eveningClericalSeconds",
+              "eveningClericalMinutes",
               "eveningClericalTimeSeconds",
+              "eveningClericalTimeMinutes",
               "clerical1822Seconds",
+              "clerical1822Minutes",
               "clerical18To22Seconds",
+              "clerical18To22Minutes",
             ]),
           ),
         ])}
@@ -7363,48 +7415,101 @@ function summarizeAgentReportRows(rows: CrmAgentReportRow[]): AgentReportSummary
     (summary, row) => ({
       loggedSeconds:
         summary.loggedSeconds +
-        getAgentReportSeconds(row, ["loggedSeconds", "loggedTimeSeconds", "totalLoggedSeconds"]),
+        getAgentReportSeconds(row, [
+          "loggedSeconds",
+          "loggedMinutes",
+          "loggedTimeSeconds",
+          "loggedTimeMinutes",
+          "totalLoggedSeconds",
+          "totalLoggedMinutes",
+        ]),
       pauseSeconds:
         summary.pauseSeconds +
-        getAgentReportSeconds(row, ["pauseSeconds", "pauseTimeSeconds", "totalPauseSeconds"]),
+        getAgentReportSeconds(row, [
+          "pauseSeconds",
+          "pauseMinutes",
+          "pauseTimeSeconds",
+          "pauseTimeMinutes",
+          "totalPauseSeconds",
+          "totalPauseMinutes",
+        ]),
       talkedSeconds:
         summary.talkedSeconds +
-        getAgentReportSeconds(row, ["talkedSeconds", "talkedTimeSeconds", "totalTalkedSeconds"]),
+        getAgentReportSeconds(row, [
+          "talkedSeconds",
+          "talkedMinutes",
+          "talkedTimeSeconds",
+          "talkedTimeMinutes",
+          "totalTalkedSeconds",
+          "totalTalkedMinutes",
+        ]),
       clericalSeconds:
         summary.clericalSeconds +
-        getAgentReportSeconds(row, ["clericalSeconds", "clericalTimeSeconds", "totalClericalSeconds"]),
+        getAgentReportSeconds(row, [
+          "clericalSeconds",
+          "clericalMinutes",
+          "clericalTimeSeconds",
+          "clericalTimeMinutes",
+          "totalClericalSeconds",
+          "totalClericalMinutes",
+        ]),
       eveningLoggedSeconds:
         summary.eveningLoggedSeconds +
         getAgentReportSeconds(row, [
+          "windowLoggedSeconds",
+          "windowLoggedMinutes",
           "eveningLoggedSeconds",
+          "eveningLoggedMinutes",
           "eveningLoggedTimeSeconds",
+          "eveningLoggedTimeMinutes",
           "logged1822Seconds",
+          "logged1822Minutes",
           "logged18To22Seconds",
+          "logged18To22Minutes",
         ]),
       eveningPauseSeconds:
         summary.eveningPauseSeconds +
         getAgentReportSeconds(row, [
+          "windowPauseSeconds",
+          "windowPauseMinutes",
           "pauseEveningSeconds",
+          "pauseEveningMinutes",
           "eveningPauseSeconds",
+          "eveningPauseMinutes",
           "eveningPauseTimeSeconds",
+          "eveningPauseTimeMinutes",
           "pause1822Seconds",
+          "pause1822Minutes",
           "pause18To22Seconds",
+          "pause18To22Minutes",
         ]),
       eveningTalkedSeconds:
         summary.eveningTalkedSeconds +
         getAgentReportSeconds(row, [
+          "windowTalkedSeconds",
+          "windowTalkedMinutes",
           "eveningTalkedSeconds",
+          "eveningTalkedMinutes",
           "eveningTalkedTimeSeconds",
+          "eveningTalkedTimeMinutes",
           "talked1822Seconds",
+          "talked1822Minutes",
           "talked18To22Seconds",
+          "talked18To22Minutes",
         ]),
       eveningClericalSeconds:
         summary.eveningClericalSeconds +
         getAgentReportSeconds(row, [
+          "windowClericalSeconds",
+          "windowClericalMinutes",
           "eveningClericalSeconds",
+          "eveningClericalMinutes",
           "eveningClericalTimeSeconds",
+          "eveningClericalTimeMinutes",
           "clerical1822Seconds",
+          "clerical1822Minutes",
           "clerical18To22Seconds",
+          "clerical18To22Minutes",
         ]),
     }),
     {
@@ -7457,11 +7562,18 @@ function formatAgentReportDay(row: CrmAgentReportRow) {
   return formatDate(value) || value;
 }
 
-function getAgentReportDayValue(row: CrmAgentReportRow) {
+function getAgentReportDayValue(row: {
+  day?: string | null;
+  date?: string | null;
+  reportDate?: string | null;
+}) {
   return firstNonEmpty(row.day, row.date, row.reportDate);
 }
 
-function formatAgentReportAgent(row: CrmAgentReportRow) {
+function formatAgentReportAgent(row: {
+  agentId?: string | number | null;
+  agentName?: string | null;
+}) {
   const name = getReadableAgentName(row.agentName);
   if (name) {
     return name;
@@ -7538,7 +7650,16 @@ function coerceReportDurationSeconds(value: unknown, keyHint = ""): number | nul
   return null;
 }
 
-function getAgentReportPauseBreakdown(row: CrmAgentReportRow, evening: boolean) {
+function getAgentReportPauseBreakdown(
+  row: CrmAgentReportRow,
+  pauseRows: CrmAgentReportPauseBreakdownRow[],
+  evening: boolean,
+) {
+  const pauseRowsBreakdown = getAgentReportPauseRowsBreakdown(row, pauseRows, evening);
+  if (pauseRowsBreakdown.length) {
+    return pauseRowsBreakdown;
+  }
+
   const keys = evening
     ? ["eveningPauseBreakdown", "eveningPausesByType", "pauseBreakdown1822"]
     : ["pauseBreakdown", "pausesByType", "pauseTypes"];
@@ -7552,15 +7673,86 @@ function getAgentReportPauseBreakdown(row: CrmAgentReportRow, evening: boolean) 
 
   const totalSeconds = evening
     ? getAgentReportSeconds(row, [
+        "windowPauseSeconds",
+        "windowPauseMinutes",
         "pauseEveningSeconds",
+        "pauseEveningMinutes",
         "eveningPauseSeconds",
+        "eveningPauseMinutes",
         "eveningPauseTimeSeconds",
+        "eveningPauseTimeMinutes",
         "pause1822Seconds",
+        "pause1822Minutes",
         "pause18To22Seconds",
+        "pause18To22Minutes",
       ])
-    : getAgentReportSeconds(row, ["pauseSeconds", "pauseTimeSeconds", "totalPauseSeconds"]);
+    : getAgentReportSeconds(row, [
+        "pauseSeconds",
+        "pauseMinutes",
+        "pauseTimeSeconds",
+        "pauseTimeMinutes",
+        "totalPauseSeconds",
+        "totalPauseMinutes",
+      ]);
 
   return totalSeconds > 0 ? [{ pauseType: "Total", seconds: totalSeconds }] : [];
+}
+
+function getAgentReportPauseRowsBreakdown(
+  row: CrmAgentReportRow,
+  pauseRows: CrmAgentReportPauseBreakdownRow[],
+  evening: boolean,
+) {
+  const items = pauseRows
+    .filter((pauseRow) => agentReportPauseRowMatches(row, pauseRow))
+    .map((pauseRow) => {
+      const pauseType = firstNonEmpty(pauseRow.pauseType, pauseRow.type, pauseRow.label) || "Fara tip";
+      const seconds = evening ? getPauseItemWindowSeconds(pauseRow) : getPauseItemSeconds(pauseRow);
+      return seconds !== null && seconds > 0 ? { pauseType, seconds } : null;
+    })
+    .filter((item): item is { pauseType: string; seconds: number } => Boolean(item));
+
+  return items.sort((left, right) => left.pauseType.localeCompare(right.pauseType, undefined, { sensitivity: "base" }));
+}
+
+function agentReportPauseRowMatches(row: CrmAgentReportRow, pauseRow: CrmAgentReportPauseBreakdownRow) {
+  const rowDay = normalizeAgentReportDayKey(getAgentReportDayValue(row));
+  const pauseDay = normalizeAgentReportDayKey(getAgentReportDayValue(pauseRow));
+  if (rowDay && pauseDay && rowDay !== pauseDay) {
+    return false;
+  }
+
+  const rowAgentId = parseAgentId(row.agentId);
+  const pauseAgentId = parseAgentId(pauseRow.agentId);
+  if (rowAgentId && pauseAgentId) {
+    return rowAgentId === pauseAgentId;
+  }
+
+  const rowAgentName = formatAgentReportAgent(row).toLowerCase();
+  const pauseAgentName = formatAgentReportAgent(pauseRow).toLowerCase();
+  if (rowAgentName && pauseAgentName) {
+    return rowAgentName === pauseAgentName;
+  }
+
+  return Boolean(rowDay && pauseDay);
+}
+
+function normalizeAgentReportDayKey(value: string) {
+  if (!value) {
+    return "";
+  }
+
+  const dateOnly = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (dateOnly) {
+    return value;
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value.trim().toLowerCase();
+  }
+
+  return date.toISOString().slice(0, 10);
 }
 
 function normalizeAgentReportPauseBreakdown(value: unknown) {
@@ -7602,11 +7794,28 @@ function normalizeAgentReportPauseItem(value: unknown) {
 
 function getPauseItemSeconds(item: CrmAgentReportPauseBreakdownRow) {
   return (
+    coerceReportDurationSeconds(item.pauseSeconds, "seconds") ??
     coerceReportDurationSeconds(item.seconds, "seconds") ??
     coerceReportDurationSeconds(item.durationSeconds, "seconds") ??
+    coerceReportDurationSeconds(item.pauseMinutes, "minutes") ??
     coerceReportDurationSeconds(item.minutes, "minutes") ??
     coerceReportDurationSeconds(item.durationMinutes, "minutes") ??
     coerceReportDurationSeconds(item.duration, "duration")
+  );
+}
+
+function getPauseItemWindowSeconds(item: CrmAgentReportPauseBreakdownRow) {
+  return (
+    coerceReportDurationSeconds(item.windowPauseSeconds, "seconds") ??
+    coerceReportDurationSeconds(item.pauseWindowSeconds, "seconds") ??
+    coerceReportDurationSeconds(item.pause1822Seconds, "seconds") ??
+    coerceReportDurationSeconds(item.pause18To22Seconds, "seconds") ??
+    coerceReportDurationSeconds(item.eveningPauseSeconds, "seconds") ??
+    coerceReportDurationSeconds(item.windowPauseMinutes, "minutes") ??
+    coerceReportDurationSeconds(item.pauseWindowMinutes, "minutes") ??
+    coerceReportDurationSeconds(item.pause1822Minutes, "minutes") ??
+    coerceReportDurationSeconds(item.pause18To22Minutes, "minutes") ??
+    coerceReportDurationSeconds(item.eveningPauseMinutes, "minutes")
   );
 }
 
