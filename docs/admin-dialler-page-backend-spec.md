@@ -115,6 +115,7 @@ Return:
       "queueId": 37,
       "queueName": "Queue name",
       "campaignName": "Campaign name",
+      "trials": 2,
       "scheduledAtUtc": "2026-09-01T10:00:00Z",
       "dialledAtUtc": "2026-09-01T10:12:00Z",
       "lastCallAtUtc": "2026-09-01T10:12:00Z",
@@ -152,6 +153,7 @@ Each returned row should include:
 
 - a stable row identifier: `id`, `diallerRecordId`, or `callTraceId`
 - queue identity: `queueId` and/or `queueName`
+- dialler trial count: `trials`, populated from the `leads_clients.trials` field
 - client identity: at least `fullName`, `phone`, or `email`
 - dialler timestamp: `dialledAtUtc`, `lastCallAtUtc`, `scheduledAtUtc`, or `createdAtUtc`
 - status fields: `status` and `connectedToAgent`
@@ -231,6 +233,7 @@ Preferred response:
 - Non-admin or unauthenticated requests are rejected consistently with existing CRM admin endpoints.
 - The endpoint never returns more than 100 records.
 - Queue filtering works for queue id and, if possible, queue/campaign name.
+- Each row includes `trials` from `leads_clients.trials`; the frontend displays this in the table instead of a Queue column.
 - Date filtering returns rows in the selected interval.
 - `status=all` returns both dialled and to-be-dialled rows.
 - `status=to_be_dialled` returns only rows not yet dialled.

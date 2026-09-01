@@ -368,7 +368,7 @@ export default function AdminDiallerPage() {
                         <thead className="bg-slate-100 text-xs uppercase text-slate-600">
                           <tr>
                             <th className="px-4 py-3">Client</th>
-                            <th className="px-4 py-3">Queue</th>
+                            <th className="px-4 py-3">Trials</th>
                             <th className="px-4 py-3">Dialler time</th>
                             <th className="px-4 py-3">Status</th>
                             <th className="px-4 py-3">Agent</th>
@@ -391,10 +391,7 @@ export default function AdminDiallerPage() {
                                   <p className="mt-1 text-xs font-semibold text-slate-500">{getPhone(record)}</p>
                                   <p className="mt-1 break-all text-xs font-semibold text-slate-500">{record.email || "-"}</p>
                                 </td>
-                                <td className="px-4 py-3 font-semibold">
-                                  <p>{record.queueName || record.campaignName || "-"}</p>
-                                  <p className="mt-1 text-xs text-slate-500">{record.queueId ? `Queue ${record.queueId}` : ""}</p>
-                                </td>
+                                <td className="px-4 py-3 font-semibold">{formatTrials(record.trials)}</td>
                                 <td className="px-4 py-3 font-semibold">{formatDateTime(getDiallerDate(record))}</td>
                                 <td className="px-4 py-3">
                                   <StatusBadge record={record} />
@@ -533,6 +530,14 @@ function getClientName(record: CrmDiallerRecord) {
 
 function getPhone(record: CrmDiallerRecord) {
   return record.phone || record.phoneNumber || record.normalizedPhone || record.lead?.phoneNumber || "-";
+}
+
+function formatTrials(value: CrmDiallerRecord["trials"]) {
+  if (value === undefined || value === null || value === "") {
+    return "-";
+  }
+
+  return String(value);
 }
 
 function getObservation(record: CrmDiallerRecord) {

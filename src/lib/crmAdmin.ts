@@ -804,6 +804,7 @@ export type CrmDiallerRecord = {
   queueId?: string | number | null;
   queueName?: string | null;
   campaignName?: string | null;
+  trials?: string | number | null;
   scheduledAtUtc?: string | null;
   dialledAtUtc?: string | null;
   lastCallAtUtc?: string | null;
