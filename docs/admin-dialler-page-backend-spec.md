@@ -10,7 +10,45 @@ The page shows clients that have been dialled or are waiting to be dialled, with
 
 This frontend repository does not own the dialler database or CRM write logic. The backend/API service must expose the read endpoint below and ensure the existing CRM update endpoint can save observations for rows returned by the dialler endpoint.
 
-## Endpoint 1: List Dialler Records
+On initial page load, the frontend loads only the dropdown options for predictive active queues. It must not load or display any dialler records until the admin selects filters and presses Refresh.
+
+## Endpoint 1: List Predictive Active Queues
+
+Implement:
+
+`GET /justproveit/admin/crm/dialler/queues`
+
+Use the same authentication and admin authorization model as the existing CRM admin endpoints under:
+
+`/justproveit/admin/crm/*`
+
+Return only predictive queues that are currently active and relevant to the dialler page.
+
+Preferred response:
+
+```json
+{
+  "queues": [
+    {
+      "queueId": 37,
+      "queueName": "Queue 37",
+      "campaignName": "Predictive campaign name",
+      "label": "Queue 37 - Predictive campaign name",
+      "active": true
+    }
+  ],
+  "total": 1
+}
+```
+
+Required fields:
+
+- `queueId`
+- at least one display label field: `label`, `queueName`, or `campaignName`
+
+The frontend can also tolerate `records`, `rows`, or `items` instead of `queues`, but `queues` is preferred.
+
+## Endpoint 2: List Dialler Records
 
 Implement:
 
@@ -22,7 +60,7 @@ Use the same authentication and admin authorization model as the existing CRM ad
 
 ### Query Parameters
 
-- `queue` or `queueId`: optional queue filter. Accept either a numeric queue id or an exact/partial queue/campaign name, depending on the available dialler schema.
+- `queue` or `queueId`: optional queue filter. The frontend sends the selected predictive active queue id from `/justproveit/admin/crm/dialler/queues`. If empty, return records from all predictive active queues.
 - `dateFrom`: optional inclusive start date. The frontend sends `YYYY-MM-DD`.
 - `dateTo`: optional exclusive end date. The frontend sends `YYYY-MM-DD`, already advanced by one day for date input end-date inclusion.
 - `status` or `connectionStatus`: optional status filter. Values:
@@ -139,7 +177,7 @@ When multiple CRM leads match the same phone/email, prefer:
 
 Return the `observation` from the CRM record that will be updated by the save endpoint.
 
-## Endpoint 2: Save CRM Observation
+## Endpoint 3: Save CRM Observation
 
 The frontend uses the existing endpoint:
 
@@ -185,6 +223,10 @@ Preferred response:
 
 ## Acceptance Criteria
 
+- An authenticated admin can request `/justproveit/admin/crm/dialler/queues`.
+- `/justproveit/admin/crm/dialler/queues` returns only predictive active queues.
+- The frontend can render the queue filter as a dropdown using `queueId` and `label`, `queueName`, or `campaignName`.
+- Opening `/admin/dialler` does not trigger `/justproveit/admin/crm/dialler` and does not display dialler records before Refresh is pressed.
 - An authenticated admin can request `/justproveit/admin/crm/dialler`.
 - Non-admin or unauthenticated requests are rejected consistently with existing CRM admin endpoints.
 - The endpoint never returns more than 100 records.

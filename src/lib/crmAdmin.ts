@@ -834,6 +834,14 @@ export type CrmDiallerRecord = {
   lead?: CrmLead | null;
 };
 
+export type CrmDiallerQueueOption = {
+  queueId: string | number;
+  queueName?: string | null;
+  campaignName?: string | null;
+  label?: string | null;
+  active?: boolean | number | string | null;
+};
+
 export type CrmDiallerListResponse = {
   records?: CrmDiallerRecord[];
   rows?: CrmDiallerRecord[];
@@ -846,6 +854,14 @@ export type CrmDiallerListResponse = {
     queues?: Array<{ queueId: string | number; queueName?: string | null; campaignName?: string | null }>;
     statuses?: string[];
   };
+};
+
+export type CrmDiallerQueuesResponse = {
+  queues?: CrmDiallerQueueOption[];
+  records?: CrmDiallerQueueOption[];
+  rows?: CrmDiallerQueueOption[];
+  items?: CrmDiallerQueueOption[];
+  total?: number;
 };
 
 function authHeaders(token: string) {
@@ -1049,6 +1065,12 @@ export function listCrmDiallerRecords(
   params: Record<string, string | number | boolean | null | undefined>,
 ) {
   return fetchCanonicalCrmReadJson<CrmDiallerListResponse>(`${BASE_PATH}/dialler${buildQuery(params)}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function listCrmDiallerQueues(token: string) {
+  return fetchCanonicalCrmReadJson<CrmDiallerQueuesResponse>(`${BASE_PATH}/dialler/queues`, {
     headers: authHeaders(token),
   });
 }

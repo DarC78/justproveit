@@ -1,7 +1,9 @@
 import { useAuth } from "@/context/AuthContext";
 import {
   CrmDiallerConnectionStatus,
+  CrmDiallerQueueOption,
   CrmDiallerRecord,
+  listCrmDiallerQueues,
   listCrmDiallerRecords,
   updateCrmLead,
 } from "@/lib/crmAdmin";
@@ -33,8 +35,11 @@ export default function AdminDiallerPage() {
   const [connectionStatus, setConnectionStatus] =
     useState<CrmDiallerConnectionStatus>("all");
   const [records, setRecords] = useState<CrmDiallerRecord[]>([]);
+  const [queueOptions, setQueueOptions] = useState<CrmDiallerQueueOption[]>([]);
   const [total, setTotal] = useState(0);
   const [loadStatus, setLoadStatus] = useState<LoadStatus>("idle");
+  const [queueStatus, setQueueStatus] = useState<LoadStatus>("idle");
+  const [hasSearched, setHasSearched] = useState(false);
   const [error, setError] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
@@ -77,11 +82,31 @@ export default function AdminDiallerPage() {
     };
   }, [isAdmin, requireAdmin, router, status]);
 
+  const loadQueues = useCallback(async () => {
+    if (!token) {
+      return;
+    }
+
+    setQueueStatus("loading");
+    setError("");
+
+    try {
+      const response = await listCrmDiallerQueues(token);
+      setQueueOptions(response.queues ?? response.records ?? response.rows ?? response.items ?? []);
+      setQueueStatus("ready");
+    } catch (loadError) {
+      setQueueOptions([]);
+      setQueueStatus("error");
+      setError(loadError instanceof Error ? loadError.message : "Could not load predictive active queues.");
+    }
+  }, [token]);
+
   const loadRecords = useCallback(async () => {
     if (!token) {
       return;
     }
 
+    setHasSearched(true);
     setLoadStatus("loading");
     setError("");
     setStatusMessage("");
@@ -115,8 +140,8 @@ export default function AdminDiallerPage() {
       return;
     }
 
-    void loadRecords();
-  }, [gateStatus, loadRecords, token]);
+    void loadQueues();
+  }, [gateStatus, loadQueues, token]);
 
   const metrics = useMemo(() => {
     return records.reduce(
@@ -248,12 +273,21 @@ export default function AdminDiallerPage() {
               >
                 <label className="text-sm font-bold text-slate-700">
                   Queue
-                  <input
+                  <select
                     value={queue}
                     onChange={(event) => setQueue(event.target.value)}
-                    placeholder="Queue id or name"
-                    className="mt-1 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-950"
-                  />
+                    className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-950"
+                    disabled={queueStatus === "loading"}
+                  >
+                    <option value="">
+                      {queueStatus === "loading" ? "Loading queues..." : "All predictive active queues"}
+                    </option>
+                    {queueOptions.map((option) => (
+                      <option key={String(option.queueId)} value={String(option.queueId)}>
+                        {formatQueueLabel(option)}
+                      </option>
+                    ))}
+                  </select>
                 </label>
 
                 <label className="text-sm font-bold text-slate-700">
@@ -311,103 +345,107 @@ export default function AdminDiallerPage() {
                 </div>
               ) : null}
 
-              <div className="mt-4 grid gap-3 md:grid-cols-5">
-                <Metric label="Shown" value={metrics.shown} />
-                <Metric label="Total match" value={total} />
-                <Metric label="To dial" value={metrics.toBeDialled} />
-                <Metric label="Connected" value={metrics.connected} />
-                <Metric label="No agent" value={metrics.notConnected} />
-              </div>
+              {hasSearched ? (
+                <>
+                  <div className="mt-4 grid gap-3 md:grid-cols-5">
+                    <Metric label="Shown" value={metrics.shown} />
+                    <Metric label="Total match" value={total} />
+                    <Metric label="To dial" value={metrics.toBeDialled} />
+                    <Metric label="Connected" value={metrics.connected} />
+                    <Metric label="No agent" value={metrics.notConnected} />
+                  </div>
 
-              <section className="mt-5 border border-slate-200 bg-white shadow-sm">
-                <div className="flex flex-col gap-1 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-base font-extrabold">Dialler records</h2>
-                  <p className="text-sm font-semibold text-slate-500">
-                    {loadStatus === "loading" ? "Loading..." : `${records.length} shown, max ${MAX_RECORDS}`}
-                  </p>
-                </div>
+                  <section className="mt-5 border border-slate-200 bg-white shadow-sm">
+                    <div className="flex flex-col gap-1 border-b border-slate-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                      <h2 className="text-base font-extrabold">Dialler records</h2>
+                      <p className="text-sm font-semibold text-slate-500">
+                        {loadStatus === "loading" ? "Loading..." : `${records.length} shown, max ${MAX_RECORDS}`}
+                      </p>
+                    </div>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full min-w-[1320px] border-collapse text-left text-sm">
-                    <thead className="bg-slate-100 text-xs uppercase text-slate-600">
-                      <tr>
-                        <th className="px-4 py-3">Client</th>
-                        <th className="px-4 py-3">Queue</th>
-                        <th className="px-4 py-3">Dialler time</th>
-                        <th className="px-4 py-3">Status</th>
-                        <th className="px-4 py-3">Agent</th>
-                        <th className="px-4 py-3">Result</th>
-                        <th className="px-4 py-3">CRM observation</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {records.map((record) => {
-                        const key = getRecordKey(record);
-                        const savedObservation = getObservation(record);
-                        const draft = noteDrafts[key] ?? "";
-                        const saving = savingNotes[key] === true;
-                        const dirty = draft !== savedObservation;
-
-                        return (
-                          <tr key={key} className="border-t border-slate-100 align-top hover:bg-slate-50">
-                            <td className="px-4 py-3">
-                              <p className="font-extrabold text-slate-950">{getClientName(record)}</p>
-                              <p className="mt-1 text-xs font-semibold text-slate-500">{getPhone(record)}</p>
-                              <p className="mt-1 break-all text-xs font-semibold text-slate-500">{record.email || "-"}</p>
-                            </td>
-                            <td className="px-4 py-3 font-semibold">
-                              <p>{record.queueName || record.campaignName || "-"}</p>
-                              <p className="mt-1 text-xs text-slate-500">{record.queueId ? `Queue ${record.queueId}` : ""}</p>
-                            </td>
-                            <td className="px-4 py-3 font-semibold">{formatDateTime(getDiallerDate(record))}</td>
-                            <td className="px-4 py-3">
-                              <StatusBadge record={record} />
-                            </td>
-                            <td className="px-4 py-3 font-semibold">{record.agentName || "-"}</td>
-                            <td className="px-4 py-3">
-                              <p className="font-semibold text-slate-950">{record.callCodeDetails || record.callResult || "-"}</p>
-                              {record.callCode ? (
-                                <p className="mt-1 text-xs font-semibold text-slate-500">Code {record.callCode}</p>
-                              ) : null}
-                            </td>
-                            <td className="px-4 py-3">
-                              <textarea
-                                value={draft}
-                                onChange={(event) =>
-                                  setNoteDrafts((current) => ({ ...current, [key]: event.target.value }))
-                                }
-                                rows={3}
-                                className="min-h-20 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-950"
-                                placeholder="Add CRM observation"
-                              />
-                              <div className="mt-2 flex items-center justify-between gap-3">
-                                <p className="text-xs font-semibold text-slate-500">
-                                  {getLeadUpdateId(record) ? "Saves to CRM lead observation" : "Missing CRM lead id"}
-                                </p>
-                                <button
-                                  type="button"
-                                  onClick={() => saveObservation(record)}
-                                  disabled={saving || !dirty}
-                                  className="rounded-md bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
-                                >
-                                  {saving ? "Saving" : dirty ? "Save" : "Saved"}
-                                </button>
-                              </div>
-                            </td>
+                    <div className="overflow-x-auto">
+                      <table className="w-full min-w-[1320px] border-collapse text-left text-sm">
+                        <thead className="bg-slate-100 text-xs uppercase text-slate-600">
+                          <tr>
+                            <th className="px-4 py-3">Client</th>
+                            <th className="px-4 py-3">Queue</th>
+                            <th className="px-4 py-3">Dialler time</th>
+                            <th className="px-4 py-3">Status</th>
+                            <th className="px-4 py-3">Agent</th>
+                            <th className="px-4 py-3">Result</th>
+                            <th className="px-4 py-3">CRM observation</th>
                           </tr>
-                        );
-                      })}
-                      {loadStatus === "ready" && records.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="px-4 py-8 text-center text-sm font-semibold text-slate-500">
-                            No dialler records match these filters.
-                          </td>
-                        </tr>
-                      ) : null}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
+                        </thead>
+                        <tbody>
+                          {records.map((record) => {
+                            const key = getRecordKey(record);
+                            const savedObservation = getObservation(record);
+                            const draft = noteDrafts[key] ?? "";
+                            const saving = savingNotes[key] === true;
+                            const dirty = draft !== savedObservation;
+
+                            return (
+                              <tr key={key} className="border-t border-slate-100 align-top hover:bg-slate-50">
+                                <td className="px-4 py-3">
+                                  <p className="font-extrabold text-slate-950">{getClientName(record)}</p>
+                                  <p className="mt-1 text-xs font-semibold text-slate-500">{getPhone(record)}</p>
+                                  <p className="mt-1 break-all text-xs font-semibold text-slate-500">{record.email || "-"}</p>
+                                </td>
+                                <td className="px-4 py-3 font-semibold">
+                                  <p>{record.queueName || record.campaignName || "-"}</p>
+                                  <p className="mt-1 text-xs text-slate-500">{record.queueId ? `Queue ${record.queueId}` : ""}</p>
+                                </td>
+                                <td className="px-4 py-3 font-semibold">{formatDateTime(getDiallerDate(record))}</td>
+                                <td className="px-4 py-3">
+                                  <StatusBadge record={record} />
+                                </td>
+                                <td className="px-4 py-3 font-semibold">{record.agentName || "-"}</td>
+                                <td className="px-4 py-3">
+                                  <p className="font-semibold text-slate-950">{record.callCodeDetails || record.callResult || "-"}</p>
+                                  {record.callCode ? (
+                                    <p className="mt-1 text-xs font-semibold text-slate-500">Code {record.callCode}</p>
+                                  ) : null}
+                                </td>
+                                <td className="px-4 py-3">
+                                  <textarea
+                                    value={draft}
+                                    onChange={(event) =>
+                                      setNoteDrafts((current) => ({ ...current, [key]: event.target.value }))
+                                    }
+                                    rows={3}
+                                    className="min-h-20 w-full rounded-md border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-950"
+                                    placeholder="Add CRM observation"
+                                  />
+                                  <div className="mt-2 flex items-center justify-between gap-3">
+                                    <p className="text-xs font-semibold text-slate-500">
+                                      {getLeadUpdateId(record) ? "Saves to CRM lead observation" : "Missing CRM lead id"}
+                                    </p>
+                                    <button
+                                      type="button"
+                                      onClick={() => saveObservation(record)}
+                                      disabled={saving || !dirty}
+                                      className="rounded-md bg-slate-900 px-3 py-2 text-xs font-bold text-white hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                                    >
+                                      {saving ? "Saving" : dirty ? "Save" : "Saved"}
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                          {loadStatus === "ready" && records.length === 0 ? (
+                            <tr>
+                              <td colSpan={7} className="px-4 py-8 text-center text-sm font-semibold text-slate-500">
+                                No dialler records match these filters.
+                              </td>
+                            </tr>
+                          ) : null}
+                        </tbody>
+                      </table>
+                    </div>
+                  </section>
+                </>
+              ) : null}
             </section>
           ) : null}
         </div>
@@ -462,6 +500,11 @@ function StatusBadge({ record }: { record: CrmDiallerRecord }) {
       {label}
     </span>
   );
+}
+
+function formatQueueLabel(option: CrmDiallerQueueOption) {
+  const name = option.label || option.queueName || option.campaignName || `Queue ${option.queueId}`;
+  return `${name} (${option.queueId})`;
 }
 
 function buildNoteDrafts(records: CrmDiallerRecord[]) {
