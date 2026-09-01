@@ -794,6 +794,60 @@ export type StopCrmLeadDiallerResponse = {
   leadIntent?: CrmLeadIntentRow | null;
 };
 
+export type CrmDiallerConnectionStatus = "all" | "to_be_dialled" | "dialled" | "connected" | "not_connected";
+
+export type CrmDiallerRecord = {
+  id?: string | number | null;
+  diallerRecordId?: string | number | null;
+  callTraceId?: string | number | null;
+  clientId?: string | number | null;
+  queueId?: string | number | null;
+  queueName?: string | null;
+  campaignName?: string | null;
+  scheduledAtUtc?: string | null;
+  dialledAtUtc?: string | null;
+  lastCallAtUtc?: string | null;
+  createdAtUtc?: string | null;
+  updatedAtUtc?: string | null;
+  status?: string | null;
+  diallerStatus?: string | null;
+  connectedToAgent?: boolean | number | string | null;
+  agentId?: string | number | null;
+  agentName?: string | null;
+  callCode?: string | number | null;
+  callCodeDetails?: string | null;
+  callResult?: string | null;
+  fullName?: string | null;
+  leadName?: string | null;
+  phone?: string | null;
+  phoneNumber?: string | null;
+  normalizedPhone?: string | null;
+  email?: string | null;
+  leadId?: string | null;
+  wixId?: string | null;
+  contactId?: string | null;
+  canonicalContactId?: string | null;
+  intentId?: string | null;
+  interestId?: string | null;
+  observation?: string | null;
+  crmObservation?: string | null;
+  lead?: CrmLead | null;
+};
+
+export type CrmDiallerListResponse = {
+  records?: CrmDiallerRecord[];
+  rows?: CrmDiallerRecord[];
+  items?: CrmDiallerRecord[];
+  total?: number;
+  limit?: number;
+  offset?: number;
+  filters?: Record<string, string | number | boolean | null>;
+  options?: {
+    queues?: Array<{ queueId: string | number; queueName?: string | null; campaignName?: string | null }>;
+    statuses?: string[];
+  };
+};
+
 function authHeaders(token: string) {
   return {
     Authorization: `Bearer ${token}`,
@@ -986,6 +1040,15 @@ export function listCrmAgentReport(
   params: Record<string, string | number | boolean | null | undefined>,
 ) {
   return fetchCanonicalCrmReadJson<CrmAgentReportResponse>(`${BASE_PATH}/agent-activity${buildQuery(params)}`, {
+    headers: authHeaders(token),
+  });
+}
+
+export function listCrmDiallerRecords(
+  token: string,
+  params: Record<string, string | number | boolean | null | undefined>,
+) {
+  return fetchCanonicalCrmReadJson<CrmDiallerListResponse>(`${BASE_PATH}/dialler${buildQuery(params)}`, {
     headers: authHeaders(token),
   });
 }
