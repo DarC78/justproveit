@@ -100,6 +100,19 @@ function getInitialTab(): TabKey {
   return ROUTABLE_TABS.has(tab as TabKey) ? (tab as TabKey) : "details";
 }
 
+function hasCheckoutReturnSignal(query: Record<string, string | string[] | undefined>) {
+  const checkout = getQueryValue(query.checkout);
+  const sessionId = getQueryValue(query.session_id);
+  const payment = getQueryValue(query.payment);
+  const sale = getQueryValue(query.sale);
+
+  return checkout === "success" || payment === "success" || sale === "success" || Boolean(sessionId);
+}
+
+function getQueryValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
 const STATUS_OPTIONS = [
   "new lead",
   "nowinnofee",
@@ -2632,6 +2645,7 @@ function NewLeadPanel({
 }
 
 function SalesPanel({ token, onError }: { token: string; onError: (message: string) => void }) {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [sales, setSales] = useState<CrmSale[]>([]);
@@ -2641,16 +2655,56 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
   const [selectedHistorySaleKey, setSelectedHistorySaleKey] = useState("");
   const [historyMessage, setHistoryMessage] = useState("");
   const [historyMessageType, setHistoryMessageType] = useState<"info" | "error">("info");
+  const isCheckoutReturn = useMemo(() => hasCheckoutReturnSignal(router.query), [router.query]);
 
   useEffect(() => {
-    loadSales();
+    if (isCheckoutReturn) {
+      return;
+    }
+
+    void loadSales();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadSales() {
+  useEffect(() => {
+    if (!isCheckoutReturn) {
+      return;
+    }
+
+    let stopped = false;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    const pollSales = () => {
+      attempts += 1;
+      void loadSales({ forceRefresh: true }).finally(() => {
+        if (!stopped && attempts >= maxAttempts && intervalId !== undefined) {
+          window.clearInterval(intervalId);
+        }
+      });
+    };
+
+    const intervalId = window.setInterval(pollSales, 12000);
+    pollSales();
+
+    return () => {
+      stopped = true;
+      window.clearInterval(intervalId);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isCheckoutReturn]);
+
+  async function loadSales(options: { forceRefresh?: boolean } = {}) {
     setLoading(true);
     try {
-      const result = await listCrmSales(token, { email, phone, limit: 50 });
+      const result = await listCrmSales(token, {
+        fresh: true,
+        forceRefresh: options.forceRefresh === true || undefined,
+        email,
+        phone,
+        limit: 50,
+        offset: 0,
+      });
       setSales(result.sales);
       onError("");
     } catch (error) {
@@ -2709,7 +2763,7 @@ function SalesPanel({ token, onError }: { token: string; onError: (message: stri
       <div className="filter-grid sales-filter">
         <label>Email</label>
         <input value={email} onChange={(event) => setEmail(event.target.value)} />
-        <button type="button" className="orange small" onClick={loadSales}>
+        <button type="button" className="orange small" onClick={() => loadSales({ forceRefresh: true })}>
           Filter
         </button>
         <label>Telefon:</label>
