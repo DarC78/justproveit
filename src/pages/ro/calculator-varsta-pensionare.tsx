@@ -155,6 +155,9 @@ type FormState = {
   foreignCountry3: string;
   foreignYears3: string;
   foreignMonths3: string;
+  pollutedLocalityBenefit: "no" | "yes";
+  pollutedLocalityName: string;
+  pollutedLocalityResidenceYears: string;
   deosebiteYears: string;
   deosebiteMonths: string;
   specialeYears: string;
@@ -198,6 +201,9 @@ const initialForm: FormState = {
   foreignCountry3: "",
   foreignYears3: "",
   foreignMonths3: "",
+  pollutedLocalityBenefit: "no",
+  pollutedLocalityName: "",
+  pollutedLocalityResidenceYears: "",
   deosebiteYears: "",
   deosebiteMonths: "",
   specialeYears: "",
@@ -318,6 +324,9 @@ export default function RomanianPensionCalculatorPage() {
           ...additionalPeriods,
         },
         foreignPeriods,
+        pollutedLocalityBenefit: form.pollutedLocalityBenefit === "yes",
+        pollutedLocalityName: form.pollutedLocalityName,
+        pollutedLocalityResidenceYears: asNumber(form.pollutedLocalityResidenceYears),
         childrenRaised: asNumber(form.childrenRaised),
         handicapType: form.handicapType,
         handicapYears: asNumber(form.handicapYears),
@@ -431,6 +440,9 @@ export default function RomanianPensionCalculatorPage() {
           grupaIIMonths: 0,
         },
         foreignPeriods: [],
+        pollutedLocalityBenefit: false,
+        pollutedLocalityName: "",
+        pollutedLocalityResidenceYears: 0,
         childrenRaised: 0,
         handicapType: "none",
         handicapYears: 0,
@@ -692,6 +704,41 @@ export default function RomanianPensionCalculatorPage() {
                 <TextInput label="Copii crescuti" type="number" min="0" value={form.childrenRaised} onChange={(value) => update("childrenRaised", value)} />
               </fieldset>
 
+              <fieldset className="grid gap-4 md:grid-cols-3">
+                <legend className="mb-2 text-base font-bold md:col-span-3">
+                  Localitate poluata, daca se aplica
+                </legend>
+                <label className="block">
+                  <span className="text-sm font-semibold text-slate-700">
+                    Ati avut domiciliul cel putin 30 de ani intr-o localitate eligibila?
+                  </span>
+                  <select
+                    value={form.pollutedLocalityBenefit}
+                    onChange={(event) => update("pollutedLocalityBenefit", event.target.value as "no" | "yes")}
+                    className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-100"
+                  >
+                    <option value="no">Nu / nu stiu</option>
+                    <option value="yes">Da</option>
+                  </select>
+                </label>
+                <TextInput
+                  label="Localitatea din Romania"
+                  value={form.pollutedLocalityName}
+                  onChange={(value) => update("pollutedLocalityName", value)}
+                />
+                <TextInput
+                  label="Ani de domiciliu"
+                  type="number"
+                  min="0"
+                  value={form.pollutedLocalityResidenceYears}
+                  onChange={(value) => update("pollutedLocalityResidenceYears", value)}
+                />
+                <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold leading-5 text-amber-900 md:col-span-3">
+                  Reducerea este estimata doar daca localitatea apare in lista oficiala si puteti dovedi domiciliul.
+                  Nu se cumuleaza cu alte reduceri de varsta.
+                </p>
+              </fieldset>
+
               <fieldset>
                 <legend className="mb-3 text-base font-bold">Stagii de cotizare</legend>
                 <div className="space-y-3">
@@ -847,6 +894,7 @@ export default function RomanianPensionCalculatorPage() {
                 <li>conditii deosebite, speciale, Grupa I si Grupa II</li>
                 <li>armata, somaj platit, concediu de maternitate si facultate fara suprapunere</li>
                 <li>situatii speciale introduse cu ani si luni pentru calcul</li>
+                <li>reducere de 2 ani pentru localitati poluate eligibile, daca este declarata</li>
                 <li>reducerea pentru femei cu copii</li>
                 <li>scenarii de pensionare anticipata si stagiu depasit</li>
               </ul>

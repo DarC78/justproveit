@@ -106,6 +106,9 @@ export type PensionCalculatorPayload = {
     months: number;
     monthsTotal?: number;
   }>;
+  pollutedLocalityBenefit?: boolean;
+  pollutedLocalityName?: string;
+  pollutedLocalityResidenceYears?: number;
   childrenRaised?: number;
   handicapType?: string;
   handicapYears?: number;
@@ -392,6 +395,9 @@ function calculatePensionLocally(
     handicapType: payload.handicapType ?? "none",
     totalContributivMonths,
     totalReductionMonths,
+    pollutedLocalityBenefit: payload.pollutedLocalityBenefit === true,
+    pollutedLocalityName: payload.pollutedLocalityName,
+    pollutedLocalityResidenceYears: payload.pollutedLocalityResidenceYears,
   });
   const recommended = recommendScenario(scenarios);
   const foreignPensionSections = buildForeignPensionSections(
@@ -583,6 +589,9 @@ function buildLocalScenarios({
   handicapType,
   totalContributivMonths,
   totalReductionMonths,
+  pollutedLocalityBenefit,
+  pollutedLocalityName,
+  pollutedLocalityResidenceYears,
 }: {
   anexa: ReturnType<typeof lookupAnexa5>;
   birthYearMonth: string;
@@ -592,6 +601,9 @@ function buildLocalScenarios({
   handicapType: string;
   totalContributivMonths: number;
   totalReductionMonths: number;
+  pollutedLocalityBenefit: boolean;
+  pollutedLocalityName?: string;
+  pollutedLocalityResidenceYears?: number;
 }): PensionScenario[] {
   const standardAge = anexa.standardAge;
   const standardDate = anexa.standardRetirementDate;
@@ -643,6 +655,14 @@ function buildLocalScenarios({
       handicapMonths,
       handicapType,
     }),
+    buildPollutedLocalityScenario({
+      anexa,
+      currentAge,
+      pollutedLocalityBenefit,
+      pollutedLocalityName,
+      pollutedLocalityResidenceYears,
+      totalContributivMonths,
+    }),
     makeScenario({
       type: "limita_varsta_stagiu_depasit",
       label: "Pensie limita de varsta - stagiu depasit cu 5 ani",
@@ -672,6 +692,54 @@ function buildLocalScenarios({
         ? standardDate
         : addAgeToYearMonth(birthYearMonth, scenario.retirementAge),
   }));
+}
+
+function buildPollutedLocalityScenario({
+  anexa,
+  currentAge,
+  pollutedLocalityBenefit,
+  pollutedLocalityName,
+  pollutedLocalityResidenceYears,
+  totalContributivMonths,
+}: {
+  anexa: ReturnType<typeof lookupAnexa5>;
+  currentAge: AgeYM;
+  pollutedLocalityBenefit: boolean;
+  pollutedLocalityName?: string;
+  pollutedLocalityResidenceYears?: number;
+  totalContributivMonths: number;
+}) {
+  const residenceYears = Math.max(0, Math.floor(Number(pollutedLocalityResidenceYears ?? 0)));
+  const locality = String(pollutedLocalityName || "").trim();
+  const fullStageMonths = ageYMToMonths(anexa.fullStagiu);
+
+  if (!pollutedLocalityBenefit) {
+    return makeScenario({
+      type: "limita_varsta_localitate_poluata",
+      label: "Pensie limita de varsta - localitate poluata",
+      retirementAge: anexa.standardAge,
+      currentAge,
+      stageOk: false,
+      eligibilityReason: "",
+      stageFailureReason: "",
+      legalReferences: ["Legea 263/2010 art. 65 alin. (5), modificata prin Legea 212/2023"],
+      notApplicableReason: "Nu ai declarat domiciliu de cel putin 30 de ani intr-o localitate eligibila pentru reducerea de 2 ani.",
+    });
+  }
+
+  return makeScenario({
+    type: "limita_varsta_localitate_poluata",
+    label: "Pensie limita de varsta - reducere localitate poluata",
+    retirementAge: subAgeYM(anexa.standardAge, { years: 2, months: 0 }),
+    currentAge,
+    stageOk: residenceYears >= 30 && totalContributivMonths >= fullStageMonths,
+    eligibilityReason: `Domiciliu declarat de cel putin 30 de ani${locality ? ` in ${locality}` : ""} si stagiu complet contributiv indeplinit.`,
+    stageFailureReason:
+      residenceYears < 30
+        ? "Pentru aceasta reducere trebuie domiciliu de cel putin 30 de ani in localitatea eligibila."
+        : `Pentru aceasta reducere este necesar stagiul complet contributiv de ${formatAgeYM(anexa.fullStagiu)}.`,
+    legalReferences: ["Legea 263/2010 art. 65 alin. (5), modificata prin Legea 212/2023"],
+  });
 }
 
 function buildHandicapScenario({
