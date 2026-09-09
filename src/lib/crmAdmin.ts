@@ -717,7 +717,11 @@ export type ManualCrmLeadPayload = {
   phoneNumber: string;
   language: string;
   service: "simulator pensie" | "FreeMoneyCheck" | "other";
-  interestType?: "ASAP";
+  interestType?: "ASAP" | "MANUAL_BOOK";
+  appointmentDate?: string;
+  appointmentTime?: string;
+  appointmentTimeZone?: string;
+  appointmentLocalDateTime?: string;
   agent?: string;
 };
 

@@ -2466,30 +2466,47 @@ function NewLeadPanel({
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [language, setLanguage] = useState("");
   const [service, setService] = useState<"simulator pensie" | "FreeMoneyCheck" | "other">("simulator pensie");
+  const [interestType, setInterestType] = useState<"ASAP" | "MANUAL_BOOK">("MANUAL_BOOK");
+  const [appointmentDate, setAppointmentDate] = useState("");
+  const [appointmentTime, setAppointmentTime] = useState("");
   const [saving, setSaving] = useState(false);
   const [stopDiallerPhone, setStopDiallerPhone] = useState("");
   const [stopDiallerSaving, setStopDiallerSaving] = useState(false);
+  const showAppointmentFields = interestType === "MANUAL_BOOK";
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (showAppointmentFields && (!appointmentDate || !appointmentTime)) {
+      onError("Alege data si ora programarii pentru MANUAL_BOOK.");
+      onStatus("");
+      return;
+    }
+
     setSaving(true);
     try {
+      const appointmentLocalDateTime =
+        showAppointmentFields && appointmentDate && appointmentTime ? `${appointmentDate}T${appointmentTime}` : undefined;
       const result = await insertManualCrmLead(token, {
         fullName,
         email,
         phoneNumber,
-        language,
+        language: "ro",
         service,
-        interestType: "ASAP",
+        interestType,
+        appointmentDate: showAppointmentFields ? appointmentDate : undefined,
+        appointmentTime: showAppointmentFields ? appointmentTime : undefined,
+        appointmentTimeZone: showAppointmentFields ? "Europe/London" : undefined,
+        appointmentLocalDateTime,
         agent: agentName,
       });
       setFullName("");
       setEmail("");
       setPhoneNumber("");
-      setLanguage("");
       setService("simulator pensie");
+      setInterestType("MANUAL_BOOK");
+      setAppointmentDate("");
+      setAppointmentTime("");
       if (result?.lead) {
         onCreated(result.lead);
       } else {
@@ -2546,20 +2563,39 @@ function NewLeadPanel({
           Phone *
           <input value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} placeholder="Template" />
         </label>
-        <select value={language} onChange={(event) => setLanguage(event.target.value)}>
-          <option value="">Language</option>
-          {LANGUAGE_OPTIONS.map((item) => (
-            <option key={item}>{item}</option>
-          ))}
-        </select>
-        <select
-          value={service}
-          onChange={(event) => setService(event.target.value as "simulator pensie" | "FreeMoneyCheck" | "other")}
-        >
-          <option value="simulator pensie">simulator pensie</option>
-          <option value="FreeMoneyCheck">Money Check</option>
-          <option value="other">other</option>
-        </select>
+        <label>
+          Intent *
+          <select
+            value={interestType}
+            onChange={(event) => setInterestType(event.target.value as "ASAP" | "MANUAL_BOOK")}
+          >
+            <option value="MANUAL_BOOK">MANUAL_BOOK</option>
+            <option value="ASAP">ASAP</option>
+          </select>
+        </label>
+        <label>
+          Serviciu *
+          <select
+            value={service}
+            onChange={(event) => setService(event.target.value as "simulator pensie" | "FreeMoneyCheck" | "other")}
+          >
+            <option value="simulator pensie">simulator pensie</option>
+            <option value="FreeMoneyCheck">Money Check</option>
+            <option value="other">other</option>
+          </select>
+        </label>
+        {showAppointmentFields ? (
+          <div className="appointment-row">
+            <label>
+              Data programarii *
+              <input type="date" value={appointmentDate} onChange={(event) => setAppointmentDate(event.target.value)} />
+            </label>
+            <label>
+              Ora UK *
+              <input type="time" value={appointmentTime} onChange={(event) => setAppointmentTime(event.target.value)} />
+            </label>
+          </div>
+        ) : null}
         <button type="submit" className="orange" disabled={saving}>
           {saving ? "Se adauga..." : "Adauga Lead"}
         </button>
@@ -2613,6 +2649,11 @@ function NewLeadPanel({
           display: grid;
           gap: 12px;
         }
+        .appointment-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
         label {
           display: grid;
           gap: 5px;
@@ -2638,6 +2679,14 @@ function NewLeadPanel({
           background: #ff4b26;
           color: white;
           font-weight: 800;
+        }
+        @media (max-width: 420px) {
+          .new-lead {
+            width: 100%;
+          }
+          .appointment-row {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
     </section>
