@@ -517,6 +517,7 @@ function mergeCurrentOption(options: string[], current?: string | null) {
 }
 
 const JOB_APPLICATION_LEAD_INTENT_OPTIONS = ["JobApplication", "JobApplications"];
+const DEFAULT_LEAD_INTENT_OPTIONS = ["ASAP", "CALENDLY", "MANUAL_BOOK"];
 const HIDDEN_LEAD_INTENT_OPTIONS = [
   ...JOB_APPLICATION_LEAD_INTENT_OPTIONS,
   "BookCall",
@@ -597,7 +598,7 @@ function mergeLeadIntentOptions(options: string[], current?: string | null) {
   const seen = new Set<string>();
   const merged: string[] = [];
 
-  for (const item of options) {
+  for (const item of [...DEFAULT_LEAD_INTENT_OPTIONS, ...options]) {
     const value = String(item || "").trim();
     const key = value.toLowerCase();
     if (!value || isExplicitOnlyLeadIntent(value) || seen.has(key)) {
@@ -673,6 +674,9 @@ function summarizeLeadIntentRows(rows: CrmLeadIntentRow[]) {
       if (intentName === "CALENDLY") {
         summary.calendly += 1;
       }
+      if (intentName === "MANUAL_BOOK") {
+        summary.manualBook += 1;
+      }
       if (serviceKey.includes("carfinance") || serviceKey.includes("car finance")) {
         summary.carFinance += 1;
       }
@@ -687,7 +691,7 @@ function summarizeLeadIntentRows(rows: CrmLeadIntentRow[]) {
 
       return summary;
     },
-    { totalLeads: 0, asap: 0, calendly: 0, carFinance: 0, internationalPensions: 0 },
+    { totalLeads: 0, asap: 0, calendly: 0, manualBook: 0, carFinance: 0, internationalPensions: 0 },
   );
 }
 
@@ -3428,7 +3432,7 @@ function LeadIntentPanel({
           : result.total ?? 0,
       );
       setResultText(
-        `Total Leads: ${summary.totalLeads ?? 0} | ASAP ${summary.asap ?? 0} | Calendly ${summary.calendly ?? 0} | Car Finance ${summary.carFinance ?? 0} | International Pensions ${summary.internationalPensions ?? 0}`,
+        `Total Leads: ${summary.totalLeads ?? 0} | ASAP ${summary.asap ?? 0} | Calendly ${summary.calendly ?? 0} | MANUAL_BOOK ${summary.manualBook ?? 0} | Car Finance ${summary.carFinance ?? 0} | International Pensions ${summary.internationalPensions ?? 0}`,
       );
       setIntentOptions(result.options?.intents || []);
       setServiceOptions(result.options?.services || []);
@@ -3582,7 +3586,7 @@ function LeadIntentPanel({
       </div>
 
       <p className="green-label">
-        {resultText || "Total Leads: 0 | ASAP 0 | Calendly 0 | Car Finance 0 | International Pensions 0"}
+        {resultText || "Total Leads: 0 | ASAP 0 | Calendly 0 | MANUAL_BOOK 0 | Car Finance 0 | International Pensions 0"}
         <br />
         Total Selected Leads: {selectedLeadsTotal}
         {predictiveCampaignSummary.length ? (

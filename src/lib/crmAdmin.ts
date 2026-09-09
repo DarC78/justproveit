@@ -572,6 +572,7 @@ export type CrmLeadIntentResponse = {
     totalLeads?: number;
     asap?: number;
     calendly?: number;
+    manualBook?: number;
     carFinance?: number;
     internationalPensions?: number;
   };
