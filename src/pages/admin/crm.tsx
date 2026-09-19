@@ -1,3 +1,4 @@
+import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
 import { useAuth } from "@/context/AuthContext";
 import {
   addCrmLeadPhone,
@@ -47,6 +48,7 @@ import { useRouter } from "next/router";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 type TabKey =
+  | "privatePensions"
   | "details"
   | "new"
   | "sales"
@@ -80,6 +82,7 @@ type LocalOutboundSms = SmsTranscriptItem & {
 };
 
 const TABS: Array<{ key: TabKey; label: string }> = [
+  { key: "privatePensions", label: "Livrare Pensii Private" },
   { key: "details", label: "Detalii Lead" },
   { key: "new", label: "Lead Nou" },
   { key: "sales", label: "Arata Vanzarile" },
@@ -1080,7 +1083,8 @@ export default function AdminCrmPage() {
   const detailsTabButtonRef = useRef<HTMLButtonElement | null>(null);
   const autoloadedPhoneRef = useRef("");
   const agentName = user?.name || user?.email || "";
-  const activeTab = activeTabState;
+  const canUsePrivatePensions = status === "authenticated" && isCrm && user?.email?.trim().toLowerCase() === "adrian@proveitweb.co.uk";
+  const activeTab = activeTabState === "privatePensions" && !canUsePrivatePensions ? "details" : activeTabState;
   const forcedDetailsIntent = useMemo(() => {
     const intentQuery = router.query.intent ?? router.query.leadIntent ?? router.query.interestType;
     const value = Array.isArray(intentQuery) ? intentQuery[0] : intentQuery;
@@ -1255,7 +1259,7 @@ export default function AdminCrmPage() {
         <TopNav />
 
         <section className="crm-toolbar" aria-label="CRM sections">
-          {TABS.map((tab) => (
+          {TABS.filter(tab => tab.key !== "privatePensions" || canUsePrivatePensions).map((tab) => (
             <button
               key={tab.key}
               ref={tab.key === "details" ? detailsTabButtonRef : undefined}
@@ -1319,6 +1323,8 @@ export default function AdminCrmPage() {
                   onError={setErrorMessage}
                 />
               ) : null}
+
+              {activeTab === "privatePensions" && canUsePrivatePensions ? <PrivatePensionsPanel token={token} /> : null}
 
               {activeTab === "sales" ? (
                 <SalesPanel token={token} onError={setErrorMessage} />
