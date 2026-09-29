@@ -723,6 +723,7 @@ export type ManualCrmLeadPayload = {
   appointmentTime?: string;
   appointmentTimeZone?: string;
   appointmentLocalDateTime?: string;
+  sendSms?: boolean;
   agent?: string;
 };
 

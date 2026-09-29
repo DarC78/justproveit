@@ -2508,6 +2508,7 @@ function NewLeadPanel({
         appointmentTime: showAppointmentFields ? appointmentTime : undefined,
         appointmentTimeZone: showAppointmentFields ? "Europe/London" : undefined,
         appointmentLocalDateTime,
+        sendSms: showAppointmentFields ? false : undefined,
         agent: agentName,
       });
       setFullName("");

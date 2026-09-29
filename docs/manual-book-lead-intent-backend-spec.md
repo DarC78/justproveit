@@ -35,6 +35,7 @@ For `MANUAL_BOOK`, the request body is:
   "appointmentTime": "14:30",
   "appointmentTimeZone": "Europe/London",
   "appointmentLocalDateTime": "2026-09-16T14:30",
+  "sendSms": false,
   "agent": "Adrian Defta"
 }
 ```
@@ -69,6 +70,7 @@ When `interestType = "MANUAL_BOOK"`:
   - `appointmentLocalDateTime`
 - Show this intent in `/justproveit/admin/crm/lead-intents` responses, similar to `CALENDLY`.
 - Do not reserve it as an ASAP intent automatically.
+- Do not send or schedule any SMS for this manual booking. The frontend sends `sendSms: false` for `MANUAL_BOOK`; the backend must also treat `MANUAL_BOOK` as SMS-disabled by default if the flag is missing.
 
 Recommended normalized lead intent shape:
 
