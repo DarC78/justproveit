@@ -1,3 +1,4 @@
+import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -55,6 +56,7 @@ type TabKey =
   | "all"
   | "intents"
   | "inboundSms"
+  | "whatsappStats"
   | "agentreport"
   | "manual"
   | "highLevelFunnels"
@@ -89,6 +91,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "all", label: "All Leads CRM" },
   { key: "intents", label: "Lead Intents" },
   { key: "inboundSms", label: "InboundSMS" },
+  { key: "whatsappStats", label: "WhatsApp stats" },
   { key: "agentreport", label: "Agent Report" },
   { key: "manual", label: "Send Manual Email/SMS" },
 ];
@@ -1358,6 +1361,8 @@ export default function AdminCrmPage() {
                   onError={setErrorMessage}
                 />
               ) : null}
+
+              {activeTab === "whatsappStats" ? <WhatsAppStatsPanel token={token} /> : null}
 
               {activeTab === "agentreport" ? (
                 <AgentReportPanel token={token} onError={setErrorMessage} />
