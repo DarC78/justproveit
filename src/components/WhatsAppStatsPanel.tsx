@@ -1,3 +1,4 @@
+import styles from './WhatsAppStatsPanel.module.css';
 import {FormEvent, useEffect, useRef, useState} from 'react';
 
 type Category = 'clients' | 'closed' | 'passive' | 'active' | 'called' | 'contacted';
@@ -46,27 +47,27 @@ export default function WhatsAppStatsPanel({token}:{token:string}){
   function resetReport(){setLoading(true);setError('');setSelected(null);setMessages([]);setReport(null);}
   function applyRange(event:FormEvent){event.preventDefault();resetReport();setOffset(0);setRange({startDate,endDate});}
   const total=report?.clients[0]?.TotalRows||0;
-  return <section aria-label="WhatsApp stats">
+  return <section className={styles.panel} aria-label="WhatsApp stats">
     <h2>WhatsApp stats</h2>
     <form onSubmit={applyRange} style={{display:'flex',gap:12,alignItems:'end',flexWrap:'wrap'}}>
       <label>From <input type="date" required value={startDate} max={endDate} onChange={e=>setStartDate(e.target.value)}/></label>
       <label>To <input type="date" required value={endDate} min={startDate} onChange={e=>setEndDate(e.target.value)}/></label>
       <button type="submit" className="orange small" disabled={loading}>Apply dates</button>
     </form>
-    <p>Dates and times are London time. Clients with WhatsApp activity in these dates are counted once. Thread status is current; call counts use the selected dates.</p>
-    <p>ClosedThreads counts clients whose latest conversation is closed or solved. Active and passive exclude closed conversations. Contacted means an agent call outcome other than voicemail or NU_SE_AUDE.</p>
+    <p className={styles.help}>Dates and times are London time. Clients with WhatsApp activity in these dates are counted once. Thread status is current; call counts use the selected dates.</p>
+    <p className={styles.help}>ClosedThreads counts clients whose latest conversation is closed or solved. Active and passive exclude closed conversations. Contacted means an agent call outcome other than voicemail or NU_SE_AUDE.</p>
     {error?<p role="alert">{error}</p>:null}
-    <table style={{width:'100%',marginBlock:16}}><caption>Click a total to see its clients</caption><thead><tr>{categories.map(([key,label])=><th scope="col" key={key}>{label}</th>)}</tr></thead>
-      <tbody><tr>{categories.map(([key,label])=><td key={key}><button type="button" className={category===key?'toolbar-btn active':'toolbar-btn'} aria-pressed={category===key} aria-label={`${label}: ${report?.summary[key]??'loading'}`} disabled={loading||!report} onClick={()=>{if(category===key&&offset===0)return;resetReport();setCategory(key);setOffset(0);}}>{loading?'…':report?.summary[key]??'—'}</button></td>)}</tr></tbody></table>
+    <div className={styles.summary}><table><caption>Click a total to see its clients</caption><thead><tr>{categories.map(([key,label])=><th scope="col" key={key}>{label}</th>)}</tr></thead>
+      <tbody><tr>{categories.map(([key,label])=><td key={key}><button type="button" className={category===key?'toolbar-btn active':'toolbar-btn'} aria-pressed={category===key} aria-label={`${label}: ${report?.summary[key]??'loading'}`} disabled={loading||!report} onClick={()=>{if(category===key&&offset===0)return;resetReport();setCategory(key);setOffset(0);}}>{loading?'…':report?.summary[key]??'—'}</button></td>)}</tr></tbody></table></div>
     <h3>{categories.find(([key])=>key===category)?.[1]}</h3>
     {loading?<p role="status">Loading clients…</p>:report?<>
       <p>{total} clients{total?` · Showing ${offset+1}–${offset+report.clients.length}`:''}</p>
-      <div style={{overflowX:'auto'}}><table style={{width:'100%'}}><thead><tr><th>Client</th><th>Initial date/time</th><th>Status</th><th>Calls</th><th>Connected calls</th><th>WhatsApp thread</th></tr></thead>
+      <div className={styles.tableWrap}><table style={{width:'100%'}}><thead><tr><th>Client</th><th>Initial date/time</th><th>Status</th><th>Calls</th><th>Connected calls</th><th>WhatsApp thread</th></tr></thead>
         <tbody>{report.clients.map(client=><tr key={client.Phone}><td>{client.ClientName}<br/>{client.Phone}</td><td>{timestamp(client.InitialAtUtc)}</td><td>{client.ThreadStatus}</td><td>{client.CallCount}</td><td>{client.ConnectedCallCount}</td><td><button type="button" className="toolbar-btn" onClick={()=>{setMessages([]);setThreadLoading(true);setThreadError('');setThreadOffset(0);setSelected({...client});}}>View messages</button></td></tr>)}</tbody></table></div>
       {!total?<p>No clients match this category and date range.</p>:null}
       <div style={{display:'flex',gap:12,marginBlock:12}}><button type="button" disabled={!offset} onClick={()=>{resetReport();setOffset(Math.max(0,offset-100));}}>Previous clients</button><button type="button" disabled={offset+100>=total} onClick={()=>{resetReport();setOffset(offset+100);}}>Next clients</button></div>
     </>:null}
-    {selected?<section aria-label="WhatsApp conversation" style={{borderTop:'1px solid #ccc',paddingTop:16}}>
+    {selected?<section className={styles.thread} aria-label="WhatsApp conversation">
       <h3>WhatsApp thread · {selected.ClientName} · {selected.Phone}</h3>
       <p>Initial message: {timestamp(selected.InitialAtUtc)} · Calls: {selected.CallCount} · Connected calls: {selected.ConnectedCallCount}. Full conversation history is shown, including messages outside the selected dates.</p>
       <button type="button" onClick={()=>{setSelected(null);setMessages([]);}}>Close thread</button>
