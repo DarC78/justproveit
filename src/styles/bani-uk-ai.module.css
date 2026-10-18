@@ -102,6 +102,7 @@
 .adrian { display: grid; grid-template-columns: 1fr 1.2fr; gap: 80px; border-bottom: 1px solid #d7e0e2; }
 .largeText { font-size: 23px; line-height: 1.55; }
 .adrian > div:last-child > p + p { margin-top: 22px; }
+.award { margin-top: 24px !important; font-size: 23px; line-height: 1.55; }
 .signature { font-weight: 600; font-size: 17px; }
 .signature > span { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 10px; }
 .session { display: grid; grid-template-columns: 100px 1.3fr 1fr; gap: 32px; padding: 28px 0; border-top: 1px solid #ccd6d9; align-items: center; }

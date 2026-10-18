@@ -29,7 +29,7 @@ Evidence used for the expanded copy:
 
 - No invented personal earnings, testimonials, photos, screenshots or remaining-seat counter. Owner will provide proof later.
 - £1,000/year is presented as a target rather than an evidenced minimum; keep this until real results support a more specific claim. The credit-check FAQ states that a separate account does not eliminate credit checks. Cashback points are distinguished from bank withdrawals.
-- The source lists conflicting January prices. The page follows its introductory sequence: £79 at the January 2027 launch, then £97; founder price £39. No fabricated prior selling price is struck through.
+- The owner confirmed the planned January 2027 launch price is £97; founder price remains £39 using DISC58. Purchase buttons show the owner's £97 base price struck through.
 - All four sessions are listed for Tuesdays 3, 10, 17 and 24 November 2026. The proposed 20:00 time is omitted because it is unconfirmed.
 - The draft's 90-day guarantee is included, with the period measured from the first session, participation or recordings, applied steps and anonymized evidence. Confirm final course-specific checkout terms before enabling sales.
 - No JamDoughnut referral link or invented partnership disclosure. If a referral link is added later, disclose the actual relationship.
