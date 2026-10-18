@@ -6,20 +6,20 @@
   "from": "Adrian Defta <adrian@mail.justproveit.co.uk>",
   "replyTo": "adrian@proveitweb.co.uk",
   "testRecipient": "adrian@proveitweb.co.uk",
+  "testRecipientName": "Adrian",
   "heroImageUrl": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/barclays.png",
   "heroImageAlt": "Exemplu de ofertă Barclays: bonus de schimbare și recompense condiționate de eligibilitate",
   "portraitImageUrl": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/adrian-defta.jpg",
   "portraitImageAlt": "Adrian Defta, Director Proveit",
   "trustpilotImageUrl": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/trustpilot.png",
   "postscriptImages": [
-    { "url": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/top100-romanians.png", "alt": "Coperta Top 100 Români de Pretutindeni, ediția 2026" },
     { "url": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/top100-adrian-defta.png", "alt": "Adrian Defta în Top 100 Români de Pretutindeni" }
   ],
   "reviews": [
     "Recomand cu toată încrederea Proveit! Sunt o echipă foarte înțelegătoare, profesionistă și mereu gata să ajute. Am avut o experiență foarte plăcută cu ei și m-am simțit susținută pe tot parcursul colaborării. Le mulțumesc pentru seriozitate și amabilitate!",
     "Recomand cu incredere.La inceput am fost sceptica,am si uitat ca am facut rezervare,dar domnul Adrian m-a contactat si in urma simularii am aflat informatii la care nu m-as fi gandit.Felicitari pentru ceea ce faceti ."
   ],
-  "ctaUrl": "https://www.justproveit.co.uk/bani-uk-ai/",
+  "ctaUrl": "https://www.justproveit.co.uk/bani-uk-ai/?utm_source=resend&utm_medium=email&utm_campaign=bani-uk-ai&utm_content=email-01-primary-cta",
   "ctaLabel": "Vreau locul meu de fondator",
   "unsubscribeUrl": null,
   "intro": ["Salut,", "Adrian aici."],

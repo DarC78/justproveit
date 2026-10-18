@@ -12,7 +12,7 @@ if (-not $payload.subject.StartsWith('[TEST] ') -or $payload.html -match 'PREVIZ
     throw 'A rendered test without placeholders is required.'
 }
 $images = [regex]::Matches($payload.html, '<img[^>]+src="([^"]+)"')
-if ($images.Count -ne 5) { throw 'Expected opening image, two postscript images, Trustpilot image and portrait.' }
+if ($images.Count -ne 4) { throw 'Expected opening image, one postscript image, Trustpilot image and portrait.' }
 foreach ($match in $images) {
     $imageUrl = [System.Net.WebUtility]::HtmlDecode($match.Groups[1].Value)
     if (-not $imageUrl.StartsWith('https://www.justproveit.co.uk/email-assets/bani-uk-ai/')) {
@@ -27,7 +27,7 @@ if ([regex]::Matches($payload.html, 'data-role="primary-cta"').Count -ne 1) {
     throw 'Exactly one main campaign button is required.'
 }
 if (-not $Send) {
-    Write-Output 'Test validated: one recipient, one main CTA and five publicly available images. No email sent.'
+    Write-Output 'Test validated: one recipient, one main CTA and four publicly available images. No email sent.'
     exit 0
 }
 
@@ -46,9 +46,12 @@ try { $fingerprint = ([System.BitConverter]::ToString($sha.ComputeHash([System.T
 finally { $sha.Dispose() }
 $headers = @{ Authorization = "Bearer $resendSecret"; 'Idempotency-Key' = "proveit-email01-owner-test-$fingerprint" }
 try {
+    $trackingState = Invoke-RestMethod -Uri 'https://api.resend.com/domains/4c211916-31cb-4f5f-8ec6-cded4a614906' -Headers $headers
+    $verifiedTrackingRecord = $trackingState.records | Where-Object { $_.record -eq 'Tracking' -and $_.status -eq 'verified' }
+    $trackingAtSend = [bool]($trackingState.open_tracking -and $trackingState.click_tracking -and $verifiedTrackingRecord)
     $result = Invoke-RestMethod -Uri 'https://api.resend.com/emails' -Method Post -Headers $headers -ContentType 'application/json; charset=utf-8' -Body ([System.Text.Encoding]::UTF8.GetBytes($payloadText))
     if (-not $result.id) { throw 'Resend returned no message ID.' }
-    $receipt = [ordered]@{ id = $result.id; recipient = $payload.to[0]; subject = $payload.subject; acceptedAt = [DateTime]::UtcNow.ToString('o'); status = 'accepted' }
+    $receipt = [ordered]@{ id = $result.id; recipient = $payload.to[0]; subject = $payload.subject; acceptedAt = [DateTime]::UtcNow.ToString('o'); status = 'accepted'; trackingAtSend = $trackingAtSend }
     $receiptPath = Join-Path $repositoryRoot 'artifacts/email/bani-uk-ai-01-send-receipt.json'
     [System.IO.File]::WriteAllText($receiptPath, ($receipt | ConvertTo-Json), [System.Text.UTF8Encoding]::new($false))
     Write-Output ($receipt | ConvertTo-Json -Compress)

@@ -43,6 +43,8 @@ next-dev.*.log
 /artifacts/email/*-send-receipt.json
 /artifacts/email/*-test.html
 /artifacts/email/*-test.txt
+/artifacts/email/*-metrics.json
+/artifacts/email/*-tracking-status.json
 
 # env files (can opt-in for committing if needed)
 .env*

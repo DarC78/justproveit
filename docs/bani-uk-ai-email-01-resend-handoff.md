@@ -23,7 +23,7 @@ Top 100 Romani de Pretutindeni
 Images were read from the owner's explicitly supplied `D:\DevProjects\!Assets` folder and copied into this repository. No other repository was accessed or changed.
 
 - Opening: `Barclays.png`.
-- After P.S.: `top100 romanians.png`, then `top100 romanians_AD.png` (the two additional Top 100 images in the supplied folder).
+- After P.S.: only `top100 romanians_AD.png`. The owner requested removal of the Top 100 cover.
 - Reviews: owner's `TrustPilot.png` and the two Romanian quotes supplied verbatim. No reviewer names, review URLs or ratings were invented for these quotes.
 - Then WhatsApp, TikTok `https://www.tiktok.com/@proveit.ai`, the website's Facebook/Instagram URLs, and `Official Picture.jpg`.
 
@@ -41,8 +41,32 @@ node scripts/render-proveit-email.mjs --final
 
 The Azure Function App's existing credential is named **ResendApiKey**, not RESEND_API_KEY. The test sender reads that setting and RESEND_FROM_EMAIL into memory through the existing Azure CLI session and uses the same Resend account and sender (`Adrian Defta <adrian@mail.justproveit.co.uk>`). Credentials are never logged, written to disk, placed in command-line arguments or committed. No backend code change or template registration is needed for this one-off provider send. A separate backend-team change is still needed if this template is to be added to the CRM's registered manual-email picker later.
 
-The sending script accepts only one recipient, an explicitly rendered test, exactly one main CTA and all five deployed image URLs. It uses a content-based idempotency key and writes a receipt containing only recipient, subject, provider ID and acceptance time. Provider acceptance is distinct from confirmed delivery.
+The sending script accepts only one recipient, an explicitly rendered test, exactly one main CTA and all four deployed image URLs. It uses a content-based idempotency key and writes a receipt containing only recipient, subject, provider ID and acceptance time. Provider acceptance is distinct from confirmed delivery.
 
-Checks: HTML tables balanced; one main CTA; both quotes preserved; all five images in order; exact signature and recipient; no placeholders in test HTML; approximately 12 KB HTML. Browser-based email-client visual QA remains unavailable due to the in-app browser environment.
+Checks: HTML tables balanced; one main CTA; both quotes preserved; all four images in order; exact signature and recipient; no placeholders in test HTML; approximately 12 KB HTML. Browser-based email-client visual QA remains unavailable due to the in-app browser environment.
 
 Latest owner edits: offer includes the additional eight methods and £39 reminder; bonus wording is £150–£300 for moving a separate account; WhatsApp uses `https://api.whatsapp.com/send/?phone=447447707829&text=CRM_PROMO_BANI_UK_AI&type=phone_number&app_absent=0` in HTML and plain text. Updated test sent to the owner and delivery confirmed through Resend.
+
+## Recipient names and analytics
+
+The renderer accepts `--name "Popescu"` and produces `Popescu, soția mea nu m-a crezut (până a văzut contul)`. Test rendering uses the configured test recipient name Adrian. Campaign integration must pass the actual contact name per recipient; Popescu is an example, never a hardcoded campaign name. A missing name falls back to the original subject; CR/LF and control characters are rejected. Keep the `[TEST]` prefix for owner-only review sends.
+
+Payload tags identify campaign `bani-uk-ai`, template `ro-bani-uk-ai-email-01` and audience `owner-test`. The main CTA has non-personal UTM parameters. These help attribution; they do not create an open-tracking pixel or measure opens by themselves.
+
+Native [Resend tracking](https://resend.com/docs/dashboard/domains/tracking) requires a verified tracking subdomain. Existing domain `mail.justproveit.co.uk` had open/click tracking disabled. The `links` tracking subdomain is now prepared, but both flags remain disabled until DNS verification to avoid routing recipients through a broken tracking host.
+
+Required Cloudflare record in the `justproveit.co.uk` zone:
+
+| Type | Name | Target | Proxy | TTL |
+| --- | --- | --- | --- | --- |
+| CNAME | links.mail | links2.resend-dns.com | DNS only (grey cloud) | Auto |
+
+Full hostname: `links.mail.justproveit.co.uk`. Resend returned this actual CNAME target; it is not a guessed DNS value. No Cloudflare credential or connection is available in this workspace/session. No DNS records have been changed by this task.
+
+After the owner adds the record, run `scripts/configure-proveit-email-tracking.ps1 -Enable`. The helper verifies the exact CNAME and Resend's verification result before enabling native open and click tracking; it does not modify unrelated TLS or sending records. This setting applies to all future emails from the sending domain, not only this template. Send a fresh test after activation: old emails do not acquire tracking retroactively.
+
+`scripts/get-proveit-email-metrics.ps1` retrieves the last test's provider metrics by email ID. It reports open rate and click-through rate as unavailable when tracking was absent or unconfirmed at send time, rather than presenting untracked zeroes as actual engagement. Resend's [metrics API](https://resend.com/docs/api-reference/emails/get-metrics) defines open rate as unique opened messages / delivered messages and click rate as unique clicked messages / delivered messages. Metrics can be cached for up to 15 minutes. Image blocking, privacy prefetching and automated link scanners affect interpretation; these are measurements of events, not guaranteed human reads.
+
+For campaign-wide reports, the backend must retain all provider IDs and distinguish campaign sends from owner tests. The current script intentionally sends only the owner test; this task has not sent a broadcast or enrolled recipients.
+
+The Resend domain-alignment warning is a deliverability heuristic, not a requirement to disguise destinations. Preserve the legitimate external Trustpilot, WhatsApp, social, contact and legal links. The duplicate Trustpilot image hyperlink was removed, leaving one explicit review link. Native branded tracking will use the verified tracking host while preserving actual destinations. No open redirect or fake same-domain legal page was added.
