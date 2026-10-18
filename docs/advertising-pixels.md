@@ -9,7 +9,7 @@
 Meta and TikTok IDs were extracted from the public Proveit Wix site on 18 October 2026.
 The owner supplied the Google Ads installation snippet from the Proveit account.
 `AdvertisingConsent` is mounted inside the existing `ClarityBoundary` in `_app`.
-Owner-requested test rollout: it loads `/advertising-pixels.js?v=google-ads-1`
+Owner-requested test rollout: it loads `/advertising-pixels.js?v=google-ads-2`
 on arrival on public pages, before a visitor makes a choice, unless a current
 refusal is already stored. No fabricated accepted choice is written. The banner
 explains that the services are used and retains Accept/Reject controls.
@@ -20,7 +20,7 @@ visits. Storage errors block the SDK bootstrap. Previously transmitted events
 cannot be withdrawn by deleting cookies. There is no noscript tracking image.
 Declining advertising does not change the existing Clarity integration.
 
-The SDKs send explicit page views on public pages, including `/bani-uk-ai/`.
+The SDKs track public pages, including `/bani-uk-ai/`.
 Repeated renders and query/fragment-only navigation do not duplicate page views.
 No purchase tracking, form capture, email/phone advanced matching, GA4 property,
 server-side events, or campaign spending is configured by this integration.
@@ -30,8 +30,13 @@ Manager, since account-controlled features cannot be verified from this repo.
 
 The Google tag queues Consent Mode defaults before configuration, using the
 same default-on advertising policy as Meta/TikTok. It keeps `analytics_storage`
-denied, disables automatic initial page views, and sends one explicit
-`page_view` to the supplied Ads ID per public pathname. Refusal updates
+denied. Tag Assistant showed that the Ads configuration already emits an initial
+page view, despite `send_page_view:false`; the previous extra manual initial
+event has been removed. The standard owner-supplied Ads config handles initial
+loads; explicit `page_view` events are limited to subsequent public pathname
+changes. Recheck initial load hits in a fresh Tag Assistant session after this
+deployment; account-side automatic history detection may need separate checking
+if virtual navigation also duplicates. Refusal updates
 `ad_storage`, `ad_user_data`, `ad_personalization` and `analytics_storage` to
 denied before the document reloads. Accessible `_gcl_*` and `_gac_*` cookies are
 expired. Consent updates themselves can generate vendor requests; no SDK loads

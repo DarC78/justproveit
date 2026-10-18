@@ -14,7 +14,7 @@ function loadPixels() {
   if (document.getElementById("proveit-advertising-loader")) return;
   const script = document.createElement("script");
   script.id = "proveit-advertising-loader";
-  script.src = "/advertising-pixels.js?v=google-ads-1";
+  script.src = "/advertising-pixels.js?v=google-ads-2";
   script.async = true;
   script.onerror = () => script.remove();
   script.onload = () => {

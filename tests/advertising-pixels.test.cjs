@@ -56,9 +56,8 @@ test('correct IDs, consent and explicit page views; duplicate mounts cannot doub
   assert.equal(google[0][2].analytics_storage, 'denied');
   assert.equal(google.filter(args => args[0] === 'config').length, 1);
   assert.equal(google.find(args => args[0] === 'config')[1], 'AW-11386018124');
-  assert.equal(google.find(args => args[0] === 'config')[2].send_page_view, false);
-  assert.equal(google.filter(args => args[0] === 'event' && args[1] === 'page_view').length, 1);
-  assert.equal(google.find(args => args[0] === 'event')[2].send_to, 'AW-11386018124');
+  assert.equal(google.find(args => args[0] === 'config').length, 2, 'keep the standard Ads config that sends the initial hit');
+  assert.equal(google.filter(args => args[0] === 'event' && args[1] === 'page_view').length, 0, 'no extra manual initial page view');
   const queue = h.window.fbq.queue.map(args => Array.from(args));
   assert.ok(queue.some(args => args[0] === 'init' && args[1] === '674835348003619'));
   assert.ok(queue.some(args => args[0] === 'set' && args[1] === 'autoConfig' && args[2] === false));
@@ -66,9 +65,13 @@ test('correct IDs, consent and explicit page views; duplicate mounts cannot doub
   assert.equal(h.window.ttq.filter(args => args[0] === 'page').length, 1);
   h.window.proveitAdvertising.page();
   assert.equal(h.window.ttq.filter(args => args[0] === 'page').length, 1);
+  assert.equal(h.window.dataLayer.filter(args => args[0] === 'event').length, 0, 'repeated initial-page callbacks cannot double-count');
   h.window.location.pathname = '/ro/'; h.window.proveitAdvertising.page();
   assert.equal(h.window.ttq.filter(args => args[0] === 'page').length, 2);
-  assert.equal(h.window.dataLayer.filter(args => args[0] === 'event' && args[1] === 'page_view').length, 2);
+  const virtualViews = h.window.dataLayer.filter(args => args[0] === 'event' && args[1] === 'page_view');
+  assert.equal(virtualViews.length, 1, 'only subsequent pathname changes send manual views');
+  assert.equal(virtualViews[0][2].send_to, 'AW-11386018124');
+  assert.equal(virtualViews[0][2].page_path, '/ro/');
 });
 
 test('withdrawal stops explicit events and queues both vendors consent revocation', () => {
@@ -80,7 +83,7 @@ test('withdrawal stops explicit events and queues both vendors consent revocatio
   assert.ok(h.window.fbq.queue.some(args => args[0] === 'consent' && args[1] === 'revoke'));
   const googleRevocation = h.window.dataLayer.find(args => args[0] === 'consent' && args[1] === 'update');
   for (const key of ['ad_storage', 'ad_user_data', 'ad_personalization', 'analytics_storage']) assert.equal(googleRevocation[2][key], 'denied');
-  assert.equal(h.window.dataLayer.filter(args => args[0] === 'event').length, 1);
+  assert.equal(h.window.dataLayer.filter(args => args[0] === 'event').length, 0);
 });
 
 test('UI loads bootstrap immediately, retains choice controls and revokes/reloads on reject', () => {
@@ -124,7 +127,7 @@ test('UI loads bootstrap immediately, retains choice controls and revokes/reload
   accept.props.onClick();
   assert.equal(JSON.parse(stored).value, 'granted');
   assert.equal(scripts.length, 1);
-  assert.equal(scripts[0].src, '/advertising-pixels.js?v=google-ads-1');
+  assert.equal(scripts[0].src, '/advertising-pixels.js?v=google-ads-2');
   window.proveitAdvertising = { revoke: () => revoked++ };
   reject.props.onClick();
   assert.equal(JSON.parse(stored).value, 'denied');

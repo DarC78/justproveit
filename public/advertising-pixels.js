@@ -65,8 +65,9 @@
   ttq.grantConsent();
   add('https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=' + TIKTOK_ID + '&lib=ttq', 'proveit-tiktok-pixel');
 
-  // Use the owner's Google Ads destination; no GA4 or purchase conversion is
-  // inferred. Explicit page views avoid a second automatic initial page view.
+  // Google Ads emits its initial page view from config (verified in Tag
+  // Assistant). Do not also emit a manual initial event: send_page_view:false
+  // is not suppressing that Ads hit for this account's connected tag.
   w.dataLayer = w.dataLayer || [];
   var gtag = w.gtag = w.gtag || function () { w.dataLayer.push(arguments); };
   gtag('consent', 'default', {
@@ -74,7 +75,7 @@
     ad_personalization: 'granted', analytics_storage: 'denied'
   });
   gtag('js', new Date());
-  gtag('config', GOOGLE_ADS_ID, { send_page_view: false });
+  gtag('config', GOOGLE_ADS_ID);
   add('https://www.googletagmanager.com/gtag/js?id=' + GOOGLE_ADS_ID, 'proveit-google-ads-tag');
 
   var lastPage = '';
@@ -84,10 +85,11 @@
       // A query/fragment change is not another page view.
       var page = w.location.pathname.replace(/\/$/, '') || '/';
       if (lastPage === page) return;
+      var firstPage = lastPage === '';
       lastPage = page;
       fbq('track', 'PageView');
       ttq.page();
-      gtag('event', 'page_view', {
+      if (!firstPage) gtag('event', 'page_view', {
         send_to: GOOGLE_ADS_ID,
         page_location: w.location.href,
         page_path: w.location.pathname,
