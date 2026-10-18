@@ -1,0 +1,43 @@
+{
+  "templateKey": "ro-bani-uk-ai-email-01",
+  "sourceDocument": "https://docs.google.com/document/d/16EnB_6Dx1iLeShrhO6u1jILIHpNnaweqhb_yqIkFqFA/edit",
+  "subject": "Soția mea nu m-a crezut (până a văzut contul)",
+  "preheader": "£150–£250 de la o bancă. Contul de salariu rămâne separat.",
+  "from": "Adrian Defta <adrian@mail.justproveit.co.uk>",
+  "replyTo": "adrian@proveitweb.co.uk",
+  "testRecipient": "adrian@proveitweb.co.uk",
+  "heroImageUrl": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/barclays.png",
+  "heroImageAlt": "Exemplu de ofertă Barclays: bonus de schimbare și recompense condiționate de eligibilitate",
+  "portraitImageUrl": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/adrian-defta.jpg",
+  "portraitImageAlt": "Adrian Defta, Director Proveit",
+  "trustpilotImageUrl": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/trustpilot.png",
+  "postscriptImages": [
+    { "url": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/top100-romanians.png", "alt": "Coperta Top 100 Români de Pretutindeni, ediția 2026" },
+    { "url": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/top100-adrian-defta.png", "alt": "Adrian Defta în Top 100 Români de Pretutindeni" }
+  ],
+  "reviews": [
+    "Recomand cu toată încrederea Proveit! Sunt o echipă foarte înțelegătoare, profesionistă și mereu gata să ajute. Am avut o experiență foarte plăcută cu ei și m-am simțit susținută pe tot parcursul colaborării. Le mulțumesc pentru seriozitate și amabilitate!",
+    "Recomand cu incredere.La inceput am fost sceptica,am si uitat ca am facut rezervare,dar domnul Adrian m-a contactat si in urma simularii am aflat informatii la care nu m-as fi gandit.Felicitari pentru ceea ce faceti ."
+  ],
+  "ctaUrl": "https://www.justproveit.co.uk/bani-uk-ai/",
+  "ctaLabel": "Vreau locul meu de fondator",
+  "unsubscribeUrl": null,
+  "intro": ["Salut,", "Adrian aici."],
+  "body": [
+    "Când am venit în UK, mi-am deschis un cont la bancă. Și atât.",
+    "8 ani l-am ținut acolo. Salariul intra, facturile ieșeau. Ca la toată lumea.",
+    "Până într-o zi când am aflat ceva ce mi s-a părut prea frumos ca să fie adevărat:",
+    {"text": "Băncile din UK oferă bonusuri de £150–£250 ca să le muți contul.", "highlight": true},
+    "Nu puncte. Nu reduceri. Bani în cont.",
+    "Prima mea reacție: „Sigur e o capcană.”",
+    "A soției mele: „Nu te atinge de contul cu salariul.”",
+    "Și avea dreptate.",
+    {"text": "Aici a venit momentul care a schimbat tot: n-am atins contul principal. Am deschis un cont NOU, separat, doar pentru asta. Pe ăla l-am mutat. Banca nouă a plătit bonusul. Contul cu salariul a rămas exact unde era.", "strong": true},
+    "La început îmi lua ore. Termeni în engleză, condiții, calcule pe hârtie.",
+    "Apoi am pus AI-ul la treabă. Acum îmi transformă termenii ofertei într-o listă clară: eligibilitate, pași, termene. Unele cereri le completez în sub 15 minute.",
+    "Și asta e doar prima din 9 verificări pe care le facem cu AI."
+  ],
+  "offer": "Te învăț tot sistemul în 4 sesiuni live, în română, din 3 noiembrie. Loc de membru fondator: £39 în loc de £97. Doar 100 de locuri.",
+  "ps": "P.S. Mâine îți arăt de ce două case identice de pe aceeași stradă pot plăti Council Tax diferit. Și cum verifici dacă ești tu cel care plătește în plus.",
+  "disclaimer": "Deschiderea unui cont poate implica o verificare de credit. £1.000 este un obiectiv, nu o sumă garantată. Rezultatele variază. Cursul este educațional și nu reprezintă consultanță financiară."
+}

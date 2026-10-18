@@ -38,6 +38,12 @@ yarn-error.log*
 .pnpm-debug.log*
 next-dev.*.log
 
+# Generated one-recipient email payloads and provider receipts
+/artifacts/email/*-resend.json
+/artifacts/email/*-send-receipt.json
+/artifacts/email/*-test.html
+/artifacts/email/*-test.txt
+
 # env files (can opt-in for committing if needed)
 .env*
 local.setting.json
