@@ -13,8 +13,8 @@ function harness(path = '/bani-uk-ai/', value = 'granted', expires = Date.now() 
   return { window, scripts, storage, run: () => vm.runInContext(code, context) };
 }
 
-test('no advertising SDKs, events or globals without valid explicit consent', () => {
-  for (const value of [null, 'denied', 'invalid']) {
+test('explicit refusal and unavailable storage block advertising', () => {
+  for (const value of ['denied']) {
     const h = harness('/bani-uk-ai/', value);
     h.run();
     assert.equal(h.scripts.length, 0);
@@ -22,7 +22,7 @@ test('no advertising SDKs, events or globals without valid explicit consent', ()
     assert.equal(h.window.ttq, undefined);
   }
   const expired = harness('/bani-uk-ai/', 'granted', Date.now() - 1);
-  expired.run(); assert.equal(expired.scripts.length, 0);
+  expired.run(); assert.equal(expired.scripts.length, 2);
   const blocked = harness();
   blocked.window.localStorage.getItem = () => { throw new Error('blocked'); };
   blocked.run(); assert.equal(blocked.scripts.length, 0);
@@ -32,6 +32,14 @@ test('protected and authentication pages never load pixels, even with consent', 
   for (const path of ['/admin', '/admin/crm', '/ADMIN//crm', '/%61dmin/crm', '/login', '/reset-password', '/api/email-link', '/ro/raport-gratuit', '/ro/rezultate-raport', '/%invalid']) {
     const h = harness(path); h.run(); assert.equal(h.scripts.length, 0, path);
   }
+});
+
+test('first visits start both pixels without fabricating an accepted choice', () => {
+  const h = harness();
+  h.window.localStorage.getItem = () => null;
+  h.run();
+  assert.equal(h.scripts.length, 2);
+  assert.equal(h.window.ttq.filter(args => args[0] === 'page').length, 1);
 });
 
 test('correct IDs, consent and explicit page views; duplicate mounts cannot double initialize', () => {
@@ -59,7 +67,7 @@ test('withdrawal stops explicit events and queues both vendors consent revocatio
   assert.ok(h.window.fbq.queue.some(args => args[0] === 'consent' && args[1] === 'revoke'));
 });
 
-test('consent UI loads bootstrap only on accept, and revokes/reloads on reject', () => {
+test('UI loads bootstrap immediately, retains choice controls and revokes/reloads on reject', () => {
   const ts = require('typescript');
   const scripts = [], states = [], effects = [];
   let cursor = 0, stored = null, reloads = 0, revoked = 0;
@@ -94,13 +102,13 @@ test('consent UI loads bootstrap only on accept, and revokes/reloads on reject',
     visit(node.props?.children);
   }
   visit(render());
-  assert.equal(scripts.length, 0);
+  assert.equal(scripts.length, 1);
   const accept = buttons.find(b => b.props.children === 'Accept publicitatea');
   const reject = buttons.find(b => b.props.children === 'Refuz publicitatea');
   accept.props.onClick();
   assert.equal(JSON.parse(stored).value, 'granted');
   assert.equal(scripts.length, 1);
-  assert.equal(scripts[0].src, '/advertising-pixels.js');
+  assert.equal(scripts[0].src, '/advertising-pixels.js?v=default-on-1');
   window.proveitAdvertising = { revoke: () => revoked++ };
   reject.props.onClick();
   assert.equal(JSON.parse(stored).value, 'denied');

@@ -1,4 +1,4 @@
-/* Proveit advertising pixels. Loaded only after explicit advertising consent. */
+/* Proveit advertising pixels. Default-on test rollout; explicit refusal wins. */
 (function (w, d) {
   'use strict';
   var META_ID = '674835348003619';
@@ -8,7 +8,7 @@
     try {
       var choice = JSON.parse(w.localStorage.getItem(key));
       var path = decodeURIComponent(w.location.pathname).replace(/\/+/g, '/').toLowerCase();
-      return choice && choice.value === 'granted' && choice.expires > Date.now() &&
+      return !(choice && choice.value === 'denied' && choice.expires > Date.now()) &&
         !/^\/(admin|login|reset-password|api)(\/|$)/.test(path) &&
         !/^\/ro\/(raport-gratuit|rezultate-raport)(\/|$)/.test(path);
     } catch (_) { return false; }

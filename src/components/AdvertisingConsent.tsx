@@ -14,7 +14,7 @@ function loadPixels() {
   if (document.getElementById("proveit-advertising-loader")) return;
   const script = document.createElement("script");
   script.id = "proveit-advertising-loader";
-  script.src = "/advertising-pixels.js";
+  script.src = "/advertising-pixels.js?v=default-on-1";
   script.async = true;
   script.onerror = () => script.remove();
   script.onload = () => {
@@ -38,14 +38,14 @@ export default function AdvertisingConsent() {
         const stored = JSON.parse(localStorage.getItem(KEY) || "null");
         if (stored?.expires > Date.now() && ["granted", "denied"].includes(stored.value)) value = stored.value;
       } catch { /* No usable choice: advertising remains off. */ }
-      if (value !== "granted" && (window as AdvertisingWindow).proveitAdvertising) {
+      if (value === "denied" && (window as AdvertisingWindow).proveitAdvertising) {
         (window as AdvertisingWindow).proveitAdvertising?.revoke();
         window.location.reload();
         return;
       }
       setChoice(value);
       setReady(true);
-      if (value === "granted") loadPixels();
+      if (value !== "denied") loadPixels();
     };
     sync();
     window.addEventListener("storage", sync);
@@ -87,7 +87,7 @@ export default function AdvertisingConsent() {
   return <>
     <button type="button" className={styles.settings} onClick={() => setOpen(true)}>Preferințe publicitate</button>
     {(choice === null || open) && <section className={styles.banner} aria-label="Preferințe pentru cookie-urile de publicitate">
-      <div><h2>Cookie-uri de publicitate</h2><p>Cu acordul tău, folosim Meta (Facebook și Instagram) și TikTok pentru a măsura vizitele și a-ți afișa reclame relevante. Aceste servicii pot primi informații despre vizita ta și pot folosi cookie-uri. Poți refuza sau modifica alegerea oricând.</p>
+      <div><h2>Cookie-uri de publicitate</h2><p>Folosim Meta (Facebook și Instagram) și TikTok pentru a măsura vizitele și a-ți afișa reclame relevante. Aceste servicii pot primi informații despre vizita ta și pot folosi cookie-uri. Poți refuza sau modifica alegerea oricând.</p>
         <p><a href="https://www.proveitweb.co.uk/privacypolicy">Confidențialitate Proveit</a> · <a href="https://www.facebook.com/privacy/policy/">Meta</a> · <a href="https://www.tiktok.com/legal/page/eea/privacy-policy/en">TikTok</a></p></div>
       <div className={styles.actions}><button type="button" onClick={() => choose("denied")}>Refuz publicitatea</button><button type="button" onClick={() => choose("granted")}>Accept publicitatea</button></div>
     </section>}

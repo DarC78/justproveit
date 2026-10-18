@@ -7,10 +7,15 @@
 
 These IDs were extracted from the public Proveit Wix site on 18 October 2026.
 `AdvertisingConsent` is mounted inside the existing `ClarityBoundary` in `_app`.
-It loads `/advertising-pixels.js` only after explicit advertising consent.
-Consent choices expire after 180 days, default to off, and can be changed using
-the persistent Romanian advertising-preferences button. Accept and reject are
-both available. There is no pre-consent pixel request or noscript tracking image.
+Owner-requested test rollout: it loads `/advertising-pixels.js?v=default-on-1`
+on arrival on public pages, before a visitor makes a choice, unless a current
+refusal is already stored. No fabricated accepted choice is written. The banner
+explains that the services are used and retains Accept/Reject controls.
+Choices expire after 180 days and can be changed using the persistent
+advertising-preferences button. A refusal revokes tracking, removes accessible
+first-party advertising cookies and reloads the page; it is respected on future
+visits. Storage errors block the SDK bootstrap. Previously transmitted events
+cannot be withdrawn by deleting cookies. There is no noscript tracking image.
 Declining advertising does not change the existing Clarity integration.
 
 The SDKs send explicit page views on public pages, including `/bani-uk-ai/`.
@@ -25,7 +30,7 @@ CRM, admin, authentication, APIs, report forms and bearer-link report pages use
 the existing exclusion list. The Clarity boundary also forces full-document
 navigation when crossing between public and protected pages, destroying loaded
 advertising SDKs before protected content mounts. The standalone SDK bootstrap
-independently rejects protected paths and missing/expired consent. Withdrawal
+independently rejects protected paths and current stored refusals. Withdrawal
 revokes vendor consent and reloads the document to remove SDK listeners; known
 first-party advertising cookies are expired where accessible. Vendor-domain
 cookies cannot be deleted by this website.
@@ -36,8 +41,8 @@ Installing the website code does not create advertising audiences. In each
 platform's Events Manager, verify that the shared pixel is assigned to the
 intended advertising account and receives page views from `www.justproveit.co.uk`.
 Configure the shared pixels' domain/traffic permissions if the new domain is
-restricted. Use each platform's Test Events and browser pixel helper with an
-advertising-consented visit; repeat after rejection to verify no new events.
+restricted. Use each platform's Test Events and browser pixel helper on an
+initial public-page visit; repeat after rejection to verify no new events.
 
 Create a website-traffic custom audience with a 30-day membership window and
 URL containing `justproveit.co.uk/bani-uk-ai`, including both trailing-slash
