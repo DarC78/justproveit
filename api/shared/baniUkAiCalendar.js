@@ -4,7 +4,11 @@ const escapeIcs = value => value.replace(/\\/g, '\\\\').replace(/\r?\n/g, '\\n')
 function fold(line) {
   const lines = []; let current = '';
   for (const char of line) {
-    if (Buffer.byteLength(current + char, 'utf8') > 75) { lines.push(current); current = ' '; }
+    if (Buffer.byteLength(current + char, 'utf8') > 75) {
+      const trailing = current.match(/[ \t]+$/)?.[0] || '';
+      lines.push(trailing ? current.slice(0, -trailing.length) : current);
+      current = ' ' + trailing;
+    }
     current += char;
   }
   lines.push(current); return lines.join('\r\n');

@@ -28,8 +28,8 @@ DTSTART;TZID=Europe/London:20261103T200000
 DTEND;TZID=Europe/London:20261103T213000
 SUMMARY:Bani în UK cu AI – Sesiunea 1: Verificări cu AI
 DESCRIPTION:Linkul Zoom îl primești pe e-mail și pe WhatsApp înainte de
-  fiecare sesiune.\nBonusuri bancare\, taxa de consiliu și pensii private 
- pierdute
+  fiecare sesiune.\nBonusuri bancare\, taxa de consiliu și pensii private
+  pierdute
 LOCATION:Online – linkul Zoom va fi trimis înainte de sesiune
 BEGIN:VALARM
 TRIGGER:-PT1H
