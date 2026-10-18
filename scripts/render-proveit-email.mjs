@@ -36,6 +36,7 @@ const image = (url, alt, width, placeholder) => {
 const cta = `<table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td bgcolor="#ff4e23" style="border-radius:8px;mso-padding-alt:16px 24px;"><a class="button" data-role="primary-cta" href="${httpsUrl(config.ctaUrl)}" style="display:inline-block;padding:16px 24px;font:700 16px/24px Arial,Helvetica,sans-serif;color:#111111;text-decoration:none;">${escape(config.ctaLabel)} &nbsp;<span style="white-space:nowrap;"><del style="font-weight:normal;">£97</del> &nbsp;£39</span></a></td></tr></table>`;
 if (final && !config.unsubscribeUrl) throw new Error('Campaign unsubscribe URL required before final export');
 const fields = {
+  ps_extra_html: config.psExtra ? `<div style="margin-top:18px;">${paragraph(config.psExtra)}</div>` : '',
   subject: escape(subject), preheader: escape(config.preheader),
   hero_html: image(config.heroImageUrl, config.heroImageAlt, 600, 'Imaginea de început va fi furnizată de Adrian.'),
   portrait_html: image(config.portraitImageUrl, config.portraitImageAlt, 280, 'Aici va apărea fotografia lui Adrian.'),
@@ -52,7 +53,7 @@ let html = fs.readFileSync(path.join(root, 'email-templates/proveit/base.html'),
 });
 const plainParagraph = value => typeof value === 'string' ? value : value.text;
 const signature = 'Mersi mult,\nAdrian Defta\nDirector Proveit\nTop 100 Romani de Pretutindeni';
-let text = [config.preheader, ...config.intro, ...config.body.map(plainParagraph), config.offer, config.offerExtra, `${config.ctaLabel}: ${config.ctaUrl}`, signature, config.ps, config.disclaimer,
+let text = [config.preheader, ...config.intro, ...config.body.map(plainParagraph), config.offer, config.offerExtra, `${config.ctaLabel}: ${config.ctaUrl}`, signature, config.ps, ...(config.psExtra ? [config.psExtra] : []), config.disclaimer,
   ...config.reviews,
   'Review-uri Proveit: https://uk.trustpilot.com/review/proveitweb.co.uk', 'WhatsApp: https://api.whatsapp.com/send/?phone=447447707829&text=CRM_PROMO_BANI_UK_AI&type=phone_number&app_absent=0',
   'TikTok: https://www.tiktok.com/@proveit.ai', 'Facebook: https://www.facebook.com/ProveItWeb', 'Instagram: https://www.instagram.com/proveit.uk',
