@@ -16,6 +16,17 @@ Remaining Stripe account checks (the supplied URL replaces the need to create a 
 
 ## Content decisions
 
+18 October expansion: nine cards now cover bank switching, Council Tax, lost pensions, PAYE refunds, cashback (position 5), Marriage Allowance, employment expenses, benefits and household bills. The final category covers energy, broadband and mobile separately; the nine categories contain more than ten checks. A separate AI section follows the cards, with a concrete use for AI in every category. All three purchase buttons show £97 struck through and £39, using the owner's existing discounted checkout.
+
+Evidence used for the expanded copy:
+
+- [PPI lost-pensions research](https://www.pensionspolicyinstitute.org.uk/media/k4ai4qt1/20241024-lost-pensions-2024-press-release-final.pdf) estimated 3.3 million lost pots in 2024; the requested claim of over 5 million was not verified, so the page says millions without inventing a total.
+- [Workplace pension eligibility](https://www.gov.uk/workplace-pensions/joining-a-workplace-pension) is conditional. Agency or zero-hours work does not establish that every worker has a pension; the copy says they may have one, subject to eligibility and enrollment.
+- [Council Tax band challenges](https://www.gov.uk/challenge-council-tax-band) and [VOA guidance](https://www.gov.uk/government/news/challenging-your-council-tax-band) support checking evidence and possible changes in either direction. The requested one-million estimate was not verified and is omitted.
+- [PAYE overpayments](https://www.gov.uk/tax-overpayments-and-underpayments), [Marriage Allowance](https://www.gov.uk/marriage-allowance), [employment expenses](https://www.gov.uk/tax-relief-for-employees/uniforms-work-clothing-and-tools) and [benefits calculators](https://www.gov.uk/benefits-calculators) support the conditional checks described, without promising refunds or benefits to everyone.
+- [Ofgem switching guidance](https://www.ofgem.gov.uk/information-consumers/energy-advice-households/switch-energy-supplier) and [Ofcom social tariffs](https://www.ofcom.org.uk/phones-and-broadband/saving-money/social-tariffs) support household-bill comparisons and checking eligibility.
+- Bank bonuses are offer-dependent. The under-15-minute wording concerns completing some applications, not receiving the bonus or finishing all requirements. No individual bank recommendation is added.
+
 - No invented personal earnings, testimonials, photos, screenshots or remaining-seat counter. Owner will provide proof later.
 - £1,000/year is presented as a target rather than an evidenced minimum; keep this until real results support a more specific claim. The credit-check FAQ states that a separate account does not eliminate credit checks. Cashback points are distinguished from bank withdrawals.
 - The source lists conflicting January prices. The page follows its introductory sequence: £79 at the January 2027 launch, then £97; founder price £39. No fabricated prior selling price is struck through.

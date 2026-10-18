@@ -39,6 +39,9 @@
 .heroSecondary { margin: 18px 0 28px !important; color: var(--muted); font-size: 15px; }
 .cta { display: inline-flex; justify-content: space-between; align-items: center; gap: 20px; padding: 17px 22px; background: var(--brand); color: var(--ink); border: 1px solid var(--brand); border-radius: 8px; font: inherit; font-size: 14px; font-weight: 600; text-decoration: none; line-height: 1.5; min-height: 58px; transition: background .15s; }
 .cta svg { flex-shrink: 0; }
+.buttonPrices { display: inline-flex; gap: 7px; align-items: baseline; white-space: nowrap; }
+.buttonPrices del { font-size: .9em; text-decoration-thickness: 2px; font-weight: 400; }
+.buttonPrices strong { font-size: 1.18em; }
 .cta:hover { background: #df2c00; border-color: #df2c00; }
 .cta:disabled { cursor: not-allowed; background: #ff4e23; opacity: .72; }
 .pending > p { font-size: 12px; margin-top: 8px; }
@@ -79,6 +82,23 @@
 .methodGrid p { color: var(--muted); font-size: 15px; flex: 1; }
 .methodDetail { font-size: 12px; padding-top: 23px; margin-top: 25px; border-top: 1px solid #cdd6d8; }
 .method .disclaimer { max-width: none; margin-top: 30px !important; }
+.aiSection { background: var(--pale); border-top: 4px solid var(--blue); }
+.aiIntro { display: grid; grid-template-columns: 1.25fr 1fr; gap: 55px; align-items: start; }
+.aiIntro .largeText { margin-top: 24px; }
+.aiIntro > div:first-child > p:not(.eyebrow):not(.largeText) { margin-top: 20px; font-size: 15px; }
+.promptCard { background: white; padding: 30px; border: 1px solid #c5d8f5; border-radius: 16px; box-shadow: 0 3px 12px #0000000c; }
+.promptCard h3 { margin-top: 18px; }
+.promptCard blockquote { margin: 24px 0; padding-left: 18px; border-left: 3px solid var(--brand); font-size: 17px; line-height: 1.7; }
+.promptCard > p { color: var(--muted); font-size: 12px; }
+.aiListTitle { margin-top: 50px !important; margin-bottom: 25px !important; }
+.aiChecklist { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin: 0; padding: 0; list-style: none; }
+.page .aiChecklist li { align-items: flex-start; margin: 0; padding: 18px 0; border-top: 1px solid #a9c5ed; font-size: 14px; line-height: 1.65; }
+.page .aiChecklist li > span { flex-basis: 24px; color: var(--ink); background: var(--blue); border-radius: 4px; font-size: 11px; text-align: center; padding: 3px; }
+.aiTools { display: grid; grid-template-columns: repeat(3, 1fr); gap: 25px; margin-top: 32px; padding: 25px; background: white; border-radius: 12px; }
+.aiTools strong, .aiTools span { display: block; }
+.aiTools strong { font-size: 15px; margin-bottom: 8px; }
+.aiTools span { font-size: 13px; color: var(--muted); }
+.aiSection .disclaimer { max-width: none; }
 .adrian { display: grid; grid-template-columns: 1fr 1.2fr; gap: 80px; border-bottom: 1px solid #d7e0e2; }
 .largeText { font-size: 23px; line-height: 1.55; }
 .adrian > div:last-child > p + p { margin-top: 22px; }
@@ -198,6 +218,9 @@
   .fears > div { padding: 18px; }
   .fears p { font-size: 16px; }
   .methodGrid, .adrian, .bonuses, .audienceGrid, .offerGrid, .faq { grid-template-columns: 1fr; gap: 30px; }
+  .aiIntro, .aiChecklist, .aiTools { grid-template-columns: 1fr; gap: 20px; }
+  .promptCard { padding: 24px; }
+  .aiListTitle { margin-top: 35px !important; }
   .methodGrid article { padding-top: 18px; }
   .methodGrid h3 { margin: 14px 0; }
   .methodDetail { margin-top: 18px; padding-top: 15px; }

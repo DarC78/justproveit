@@ -1,7 +1,7 @@
 import Head from "next/head";
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { BANI_UK_AI_CHECKOUT_URL, BANI_UK_AI_DEADLINE, courseCheckoutUrl } from "@/lib/baniUkAi";
+import { BANI_UK_AI_CHECKOUT_URL, BANI_UK_AI_DEADLINE, BANI_UK_AI_SOURCES, courseCheckoutUrl } from "@/lib/baniUkAi";
 import styles from "@/styles/bani-uk-ai.module.css";
 
 const CONTACT = "adriandefta@proveitweb.co.uk";
@@ -37,11 +37,11 @@ export default function BaniUkAiPage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const purchase = (label = "Vreau locul de membru fondator – £39") => closed ? (
+  const purchase = () => closed ? (
     <p className={styles.closed} role="status">Înscrierile pentru această cohortă s-au încheiat.</p>
   ) : checkout ? (
     <>
-      <a className={styles.cta} href={checkout}>{label}<Arrow /></a>
+      <a className={styles.cta} href={checkout}><span>Vreau locul meu de fondator <span className={styles.buttonPrices}><del aria-label="Preț standard 97 de lire">£97</del> <strong>£39</strong></span></span><Arrow /></a>
       <p className={styles.ctaNote}>Cod precompletat: DISC58 · £97 − £58 = £39. Verifică totalul înainte de plată.</p>
     </>
   ) : (
@@ -54,7 +54,7 @@ export default function BaniUkAiPage() {
   return (
     <>
       <Head>
-        <title>Bani în UK cu AI | 4 sesiuni live cu Adrian | JustProveIt</title>
+        <title>Bani în UK cu AI | 4 sesiuni live cu Adrian Defta și înregistrările lor | JustProveIt</title>
         <meta name="description" content="Învață în română cum să compari bonusurile bancare și să folosești cashback cu ajutorul AI. Patru sesiuni live din 3 noiembrie 2026. Loc de fondator: £39." />
         <meta httpEquiv="content-language" content="ro-GB" />
         <link rel="canonical" href="https://www.justproveit.co.uk/bani-uk-ai/" />
@@ -80,23 +80,23 @@ export default function BaniUkAiPage() {
               <div className={styles.heroCopy}>
                 <p className={styles.eyebrow}><span /> Bani în UK cu AI · Ediția fondatorilor</p>
                 <h1 id="hero-title">Băncile oferă bonusuri.<br /><span>Învață să le obții cu AI.</span></h1>
-                <p className={styles.heroLead}>Un plan cu un obiectiv de <strong className={styles.highlight}>£1.000 în plus pe an</strong>: bonusuri pentru un cont nou pe care îl muți de la o bancă la alta și cashback la cumpărăturile pe care le faci oricum.</p>
+                <p className={styles.heroLead}>Un plan cu un obiectiv de <strong className={styles.highlight}>£1.000 în plus pe an</strong>: bonusuri de £150–£250 de la bănci, cu cereri care pot dura sub 15 minute; găsirea pensiilor private pierdute; recuperarea taxei de consiliu plătite în plus; și multe altele.</p>
                 <p className={styles.heroSecondary}>Metoda pe care eu și soția mea o folosim. O învățăm împreună, în română, cu AI la fiecare pas. Contul tău principal rămâne separat.</p>
                 {purchase()}
-                <p className={styles.ctaNote}>4 sesiuni live cu Adrian · Din 3 noiembrie 2026 · 100 de locuri</p>
+                <p className={styles.ctaNote}>4 sesiuni live cu Adrian Defta și înregistrările lor · Din 3 noiembrie 2026 · 100 de locuri</p>
                 <p className={styles.disclaimer}>£1.000 este un obiectiv, nu o sumă garantată. Rezultatele variază în funcție de eligibilitate, cheltuieli și ofertele disponibile.</p>
               </div>
               <div className={styles.courseCover} aria-label="Bani în UK cu AI: patru sesiuni live, din 3 noiembrie, preț fondator 39 de lire">
                 <div className={styles.coverTop}><span>PROVEIT / LIVE</span><span>EDIȚIA 2026</span></div>
                 <p className={styles.coverTitle}>BANI<br />ÎN UK<br /><span>CU AI.</span></p>
                 <div className={styles.coverLine} />
-                <div className={styles.coverTopics}><span>Bonusuri bancare</span><span>Cashback</span><span>Un sistem simplu</span></div>
+                <div className={styles.coverTopics}><span>Bonusuri bancare</span><span>Pensii și taxe</span><span>Cashback și economii</span></div>
                 <div className={styles.coverBottom}><div><span>EDIȚIA FONDATORILOR</span><strong>03 NOV / 2026</strong></div><div className={styles.priceStamp}>£39<span>o singură plată</span></div></div>
               </div>
             </div>
           </section>
 
-          <div className={styles.facts}><div className={styles.container}><span><strong>4</strong> sesiuni live</span><span><strong>100%</strong> în română</span><span><strong>30 min</strong> rutină lunară*</span><span><strong>£39</strong> o singură plată</span></div></div>
+          <div className={styles.facts}><div className={styles.container}><span><strong>4</strong> sesiuni live + înregistrările</span><span><strong>100%</strong> în română</span><span><strong>30 min</strong> rutină lunară*</span><span><strong>£39</strong> o singură plată</span></div></div>
 
           <section className={`${styles.section} ${styles.container}`} aria-labelledby="problema">
             <div className={styles.sectionIntro}><p className={styles.eyebrow}>Sună cunoscut?</p><h2 id="problema">Banii rămân pe masă.<br />Nu trebuie să rămână acolo.</h2><p>Băncile din UK plătesc bani ca să le devii client. Magazinele de unde cumperi oricum îți pot da bani înapoi. Dar între termeni în engleză, lipsa timpului și grija pentru contul de salariu, e ușor să amâni.</p></div>
@@ -105,14 +105,43 @@ export default function BaniUkAiPage() {
           </section>
 
           <section className={styles.method} aria-labelledby="metoda"><div className={`${styles.container} ${styles.section}`}>
-            <div className={styles.sectionIntro}><p className={styles.eyebrow}>Cum funcționează</p><h2 id="metoda"><span className={styles.highlight}>Două surse de bani.</span><br />AI-ul care le ține în ordine.</h2><p>Nu investești și nu te împrumuți. Lucrezi cu un cont dedicat și cu bugetul de cumpărături pe care îl ai deja.</p></div>
+            <div className={styles.sectionIntro}><p className={styles.eyebrow}>Cum funcționează</p><h2 id="metoda"><span className={styles.highlight}>Mai mult de 10 surse de bani.</span><br />AI-ul care le ține în ordine.</h2><p>Nu investești și nu te împrumuți. Nu te abonezi la nimic. Lucrezi cu versiunile gratuite de AI.</p></div>
             <div className={styles.methodGrid}>
-              <article><span className={styles.step}>01 / BONUSURI BANCARE</span><h3>Un cont nou.<br />Oferte comparate atent.</h3><p>Îți pregătești un cont separat pentru schimbări. AI-ul te ajută să citești termenii, să compari condițiile și să construiești un calendar. Verifici eligibilitatea direct la bancă înainte de fiecare pas.</p><div className={styles.methodDetail}>Contul de salariu rămâne separat.</div></article>
-              <article><span className={styles.step}>02 / CASHBACK</span><h3>Aceleași cumpărături.<br />Bani înapoi.</h3><p>Cu JamDoughnut înveți să cumperi vouchere pentru magazinele pe care le folosești deja. Compari condițiile și metodele de plată, iar AI-ul te ajută să planifici cumpărăturile lunii.</p><div className={styles.methodDetail}>Cumperi ce ai nevoie, nu mai mult.</div></article>
-              <article><span className={styles.step}>03 / SISTEMUL AI</span><h3>Mai puțin de căutat.<br />Mai multă ordine.</h3><p>Prompturi în română pentru traduceri, comparații și urmărirea câștigurilor. Un tracker și un calendar care te ajută să rămâi organizat, cu o rutină lunară simplă.</p><div className={styles.methodDetail}>*Aproximativ 30 min/lună, după pregătire.</div></article>
+              {BANI_UK_AI_SOURCES.map(source => <article key={source.label}><span className={styles.step}>{source.label}</span><h3>{source.title}</h3><p>{source.text}</p><div className={styles.methodDetail}>{source.detail}</div></article>)}
             </div>
+            <p className={styles.sectionFoot}>Nouă direcții de pornire, cu mai mult de 10 oportunități de verificat: de la taxe și ajutoare pentru familie până la energie, internet și mobil. Unele înseamnă bani recuperați, altele economii sau pensii pentru viitor.</p>
             <p className={styles.disclaimer}>Deschiderea unui cont poate implica verificări de credit. O schimbare completă închide contul mutat; de aceea lucrăm cu un cont dedicat. AI-ul poate greși: verifică informațiile în sursele oficiale.</p>
           </div></section>
+
+          <section className={styles.aiSection} aria-labelledby="sistem-ai">
+            <div className={`${styles.container} ${styles.section}`}>
+              <div className={styles.aiIntro}>
+                <div>
+                  <p className={styles.eyebrow}>Sistemul AI · Inclus în curs</p>
+                  <h2 id="sistem-ai">Mai puțin de căutat.<br /><span className={styles.highlight}>AI-ul te ajută la fiecare dintre cei 9 pași.</span></h2>
+                  <p className={styles.largeText}>Întrebi în română. Înțelegi oferta. Pregătești următorul pas.</p>
+                  <p>Lucrăm cu versiunile gratuite de AI. Primești prompturi gata făcute și înveți să le adaptezi situației tale: traduci engleza complicată, organizezi informațiile, compari condițiile și redactezi cereri pe care le verifici înainte să le trimiți.</p>
+                  <p>Tu păstrezi controlul: verifici informațiile în sursele oficiale și decizi ce aplici. AI-ul te ajută să te pregătești; banca, HMRC, consiliul sau furnizorul confirmă rezultatul.</p>
+                </div>
+                <div className={styles.promptCard}>
+                  <span className={styles.step}>UN PROMPT. UN PAS CONCRET.</span>
+                  <h3>„Explică-mi pe înțelesul meu.”</h3>
+                  <blockquote>„Explică-mi în română condițiile din acest text. Fă o listă cu eligibilitatea, documentele, costurile și termenele. Arată-mi ce informații lipsesc și ce trebuie să verific în sursa oficială. Nu presupune că mă calific.”</blockquote>
+                  <p>Îl adaptăm împreună pentru fiecare oportunitate. Folosești texte publice sau exemple anonimizate.</p>
+                </div>
+              </div>
+              <h3 className={styles.aiListTitle}>Cum pui AI-ul la treabă, pentru fiecare sursă</h3>
+              <ol className={styles.aiChecklist}>
+                {BANI_UK_AI_SOURCES.map((source, index) => <li key={source.label}><span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span><p>{source.ai}</p></li>)}
+              </ol>
+              <div className={styles.aiTools}>
+                <p><strong>Prompturi în română</strong><span>Știi ce să întrebi și cum să verifici răspunsul.</span></p>
+                <p><strong>Trackerul „Cât am câștigat”</strong><span>Separi banii primiți, economiile și pensiile identificate.</span></p>
+                <p><strong>Calendarul tău</strong><span>Urmărești cererile, termenele și răspunsurile într-un singur loc.</span></p>
+              </div>
+              <p className={styles.disclaimer}>Nu ai nevoie de un abonament AI plătit; versiunile gratuite pot avea limite de utilizare. Nu introduci parole, coduri, National Insurance number sau documente neanonimizate. AI-ul poate greși. Rutină orientativă: aproximativ 30 de minute pe lună după pregătire; unele cereri necesită timp suplimentar.</p>
+            </div>
+          </section>
 
           <section className={`${styles.container} ${styles.section} ${styles.adrian}`} aria-labelledby="adrian">
             <div><p className={styles.eyebrow}>Cu cine înveți</p><h2 id="adrian">Salut, sunt <span className={styles.highlight}>Adrian.</span></h2></div>
@@ -129,7 +158,7 @@ export default function BaniUkAiPage() {
 
           <section className={`${styles.container} ${styles.section} ${styles.offerGrid}`} id="inscriere" aria-labelledby="oferta">
             <div><p className={styles.eyebrow}>Ediția membrilor fondatori</p><h2 id="oferta">Hai să construim<br /><span className={styles.highlight}>sistemul împreună.</span></h2><p className={styles.largeText}>100 de locuri. Patru sesiuni live. Toate instrumentele. Acces pe viață la cursul complet.</p><p>În schimb, te rog să-mi spui ce rezultate ai obținut. Experiența ta ne ajută să facem cursul mai bun pentru cei care vin după tine.</p><p>Preț planificat pentru lansarea din ianuarie 2027: £79, apoi £97. Ca membru fondator, accesul la cursul complet este inclus.</p></div>
-            <div className={styles.offerCard}><p className={styles.step}>LOCUL TĂU DE MEMBRU FONDATOR</p><div className={styles.offerPrice}>£39<span>o singură plată<br />fără abonament</span></div><ul>{["4 sesiuni live cu Adrian", "Prompturi, tracker și calendar", "Înregistrările tuturor sesiunilor", "Cursul complet din ianuarie inclus"].map(item => <li key={item}><span aria-hidden="true">✓</span>{item}</li>)}</ul>{purchase("Rezerv locul de fondator – £39")}<p className={styles.offerDeadline}>Înscrieri până duminică, 1 noiembrie 2026, ora 23:59 (UK), sau până se ocupă cele 100 de locuri.</p><a className={styles.smallLink} href="#garantie">Vezi garanția și condițiile</a></div>
+            <div className={styles.offerCard}><p className={styles.step}>LOCUL TĂU DE MEMBRU FONDATOR</p><div className={styles.offerPrice}>£39<span>o singură plată<br />fără abonament</span></div><ul>{["4 sesiuni live cu Adrian Defta și înregistrările lor", "Prompturi, tracker și calendar", "Înregistrările tuturor sesiunilor", "Cursul complet din ianuarie inclus"].map(item => <li key={item}><span aria-hidden="true">✓</span>{item}</li>)}</ul>{purchase()}<p className={styles.offerDeadline}>Înscrieri până duminică, 1 noiembrie 2026, ora 23:59 (UK), sau până se ocupă cele 100 de locuri.</p><a className={styles.smallLink} href="#garantie">Vezi garanția și condițiile</a></div>
           </section>
 
           <section className={`${styles.container} ${styles.guarantee}`} id="garantie" aria-labelledby="garantie-titlu"><div className={styles.guaranteeSeal} aria-hidden="true"><strong>90</strong><span>DE ZILE</span></div><div><p className={styles.eyebrow}>Garanția „îți recuperezi banii”</p><h2 id="garantie-titlu">Aplici pașii. Sau îți returnăm cei £39.</h2><p>Dacă participi la sesiuni sau urmărești înregistrările, aplici pașii și în 90 de zile de la prima sesiune nu ai primit cel puțin £39 din bonusuri și cashback, îți returnăm integral prețul cursului.</p><details className={styles.guaranteeDetails}><summary>Cum funcționează garanția</summary><p>Trimite cererea la <a href={`mailto:${CONTACT}`}>{CONTACT}</a>, cu dovada achiziției și capturi anonimizate care arată pașii încercați și sumele primite. Nu trimite parole, coduri sau numere complete de cont. Garanția acoperă taxa de £39 a cursului și nu reprezintă o promisiune de câștig de £1.000.</p><p>Garanția comercială este separată de drepturile tale legale de anulare și nu le limitează. Pentru întrebări despre anulare sau despre accesul la materialele digitale, scrie-ne pe e-mail.</p></details></div></section>
