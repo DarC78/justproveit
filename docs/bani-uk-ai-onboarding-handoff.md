@@ -1,5 +1,18 @@
 # Bani UK AI: checkout return and onboarding
 
+## Activation status
+
+The website and managed API have been deployed through GitHub. The dedicated
+Proveit Stripe webhook, success redirect and native 100-completion limit have
+been activated. Runtime credentials are configured in Azure app settings.
+The isolated founder table has been created and its read access verified.
+The live signed webhook accepted and ignored a non-payment integration test;
+no payment, buyer or conversion was fabricated. Live checks passed for noindex,
+the exact calendar bytes, cancellation download, capacity, invalid checkout IDs,
+unsigned webhook rejection and all 11 branded redirects. Account-side receipt
+settings, actual payment/refund testing and mobile calendar import remain the
+owner's operational checks below.
+
 ## Delivered in this repository
 
 - `/bani-uk-ai-multumim/`: public instructions, shared legal footer, portrait,

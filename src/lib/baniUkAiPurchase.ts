@@ -5,6 +5,7 @@ type AnalyticsWindow = Window & {
   dataLayer?: unknown[];
   proveitPurchaseVerified?: boolean;
 };
+const queuedThisDocument = new Set<string>();
 export function validPurchase(value: unknown): value is VerifiedCoursePurchase {
   if (!value || typeof value !== "object") return false;
   const p = value as VerifiedCoursePurchase;
@@ -16,8 +17,8 @@ export function trackVerifiedCoursePurchase(purchase: VerifiedCoursePurchase) {
   const once = (platform: string, send: () => void) => {
     const key = `bani-uk-ai-purchase:${platform}:${purchase.sessionId}`;
     try {
-      if (localStorage.getItem(key)) return;
-      send(); localStorage.setItem(key, 'queued');
+      if (queuedThisDocument.has(key) || localStorage.getItem(key)) return;
+      send(); queuedThisDocument.add(key); localStorage.setItem(key, 'queued');
     } catch { /* No persistent deduplication available: do not retry automatically. */ }
   };
   if (w.fbq) once('meta', () => w.fbq!('track', 'Purchase', { value: purchase.value, currency: 'GBP', content_name: 'Bani in UK cu AI - Fondator' }, { eventID: purchase.sessionId }));
