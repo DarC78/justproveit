@@ -52,7 +52,7 @@ let html = fs.readFileSync(path.join(root, 'email-templates/proveit/base.html'),
   return fields[key];
 });
 const plainParagraph = value => typeof value === 'string' ? value : value.text;
-const signature = 'Mersi mult,\nAdrian Defta\nDirector Proveit\nTop 100 Romani de Pretutindeni';
+const signature = 'Mersi mult,\nAdrian Defta\nDirector Proveit\nTop 100 Români de Pretutindeni';
 let text = [config.preheader, ...config.intro, ...config.body.map(plainParagraph), config.offer, config.offerExtra, `${config.ctaLabel}: ${config.ctaUrl}`, signature, config.ps, ...(config.psExtra ? [config.psExtra] : []), config.disclaimer,
   ...config.reviews,
   'Review-uri Proveit: https://uk.trustpilot.com/review/proveitweb.co.uk', 'WhatsApp: https://api.whatsapp.com/send/?phone=447447707829&text=CRM_PROMO_BANI_UK_AI&type=phone_number&app_absent=0',
