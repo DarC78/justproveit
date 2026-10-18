@@ -49,6 +49,7 @@ try {
     $trackingState = Invoke-RestMethod -Uri 'https://api.resend.com/domains/4c211916-31cb-4f5f-8ec6-cded4a614906' -Headers $headers
     $verifiedTrackingRecord = $trackingState.records | Where-Object { $_.record -eq 'Tracking' -and $_.status -eq 'verified' }
     $trackingAtSend = [bool]($trackingState.open_tracking -and $trackingState.click_tracking -and $verifiedTrackingRecord)
+    if ($trackingAtSend) { $headers['Idempotency-Key'] = "proveit-email01-owner-test-tracked-$fingerprint" }
     $result = Invoke-RestMethod -Uri 'https://api.resend.com/emails' -Method Post -Headers $headers -ContentType 'application/json; charset=utf-8' -Body ([System.Text.Encoding]::UTF8.GetBytes($payloadText))
     if (-not $result.id) { throw 'Resend returned no message ID.' }
     $receipt = [ordered]@{ id = $result.id; recipient = $payload.to[0]; subject = $payload.subject; acceptedAt = [DateTime]::UtcNow.ToString('o'); status = 'accepted'; trackingAtSend = $trackingAtSend }

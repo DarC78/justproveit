@@ -53,7 +53,7 @@ The renderer accepts `--name "Popescu"` and produces `Popescu, soția mea nu m-a
 
 Payload tags identify campaign `bani-uk-ai`, template `ro-bani-uk-ai-email-01` and audience `owner-test`. The main CTA has non-personal UTM parameters. These help attribution; they do not create an open-tracking pixel or measure opens by themselves.
 
-Native [Resend tracking](https://resend.com/docs/dashboard/domains/tracking) requires a verified tracking subdomain. Existing domain `mail.justproveit.co.uk` had open/click tracking disabled. The `links` tracking subdomain is now prepared, but both flags remain disabled until DNS verification to avoid routing recipients through a broken tracking host.
+Native [Resend tracking](https://resend.com/docs/dashboard/domains/tracking) requires a verified tracking subdomain. Existing domain `mail.justproveit.co.uk` had open/click tracking disabled. The owner added the requested CNAME in Cloudflare. Resend verified `links.mail.justproveit.co.uk` on 18 October 2026; both open tracking and click tracking are now enabled and were read back as true.
 
 Required Cloudflare record in the `justproveit.co.uk` zone:
 
@@ -61,7 +61,7 @@ Required Cloudflare record in the `justproveit.co.uk` zone:
 | --- | --- | --- | --- | --- |
 | CNAME | links.mail | links2.resend-dns.com | DNS only (grey cloud) | Auto |
 
-Full hostname: `links.mail.justproveit.co.uk`. Resend returned this actual CNAME target; it is not a guessed DNS value. No Cloudflare credential or connection is available in this workspace/session. No DNS records have been changed by this task.
+Full hostname: `links.mail.justproveit.co.uk`. Resend returned this actual CNAME target; it is not a guessed DNS value. No Cloudflare credential or connection is available in this workspace/session. The owner added this DNS record; no DNS records were changed directly by the agent.
 
 After the owner adds the record, run `scripts/configure-proveit-email-tracking.ps1 -Enable`. The helper verifies the exact CNAME and Resend's verification result before enabling native open and click tracking; it does not modify unrelated TLS or sending records. This setting applies to all future emails from the sending domain, not only this template. Send a fresh test after activation: old emails do not acquire tracking retroactively.
 
@@ -70,3 +70,5 @@ After the owner adds the record, run `scripts/configure-proveit-email-tracking.p
 For campaign-wide reports, the backend must retain all provider IDs and distinguish campaign sends from owner tests. The current script intentionally sends only the owner test; this task has not sent a broadcast or enrolled recipients.
 
 The Resend domain-alignment warning is a deliverability heuristic, not a requirement to disguise destinations. Preserve the legitimate external Trustpilot, WhatsApp, social, contact and legal links. The duplicate Trustpilot image hyperlink was removed, leaving one explicit review link. Native branded tracking will use the verified tracking host while preserving actual destinations. No open redirect or fake same-domain legal page was added.
+
+Activation verification: a fresh named test was sent with `trackingAtSend=true`; Resend confirmed delivery. The metrics API successfully returned sent=1, delivered=1 and initial open/click counts of zero for that new message. Opening/clicking was not simulated, so the test did not manufacture engagement events. The sender idempotency key now distinguishes tracked from earlier untracked tests. Activation helper preserves an already verified tracking record rather than restarting DNS verification.

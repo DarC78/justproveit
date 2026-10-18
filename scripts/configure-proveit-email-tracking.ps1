@@ -16,9 +16,12 @@ try {
         if (-not ($cname | Where-Object { $_.NameHost.TrimEnd('.') -eq $trackingTarget })) {
             throw 'Cloudflare CNAME is not published: links.mail -> links2.resend-dns.com, DNS only, TTL Auto.'
         }
-        $null = Invoke-RestMethod -Uri "https://api.resend.com/domains/$domainId/verify" -Method Post -Headers $trackingHeaders
-        $domain = Invoke-RestMethod -Uri "https://api.resend.com/domains/$domainId" -Headers $trackingHeaders
         $record = $domain.records | Where-Object { $_.record -eq 'Tracking' }
+        if (-not $record -or $record.status -ne 'verified') {
+            $null = Invoke-RestMethod -Uri "https://api.resend.com/domains/$domainId/verify" -Method Post -Headers $trackingHeaders
+            $domain = Invoke-RestMethod -Uri "https://api.resend.com/domains/$domainId" -Headers $trackingHeaders
+            $record = $domain.records | Where-Object { $_.record -eq 'Tracking' }
+        }
         if (-not $record -or $record.status -ne 'verified') { throw 'Resend tracking DNS verification is still pending. Retry after verification completes.' }
         $null = Invoke-RestMethod -Uri "https://api.resend.com/domains/$domainId" -Method Patch -Headers $trackingHeaders -ContentType 'application/json' -Body '{"open_tracking":true,"click_tracking":true}'
         $domain = Invoke-RestMethod -Uri "https://api.resend.com/domains/$domainId" -Headers $trackingHeaders
