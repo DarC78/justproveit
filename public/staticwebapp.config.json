@@ -2,7 +2,6 @@
   "routes": [
     { "route": "/r", "rewrite": "/api/email-link" },
     { "route": "/bani-uk-ai-multumim", "redirect": "/bani-uk-multumim/", "statusCode": 301 },
-    { "route": "/bani-uk-ai-multumim/", "redirect": "/bani-uk-multumim/", "statusCode": 301 },
     { "route": "/bani-uk-multumim*", "headers": { "X-Robots-Tag": "noindex, nofollow", "Referrer-Policy": "no-referrer", "Cache-Control": "no-store" } }
   ],
   "platform": { "apiRuntime": "node:20" }
