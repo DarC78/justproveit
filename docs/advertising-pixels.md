@@ -4,10 +4,12 @@
 
 - Meta Pixel: `674835348003619`
 - TikTok Pixel: `CLLIILJC77UBIO8OFG1G`
+- Google Ads: `AW-11386018124`
 
-These IDs were extracted from the public Proveit Wix site on 18 October 2026.
+Meta and TikTok IDs were extracted from the public Proveit Wix site on 18 October 2026.
+The owner supplied the Google Ads installation snippet from the Proveit account.
 `AdvertisingConsent` is mounted inside the existing `ClarityBoundary` in `_app`.
-Owner-requested test rollout: it loads `/advertising-pixels.js?v=default-on-1`
+Owner-requested test rollout: it loads `/advertising-pixels.js?v=google-ads-1`
 on arrival on public pages, before a visitor makes a choice, unless a current
 refusal is already stored. No fabricated accepted choice is written. The banner
 explains that the services are used and retains Accept/Reject controls.
@@ -20,11 +22,25 @@ Declining advertising does not change the existing Clarity integration.
 
 The SDKs send explicit page views on public pages, including `/bani-uk-ai/`.
 Repeated renders and query/fragment-only navigation do not duplicate page views.
-No purchase tracking, form capture, email/phone advanced matching, Google tag,
+No purchase tracking, form capture, email/phone advanced matching, GA4 property,
 server-side events, or campaign spending is configured by this integration.
 Meta automatic event configuration is disabled in code. Review TikTok enhanced
 data postback, automatic advanced matching, and automatic events in Events
 Manager, since account-controlled features cannot be verified from this repo.
+
+The Google tag queues Consent Mode defaults before configuration, using the
+same default-on advertising policy as Meta/TikTok. It keeps `analytics_storage`
+denied, disables automatic initial page views, and sends one explicit
+`page_view` to the supplied Ads ID per public pathname. Refusal updates
+`ad_storage`, `ad_user_data`, `ad_personalization` and `analytics_storage` to
+denied before the document reloads. Accessible `_gcl_*` and `_gac_*` cookies are
+expired. Consent updates themselves can generate vendor requests; no SDK loads
+on subsequent visits while refusal remains stored. Existing account-side
+connected destinations/settings are not changed by this installation.
+
+Google account follow-up: use Tag Assistant to verify the Ads ID, then Google
+Ads Audience manager to create a website-visitor data segment for the course URL.
+Website deployment does not create that segment or verify account event receipt.
 
 CRM, admin, authentication, APIs, report forms and bearer-link report pages use
 the existing exclusion list. The Clarity boundary also forces full-document

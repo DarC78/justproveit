@@ -3,6 +3,7 @@
   'use strict';
   var META_ID = '674835348003619';
   var TIKTOK_ID = 'CLLIILJC77UBIO8OFG1G';
+  var GOOGLE_ADS_ID = 'AW-11386018124';
   var key = 'proveit-advertising-consent-v1';
   function permitted() {
     try {
@@ -64,6 +65,18 @@
   ttq.grantConsent();
   add('https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=' + TIKTOK_ID + '&lib=ttq', 'proveit-tiktok-pixel');
 
+  // Use the owner's Google Ads destination; no GA4 or purchase conversion is
+  // inferred. Explicit page views avoid a second automatic initial page view.
+  w.dataLayer = w.dataLayer || [];
+  var gtag = w.gtag = w.gtag || function () { w.dataLayer.push(arguments); };
+  gtag('consent', 'default', {
+    ad_storage: 'granted', ad_user_data: 'granted',
+    ad_personalization: 'granted', analytics_storage: 'denied'
+  });
+  gtag('js', new Date());
+  gtag('config', GOOGLE_ADS_ID, { send_page_view: false });
+  add('https://www.googletagmanager.com/gtag/js?id=' + GOOGLE_ADS_ID, 'proveit-google-ads-tag');
+
   var lastPage = '';
   w.proveitAdvertising = {
     page: function () {
@@ -74,10 +87,20 @@
       lastPage = page;
       fbq('track', 'PageView');
       ttq.page();
+      gtag('event', 'page_view', {
+        send_to: GOOGLE_ADS_ID,
+        page_location: w.location.href,
+        page_path: w.location.pathname,
+        page_title: d.title
+      });
     },
     revoke: function () {
       fbq('consent', 'revoke');
       ttq.revokeConsent();
+      gtag('consent', 'update', {
+        ad_storage: 'denied', ad_user_data: 'denied',
+        ad_personalization: 'denied', analytics_storage: 'denied'
+      });
     }
   };
   w.proveitAdvertising.page();

@@ -20,9 +20,10 @@ test('explicit refusal and unavailable storage block advertising', () => {
     assert.equal(h.scripts.length, 0);
     assert.equal(h.window.fbq, undefined);
     assert.equal(h.window.ttq, undefined);
+    assert.equal(h.window.gtag, undefined);
   }
   const expired = harness('/bani-uk-ai/', 'granted', Date.now() - 1);
-  expired.run(); assert.equal(expired.scripts.length, 2);
+  expired.run(); assert.equal(expired.scripts.length, 3);
   const blocked = harness();
   blocked.window.localStorage.getItem = () => { throw new Error('blocked'); };
   blocked.run(); assert.equal(blocked.scripts.length, 0);
@@ -34,19 +35,30 @@ test('protected and authentication pages never load pixels, even with consent', 
   }
 });
 
-test('first visits start both pixels without fabricating an accepted choice', () => {
+test('first visits start all three advertising tags without fabricating an accepted choice', () => {
   const h = harness();
   h.window.localStorage.getItem = () => null;
   h.run();
-  assert.equal(h.scripts.length, 2);
+  assert.equal(h.scripts.length, 3);
   assert.equal(h.window.ttq.filter(args => args[0] === 'page').length, 1);
 });
 
 test('correct IDs, consent and explicit page views; duplicate mounts cannot double initialize', () => {
   const h = harness(); h.run(); h.run();
-  assert.equal(h.scripts.length, 2);
+  assert.equal(h.scripts.length, 3);
   assert.equal(h.scripts[0].src, 'https://connect.facebook.net/en_US/fbevents.js');
   assert.equal(h.scripts[1].src, 'https://analytics.tiktok.com/i18n/pixel/events.js?sdkid=CLLIILJC77UBIO8OFG1G&lib=ttq');
+  assert.equal(h.scripts[2].src, 'https://www.googletagmanager.com/gtag/js?id=AW-11386018124');
+  const google = h.window.dataLayer.map(args => Array.from(args));
+  assert.equal(google[0][0], 'consent');
+  assert.equal(google[0][1], 'default');
+  assert.equal(google[0][2].ad_storage, 'granted');
+  assert.equal(google[0][2].analytics_storage, 'denied');
+  assert.equal(google.filter(args => args[0] === 'config').length, 1);
+  assert.equal(google.find(args => args[0] === 'config')[1], 'AW-11386018124');
+  assert.equal(google.find(args => args[0] === 'config')[2].send_page_view, false);
+  assert.equal(google.filter(args => args[0] === 'event' && args[1] === 'page_view').length, 1);
+  assert.equal(google.find(args => args[0] === 'event')[2].send_to, 'AW-11386018124');
   const queue = h.window.fbq.queue.map(args => Array.from(args));
   assert.ok(queue.some(args => args[0] === 'init' && args[1] === '674835348003619'));
   assert.ok(queue.some(args => args[0] === 'set' && args[1] === 'autoConfig' && args[2] === false));
@@ -56,6 +68,7 @@ test('correct IDs, consent and explicit page views; duplicate mounts cannot doub
   assert.equal(h.window.ttq.filter(args => args[0] === 'page').length, 1);
   h.window.location.pathname = '/ro/'; h.window.proveitAdvertising.page();
   assert.equal(h.window.ttq.filter(args => args[0] === 'page').length, 2);
+  assert.equal(h.window.dataLayer.filter(args => args[0] === 'event' && args[1] === 'page_view').length, 2);
 });
 
 test('withdrawal stops explicit events and queues both vendors consent revocation', () => {
@@ -65,6 +78,9 @@ test('withdrawal stops explicit events and queues both vendors consent revocatio
   assert.equal(h.window.ttq.filter(args => args[0] === 'page').length, 1);
   assert.ok(h.window.ttq.some(args => args[0] === 'revokeConsent'));
   assert.ok(h.window.fbq.queue.some(args => args[0] === 'consent' && args[1] === 'revoke'));
+  const googleRevocation = h.window.dataLayer.find(args => args[0] === 'consent' && args[1] === 'update');
+  for (const key of ['ad_storage', 'ad_user_data', 'ad_personalization', 'analytics_storage']) assert.equal(googleRevocation[2][key], 'denied');
+  assert.equal(h.window.dataLayer.filter(args => args[0] === 'event').length, 1);
 });
 
 test('UI loads bootstrap immediately, retains choice controls and revokes/reloads on reject', () => {
@@ -108,7 +124,7 @@ test('UI loads bootstrap immediately, retains choice controls and revokes/reload
   accept.props.onClick();
   assert.equal(JSON.parse(stored).value, 'granted');
   assert.equal(scripts.length, 1);
-  assert.equal(scripts[0].src, '/advertising-pixels.js?v=default-on-1');
+  assert.equal(scripts[0].src, '/advertising-pixels.js?v=google-ads-1');
   window.proveitAdvertising = { revoke: () => revoked++ };
   reject.props.onClick();
   assert.equal(JSON.parse(stored).value, 'denied');
