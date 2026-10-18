@@ -48,20 +48,22 @@ async function fulfill(session, client, sendEmail) {
   let saved = await record(client, session.id);
   if (saved?.emailId) return { duplicate: true };
   const now = Date.now();
-  if (saved?.leaseUntil > now) throw new Error('Fulfillment already in progress');
+  const epoch = value => typeof value === 'string' ? Date.parse(value) : value;
+  if (epoch(saved?.leaseUntil) > now) throw new Error('Fulfillment already in progress');
   // Resend idempotency lasts 24h. If delivery became ambiguous beyond that
   // window, require reconciliation instead of risking another onboarding email.
-  if (saved?.firstAttempt && now - saved.firstAttempt > 23 * 3600000) throw new Error('Delivery requires reconciliation');
-  const entity = { partitionKey: PARTITION, rowKey: session.id, course: course.key, email: session.customer_details.email, name: session.customer_details.name || '', amountPence: session.amount_total, currency: 'GBP', status: 'paid', paidAt: new Date(session.created * 1000).toISOString(), leaseUntil: now + 120000, firstAttempt: saved?.firstAttempt || now };
+  if (saved?.firstAttempt && now - epoch(saved.firstAttempt) > 23 * 3600000) throw new Error('Delivery requires reconciliation');
+  // ISO strings avoid implicit EDM Int32 inference for millisecond timestamps.
+  const entity = { partitionKey: PARTITION, rowKey: session.id, course: course.key, email: session.customer_details.email, name: session.customer_details.name || '', amountPence: session.amount_total, currency: 'GBP', status: 'paid', paidAt: new Date(session.created * 1000).toISOString(), leaseUntil: new Date(now + 120000).toISOString(), firstAttempt: new Date(epoch(saved?.firstAttempt) || now).toISOString() };
   if (!saved) await client.createEntity(entity);
   else await client.updateEntity(entity, 'Merge', { etag: saved.etag });
   try {
     const result = await sendEmail(onboardingEmail(session), `bani-uk-ai-onboarding-${session.id}`);
     if (!result.id) throw new Error('No email receipt');
-    await client.updateEntity({ partitionKey: PARTITION, rowKey: session.id, emailId: result.id, sentAt: new Date().toISOString(), leaseUntil: 0 }, 'Merge');
+    await client.updateEntity({ partitionKey: PARTITION, rowKey: session.id, emailId: result.id, sentAt: new Date().toISOString(), leaseUntil: new Date(0).toISOString() }, 'Merge');
     return { duplicate: false };
   } catch (error) {
-    await client.updateEntity({ partitionKey: PARTITION, rowKey: session.id, leaseUntil: 0 }, 'Merge').catch(() => {});
+    await client.updateEntity({ partitionKey: PARTITION, rowKey: session.id, leaseUntil: new Date(0).toISOString() }, 'Merge').catch(() => {});
     throw error;
   }
 }
