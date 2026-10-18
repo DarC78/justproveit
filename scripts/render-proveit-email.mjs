@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { personalizedSubject } from './lib/proveit-email-subject.mjs';
+import { rewriteEmailLinks } from './lib/proveit-email-links.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const final = process.argv.includes('--final');
@@ -45,19 +46,20 @@ const fields = {
   cta_html: cta, offer_html: paragraph(config.offer) + paragraph(config.offerExtra), ps_html: escape(config.ps), disclaimer: escape(config.disclaimer),
   unsubscribe_html: config.unsubscribeUrl ? `<p style="margin:0;"><a href="${httpsUrl(config.unsubscribeUrl)}" style="color:#111111;">Dezabonare</a></p>` : test ? '<p style="margin:0;">E-mail de test trimis la solicitarea destinatarului.</p>' : '<p style="margin:0;font-style:italic;">PREVIZUALIZARE: linkul de dezabonare se completează în sistemul de trimitere.</p>',
 };
-const html = fs.readFileSync(path.join(root, 'email-templates/proveit/base.html'), 'utf8').replace(/\{\{([a-z_]+)\}\}/g, (_, key) => {
+let html = fs.readFileSync(path.join(root, 'email-templates/proveit/base.html'), 'utf8').replace(/\{\{([a-z_]+)\}\}/g, (_, key) => {
   if (!(key in fields)) throw new Error(`Unknown template field: ${key}`);
   return fields[key];
 });
 const plainParagraph = value => typeof value === 'string' ? value : value.text;
 const signature = 'Mersi mult,\nAdrian Defta\nDirector Proveit\nTop 100 Romani de Pretutindeni';
-const text = [config.preheader, ...config.intro, ...config.body.map(plainParagraph), config.offer, config.offerExtra, `${config.ctaLabel}: ${config.ctaUrl}`, signature, config.ps, config.disclaimer,
+let text = [config.preheader, ...config.intro, ...config.body.map(plainParagraph), config.offer, config.offerExtra, `${config.ctaLabel}: ${config.ctaUrl}`, signature, config.ps, config.disclaimer,
   ...config.reviews,
   'Review-uri Proveit: https://uk.trustpilot.com/review/proveitweb.co.uk', 'WhatsApp: https://api.whatsapp.com/send/?phone=447447707829&text=CRM_PROMO_BANI_UK_AI&type=phone_number&app_absent=0',
   'TikTok: https://www.tiktok.com/@proveit.ai', 'Facebook: https://www.facebook.com/ProveItWeb', 'Instagram: https://www.instagram.com/proveit.uk',
   'ProveIt Ltd · 14007642 · Ty Merlin, Caerphilly Business Park, Caerphilly, CF83 8DP, UK',
   config.unsubscribeUrl ? `Dezabonare: ${config.unsubscribeUrl}` : test ? 'E-mail de test trimis la solicitarea destinatarului.' : 'PREVIZUALIZARE: linkul de dezabonare nu este încă configurat.',
 ].join('\n\n');
+({ html, text } = rewriteEmailLinks({ html, text, from: config.from, unsubscribeUrl: config.unsubscribeUrl }));
 const output = path.join(root, 'artifacts/email');
 fs.mkdirSync(output, { recursive: true });
 const suffix = test ? 'test' : final ? 'final' : 'preview';

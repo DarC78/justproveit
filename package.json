@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "htmlparser2": "^10.0.0",
     "next": "^15.5.9",
     "react": "19.2.1",
     "react-dom": "19.2.1"

@@ -32,6 +32,9 @@ if (-not $Send) {
 }
 
 # Reuse the existing application's Resend integration. Keep credentials in memory;
+& node (Join-Path $repositoryRoot 'scripts/verify-proveit-email-links.mjs')
+if ($LASTEXITCODE -ne 0) { throw 'Branded email redirects are not ready; no email sent.' }
+
 # never write them to files, environment variables, CLI arguments or logs.
 $resendSettings = & az functionapp config appsettings list --name launchingstack-func-dev --resource-group launchingstack-dev-rg --query "[?name=='ResendApiKey' || name=='RESEND_FROM_EMAIL']" --output json | ConvertFrom-Json
 if ($LASTEXITCODE -ne 0) { throw 'Could not read the existing Resend configuration.' }

@@ -1,0 +1,16 @@
+{
+  "origin": "https://www.justproveit.co.uk",
+  "senderDomains": [
+    "mail.justproveit.co.uk"
+  ],
+  "links": {
+    "bani-uk-ai": "https://www.justproveit.co.uk/bani-uk-ai/?utm_source=resend&utm_medium=email&utm_campaign=bani-uk-ai&utm_content=email-01-primary-cta",
+    "trustpilot": "https://uk.trustpilot.com/review/proveitweb.co.uk",
+    "whatsapp": "https://api.whatsapp.com/send/?phone=447447707829&text=CRM_PROMO_BANI_UK_AI&type=phone_number&app_absent=0",
+    "tiktok": "https://www.tiktok.com/@proveit.ai",
+    "facebook": "https://www.facebook.com/ProveItWeb",
+    "instagram": "https://www.instagram.com/proveit.uk",
+    "privacy": "https://www.proveitweb.co.uk/privacypolicy",
+    "terms": "https://www.proveitweb.co.uk/termsandconditions"
+  }
+}

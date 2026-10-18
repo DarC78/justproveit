@@ -1,5 +1,7 @@
 # Bani în UK cu AI — email 1
 
+Current branded link routing is documented in [proveit-branded-email-links.md](proveit-branded-email-links.md). All rendered HTTP(S) links now use approved first-party redirect IDs; older no-redirect notes below describe the prior implementation.
+
 The first email uses the owner's Google Doc `16EnB_6Dx1iLeShrhO6u1jILIHpNnaweqhb_yqIkFqFA`, orange/blue website palette, table layout and inline styles.
 
 ## Source and output

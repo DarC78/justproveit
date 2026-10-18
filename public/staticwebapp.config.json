@@ -1,0 +1,4 @@
+{
+  "routes": [{ "route": "/r", "rewrite": "/api/email-link" }],
+  "platform": { "apiRuntime": "node:20" }
+}
