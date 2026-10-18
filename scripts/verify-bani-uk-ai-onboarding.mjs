@@ -4,11 +4,19 @@ const require = createRequire(import.meta.url);
 const { calendar } = require('../api/shared/baniUkAiCalendar.js');
 const origin = 'https://www.justproveit.co.uk';
 const request = (path, options = {}) => fetch(origin + path, { ...options, redirect: 'manual', signal: AbortSignal.timeout(20000) });
-const page = await request('/bani-uk-ai-multumim/');
+const page = await request('/bani-uk-multumim/');
 assert.equal(page.status, 200);
 assert.equal(page.headers.get('x-robots-tag'), 'noindex, nofollow');
 assert.equal(page.headers.get('referrer-policy'), 'no-referrer');
 const html = await page.text();
+assert.ok(html.includes('https://www.justproveit.co.uk/bani-uk-multumim/'), 'canonical must use renamed route');
+for (const legacy of ['/bani-uk-ai-multumim', '/bani-uk-ai-multumim/']) {
+  const redirect = await request(`${legacy}?session_id=cs_live_redirectcheck123456`);
+  assert.equal(redirect.status, 301);
+  const target = new URL(redirect.headers.get('location'), origin);
+  assert.equal(target.pathname, '/bani-uk-multumim/');
+  assert.equal(target.searchParams.get('session_id'), 'cs_live_redirectcheck123456');
+}
 assert.match(html, /noindex, nofollow/);
 assert.ok(!html.includes('Plată confirmată'), 'unverified SSR must not claim payment confirmation');
 const ics = await request('/bani-uk-ai-sesiuni.ics');

@@ -44,7 +44,7 @@ test('first visits start all three advertising tags without fabricating an accep
 });
 
 test('checkout return enables purchase vendors only after verification and has no page-view events', () => {
-  const h = harness('/bani-uk-ai-multumim/');
+  const h = harness('/bani-uk-multumim/');
   h.run(); assert.equal(h.scripts.length, 0);
   h.window.proveitPurchaseVerified = true;
   h.run(); assert.equal(h.scripts.length, 2);
@@ -137,7 +137,7 @@ test('UI loads bootstrap immediately, retains choice controls and revokes/reload
   accept.props.onClick();
   assert.equal(JSON.parse(stored).value, 'granted');
   assert.equal(scripts.length, 1);
-  assert.equal(scripts[0].src, '/advertising-pixels.js?v=onboarding-1');
+  assert.equal(scripts[0].src, '/advertising-pixels.js?v=onboarding-2');
   window.proveitAdvertising = { revoke: () => revoked++ };
   reject.props.onClick();
   assert.equal(JSON.parse(stored).value, 'denied');

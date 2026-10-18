@@ -9,7 +9,8 @@
     try {
       var choice = JSON.parse(w.localStorage.getItem(key));
       var path = decodeURIComponent(w.location.pathname).replace(/\/+/g, '/').toLowerCase();
-      if (/^\/bani-uk-ai-multumim\/?$/.test(path) && !w.proveitPurchaseVerified) return false;
+      if (/^\/bani-uk-ai-multumim\/?$/.test(path)) return false;
+      if (/^\/bani-uk-multumim\/?$/.test(path) && !w.proveitPurchaseVerified) return false;
       return !(choice && choice.value === 'denied' && choice.expires > Date.now()) &&
         !/^\/(admin|login|reset-password|api)(\/|$)/.test(path) &&
         !/^\/ro\/(raport-gratuit|rezultate-raport)(\/|$)/.test(path);
@@ -24,7 +25,7 @@
     d.head.appendChild(script);
   }
   if (!permitted() || w.proveitAdvertising) return;
-  var purchasePage = /^\/bani-uk-ai-multumim\/?$/.test(w.location.pathname);
+  var purchasePage = /^\/bani-uk-multumim\/?$/.test(w.location.pathname);
 
   // Standard Meta queue. Automatic event configuration is disabled; this
   // integration sends explicit page views only, without advanced matching.

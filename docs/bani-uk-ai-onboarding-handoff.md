@@ -15,7 +15,7 @@ owner's operational checks below.
 
 ## Delivered in this repository
 
-- `/bani-uk-ai-multumim/`: public instructions, shared legal footer, portrait,
+- `/bani-uk-multumim/`: public instructions, shared legal footer, portrait,
   WhatsApp group, preparation, safety, 90-day guarantee and cancellation text.
 - Time confirmed by owner: 20:00–21:30, Europe/London, 3/10/17/24 November 2026.
   Zoom is intentionally sent later. `api/shared/bani-uk-ai-course.json` is the
@@ -64,11 +64,11 @@ Pushing `purchase` to dataLayer prepares the event; it does NOT send it to GA4
 or create a Google Ads purchase conversion. Obtain the GA4 ID/GTM container and,
 for Ads, the purchase conversion label before enabling those destinations.
 
-IMPORTANT: the original brief's audience assumption was incorrect. URL contains
-`justproveit.co.uk/bani-uk-ai` matches the thank-you route too. Replace the Google
-audience condition with an exact sales pathname (both slash variants), or a
-supported anchored URL rule, and exclude verified purchasers using a separate
-purchase audience once configured. Apply equivalent Meta/TikTok audience rules.
+The thank-you route is now `/bani-uk-multumim/`, outside the sales audience's
+`justproveit.co.uk/bani-uk-ai` URL condition. The old thank-you URL redirects to
+the new address, preserving checkout parameters. Exclude verified purchasers
+using a separate purchase audience once configured: buyers may previously have
+visited the sales page. Apply equivalent Meta/TikTok audience rules.
 The website stops generic thank-you page views, but cannot edit ad-account rules.
 
 ## Activation and runtime configuration
@@ -81,7 +81,7 @@ in memory; nothing is logged or written into files/CLI arguments.
 After GitHub deployment and live checks, run
 `scripts/configure-bani-uk-ai-onboarding.ps1 -Activate` to register the dedicated
 Stripe webhook, save its signing secret, set the Payment Link redirect to
-`https://www.justproveit.co.uk/bani-uk-ai-multumim/?session_id={CHECKOUT_SESSION_ID}`,
+`https://www.justproveit.co.uk/bani-uk-multumim/?session_id={CHECKOUT_SESSION_ID}`,
 set its native 100-session limit and include cancellation information at checkout.
 Rerunning activation reuses the existing webhook; missing signing secret requires
 recovery rather than silently creating duplicate webhooks. It does not change

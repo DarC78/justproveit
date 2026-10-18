@@ -6,7 +6,7 @@ import styles from "@/styles/advertising-consent.module.css";
 const KEY = "proveit-advertising-consent-v1";
 type Choice = "granted" | "denied";
 type AdvertisingWindow = Window & { proveitAdvertising?: { page: () => void; revoke: () => void }; proveitPurchaseVerified?: boolean };
-const thankYouPage = (url: string) => /^\/bani-uk-ai-multumim\/?$/.test(new URL(url, 'https://www.justproveit.co.uk').pathname);
+const thankYouPage = (url: string) => /^\/bani-uk-multumim\/?$/.test(new URL(url, 'https://www.justproveit.co.uk').pathname);
 
 function loadPixels() {
   if (!isClarityPage(window.location.href) && !(thankYouPage(window.location.href) && (window as AdvertisingWindow).proveitPurchaseVerified)) return;
@@ -15,7 +15,7 @@ function loadPixels() {
   if (document.getElementById("proveit-advertising-loader")) return;
   const script = document.createElement("script");
   script.id = "proveit-advertising-loader";
-  script.src = "/advertising-pixels.js?v=onboarding-1";
+  script.src = "/advertising-pixels.js?v=onboarding-2";
   script.async = true;
   script.onerror = () => script.remove();
   script.onload = () => {

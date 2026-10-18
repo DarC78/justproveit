@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import BaniUkAiFooter from "@/components/BaniUkAiFooter";
 import course from "../../api/shared/bani-uk-ai-course.json";
 import { validPurchase, trackVerifiedCoursePurchase, type VerifiedCoursePurchase } from "@/lib/baniUkAiPurchase";
-import styles from "@/styles/bani-uk-ai-multumim.module.css";
+import styles from "@/styles/bani-uk-multumim.module.css";
 
 const googleCalendar = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: 'Bani în UK cu AI – Sesiunea 1: Verificări cu AI', dates: '20261103T200000/20261103T213000', ctz: 'Europe/London', details: course.zoomNote, location: 'Online – Zoom' }).toString();
 
@@ -45,7 +45,7 @@ export default function BaniUkAiThankYou() {
   }, [purchase]);
 
   return <div className={styles.page}>
-    <Head><title>Bun venit, membru fondator | Bani în UK cu AI</title><meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="no-referrer" /><link rel="canonical" href="https://www.justproveit.co.uk/bani-uk-ai-multumim/" /></Head>
+    <Head><title>Bun venit, membru fondator | Bani în UK cu AI</title><meta name="robots" content="noindex, nofollow" /><meta name="referrer" content="no-referrer" /><link rel="canonical" href="https://www.justproveit.co.uk/bani-uk-multumim/" /></Head>
     <main className={styles.main}>
       <Image src="/branding/proveit-logo.png" width={98} height={61} alt="Proveit" />
       <header className={styles.hero}>

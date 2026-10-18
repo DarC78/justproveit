@@ -10,7 +10,7 @@ export function isClarityPage(url: string): boolean {
       "/admin", "/login", "/reset-password", "/ro/raport-gratuit",
       // A private report accessed using a bearer link, even without a login screen.
       "/ro/rezultate-raport", "/api",
-      "/bani-uk-ai-multumim",
+      "/bani-uk-multumim", "/bani-uk-ai-multumim",
     ].some(prefix => path === prefix || path.startsWith(`${prefix}/`));
   } catch {
     return false;
