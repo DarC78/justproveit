@@ -5,21 +5,23 @@ import styles from "@/styles/advertising-consent.module.css";
 
 const KEY = "proveit-advertising-consent-v1";
 type Choice = "granted" | "denied";
-type AdvertisingWindow = Window & { proveitAdvertising?: { page: () => void; revoke: () => void } };
+type AdvertisingWindow = Window & { proveitAdvertising?: { page: () => void; revoke: () => void }; proveitPurchaseVerified?: boolean };
+const thankYouPage = (url: string) => /^\/bani-uk-ai-multumim\/?$/.test(new URL(url, 'https://www.justproveit.co.uk').pathname);
 
 function loadPixels() {
-  if (!isClarityPage(window.location.href)) return;
+  if (!isClarityPage(window.location.href) && !(thankYouPage(window.location.href) && (window as AdvertisingWindow).proveitPurchaseVerified)) return;
   const advertising = (window as AdvertisingWindow).proveitAdvertising;
   if (advertising) { advertising.page(); return; }
   if (document.getElementById("proveit-advertising-loader")) return;
   const script = document.createElement("script");
   script.id = "proveit-advertising-loader";
-  script.src = "/advertising-pixels.js?v=google-ads-2";
+  script.src = "/advertising-pixels.js?v=onboarding-1";
   script.async = true;
   script.onerror = () => script.remove();
   script.onload = () => {
     // Consent may have changed in another tab while the file was downloading.
     if (!(window as AdvertisingWindow).proveitAdvertising) script.remove();
+    else window.dispatchEvent(new Event('proveit-advertising-ready'));
   };
   document.head.appendChild(script);
 }
@@ -29,7 +31,7 @@ export default function AdvertisingConsent() {
   const [choice, setChoice] = useState<Choice | null>(null);
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
-  const publicPage = isClarityPage(router.pathname) && isClarityPage(router.asPath);
+  const publicPage = (isClarityPage(router.pathname) && isClarityPage(router.asPath)) || thankYouPage(router.asPath);
 
   useEffect(() => {
     const sync = () => {
@@ -49,9 +51,11 @@ export default function AdvertisingConsent() {
     };
     sync();
     window.addEventListener("storage", sync);
+    window.addEventListener('proveit-purchase-verified', sync);
     router.events.on("routeChangeComplete", sync);
     return () => {
       window.removeEventListener("storage", sync);
+      window.removeEventListener('proveit-purchase-verified', sync);
       router.events.off("routeChangeComplete", sync);
     };
   }, [router]);

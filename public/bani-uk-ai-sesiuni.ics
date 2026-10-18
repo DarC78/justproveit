@@ -1,0 +1,85 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//ProveIt//Bani UK AI//RO
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-TIMEZONE:Europe/London
+BEGIN:VTIMEZONE
+TZID:Europe/London
+BEGIN:STANDARD
+DTSTART:19701025T020000
+TZOFFSETFROM:+0100
+TZOFFSETTO:+0000
+TZNAME:GMT
+RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:19700329T010000
+TZOFFSETFROM:+0000
+TZOFFSETTO:+0100
+TZNAME:BST
+RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+UID:bani-uk-ai-20261103@justproveit.co.uk
+DTSTAMP:20261018T000000Z
+DTSTART;TZID=Europe/London:20261103T200000
+DTEND;TZID=Europe/London:20261103T213000
+SUMMARY:Bani în UK cu AI – Sesiunea 1: Verificări cu AI
+DESCRIPTION:Linkul Zoom îl primești pe e-mail și pe WhatsApp înainte de
+  fiecare sesiune.\nBonusuri bancare\, taxa de consiliu și pensii private 
+ pierdute
+LOCATION:Online – linkul Zoom va fi trimis înainte de sesiune
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Sesiunea începe într-o oră.
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:bani-uk-ai-20261110@justproveit.co.uk
+DTSTAMP:20261018T000000Z
+DTSTART;TZID=Europe/London:20261110T200000
+DTEND;TZID=Europe/London:20261110T213000
+SUMMARY:Bani în UK cu AI – Sesiunea 2: Bonusuri de la bănci
+DESCRIPTION:Linkul Zoom îl primești pe e-mail și pe WhatsApp înainte de
+  fiecare sesiune.\nBonusuri de £150–£250 de la bănci
+LOCATION:Online – linkul Zoom va fi trimis înainte de sesiune
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Sesiunea începe într-o oră.
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:bani-uk-ai-20261117@justproveit.co.uk
+DTSTAMP:20261018T000000Z
+DTSTART;TZID=Europe/London:20261117T200000
+DTEND;TZID=Europe/London:20261117T213000
+SUMMARY:Bani în UK cu AI – Sesiunea 3: Încă 6 modalități
+DESCRIPTION:Linkul Zoom îl primești pe e-mail și pe WhatsApp înainte de
+  fiecare sesiune.\nÎncă 6 modalități de a câștiga bani cu AI
+LOCATION:Online – linkul Zoom va fi trimis înainte de sesiune
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Sesiunea începe într-o oră.
+END:VALARM
+END:VEVENT
+BEGIN:VEVENT
+UID:bani-uk-ai-20261124@justproveit.co.uk
+DTSTAMP:20261018T000000Z
+DTSTART;TZID=Europe/London:20261124T200000
+DTEND;TZID=Europe/London:20261124T213000
+SUMMARY:Bani în UK cu AI – Sesiunea 4: Sistemul tău pentru tot anul
+DESCRIPTION:Linkul Zoom îl primești pe e-mail și pe WhatsApp înainte de
+  fiecare sesiune.\nO rutină simplă\, prompturi și organizare
+LOCATION:Online – linkul Zoom va fi trimis înainte de sesiune
+BEGIN:VALARM
+TRIGGER:-PT1H
+ACTION:DISPLAY
+DESCRIPTION:Sesiunea începe într-o oră.
+END:VALARM
+END:VEVENT
+END:VCALENDAR

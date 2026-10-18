@@ -1,4 +1,5 @@
 import Head from "next/head";
+import BaniUkAiFooter from "@/components/BaniUkAiFooter";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { BANI_UK_AI_CHECKOUT_URL, BANI_UK_AI_DEADLINE, BANI_UK_AI_SOURCES, courseCheckoutUrl } from "@/lib/baniUkAi";
@@ -29,7 +30,16 @@ function Arrow() {
 
 export default function BaniUkAiPage() {
   const [closed, setClosed] = useState(false);
+  const [capacity, setCapacity] = useState<{ sold: number | null; soldOut: boolean } | null>(null);
   const checkout = courseCheckoutUrl(BANI_UK_AI_CHECKOUT_URL);
+  useEffect(() => {
+    let active = true;
+    const update = () => fetch('/api/bani-uk-ai/capacity', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(value => {
+      if (active && value && typeof value.soldOut === 'boolean') setCapacity(value);
+    }).catch(() => {});
+    update(); const timer = window.setInterval(update, 60000);
+    return () => { active = false; window.clearInterval(timer); };
+  }, []);
   useEffect(() => {
     const update = () => setClosed(Date.now() > Date.parse(BANI_UK_AI_DEADLINE));
     update();
@@ -37,12 +47,13 @@ export default function BaniUkAiPage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const purchase = () => closed ? (
-    <p className={styles.closed} role="status">Înscrierile pentru această cohortă s-au încheiat.</p>
+  const purchase = () => closed || capacity?.soldOut ? (
+    <div><p className={styles.closed} role="status">Înscrierile pentru această cohortă s-au încheiat.</p><a className={styles.cta} href="mailto:adriandefta@proveitweb.co.uk?subject=Lista%20de%20asteptare%20Bani%20UK%20AI%20ianuarie">Înscrie-te pe lista de așteptare pentru ianuarie</a></div>
   ) : checkout ? (
     <>
       <a className={styles.cta} href={checkout}><span>Vreau locul meu de fondator <span className={styles.buttonPrices}><del aria-label="Preț standard 97 de lire">£97</del> <strong>£39</strong></span></span><Arrow /></a>
       <p className={styles.ctaNote}>Cod precompletat: DISC58 · £97 − £58 = £39. Verifică totalul înainte de plată.</p>
+      {typeof capacity?.sold === 'number' && <p className={styles.ctaNote}>{capacity.sold} din 100 de locuri rezervate.</p>}
     </>
   ) : (
     <div className={styles.pending}>
@@ -169,14 +180,7 @@ export default function BaniUkAiPage() {
         </main>
 
         <aside className={styles.editorial}><div className={styles.container}><h2>Cum funcționează acest site?</h2><p>Credem că este important să înțelegeți punctele forte și limitările site-ului. Suntem un site jurnalistic și ne propunem să oferim cele mai bune ghiduri, sfaturi, instrumente și tehnici pentru a economisi bani, dar nu putem garanta că vom fi perfecți. Utilizați informațiile pe propriul risc.</p><p>Aceste informații nu constituie sfaturi financiare. Faceți întotdeauna propria cercetare pentru a vă asigura că sunt potrivite circumstanțelor dvs. specifice. Prețurile, condițiile produselor și ofertele se pot modifica; verificați întotdeauna informațiile direct la furnizor. Nu investigăm solvabilitatea companiilor menționate și nu suntem responsabili pentru conținutul site-urilor externe.</p><p>Acest website este proprietatea companiei ProveIt și nu face parte din niciun grup de companii. Suntem independenți din punct de vedere editorial și punem consumatorii pe primul loc.</p></div></aside>
-        <footer className={styles.footer}>
-          <div className={styles.container}>
-            <div className={styles.footerTop}><div><Image src="/branding/proveit-logo.png" width={98} height={61} alt="ProveIt" /><p>Proveit ajută comunitatea<br />să își apere drepturile.</p><strong>JustProveIt este o denumire comercială<br />(trading style) a ProveIt Ltd.</strong></div><div><h2>Contactați-ne</h2><a href="tel:+447447707829">+44 7447 707829</a><a href={`mailto:${CONTACT}`}>{CONTACT}</a><span>United Kingdom</span></div><div><h2>Informații legale</h2><a href="https://www.proveitweb.co.uk/privacypolicy">Politica de confidențialitate</a><a href="https://www.proveitweb.co.uk/termsandconditions">Termene și condiții</a></div></div>
-
-            <div className={styles.company}><p>ProveIt Ltd este o companie înregistrată în Anglia și Țara Galilor, cu numărul de înregistrare 14007642. Sediul social: Ty Merlin, Caerphilly Business Park, Caerphilly, CF83 8DP, Regatul Unit. ProveIt Ltd este înregistrată la Information Commissioner’s Office (ICO) cu numărul de înregistrare ZB520180. ProveIt Ltd nu este broker de credite și nu este instituție de credit.</p><p>ProveIt Ltd poate primi un comision de la anumiți parteneri atunci când utilizatorii accesează, prin intermediul platformei noastre, site-urile partenerilor. Acest lucru nu influențează informațiile furnizate sau serviciile oferite.</p></div>
-            <p className={styles.copyright}>Copyright 2026 © Proveit. Toate drepturile rezervate.</p>
-          </div>
-        </footer>
+        <BaniUkAiFooter />
       </div>
     </>
   );

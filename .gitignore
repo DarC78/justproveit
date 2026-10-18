@@ -57,3 +57,4 @@ local.setting.json
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+/api/node_modules/

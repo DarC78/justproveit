@@ -1,4 +1,7 @@
 {
-  "routes": [{ "route": "/r", "rewrite": "/api/email-link" }],
+  "routes": [
+    { "route": "/r", "rewrite": "/api/email-link" },
+    { "route": "/bani-uk-ai-multumim*", "headers": { "X-Robots-Tag": "noindex, nofollow", "Referrer-Policy": "no-referrer", "Cache-Control": "no-store" } }
+  ],
   "platform": { "apiRuntime": "node:20" }
 }

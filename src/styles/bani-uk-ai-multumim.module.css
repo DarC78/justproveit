@@ -1,0 +1,22 @@
+.page { background:#fcfcfa; color:#111; min-height:100vh; font-family:Arial,Helvetica,sans-serif; }
+.main { max-width:1020px; padding:44px 24px 80px; margin:auto; }
+.hero { padding:48px 0; max-width:800px; }
+.eyebrow { color:#bd3514; font-weight:bold; font-size:13px; letter-spacing:.08em; text-transform:uppercase; }
+.hero h1 { margin:18px 0 24px; font-size:clamp(34px,5vw,60px); line-height:1.08; font-weight:800; }
+.hero h1 span,.main h2 span { color:#ff4e23; }
+.main p,.main li { font-size:17px; line-height:1.75; }
+.main h2 { font-size:29px; line-height:1.25; font-weight:750; margin:0 0 18px; }
+.main h3 { font-size:23px; font-weight:700; margin:12px 0; }
+.card { background:white; border:1px solid #dbe9ff; box-shadow:0 7px 26px #10101008; border-radius:16px; padding:32px; margin:24px 0; }
+.step { display:inline-flex; background:#6ea6f8; color:#111; padding:6px 12px; border-radius:6px; font-weight:bold; }
+.actions { display:flex; gap:12px; flex-wrap:wrap; margin:22px 0 12px; }
+.button { display:inline-block; padding:14px 20px; border-radius:8px; background:#ff4e23; color:#111; text-decoration:none; font-weight:bold; }
+.secondary { background:#dbe9ff; }
+.note { font-size:14px !important; color:#444; }
+.safety { background:#dbe9ff; border-left:5px solid #6ea6f8; padding:28px; border-radius:10px; margin:30px 0; }
+.main ul { padding-left:22px; list-style:disc; }
+.main li { margin:10px 0; }
+.main a:not(.button) { color:#245ba8; text-decoration:underline; }
+.signature { display:flex; align-items:center; gap:22px; margin-top:36px; }
+.portrait { width:125px; height:145px; object-fit:cover; border-radius:10px; }
+@media(max-width:600px) { .main { padding:22px 18px 70px; } .hero { padding:28px 0; } .card { padding:24px 20px; } .main p,.main li { font-size:16px; } .actions { flex-direction:column; } .button { text-align:center; } }

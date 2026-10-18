@@ -1,0 +1,12 @@
+import fs from 'node:fs';
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { calendar } = require('../api/shared/baniUkAiCalendar.js');
+const { onboardingEmail } = require('../api/shared/baniUkAiEmail.js');
+const preview = onboardingEmail({ amount_total: 3900, customer_details: { name: 'Adrian Defta', email: 'adrian@proveitweb.co.uk' } });
+fs.mkdirSync('artifacts/email', { recursive: true });
+fs.writeFileSync('public/bani-uk-ai-sesiuni.ics', calendar());
+fs.writeFileSync('artifacts/email/bani-uk-ai-onboarding-preview.html', preview.html);
+fs.writeFileSync('artifacts/email/bani-uk-ai-onboarding-preview.txt', preview.text);
+fs.writeFileSync('artifacts/email/bani-uk-ai-onboarding-resend.json', JSON.stringify({ ...preview, subject: '[TEST] ' + preview.subject }, null, 2));
+console.log('Rendered onboarding HTML/text, owner-test payload and four-session Europe/London calendar.');

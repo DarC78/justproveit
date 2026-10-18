@@ -9,6 +9,7 @@
     try {
       var choice = JSON.parse(w.localStorage.getItem(key));
       var path = decodeURIComponent(w.location.pathname).replace(/\/+/g, '/').toLowerCase();
+      if (/^\/bani-uk-ai-multumim\/?$/.test(path) && !w.proveitPurchaseVerified) return false;
       return !(choice && choice.value === 'denied' && choice.expires > Date.now()) &&
         !/^\/(admin|login|reset-password|api)(\/|$)/.test(path) &&
         !/^\/ro\/(raport-gratuit|rezultate-raport)(\/|$)/.test(path);
@@ -23,6 +24,7 @@
     d.head.appendChild(script);
   }
   if (!permitted() || w.proveitAdvertising) return;
+  var purchasePage = /^\/bani-uk-ai-multumim\/?$/.test(w.location.pathname);
 
   // Standard Meta queue. Automatic event configuration is disabled; this
   // integration sends explicit page views only, without advanced matching.
@@ -75,13 +77,15 @@
     ad_personalization: 'granted', analytics_storage: 'denied'
   });
   gtag('js', new Date());
-  gtag('config', GOOGLE_ADS_ID);
-  add('https://www.googletagmanager.com/gtag/js?id=' + GOOGLE_ADS_ID, 'proveit-google-ads-tag');
+  if (!purchasePage) {
+    gtag('config', GOOGLE_ADS_ID);
+    add('https://www.googletagmanager.com/gtag/js?id=' + GOOGLE_ADS_ID, 'proveit-google-ads-tag');
+  }
 
   var lastPage = '';
   w.proveitAdvertising = {
     page: function () {
-      if (!permitted()) return;
+      if (!permitted() || purchasePage) return;
       // A query/fragment change is not another page view.
       var page = w.location.pathname.replace(/\/$/, '') || '/';
       if (lastPage === page) return;

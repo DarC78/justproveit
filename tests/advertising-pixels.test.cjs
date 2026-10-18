@@ -43,6 +43,16 @@ test('first visits start all three advertising tags without fabricating an accep
   assert.equal(h.window.ttq.filter(args => args[0] === 'page').length, 1);
 });
 
+test('checkout return enables purchase vendors only after verification and has no page-view events', () => {
+  const h = harness('/bani-uk-ai-multumim/');
+  h.run(); assert.equal(h.scripts.length, 0);
+  h.window.proveitPurchaseVerified = true;
+  h.run(); assert.equal(h.scripts.length, 2);
+  assert.equal(h.window.ttq.filter(args => args[0] === 'page').length, 0);
+  assert.equal(h.window.dataLayer.filter(args => args[0] === 'config').length, 0);
+  assert.equal(h.window.fbq.queue.filter(args => args[0] === 'track').length, 0);
+});
+
 test('correct IDs, consent and explicit page views; duplicate mounts cannot double initialize', () => {
   const h = harness(); h.run(); h.run();
   assert.equal(h.scripts.length, 3);
@@ -127,7 +137,7 @@ test('UI loads bootstrap immediately, retains choice controls and revokes/reload
   accept.props.onClick();
   assert.equal(JSON.parse(stored).value, 'granted');
   assert.equal(scripts.length, 1);
-  assert.equal(scripts[0].src, '/advertising-pixels.js?v=google-ads-2');
+  assert.equal(scripts[0].src, '/advertising-pixels.js?v=onboarding-1');
   window.proveitAdvertising = { revoke: () => revoked++ };
   reject.props.onClick();
   assert.equal(JSON.parse(stored).value, 'denied');
