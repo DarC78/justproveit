@@ -25,7 +25,7 @@ Images were read from the owner's explicitly supplied `D:\DevProjects\!Assets` f
 - Opening: `Barclays.png`.
 - After P.S.: `top100 romanians.png`, then `top100 romanians_AD.png` (the two additional Top 100 images in the supplied folder).
 - Reviews: owner's `TrustPilot.png` and the two Romanian quotes supplied verbatim. No reviewer names, review URLs or ratings were invented for these quotes.
-- Then WhatsApp, the website's verified TikTok/Facebook/Instagram URLs, and `Official Picture.jpg`.
+- Then WhatsApp, TikTok `https://www.tiktok.com/@proveit.ai`, the website's Facebook/Instagram URLs, and `Official Picture.jpg`.
 
 Public asset path: `/email-assets/bani-uk-ai/`. Assets must be deployed through the existing GitHub main workflow before sending. No direct Azure upload/deployment is used.
 
@@ -44,3 +44,5 @@ The Azure Function App's existing credential is named **ResendApiKey**, not RESE
 The sending script accepts only one recipient, an explicitly rendered test, exactly one main CTA and all five deployed image URLs. It uses a content-based idempotency key and writes a receipt containing only recipient, subject, provider ID and acceptance time. Provider acceptance is distinct from confirmed delivery.
 
 Checks: HTML tables balanced; one main CTA; both quotes preserved; all five images in order; exact signature and recipient; no placeholders in test HTML; approximately 12 KB HTML. Browser-based email-client visual QA remains unavailable due to the in-app browser environment.
+
+Latest owner edits: offer includes the additional eight methods and £39 reminder; bonus wording is £150–£300 for moving a separate account; WhatsApp uses `https://api.whatsapp.com/send/?phone=447447707829&text=CRM_PROMO_BANI_UK_AI&type=phone_number&app_absent=0` in HTML and plain text. Updated test sent to the owner and delivery confirmed through Resend.

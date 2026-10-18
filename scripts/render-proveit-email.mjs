@@ -35,7 +35,7 @@ const fields = {
   trustpilot_html: `<a href="https://uk.trustpilot.com/review/proveitweb.co.uk" style="display:block;margin:18px 0;">${image(config.trustpilotImageUrl, 'Profilul Proveit pe Trustpilot', 524, 'Imaginea profilului Trustpilot')}</a>`,
   reviews_html: config.reviews.map(review => `<table role="presentation" width="100%" bgcolor="#ffffff" style="margin-top:14px;"><tr><td style="padding:18px 20px;border:1px solid #c4d7f2;font:14px/22px Arial,Helvetica,sans-serif;color:#111111;"><p style="margin:0;">„${escape(review)}”</p></td></tr></table>`).join('\n'),
   intro_html: config.intro.map(paragraph).join('\n'), body_html: config.body.map(paragraph).join('\n'),
-  cta_html: cta, offer_html: escape(config.offer), ps_html: escape(config.ps), disclaimer: escape(config.disclaimer),
+  cta_html: cta, offer_html: paragraph(config.offer) + paragraph(config.offerExtra), ps_html: escape(config.ps), disclaimer: escape(config.disclaimer),
   unsubscribe_html: config.unsubscribeUrl ? `<p style="margin:0;"><a href="${httpsUrl(config.unsubscribeUrl)}" style="color:#111111;">Dezabonare</a></p>` : test ? '<p style="margin:0;">E-mail de test trimis la solicitarea destinatarului.</p>' : '<p style="margin:0;font-style:italic;">PREVIZUALIZARE: linkul de dezabonare se completează în sistemul de trimitere.</p>',
 };
 const html = fs.readFileSync(path.join(root, 'email-templates/proveit/base.html'), 'utf8').replace(/\{\{([a-z_]+)\}\}/g, (_, key) => {
@@ -44,10 +44,10 @@ const html = fs.readFileSync(path.join(root, 'email-templates/proveit/base.html'
 });
 const plainParagraph = value => typeof value === 'string' ? value : value.text;
 const signature = 'Mersi mult,\nAdrian Defta\nDirector Proveit\nTop 100 Romani de Pretutindeni';
-const text = [config.preheader, ...config.intro, ...config.body.map(plainParagraph), config.offer, `${config.ctaLabel}: ${config.ctaUrl}`, signature, config.ps, config.disclaimer,
+const text = [config.preheader, ...config.intro, ...config.body.map(plainParagraph), config.offer, config.offerExtra, `${config.ctaLabel}: ${config.ctaUrl}`, signature, config.ps, config.disclaimer,
   ...config.reviews,
-  'Review-uri Proveit: https://uk.trustpilot.com/review/proveitweb.co.uk', 'WhatsApp: https://wa.me/447447707829',
-  'TikTok: https://www.tiktok.com/@proveituk', 'Facebook: https://www.facebook.com/ProveItWeb', 'Instagram: https://www.instagram.com/proveit.uk',
+  'Review-uri Proveit: https://uk.trustpilot.com/review/proveitweb.co.uk', 'WhatsApp: https://api.whatsapp.com/send/?phone=447447707829&text=CRM_PROMO_BANI_UK_AI&type=phone_number&app_absent=0',
+  'TikTok: https://www.tiktok.com/@proveit.ai', 'Facebook: https://www.facebook.com/ProveItWeb', 'Instagram: https://www.instagram.com/proveit.uk',
   'ProveIt Ltd · 14007642 · Ty Merlin, Caerphilly Business Park, Caerphilly, CF83 8DP, UK',
   config.unsubscribeUrl ? `Dezabonare: ${config.unsubscribeUrl}` : test ? 'E-mail de test trimis la solicitarea destinatarului.' : 'PREVIZUALIZARE: linkul de dezabonare nu este încă configurat.',
 ].join('\n\n');
