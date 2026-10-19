@@ -69,10 +69,16 @@ export const BANI_UK_AI_SOURCES = [
   },
 ];
 
-export function courseCheckoutUrl(value: string): string | null {
+export function courseCheckoutUrl(value: string, search = ""): string | null {
   try {
     const url = new URL(value);
-    return url.protocol === "https:" && url.hostname === "buy.stripe.com" ? url.href : null;
+    if (url.protocol !== "https:" || url.hostname !== "buy.stripe.com") return null;
+    const attribution = new URLSearchParams(search);
+    for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) {
+      const value = attribution.get(key);
+      if (value && /^[A-Za-z0-9._-]{1,200}$/.test(value)) url.searchParams.set(key, value);
+    }
+    return url.href;
   } catch {
     return null;
   }

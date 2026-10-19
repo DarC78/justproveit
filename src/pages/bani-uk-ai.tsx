@@ -33,8 +33,9 @@ function Arrow() {
 export default function BaniUkAiPage() {
   const [closed, setClosed] = useState(false);
   const [capacity, setCapacity] = useState<{ sold: number | null; soldOut: boolean } | null>(null);
-  const checkout = courseCheckoutUrl(BANI_UK_AI_CHECKOUT_URL);
+  const [checkout, setCheckout] = useState(() => courseCheckoutUrl(BANI_UK_AI_CHECKOUT_URL));
   useEffect(() => {
+    setCheckout(courseCheckoutUrl(BANI_UK_AI_CHECKOUT_URL, window.location.search));
     let active = true;
     const update = () => fetch('/api/bani-uk-ai/capacity', { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(value => {
       if (active && value && typeof value.soldOut === 'boolean') setCapacity(value);
