@@ -6,12 +6,15 @@ It does not authorize enabling those workflows, bulk sends or live audiences.
 
 ## Current safe state and checks
 
-Frontend general `enabled` remains false. The previous frontend window expired
-on 19 October 2026 at 18:35 UTC / 19:35 BST. Its digest and timestamps have been
-cleared and `pilot.enabled` reset to false. The owner reports BE's pilot is
-paused and Meta's control receipt is confirmed after a domain change. This
-receipt does not establish browser/server deduplication. A fresh window awaits
-a resumed, isolated BE fixture and a newly supplied valid token/expiry.
+Frontend general `enabled` remains false. Following the owner's fresh BE
+readiness report, the isolated frontend gate is armed for synthetic fixture
+`5a25a781-57ed-42cc-a9c6-a8b34d932468` until 19 October 2026 at
+19:26:29.308 UTC / 20:26:29 BST, matching BE expiry. The computed token SHA-256
+matches BE's supplied digest. Only that digest is configured; the old binding
+is not reused. BE reports forced Meta/TikTok test mode, cancelled outbox,
+inactive template, zero CRM matches and zero pilot visits. Meta's control
+receipt is confirmed after a domain change; browser/server deduplication is
+still pending and is not established by that receipt.
 The raw token is not stored in tracked source. Browser acceptance remains pending.
 Google consent, purchase and destination-
 verified flags remain false. Server Google callback remains disabled. Existing
