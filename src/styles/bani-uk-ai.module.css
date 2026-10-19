@@ -47,6 +47,7 @@
 .pending > p { font-size: 12px; margin-top: 8px; }
 .pending a { text-decoration: underline; }
 .ctaNote { font-size: 11px; margin-top: 13px !important; color: var(--muted); }
+.heroGuarantee { font-size: 15px; margin-top: 16px !important; }
 .disclaimer { font-size: 11px; line-height: 1.65; color: var(--muted); margin-top: 18px !important; max-width: 590px; }
 .courseCover { background: white; color: var(--ink); padding: 30px; position: relative; border: 1px solid #e4e4e4; border-radius: 18px; box-shadow: 0 4px 18px #00000012, 16px 16px 0 var(--pale); }
 .coverTop { display: flex; justify-content: space-between; font-size: 9px; letter-spacing: .13em; color: #343434; }

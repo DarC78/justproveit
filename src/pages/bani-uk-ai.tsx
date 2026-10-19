@@ -6,6 +6,8 @@ import { BANI_UK_AI_CHECKOUT_URL, BANI_UK_AI_DEADLINE, BANI_UK_AI_SOURCES, cours
 import styles from "@/styles/bani-uk-ai.module.css";
 
 const CONTACT = "adriandefta@proveitweb.co.uk";
+// Owner-supplied starting total: 28, including the first Stripe reservation.
+const PREVIOUS_RESERVATIONS = 27;
 const sessions = [
   { day: "03", title: "Verificări cu AI", description: "Bonusuri bancare · Taxa de consiliu · Pensii private pierdute.", outcome: "Ai verificat dacă nu pierzi bani la taxa de consiliu, dacă nu ai o pensie privată pierdută și ai netezit calea de a obține bonusuri de la bănci." },
   { day: "10", title: "£150–£250 bonusuri de la bănci", description: "O sesiune, pas cu pas, despre cum să poți obține bonusuri de £150–£250 de la bănci, folosind AI.", outcome: "Înțelegi exact procesul de a folosi AI pentru a obține £150–£250 de la bănci și știi exact ce trebuie să faci pentru a obține primul bonus." },
@@ -52,8 +54,7 @@ export default function BaniUkAiPage() {
   ) : checkout ? (
     <>
       <a className={styles.cta} href={checkout}><span>Vreau locul meu de fondator <span className={styles.buttonPrices}><del aria-label="Preț standard 97 de lire">£97</del> <strong>£39</strong></span></span><Arrow /></a>
-      <p className={styles.ctaNote}>Cod precompletat: DISC58 · £97 − £58 = £39. Verifică totalul înainte de plată.</p>
-      {typeof capacity?.sold === 'number' && <p className={styles.ctaNote}>{capacity.sold} din 100 de locuri rezervate.</p>}
+      <p className={styles.ctaNote}>{Math.min(100, PREVIOUS_RESERVATIONS + (capacity?.sold ?? 1))} din 100 de locuri rezervate.</p>
     </>
   ) : (
     <div className={styles.pending}>
@@ -97,8 +98,8 @@ export default function BaniUkAiPage() {
                 </div>
                 <div className={styles.heroPurchase}>
                 {purchase()}
-                <p className={styles.ctaNote}>4 sesiuni live cu Adrian Defta și înregistrările lor · Din 3 noiembrie 2026 · 100 de locuri</p>
-                <p className={styles.disclaimer}>£1.000 este un obiectiv, nu o sumă garantată. Rezultatele variază în funcție de eligibilitate, cheltuieli și ofertele disponibile.</p>
+                <p className={styles.ctaNote}>O lună de sesiuni live cu Adrian Defta și înregistrările lor · Din 3 noiembrie 2026 · 100 de locuri</p>
+                <p className={styles.heroGuarantee}><strong>Garanție „banii înapoi” de 90 de zile!</strong></p>
                 </div>
               </div>
               <div className={styles.courseCover} aria-label="Bani în UK cu AI: patru sesiuni live, din 3 noiembrie, preț fondator 39 de lire">
