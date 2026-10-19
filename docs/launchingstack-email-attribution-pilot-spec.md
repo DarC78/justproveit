@@ -6,6 +6,41 @@ It does not authorize enabling those workflows, bulk sends or live audiences.
 
 ## Current safe state and checks
 
+### Latest owner-supplied evidence for cross-repository investigation
+
+Frontend implementation was committed and pushed through `154ef85` before this
+handoff update. The owner has asked BE to inspect both repositories and run the
+integration tests. No additional pilot visit should be generated implicitly.
+
+- BE reports one visit at 20:10:34 BST, event ID
+  `4ae77c4c-e80f-4b0a-addf-10e2dc5234a9`; both vendor deliveries Sent in test
+  mode, one attempt, HTTP 200 (TikTok code 0).
+- BE reports another persisted visit at 20:16:34 BST, event ID
+  `b0acad52-a997-4e21-937c-79b00448b765`; TikTok Sent, one attempt, HTTP 200,
+  code 0, receipt `2026101919170129B9490DD4CA680B2B6A`, code `TEST64226`.
+  The parent visit still showed Processing despite both vendor deliveries Sent.
+- The owner's TikTok screenshot confirms browser **ViewContent**, received at
+  19:17:35 UTC / 20:17:35 BST, event ID
+  `130e4d53-854b-4bb8-a230-730de8f4401f`, query-free course URL and content ID
+  `bani-uk-ai`. It also lists a separate server receipt at 19:17:02 UTC.
+- BE's exact lookup at 20:21:19 BST found no persisted visit and no TikTok
+  delivery for the browser event ID `130e4d53-854b-4bb8-a230-730de8f4401f`.
+- General rollout and Google remain off per supplied diagnostics; Google jobs 0.
+
+Deduplication is **UNVERIFIED**, not passed. Browser and server receipt separately
+do not prove they describe the same visit. No failing network trace was captured.
+The screenshot is evidence of browser receipt, not evidence of its API POST.
+
+Investigation targets: correlate the exact browser ID with the POST body,
+preflight/response and backend ingress/intake suppression reasons; check whether
+the test-browser launch changed token preservation, browser choice or request
+delivery. Check worker completion status independently of vendor Sent records.
+Do not assume an SDK ID replacement, failed POST, policy exclusion or another
+root cause without runtime evidence. The frontend sends `context.eventId` to
+Meta's `eventID`, TikTok's third-argument `event_id`, and the POST `eventId`;
+unit tests verify that contract but cannot certify live vendor deduplication.
+Avoid logging raw tokens, cookies, contact data or credentials while investigating.
+
 Frontend general `enabled` remains false. Following the owner's fresh BE
 readiness report, the isolated frontend gate is armed for synthetic fixture
 `5a25a781-57ed-42cc-a9c6-a8b34d932468` until 19 October 2026 at
