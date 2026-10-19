@@ -89,13 +89,17 @@ export default function BaniUkAiPage() {
           <section className={styles.hero} aria-labelledby="hero-title">
             <div className={`${styles.container} ${styles.heroGrid}`}>
               <div className={styles.heroCopy}>
+                <div className={styles.heroIntro}>
                 <p className={styles.eyebrow}><span /> Bani în UK cu AI · Ediția fondatorilor</p>
-                <h1 id="hero-title">Băncile oferă bonusuri.<br /><span>Învață să le obții cu AI.</span></h1>
+                <h1 id="hero-title">În UK ai multe avantaje financiare.<br /><span>Învață să le obții cu AI.</span></h1>
                 <p className={styles.heroLead}>Un plan cu un obiectiv de <strong className={styles.highlight}>£1.000 în plus pe an</strong>: bonusuri de £150–£250 de la bănci, cu cereri care pot dura sub 15 minute; găsirea pensiilor private pierdute; recuperarea taxei de consiliu plătite în plus; și multe altele.</p>
                 <p className={styles.heroSecondary}>Metoda pe care eu și soția mea o folosim. O învățăm împreună, în română, cu AI la fiecare pas. Contul tău principal rămâne separat.</p>
+                </div>
+                <div className={styles.heroPurchase}>
                 {purchase()}
                 <p className={styles.ctaNote}>4 sesiuni live cu Adrian Defta și înregistrările lor · Din 3 noiembrie 2026 · 100 de locuri</p>
                 <p className={styles.disclaimer}>£1.000 este un obiectiv, nu o sumă garantată. Rezultatele variază în funcție de eligibilitate, cheltuieli și ofertele disponibile.</p>
+                </div>
               </div>
               <div className={styles.courseCover} aria-label="Bani în UK cu AI: patru sesiuni live, din 3 noiembrie, preț fondator 39 de lire">
                 <div className={styles.coverTop}><span>PROVEIT / LIVE</span><span>EDIȚIA 2026</span></div>

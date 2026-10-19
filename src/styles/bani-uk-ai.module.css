@@ -200,6 +200,10 @@
   .brand img { width: 76px; height: auto; }
   .headerNote { display: none; }
   .heroGrid { grid-template-columns: 1fr; gap: 40px; }
+  .heroCopy { display: contents; }
+  .heroGrid > .courseCover { order: 0; }
+  .heroPurchase { order: 1; }
+  .heroIntro { order: 2; }
   .hero { padding: 40px 0 50px; }
   .hero h1 { font-size: clamp(36px, 8.8vw, 54px); }
   .heroLead { font-size: 17px; }
