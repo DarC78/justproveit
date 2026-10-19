@@ -1,4 +1,5 @@
 import Head from "next/head";
+import { installEmailTemplateFunnel } from "@/lib/emailTemplateFunnel";
 import { useRouter } from "next/router";
 import BaniUkAiFooter from "@/components/BaniUkAiFooter";
 import Image from "next/image";
@@ -32,6 +33,7 @@ function Arrow() {
 }
 
 export default function BaniUkAiPage() {
+  useEffect(() => installEmailTemplateFunnel(), []);
   const [closed, setClosed] = useState(false);
   const [capacity, setCapacity] = useState<{ sold: number | null; soldOut: boolean } | null>(null);
   const router = useRouter();

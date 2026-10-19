@@ -82,6 +82,13 @@ async function webhook(context, req) {
       if (!response.ok) throw new Error(`Onboarding send failed (${response.status})`);
       return response.json();
     });
+    // Forward the original signed event. The backend validates Stripe's signature
+    // and records each paid checkout once; retries do not repeat onboarding.
+    const funnelReceipt = await fetch('https://launchingstack-func-dev.azurewebsites.net/api/justproveit/public/email-template-funnel-sale', {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'Stripe-Signature': req.headers['stripe-signature'] },
+      body: Buffer.isBuffer(raw) ? raw : Buffer.from(raw, 'utf8'), signal: AbortSignal.timeout(10000)
+    });
+    if (!funnelReceipt.ok) throw new Error('Funnel sale recording requires retry');
     const link = await stripe(`/payment_links/${course.paymentLinkId}`);
     if (link.active && link.restrictions?.completed_sessions?.count >= course.capacity) {
       await stripe(`/payment_links/${course.paymentLinkId}`, { method: 'POST', body: new URLSearchParams({ active: 'false' }) });
