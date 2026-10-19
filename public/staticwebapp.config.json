@@ -1,6 +1,7 @@
 {
   "routes": [
     { "route": "/r", "rewrite": "/api/email-link" },
+    { "route": "/bani-uk-ai", "headers": { "Referrer-Policy": "no-referrer" } },
     { "route": "/bani-uk-ai-multumim", "rewrite": "/api/bani-uk-ai-legacy-return" },
     { "route": "/bani-uk-multumim*", "headers": { "X-Robots-Tag": "noindex, nofollow", "Referrer-Policy": "no-referrer", "Cache-Control": "no-store" } }
   ],

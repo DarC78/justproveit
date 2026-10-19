@@ -5,6 +5,7 @@ import BaniUkAiFooter from "@/components/BaniUkAiFooter";
 import course from "../../api/shared/bani-uk-ai-course.json";
 import { validPurchase, trackVerifiedCoursePurchase, type VerifiedCoursePurchase } from "@/lib/baniUkAiPurchase";
 import styles from "@/styles/bani-uk-multumim.module.css";
+import { trackGooglePurchase } from '@/lib/googleAdvertising';
 
 const googleCalendar = 'https://calendar.google.com/calendar/render?' + new URLSearchParams({ action: 'TEMPLATE', text: 'Bani în UK cu AI – Sesiunea 1: Verificări cu AI', dates: '20261103T200000/20261103T213000', ctz: 'Europe/London', details: course.zoomNote, location: 'Online – Zoom' }).toString();
 
@@ -37,11 +38,12 @@ export default function BaniUkAiThankYou() {
     if (!purchase) return;
     const w = window as Window & { proveitPurchaseVerified?: boolean };
     w.proveitPurchaseVerified = true;
-    const track = () => trackVerifiedCoursePurchase(purchase);
+    const track = () => { trackVerifiedCoursePurchase(purchase); void trackGooglePurchase(purchase); };
     window.addEventListener('proveit-advertising-ready', track);
+    window.addEventListener('proveit-google-consent-recorded', track);
     window.dispatchEvent(new Event('proveit-purchase-verified'));
     track();
-    return () => { window.removeEventListener('proveit-advertising-ready', track); };
+    return () => { window.removeEventListener('proveit-advertising-ready', track); window.removeEventListener('proveit-google-consent-recorded', track); };
   }, [purchase]);
 
   return <div className={styles.page}>

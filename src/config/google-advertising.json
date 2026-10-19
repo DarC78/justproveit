@@ -1,0 +1,8 @@
+{
+  "customerDataConsentEnabled": false,
+  "purchaseEnabled": false,
+  "purchaseDestinationVerified": false,
+  "customerId": "1424642598",
+  "purchaseSendTo": null,
+  "consentEndpoint": "https://launchingstack-func-dev.azurewebsites.net/api/justproveit/public/google-advertising-consent"
+}

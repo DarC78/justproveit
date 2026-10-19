@@ -4,6 +4,11 @@ Addendum to `launchingstack-bani-uk-ai-campaign-spec.md`, 19 October 2026.
 Status: proposed integration contract, NOT enabled. No audience upload, event
 delivery, API credential change or email send is performed by this document.
 
+Google implementation update: see `google-advertising-frontend-readiness.md`
+and the supplied `launchingstack-google-backend-handover-2026-10-19.md`.
+Google frontend preparation now exists with all delivery switches off. The
+general Meta/TikTok visit API contract is still required from LaunchingStack.
+
 ## Desired behavior
 
 A person follows the Bani UK AI campaign CTA. The page displays immediately.
