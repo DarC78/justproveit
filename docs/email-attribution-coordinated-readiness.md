@@ -7,8 +7,10 @@ Migrations 133/134 are reported applied; handlers/workers are deployed. All new
 collection/delivery switches remain off. No campaign or vendor event was sent.
 
 Controlled pilot preparation: see `launchingstack-email-attribution-pilot-spec.md`.
-The frontend now has a separate digest-pinned, expiring pilot gate (off pending
-BE fixture token/isolation readiness) and static TikTok course content metadata.
+Following BE commit `a1bd5cd` and the owner's fixture readiness handoff, the
+separate digest-pinned pilot gate is armed until 19 October 2026, 18:35 UTC
+(19:35 BST). Browser acceptance remains pending. Static TikTok course content
+metadata uses content ID `bani-uk-ai`, matching the latest BE contract.
 General rollout and all new Google features remain disabled. The public visit
 body is unchanged; BE must mirror the TikTok metadata in its vendor adapter.
 

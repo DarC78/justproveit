@@ -36,7 +36,7 @@ test('attributed visit posts once across remounts; browser ViewContent IDs match
   assert.equal(body.eventId, h.meta[0][3].eventID); assert.equal(body.eventId, h.tiktok[0][2].event_id);
   assert.equal(h.meta[0][1], 'ViewContent'); assert.equal(h.tiktok[0][0], 'ViewContent');
   assert.deepEqual(h.tiktok[0][1], content);
-  assert.equal(h.tiktok[0][1].contents[0].content_id, 'bani-uk-ai-fondator');
+  assert.equal(h.tiktok[0][1].contents[0].content_id, 'bani-uk-ai');
   assert.equal(h.tiktok[0][1].value, undefined, 'a content view must not invent purchase value');
   assert.equal(body.content, undefined, 'public API body contract must remain unchanged');
   assert.deepEqual(body.consent, { choice: 'unknown', version: 'proveit-advertising-consent-v1', purposes: [] });

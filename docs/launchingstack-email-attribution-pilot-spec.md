@@ -6,8 +6,13 @@ It does not authorize enabling those workflows, bulk sends or live audiences.
 
 ## Current safe state and checks
 
-Frontend general `enabled` remains false. New `pilot.enabled` is false, with no
-token digest or expiry configured yet. Google consent, purchase and destination-
+Frontend general `enabled` remains false. Following the owner's BE readiness
+handoff for commit `a1bd5cd`, the isolated frontend pilot is armed for the supplied
+synthetic fixture digest only, until 19 October 2026 at 18:35 UTC / 19:35 BST.
+The frontend window ends before the backend expiry of 19:02:34 UTC. The raw token
+is not stored in tracked source. Browser acceptance remains pending: the browser
+connection failed during setup, and no valid-token request was submitted here.
+Google consent, purchase and destination-
 verified flags remain false. Server Google callback remains disabled. Existing
 anonymous site pixels are unchanged; no new Google enrichment is enabled.
 
@@ -21,6 +26,9 @@ Read-only Azure configuration check on 19 October 2026 found:
 Presence does not verify pixel permission, valid test codes or vendor receipts.
 No secret values were printed, copied to files or placed in frontend settings.
 No pilot request, email, platform event or database fixture has been created here.
+BE reports its separately created fixture is cancelled, inactive and has zero
+CRM contact matches; general collection remains off and both vendors are forced
+to test mode. These are supplied backend diagnostics, not browser acceptance.
 
 ## Frontend pilot isolation implemented
 
@@ -72,9 +80,9 @@ the portable bundle: `api/shared/email-attribution-content.json`.
 ```json
 {
   "content_type": "product",
-  "content_ids": ["bani-uk-ai-fondator"],
+  "content_ids": ["bani-uk-ai"],
   "contents": [{
-    "content_id": "bani-uk-ai-fondator",
+    "content_id": "bani-uk-ai",
     "content_name": "Bani în UK cu AI – Ediția fondatorilor",
     "quantity": 1
   }],
