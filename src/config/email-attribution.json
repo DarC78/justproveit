@@ -1,10 +1,10 @@
 {
-  "enabled": false,
+  "enabled": true,
   "pilot": {
-    "enabled": true,
-    "tokenSha256": "75223aeda4c18d415abf2cbf6239672d01705ae2d38c9d4f45f692ecf52fd8fc",
-    "preparedAt": "2026-10-19T20:31:44.912Z",
-    "expiresAt": "2026-10-19T21:01:04.987Z"
+    "enabled": false,
+    "tokenSha256": null,
+    "preparedAt": null,
+    "expiresAt": null
   },
   "campaignKey": "CRM_PROMO_BANI_UK_AI_1",
   "endpoint": "https://launchingstack-func-dev.azurewebsites.net/api/justproveit/public/email-campaign-visits"
