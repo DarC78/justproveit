@@ -24,8 +24,8 @@ owner's operational checks below.
   VTIMEZONE and one-hour VALARMs, folded at 75 UTF-8 octets. Google Calendar
   button creates session one; the .ics contains all four.
 - `/api/bani-uk-ai/verify` accepts POST `{sessionId}` and retrieves the session
-  server-side. Only the exact Proveit Payment Link, live, complete, paid, positive
-  integer GBP amounts qualify. It returns the real paid amount and email status;
+  server-side. Only the exact Proveit Payment Link, live, complete, paid (or no payment required at zero), non-negative
+  integer GBP amounts qualify. Fully discounted checkouts receive onboarding too. It returns the real paid amount and email status;
   never customer details or the Stripe object. Responses are non-cacheable.
 - `/api/bani-uk-ai/webhook`: signed raw-body Stripe events, 300-second tolerance,
   live session re-verification. Handles completed and async-payment-succeeded.

@@ -12,7 +12,7 @@ async function stripe(path, options = {}) {
   return response.json();
 }
 function paidCourseSession(session) {
-  return session.payment_link === course.paymentLinkId && session.status === 'complete' && session.mode === 'payment' && session.payment_status === 'paid' && session.currency === 'gbp' && Number.isSafeInteger(session.amount_total) && session.amount_total > 0 && /^cs_(live|test)_[A-Za-z0-9]+$/.test(session.id || '') && session.livemode === (process.env.BANI_UK_AI_STRIPE_TEST_MODE !== 'true');
+  return session.payment_link === course.paymentLinkId && session.status === 'complete' && session.mode === 'payment' && (session.payment_status === 'paid' || (session.payment_status === 'no_payment_required' && session.amount_total === 0)) && session.currency === 'gbp' && Number.isSafeInteger(session.amount_total) && session.amount_total >= 0 && /^cs_(live|test)_[A-Za-z0-9]+$/.test(session.id || '') && session.livemode === (process.env.BANI_UK_AI_STRIPE_TEST_MODE !== 'true');
 }
 async function table() {
   if (!process.env.BANI_UK_AI_STORAGE_CONNECTION) throw new Error('Course storage configuration unavailable');
@@ -72,7 +72,7 @@ async function webhook(context, req) {
   if (!validSignature(raw, req.headers?.['stripe-signature'], process.env.BANI_UK_AI_WEBHOOK_SECRET)) { context.res = json(400, { error: 'Invalid signature' }); return; }
   try {
     const event = JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : raw);
-    if (!['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type) || event.data?.object?.payment_link !== course.paymentLinkId || event.data.object.payment_status !== 'paid') { context.res = json(200, { ignored: true }); return; }
+    if (!['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type) || event.data?.object?.payment_link !== course.paymentLinkId || !['paid', 'no_payment_required'].includes(event.data.object.payment_status)) { context.res = json(200, { ignored: true }); return; }
     const session = await stripe(`/checkout/sessions/${encodeURIComponent(event.data.object.id)}`);
     if (!paidCourseSession(session)) { context.res = json(200, { ignored: true }); return; }
     const client = await table();

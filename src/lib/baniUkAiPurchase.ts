@@ -9,7 +9,7 @@ const queuedThisDocument = new Set<string>();
 export function validPurchase(value: unknown): value is VerifiedCoursePurchase {
   if (!value || typeof value !== "object") return false;
   const p = value as VerifiedCoursePurchase;
-  return p.paid === true && /^cs_(live|test)_[A-Za-z0-9]{10,200}$/.test(p.sessionId) && Number.isFinite(p.value) && p.value > 0 && p.currency === "GBP";
+  return p.paid === true && /^cs_(live|test)_[A-Za-z0-9]{10,200}$/.test(p.sessionId) && Number.isFinite(p.value) && p.value >= 0 && p.currency === "GBP";
 }
 export function trackVerifiedCoursePurchase(purchase: VerifiedCoursePurchase) {
   if (!validPurchase(purchase)) return;

@@ -12,7 +12,10 @@ const paid = { id: 'cs_live_synthetic1234567890', payment_link: course.paymentLi
 
 test('only paid, complete GBP sessions from the exact live course link qualify', () => {
   assert.equal(paidCourseSession(paid), true);
-  for (const patch of [{ payment_status: 'unpaid' }, { payment_link: 'plink_other' }, { status: 'open' }, { amount_total: 0 }, { amount_total: '3900' }, { currency: 'eur' }, { livemode: false }, { mode: 'subscription' }, { id: 'fake' }]) assert.equal(paidCourseSession({ ...paid, ...patch }), false, JSON.stringify(patch));
+  assert.equal(paidCourseSession({ ...paid, amount_total: 0 }), true);
+  assert.equal(paidCourseSession({ ...paid, amount_total: 0, payment_status: 'no_payment_required' }), true);
+  assert.equal(paidCourseSession({ ...paid, payment_status: 'no_payment_required' }), false);
+  for (const patch of [{ payment_status: 'unpaid' }, { payment_link: 'plink_other' }, { status: 'open' }, { amount_total: -1 }, { amount_total: '3900' }, { currency: 'eur' }, { livemode: false }, { mode: 'subscription' }, { id: 'fake' }]) assert.equal(paidCourseSession({ ...paid, ...patch }), false, JSON.stringify(patch));
 });
 test('webhook signatures reject changes, missing secrets and replayed timestamps', () => {
   const raw = JSON.stringify({ type: 'checkout.session.completed' });
