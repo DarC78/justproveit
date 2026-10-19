@@ -12,19 +12,39 @@
   "zoomNote": "Linkul Zoom îl primești pe e-mail și pe WhatsApp înainte de fiecare sesiune.",
   "supportEmail": "adriandefta@proveitweb.co.uk",
   "sessions": [
-    { "date": "2026-11-03", "title": "Verificări cu AI", "detail": "Bonusuri bancare, taxa de consiliu și pensii private pierdute" },
-    { "date": "2026-11-10", "title": "Bonusuri de la bănci", "detail": "Bonusuri de £150–£250 de la bănci" },
-    { "date": "2026-11-17", "title": "Încă 6 modalități", "detail": "Încă 6 modalități de a câștiga bani cu AI" },
-    { "date": "2026-11-24", "title": "Sistemul tău pentru tot anul", "detail": "O rutină simplă, prompturi și organizare" }
+    {
+      "date": "2026-11-03",
+      "title": "Verificări cu AI",
+      "detail": "Bonusuri bancare, taxa de consiliu și pensii private pierdute"
+    },
+    {
+      "date": "2026-11-10",
+      "title": "Bonusuri de la bănci",
+      "detail": "Bonusuri de £150–£250 de la bănci"
+    },
+    {
+      "date": "2026-11-17",
+      "title": "Încă 6 modalități",
+      "detail": "Încă 6 modalități de a câștiga bani cu AI"
+    },
+    {
+      "date": "2026-11-24",
+      "title": "Sistemul tău pentru tot anul",
+      "detail": "O rutină simplă, prompturi și organizare"
+    }
   ],
   "preparation": [
     "Instalează o aplicație AI gratuită pe telefon sau calculator, de exemplu ChatGPT, Claude sau Gemini. Nu ai nevoie de abonament plătit.",
-    "Verifică dacă poți intra în contul tău HMRC, prin aplicația HMRC sau gov.uk. Nu ne trimite datele de autentificare.",
-    "Găsește ultima factură de Council Tax.",
-    "Notează angajatorii pe care i-ai avut în UK, așa cum ți-i amintești.",
     "Nu deschide încă niciun cont nou de bancă. Facem asta împreună, pas cu pas, în sesiunea 2."
   ],
   "safety": "Nu introduce niciodată în AI parole, coduri de autentificare, numărul de National Insurance, numere complete de cont sau documente neanonimizate. În sesiunea 1 îți arătăm cum ascunzi datele personale.",
   "guarantee": "Dacă participi la sesiuni sau urmărești înregistrările, aplici pașii și în 90 de zile de la prima sesiune, până la 1 februarie 2027, nu ai primit cel puțin £39 din bonusuri și cashback, îți returnăm integral prețul cursului. Garanția acoperă taxa de £39 și nu reprezintă o promisiune de câștig de £1.000. Este separată de drepturile tale legale de anulare și nu le limitează.",
-  "cancellation": "Poți anula înscrierea în termen de 14 zile de la cumpărare, fără să precizezi un motiv. Trimite o declarație clară la adriandefta@proveitweb.co.uk, cu numele tău, data cumpărării și referința plății. Poți folosi formularul de anulare de mai jos, dar nu este obligatoriu. Îți rambursăm plata prin aceeași metodă, fără comision, în cel mult 14 zile de la primirea cererii. Nu presupunem că ai renunțat la dreptul de anulare prin simpla înscriere în grup sau prin vizitarea acestei pagini. Garanția de 90 de zile este suplimentară și nu limitează drepturile tale legale."
+  "cancellation": "Poți anula înscrierea până la data de 3 noiembrie, când începe cursul, fără să precizezi un motiv. Trimite o declarație clară la adriandefta@proveitweb.co.uk, cu numele tău, data cumpărării și referința plății. Poți folosi formularul de anulare de mai jos, dar nu este obligatoriu. Îți rambursăm plata prin aceeași metodă, fără comision, în cel mult 14 zile de la primirea cererii. Nu presupunem că ai renunțat la dreptul de anulare prin simpla înscriere în grup sau prin vizitarea acestei pagini. Garanția de 90 de zile este suplimentară și nu limitează drepturile tale legale.",
+  "optionalPreparation": [
+    "Verifică dacă poți intra în contul tău HMRC, prin aplicația HMRC sau gov.uk. Nu ne trimite datele de autentificare.",
+    "Găsește ultima factură de Council Tax.",
+    "Găsește ultima factură de utilități (energie, internet, mobil).",
+    "Găsește ultimul extras de cont de la bancă.",
+    "Notează angajatorii pe care i-ai avut în UK, așa cum ți-i amintești."
+  ]
 }
