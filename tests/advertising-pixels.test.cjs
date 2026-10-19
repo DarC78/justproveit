@@ -102,7 +102,8 @@ test('UI loads bootstrap immediately, retains choice controls and revokes/reload
   let cursor = 0, stored = null, reloads = 0, revoked = 0;
   const storage = { getItem: () => stored, setItem: (_, value) => { stored = value; } };
   const router = { pathname: '/bani-uk-ai', asPath: '/bani-uk-ai/', events: { on() {}, off() {} } };
-  const window = { location: { href: 'https://www.justproveit.co.uk/bani-uk-ai/', reload: () => reloads++ }, addEventListener() {}, removeEventListener() {} };
+  const choices = [];
+  const window = { location: { href: 'https://www.justproveit.co.uk/bani-uk-ai/', reload: () => reloads++ }, addEventListener() {}, removeEventListener() {}, dispatchEvent: event => choices.push(event) };
   const document = { cookie: '', getElementById: id => scripts.find(s => s.id === id), createElement: () => ({}), head: { appendChild: s => scripts.push(s) } };
   const exports = {};
   const element = (type, props) => ({ type, props });
@@ -119,7 +120,7 @@ test('UI loads bootstrap immediately, retains choice controls and revokes/reload
   };
   vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/components/AdvertisingConsent.tsx', 'utf8'), {
     compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017, jsx: ts.JsxEmit.ReactJSX },
-  }).outputText, { exports, require: name => modules[name], window, document, localStorage: storage, Date, Set });
+  }).outputText, { exports, require: name => modules[name], window, document, localStorage: storage, Date, Set, CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } } });
   const render = () => { cursor = 0; return exports.default(); };
   assert.equal(render(), null);
   effects.splice(0).forEach(fn => fn());
@@ -141,6 +142,8 @@ test('UI loads bootstrap immediately, retains choice controls and revokes/reload
   window.proveitAdvertising = { revoke: () => revoked++ };
   reject.props.onClick();
   assert.equal(JSON.parse(stored).value, 'denied');
+  assert.ok(Number.isFinite(Date.parse(JSON.parse(stored).at)));
+  assert.equal(choices.at(-1).detail.value, 'denied');
   assert.equal(revoked, 1);
   assert.equal(reloads, 1);
 });

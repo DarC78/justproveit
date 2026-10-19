@@ -5,6 +5,13 @@ import { rewriteEmailLinks } from './proveit-email-links.mjs';
 const sourceConfig = JSON.parse(fs.readFileSync(new URL('../../email-templates/proveit/bani-uk-ai-01.json', import.meta.url), 'utf8'));
 const shell = fs.readFileSync(new URL('../../email-templates/proveit/base.html', import.meta.url), 'utf8');
 
+// Store in app.EmailOutbox.PayloadJson, not the Resend request. Without an
+// explicit recipientId the backend binds the outbox UUID.
+export function emailCampaignMetadata(recipientId) {
+  if (recipientId !== undefined && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(recipientId)) throw new Error('Campaign recipient ID must be a lowercase UUID');
+  return { emailCampaign: { campaignKey: 'CRM_PROMO_BANI_UK_AI_1', ...(recipientId === undefined ? {} : { recipientId }) } };
+}
+
 // Pure rendering only: never sends, schedules or writes recipient payloads.
 export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl = null, mode = 'campaign' } = {}) {
   if (!['campaign', 'test', 'preview'].includes(mode)) throw new Error('Invalid rendering mode');
@@ -66,5 +73,5 @@ export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl 
   
   return { from: config.from, reply_to: config.replyTo, subject, html, text,
     ...(final ? { headers: { 'List-Unsubscribe': '<' + unsubscribeUrl + '>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } } : {}),
-    tags: [{ name: 'campaign', value: 'bani-uk-ai-2026-10' }, { name: 'template', value: config.templateKey }] };
+    tags: [{ name: 'campaign', value: 'CRM_PROMO_BANI_UK_AI_1' }, { name: 'template', value: config.templateKey }] };
 }

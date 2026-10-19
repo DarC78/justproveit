@@ -61,9 +61,11 @@ export default function AdvertisingConsent() {
   }, [router]);
 
   function choose(value: Choice) {
+    const at = new Date().toISOString();
     // If storage is unavailable, do not turn on tracking without a usable record.
-    try { localStorage.setItem(KEY, JSON.stringify({ value, expires: Date.now() + 180 * 86400000 })); }
+    try { localStorage.setItem(KEY, JSON.stringify({ value, at, expires: Date.now() + 180 * 86400000 })); }
     catch {
+      window.dispatchEvent(new CustomEvent('proveit-advertising-choice', { detail: { value: 'denied', at } }));
       setChoice("denied"); setOpen(false);
       if ((window as AdvertisingWindow).proveitAdvertising) {
         (window as AdvertisingWindow).proveitAdvertising?.revoke();
@@ -73,6 +75,8 @@ export default function AdvertisingConsent() {
     }
     setChoice(value);
     setOpen(false);
+    // Notify before revoke/reload; the visit collector uses a keepalive refusal POST.
+    window.dispatchEvent(new CustomEvent('proveit-advertising-choice', { detail: { value, at } }));
     if (value === "granted") loadPixels();
     else {
       (window as AdvertisingWindow).proveitAdvertising?.revoke();

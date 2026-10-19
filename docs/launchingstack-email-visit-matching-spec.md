@@ -7,7 +7,11 @@ delivery, API credential change or email send is performed by this document.
 Google implementation update: see `google-advertising-frontend-readiness.md`
 and the supplied `launchingstack-google-backend-handover-2026-10-19.md`.
 Google frontend preparation now exists with all delivery switches off. The
-general Meta/TikTok visit API contract is still required from LaunchingStack.
+general Meta/TikTok contract was subsequently supplied and is implemented behind
+a separate disabled frontend switch. The original explicit-only policy proposal
+below is superseded by the owner's later not-denied backend policy; frontend
+reports actual choice/unknown and never invents customer-data permission. See
+`email-attribution-coordinated-readiness.md` for the current integration state.
 
 ## Desired behavior
 

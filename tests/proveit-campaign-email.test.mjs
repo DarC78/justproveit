@@ -1,6 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { renderProveitCampaignEmail as render } from '../scripts/lib/proveit-campaign-email.mjs';
+import { renderProveitCampaignEmail as render, emailCampaignMetadata } from '../scripts/lib/proveit-campaign-email.mjs';
+
+test('outbox metadata uses the deployed campaign key and validates recipient binding', () => {
+  const recipientId = '82357f01-1148-4f4f-8061-2cde5b6e5b61';
+  assert.deepEqual(emailCampaignMetadata(recipientId), { emailCampaign: { campaignKey: 'CRM_PROMO_BANI_UK_AI_1', recipientId } });
+  assert.deepEqual(emailCampaignMetadata(), { emailCampaign: { campaignKey: 'CRM_PROMO_BANI_UK_AI_1' } });
+  assert.throws(() => emailCampaignMetadata('person@example.test'), /UUID/);
+});
 
 const unsubscribeUrl = 'https://send.justproveit.co.uk/unsubscribe?token=fixture-only&campaign=bani-uk-ai';
 test('campaign rendering requires an approved unsubscribe URL and rejects unsafe input', () => {
@@ -12,6 +19,7 @@ test('campaign rendering requires an approved unsubscribe URL and rejects unsafe
 });
 test('each campaign render has recipient-specific subject, unsubscribe and no test recipient', () => {
   const ana = render({ recipientName: 'Ana', unsubscribeUrl });
+  assert.equal(ana.tags.find(tag => tag.name === 'campaign').value, 'CRM_PROMO_BANI_UK_AI_1');
   const ionUrl = unsubscribeUrl.replace('fixture-only', 'second-fixture');
   const ion = render({ recipientName: 'Ion', unsubscribeUrl: ionUrl });
   assert.ok(ana.subject.startsWith('Ana, '));

@@ -3,6 +3,6 @@
   "purchaseEnabled": false,
   "purchaseDestinationVerified": false,
   "customerId": "1424642598",
-  "purchaseSendTo": null,
+  "purchaseSendTo": "AW-17883073327/k4UsCLO2tqIdEK-WqM9C",
   "consentEndpoint": "https://launchingstack-func-dev.azurewebsites.net/api/justproveit/public/google-advertising-consent"
 }

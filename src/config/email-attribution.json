@@ -1,0 +1,5 @@
+{
+  "enabled": false,
+  "campaignKey": "CRM_PROMO_BANI_UK_AI_1",
+  "endpoint": "https://launchingstack-func-dev.azurewebsites.net/api/justproveit/public/email-campaign-visits"
+}

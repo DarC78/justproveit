@@ -1,7 +1,11 @@
 # Google handover: JustProveIt implementation and activation checklist
 
 Source: `launchingstack-google-backend-handover-2026-10-19.md` supplied by owner.
-The source explicitly says backend not deployed, migrations 133/134 not applied.
+Deployment update: the owner subsequently confirmed backend source commit
+`ee19c09fcb6409e52ca4f3899df04a683eff4f04`, workflow run 39272127868 and
+migrations 133/134 applied on 19 October. This supersedes the source document's
+earlier not-deployed status. Collection flags and campaign readiness are still
+off; generic 202 responses do not prove persistence or vendor delivery.
 This website change prepares integration; it does NOT enable customer uploads,
 create Google audiences, configure account actions or send the email campaign.
 
@@ -46,18 +50,20 @@ create Google audiences, configure account actions or send the email campaign.
   "purchaseEnabled": false,
   "purchaseDestinationVerified": false,
   "customerId": "1424642598",
-  "purchaseSendTo": null,
+  "purchaseSendTo": "AW-17883073327/k4UsCLO2tqIdEK-WqM9C",
   "consentEndpoint": "https://launchingstack-func-dev.azurewebsites.net/api/justproveit/public/google-advertising-consent"
 }
 ```
 
-The endpoint is taken from the handover, not a claim that it is deployed. The
-browser sends Origin www/apex justproveit; backend CORS must support POST and the
-Content-Type preflight from both. Do not place function keys in this JSON.
+Public endpoints are deployed. Live non-mutating OPTIONS checks confirmed 204,
+www.justproveit.co.uk origin and POST for both consent and visits. No actual
+token was submitted and no collector was enabled. Do not place function keys in
+this JSON. Backend flags remain false; no callback producer is registered.
 
-Fill purchaseSendTo only after the Ads team verifies the correct `AW-.../label`
-destination belongs to the intended account/action. Never derive it from customer
-ID 1424642598 or silently reuse AW-11386018124. Keep PURCHASE_TAG_READY false in
+The supplied destination is now configured; browser verification remains false.
+Google audience 9490685374 and purchase action 7856823091 are configured in the
+backend according to the deployment handoff. Do not alter unrelated
+AW-11386018124 or derive a tag from customer ID 1424642598. Keep PURCHASE_TAG_READY false in
 LaunchingStack until an owner-authorized real browser test proves that action,
 actual amount and shared transaction ID. Browser and backend event deduplication
 must be verified in Google diagnostics before production activation.
@@ -98,16 +104,18 @@ by this website change. No old events were replayed or uploaded.
 
 ## Required return from LaunchingStack/account team
 
-1. Deployed build and successful migrations 133 then 134; enabled/disabled state
-   reported through their tenant-admin readiness endpoint.
+1. Deployed build and migrations are reported complete; now confirm coordinated
+   collection-only activation through the tenant-admin readiness endpoint.
 2. Confirm public consent endpoint/CORS and internal callback success contract.
 3. A valid non-PII test token, with actual permitted test association and expiry.
-4. Verified Google customer-list numeric ID/type, accepted terms, account OAuth
-   configuration, and exact website purchase action + browser AW/label.
-5. Original Meta/TikTok email-visit API handover (this Google-only document does
-   not specify the earlier visit endpoint/body/token issuance details). Consent
-   POST alone is not a campaign visit and must not be counted as one. General
-   email-visit matching remains unconnected until that contract is supplied.
+4. IDs and OAuth configuration are reported provisioned. Terms flag is still
+   false; Google destination permissions/validateOnly and browser receipt/action
+   verification remain outstanding before any activation.
+5. The Meta/TikTok visit contract has now been supplied and implemented in
+   `src/lib/emailCampaignVisit.ts`, controlled by the separate disabled
+   `src/config/email-attribution.json` switch. See
+   `email-attribution-coordinated-readiness.md` for details and pilot gates.
+   Consent POST and visit POST remain separate; neither generic 202 proves a job.
 
 Frontend source can now be deployed dormant. Do not put `ec` links into a live
 campaign until actual visit registration/token contract and consent integration

@@ -8,6 +8,12 @@ Additional requested feature: see
 for asynchronous token-based CRM resolution and eligible server-side matching.
 That feature is specified separately and is not yet enabled.
 
+Backend visit integration update: the owner supplied the deployed contract for
+`CRM_PROMO_BANI_UK_AI_1`. See `email-attribution-coordinated-readiness.md`.
+When staging outbox messages, use the bundle's `emailCampaignMetadata(recipientId)`
+export to stamp `PayloadJson.emailCampaign`; this DB-only metadata must not be
+passed as an extra Resend API field. Collection and delivery remain disabled.
+
 ## Outcome and ownership
 
 Adrian needs a report for each recipient AND template: delivery, observed opens,
@@ -27,7 +33,7 @@ names below; repository file paths were not inspected or guessed.
 | Item | Value |
 | --- | --- |
 | Tenant | `justproveit` / `11B93F34-CB3D-46F5-8FD9-7B941CBCFE19` |
-| Campaign key | `bani-uk-ai-2026-10` |
+| Campaign key | `CRM_PROMO_BANI_UK_AI_1` |
 | Template key | `ro-bani-uk-ai-email-01` |
 | Snapshot table | `wix.ozLeadsBanks1910` |
 | Historical snapshot size | 28,105 distinct emails |
@@ -210,9 +216,9 @@ response without revealing whether an email is in the audience.
 Provide tenant-authorized, paginated recipient/template reporting using existing
 admin conventions; suggested new endpoints (not implemented in JustProveIt):
 
-- GET `/justproveit/admin/email-campaigns/bani-uk-ai-2026-10/summary`
-- GET `/justproveit/admin/email-campaigns/bani-uk-ai-2026-10/recipients`
-- GET `/justproveit/admin/email-campaigns/bani-uk-ai-2026-10/recipients/{id}/events`
+- GET `/justproveit/admin/email-campaigns/CRM_PROMO_BANI_UK_AI_1/summary`
+- GET `/justproveit/admin/email-campaigns/CRM_PROMO_BANI_UK_AI_1/recipients`
+- GET `/justproveit/admin/email-campaigns/CRM_PROMO_BANI_UK_AI_1/recipients/{id}/events`
 
 Filters: email search, template key/version, segment, delivery status, opened,
 clicked, clicked link ID, date range, test/live. Return email, template/version,

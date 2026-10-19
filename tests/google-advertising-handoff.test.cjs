@@ -5,9 +5,17 @@ const vm = require('node:vm');
 const ts = require('typescript');
 const crypto = require('node:crypto');
 const capture = fs.readFileSync('public/email-attribution.js', 'utf8');
+test('deployed backend destination is pinned while coordinated activation remains off', () => {
+  const config = require('../src/config/google-advertising.json');
+  assert.equal(config.customerId, '1424642598');
+  assert.equal(config.purchaseSendTo, 'AW-17883073327/k4UsCLO2tqIdEK-WqM9C');
+  assert.equal(config.customerDataConsentEnabled, false);
+  assert.equal(config.purchaseEnabled, false);
+  assert.equal(config.purchaseDestinationVerified, false, 'browser/vendor verification is still outstanding');
+});
 function landing(path) {
   const metas = [];
-  const w = { location: { href: 'https://www.justproveit.co.uk' + path }, history: { state: {}, replaceState: (_, __, url) => { w.clean = url; } } };
+  const w = { crypto: crypto.webcrypto, location: { href: 'https://www.justproveit.co.uk' + path }, history: { state: {}, replaceState: (_, __, url) => { w.clean = url; } } };
   vm.runInNewContext(capture, { window: w, document: { createElement: () => ({}), head: { appendChild: meta => metas.push(meta) } }, URL });
   return { w, metas };
 }
@@ -15,6 +23,8 @@ test('ec is cleaned before analytics; only a single valid landing token is retai
   const token = 'a'.repeat(43);
   const valid = landing('/bani-uk-ai/?ec=' + token + '&utm_source=email#offer');
   assert.equal(valid.w.proveitEmailToken, token);
+  assert.match(valid.w.proveitEmailAttribution.eventId, /^[0-9a-f-]{36}$/);
+  assert.notEqual(valid.w.proveitEmailAttribution.eventId, valid.w.proveitEmailAttribution.visitId);
   assert.equal(valid.w.clean, '/bani-uk-ai/?utm_source=email#offer');
   assert.equal(valid.metas[0].content, 'no-referrer');
   for (const path of ['/admin?ec=' + token, '/bani-uk-multumim/?ec=' + token, '/bani-uk-ai/?ec=invalid', '/bani-uk-ai/?ec=' + token + '&ec=' + token]) {
