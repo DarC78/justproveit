@@ -33,13 +33,23 @@ Public asset path: `/email-assets/bani-uk-ai/`. Assets must be deployed through 
 
 ## Rendering and sending
 
+Campaign preparation update (19 October 2026): the renderer is now reusable as
+`renderProveitCampaignEmail` in `scripts/lib/proveit-campaign-email.mjs`.
+Campaign mode requires a real per-recipient unsubscribe URL and returns
+personalized content plus List-Unsubscribe headers, never a recipient or send
+operation. CLI `--final --unsubscribe-url URL --name NAME` exports HTML/text
+only; only `--test` creates the guarded owner-test Resend payload. It does not
+register or activate a campaign. See
+[the LaunchingStack campaign spec](launchingstack-bani-uk-ai-campaign-spec.md)
+and run `node scripts/export-bani-uk-ai-campaign.mjs` for the portable bundle.
+
 ```text
 node scripts/render-proveit-email.mjs
 node scripts/render-proveit-email.mjs --test
 node scripts/render-proveit-email.mjs --final
 ```
 
-`--test` generates a Resend payload for the owner's address. `--final` additionally requires the campaign system's actual unsubscribe URL. No campaign audience, sequence or scheduled send is implemented or authorized here. The P.S. says “Mâine”, matching the source's intended Monday 19 October send; review that text if sending the campaign on another date.
+`--test` generates a Resend payload for the owner's address. `--final` requires the campaign system's actual unsubscribe URL through `--unsubscribe-url`. No campaign sequence or scheduled send is implemented or authorized here. The audience snapshot is now `wix.ozLeadsBanks1910`; membership is not sending authorization. The P.S. says “Mâine”, matching the source's intended Monday 19 October send; review that text if sending the campaign on another date.
 
 The Azure Function App's existing credential is named **ResendApiKey**, not RESEND_API_KEY. The test sender reads that setting and RESEND_FROM_EMAIL into memory through the existing Azure CLI session and uses the same Resend account and sender (`Adrian Defta <adrian@mail.justproveit.co.uk>`). Credentials are never logged, written to disk, placed in command-line arguments or committed. No backend code change or template registration is needed for this one-off provider send. A separate backend-team change is still needed if this template is to be added to the CRM's registered manual-email picker later.
 

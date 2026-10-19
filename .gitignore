@@ -46,6 +46,9 @@ next-dev.*.log
 /artifacts/email/*-metrics.json
 /artifacts/email/*-tracking-status.json
 
+# Reproducible integration bundles; generate with export-bani-uk-ai-campaign.mjs
+/artifacts/campaigns/
+
 # env files (can opt-in for committing if needed)
 .env*
 local.setting.json
