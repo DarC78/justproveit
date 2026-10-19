@@ -6,12 +6,13 @@ It does not authorize enabling those workflows, bulk sends or live audiences.
 
 ## Current safe state and checks
 
-Frontend general `enabled` remains false. Following the owner's BE readiness
-handoff for commit `a1bd5cd`, the isolated frontend pilot is armed for the supplied
-synthetic fixture digest only, until 19 October 2026 at 18:35 UTC / 19:35 BST.
-The frontend window ends before the backend expiry of 19:02:34 UTC. The raw token
-is not stored in tracked source. Browser acceptance remains pending: the browser
-connection failed during setup, and no valid-token request was submitted here.
+Frontend general `enabled` remains false. The previous frontend window expired
+on 19 October 2026 at 18:35 UTC / 19:35 BST. Its digest and timestamps have been
+cleared and `pilot.enabled` reset to false. The owner reports BE's pilot is
+paused and Meta's control receipt is confirmed after a domain change. This
+receipt does not establish browser/server deduplication. A fresh window awaits
+a resumed, isolated BE fixture and a newly supplied valid token/expiry.
+The raw token is not stored in tracked source. Browser acceptance remains pending.
 Google consent, purchase and destination-
 verified flags remain false. Server Google callback remains disabled. Existing
 anonymous site pixels are unchanged; no new Google enrichment is enabled.
@@ -149,6 +150,26 @@ fixture token, cancel pending fixture jobs, and retain only approved diagnostics
 Do not alter the permanent audience snapshot or re-subscribe any contact.
 
 ## Evidence required from the real pilot
+
+### Fresh-window coordination
+
+1. BE resumes only the synthetic pilot and supplies the current token, UTC
+   expiry and refreshed readiness diagnostics. Confirm the cancelled fixture,
+   inactive template, zero CRM matches, pinned worker isolation and forced
+   vendor test codes still apply. Keep general collection/campaign and Google off.
+2. Reconfirm the approved landing origin and Meta dataset after the reported
+   domain change; keep the query-free browser/server source URL consistent.
+   Do not infer a new domain or change pixel IDs from the control receipt.
+3. Arm the frontend using the existing stdin preparation command, a window of
+   at most 60 minutes and no later than BE expiry. Allow time for GitHub deployment;
+   verify the deployed digest and expiry before the owner opens the private link.
+4. Record the first actual browser visit's shared ViewContent event ID. BE must
+   return sanitized vendor receipts bearing that same ID and event name for
+   the same dataset/pixel. Verify actual vendor deduplication separately for
+   Meta and TikTok; a prior standalone server control event is not this evidence.
+5. Keep results per platform (browser observed, server accepted, dedup verified
+   or still pending). Do not mark the pilot complete while either dedup check
+   is missing. Disarm the frontend and pause BE again after evidence collection.
 
 Use two separate synthetic fixture tokens if refusal permanently withdraws the
 first fixture. Do not override a withdrawal simply to continue testing.
