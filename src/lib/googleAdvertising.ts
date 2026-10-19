@@ -5,22 +5,39 @@ export const GOOGLE_CONSENT_KEY = 'proveit-google-customer-data-consent-v1';
 const config: { customerDataConsentEnabled: boolean; purchaseEnabled: boolean; purchaseDestinationVerified: boolean; purchaseSendTo: string | null; consentEndpoint: string } = sourceConfig;
 export type GoogleChoice = { adUserData: 'granted' | 'denied'; adPersonalization: 'granted' | 'denied'; version: 'google-customer-data-v1'; at: string };
 type GoogleWindow = Window & { proveitEmailToken?: string; dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void };
+let sessionChoice: GoogleChoice | null = null;
+function usableChoice(value: unknown): GoogleChoice | null {
+  if (!value || typeof value !== 'object') return null;
+  const choice = value as GoogleChoice;
+  if (choice.version !== 'google-customer-data-v1' || typeof choice.at !== 'string' || !Number.isFinite(Date.parse(choice.at)) || Date.now() - Date.parse(choice.at) > 180 * 86400000 || Date.parse(choice.at) > Date.now() + 60000) return null;
+  return ['granted', 'denied'].includes(choice.adUserData) && ['granted', 'denied'].includes(choice.adPersonalization) ? choice : null;
+}
 export function readGoogleChoice(): GoogleChoice | null {
+  let stored: GoogleChoice | null = null;
   try {
-    const value = JSON.parse(localStorage.getItem(GOOGLE_CONSENT_KEY) || 'null');
-    if (value?.version !== 'google-customer-data-v1' || !Number.isFinite(Date.parse(value.at)) || Date.now() - Date.parse(value.at) > 180 * 86400000 || Date.parse(value.at) > Date.now() + 60000) return null;
-    return ['granted', 'denied'].includes(value.adUserData) && ['granted', 'denied'].includes(value.adPersonalization) ? value : null;
-  } catch { return null; }
+    stored = usableChoice(JSON.parse(localStorage.getItem(GOOGLE_CONSENT_KEY) || 'null'));
+  } catch { /* The in-memory choice still applies when storage is unavailable. */ }
+  const memory = usableChoice(sessionChoice);
+  if (!memory || !stored) return memory || stored;
+  const latest = Date.parse(memory.at) >= Date.parse(stored.at) ? memory : stored;
+  // A stale stored grant must not undo a refusal which could not be persisted.
+  return { ...latest,
+    adUserData: memory.adUserData === 'denied' || stored.adUserData === 'denied' ? 'denied' : 'granted',
+    adPersonalization: memory.adPersonalization === 'denied' || stored.adPersonalization === 'denied' ? 'denied' : 'granted',
+  };
 }
 export async function saveGoogleChoice(choice: GoogleChoice, token: string) {
   if (!config.customerDataConsentEnabled || !/^[A-Za-z0-9_-]{43}$/.test(token)) throw new Error('Google customer matching is unavailable');
   // Persist a refusal even when the network fails; never silently replace it.
   const previous = readGoogleChoice();
   if ((previous?.adUserData === 'denied' && choice.adUserData === 'granted') || (previous?.adPersonalization === 'denied' && choice.adPersonalization === 'granted')) throw new Error('Verified re-consent is required');
-  localStorage.setItem(GOOGLE_CONSENT_KEY, JSON.stringify(choice));
+  sessionChoice = { ...choice };
+  try { localStorage.setItem(GOOGLE_CONSENT_KEY, JSON.stringify(choice)); }
+  catch { /* Storage failure cannot prevent token-bound refusal delivery. */ }
   const w = window as GoogleWindow;
-  w.gtag?.('consent', 'update', { ad_user_data: choice.adUserData, ad_personalization: choice.adPersonalization });
-  const response = await fetch(config.consentEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, ...choice }), credentials: 'omit', referrerPolicy: 'no-referrer', signal: AbortSignal.timeout(8000) });
+  try { w.gtag?.('consent', 'update', { ad_user_data: choice.adUserData, ad_personalization: choice.adPersonalization }); }
+  catch { /* A vendor SDK failure must not block the server choice either. */ }
+  const response = await fetch(config.consentEndpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token, ...choice }), cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer', keepalive: true, signal: AbortSignal.timeout(8000) });
   if (response.status !== 202) throw new Error('Could not record Google choice');
   window.dispatchEvent(new Event('proveit-google-consent-recorded'));
 }

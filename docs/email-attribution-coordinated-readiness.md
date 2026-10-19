@@ -6,6 +6,12 @@ Backend handover supplied by owner, 19 October 2026: commit
 Migrations 133/134 are reported applied; handlers/workers are deployed. All new
 collection/delivery switches remain off. No campaign or vendor event was sent.
 
+Backend review follow-up: the requested Google storage-failure correction is
+implemented with in-memory refusal protection and independent POST delivery.
+The dedicated callback key was installed directly from Azure into the website's
+protected server settings and verified; callback enabled remains false. No
+sibling repository private file was read. No Stripe producer was registered.
+
 ## Implemented in JustProveIt
 
 `src/config/email-attribution.json` deliberately has `enabled: false`, campaign
@@ -92,7 +98,8 @@ remain the campaign handoff's work; visit deployment alone is not send readiness
 
 Live read-only OPTIONS confirmed www-origin 204/POST support on both public
 endpoints. Disabled generic 202 is not proof of persistence. No real token was
-submitted and no activation flags/credentials were changed here.
+submitted and no collection/delivery flags were enabled. Only the protected
+callback key was installed; it is not a public setting or browser credential.
 
 1. Backend team returns a valid non-PII pilot token, expiry and readiness report.
 2. Verify dedicated Meta/TikTok credentials, supported Graph version and vendor
@@ -105,7 +112,8 @@ submitted and no activation flags/credentials were changed here.
 5. Google account 1424642598, audience 9490685374 and action 7856823091 are
    reported configured. Permissions/validateOnly, terms, browser label and shared
    purchase-ID verification remain outstanding. Provision dedicated course
-   Stripe credential and callback key through protected server settings. Do not
+   Stripe credential and callback signing secret through protected settings;
+   the callback function key is already installed with its switch false. Do not
    enable the callback producer while disabled backend purchases merely ack.
 6. Campaign sending, recipient/template reporting, real unsubscribe behavior
    and current audience exclusions must pass separate acceptance before bulk

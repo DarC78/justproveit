@@ -31,19 +31,61 @@ test('ec is cleaned before analytics; only a single valid landing token is retai
     const { w } = landing(path); assert.equal(w.proveitEmailToken, undefined); assert.ok(!w.clean.includes('ec='));
   }
 });
-function googleModule(config, storage, calls = []) {
+function googleModule(config, storage, calls = [], overrides = {}) {
   const exports = {};
   const purchase = { paid: true, sessionId: 'cs_live_fixture1234567890', value: 39, currency: 'GBP', emailSent: true };
   vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/lib/googleAdvertising.ts', 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 } }).outputText, {
     exports, require: name => name.includes('config') ? { default: config } : { validPurchase: p => p === purchase },
-    crypto: crypto.webcrypto, TextEncoder, Date, AbortSignal, Event, window: { gtag: (...args) => calls.push(args), dispatchEvent: () => {} },
+    crypto: crypto.webcrypto, TextEncoder, Date, AbortSignal, Event, window: { gtag: overrides.gtag || ((...args) => calls.push(args)), dispatchEvent: overrides.dispatchEvent || (() => {}) },
     localStorage: { getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value) },
-    document: { getElementById: () => true }, fetch: async () => ({ status: 202 }),
+    document: { getElementById: () => true }, fetch: overrides.fetch || (async () => ({ status: 202 })),
   });
   return { exports, purchase };
 }
 const enabled = { customerDataConsentEnabled: true, purchaseEnabled: true, purchaseDestinationVerified: true, purchaseSendTo: 'AW-123456/fixture', consentEndpoint: 'https://fixture.invalid' };
 const consent = (user = 'granted', personalization = 'granted') => ({ adUserData: user, adPersonalization: personalization, version: 'google-customer-data-v1', at: new Date().toISOString() });
+test('storage write failure cannot block Google refusal POST or let a stale grant override it', async () => {
+  const sent = [], events = [], calls = [];
+  const storage = { get: () => JSON.stringify(consent()), set: () => { throw new Error('quota'); } };
+  const g = googleModule(enabled, storage, calls, {
+    fetch: async (_, options) => { sent.push(options); return { status: 202 }; },
+    dispatchEvent: event => events.push(event),
+  });
+  const denied = consent('denied', 'denied');
+  await g.exports.saveGoogleChoice(denied, 'a'.repeat(43));
+  assert.deepEqual(JSON.parse(sent[0].body), { token: 'a'.repeat(43), ...denied });
+  assert.equal(sent[0].keepalive, true);
+  assert.equal(g.exports.readGoogleChoice().adUserData, 'denied');
+  assert.equal(events.length, 1);
+  await g.exports.trackGooglePurchase(g.purchase);
+  assert.equal(calls.filter(c => c[0] === 'event').length, 0);
+  await assert.rejects(() => g.exports.saveGoogleChoice(consent(), 'a'.repeat(43)), /re-consent/);
+  assert.equal(sent.length, 1);
+});
+test('storage and network failure retain the refusal in memory without a server-success event', async () => {
+  for (const result of ['network', '503']) {
+    const events = [], sent = [];
+    const storage = { get: () => { throw new Error('storage blocked'); }, set: () => { throw new Error('storage blocked'); } };
+    const g = googleModule(enabled, storage, [], {
+      fetch: async (_, options) => { sent.push(options); if (result === 'network') throw new Error('offline'); return { status: 503 }; },
+      dispatchEvent: event => events.push(event),
+    });
+    await assert.rejects(() => g.exports.saveGoogleChoice(consent('denied', 'denied'), 'a'.repeat(43)));
+    assert.equal(sent.length, 1);
+    assert.equal(g.exports.readGoogleChoice().adPersonalization, 'denied');
+    assert.equal(events.length, 0, 'UI must not receive server acceptance when POST fails');
+    await assert.rejects(() => g.exports.saveGoogleChoice(consent(), 'a'.repeat(43)), /re-consent/);
+  }
+});
+test('a broken vendor SDK does not prevent server-side refusal notification', async () => {
+  let sent = 0;
+  const g = googleModule(enabled, new Map(), [], {
+    gtag: () => { throw new Error('SDK failure'); },
+    fetch: async () => { sent++; return { status: 202 }; },
+  });
+  await g.exports.saveGoogleChoice(consent('denied', 'denied'), 'a'.repeat(43));
+  assert.equal(sent, 1);
+});
 test('Google transaction ID matches the server SHA256 contract and requires both real choices', async () => {
   for (const choice of [null, consent('denied'), consent('granted', 'denied'), consent()]) {
     const storage = new Map(), calls = [];

@@ -9,6 +9,12 @@ off; generic 202 responses do not prove persistence or vendor delivery.
 This website change prepares integration; it does NOT enable customer uploads,
 create Google audiences, configure account actions or send the email campaign.
 
+Backend review correction completed: Google refusals are now retained in memory
+and POSTed even when browser storage or the vendor SDK throws. A stale disk
+grant cannot override an in-memory denial. Network/non-202 failures reject and
+emit no server-acceptance event, so the UI does not report success. Dedicated
+tests cover blocked storage, quota failure, offline/503 and SDK failure.
+
 ## Implemented here
 
 - An inline early document script captures one valid 43-character base64url `ec`
@@ -85,11 +91,15 @@ touching onboarding. Existing LaunchingStack durable unique jobs provide vendor
 retry/dedup after acceptance. A 2xx backend response is treated as accepted;
 please confirm this response contract before registering the subscription.
 
-Managed API runtime settings (initially absent/off):
+Managed API runtime settings:
 
 - `BANI_UK_AI_GOOGLE_CALLBACK_ENABLED=false`
 - `BANI_UK_AI_GOOGLE_CALLBACK_KEY`: dedicated least-privileged function key for
-  the LaunchingStack internal route, provisioned directly in protected settings.
+  the LaunchingStack internal route, now installed and read-back verified in
+  protected website server settings. Retrieved directly through Azure from the
+  named `bani-uk-ai-google-purchases` key on `googleCoursePurchase`; the sibling
+  repository's private handoff file was not read. Values were never logged,
+  committed, placed in browser config or included in the integration bundle.
 - `BANI_UK_AI_GOOGLE_STRIPE_WEBHOOK_SECRET`: signing secret for the new Stripe
   subscription, distinct from the onboarding subscription secret.
 
@@ -99,8 +109,9 @@ keys in Azure app settings, then create the separate Stripe subscription for
 the Proveit account. Do not change or duplicate the onboarding subscription.
 Confirm retry window/receipt behavior with the backend. After Stripe's retry
 window expires, recover by authorized event replay rather than silently dropping
-or repeatedly manufacturing an event. No subscription or secrets were configured
-by this website change. No old events were replayed or uploaded.
+or repeatedly manufacturing an event. The callback key is configured, but no
+Stripe subscription/signing secret was created, the callback stays disabled,
+and no old events were replayed or uploaded.
 
 ## Required return from LaunchingStack/account team
 
