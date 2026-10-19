@@ -6,6 +6,12 @@ Backend handover supplied by owner, 19 October 2026: commit
 Migrations 133/134 are reported applied; handlers/workers are deployed. All new
 collection/delivery switches remain off. No campaign or vendor event was sent.
 
+Controlled pilot preparation: see `launchingstack-email-attribution-pilot-spec.md`.
+The frontend now has a separate digest-pinned, expiring pilot gate (off pending
+BE fixture token/isolation readiness) and static TikTok course content metadata.
+General rollout and all new Google features remain disabled. The public visit
+body is unchanged; BE must mirror the TikTok metadata in its vendor adapter.
+
 Backend review follow-up: the requested Google storage-failure correction is
 implemented with in-memory refusal protection and independent POST delivery.
 The dedicated callback key was installed directly from Azure into the website's

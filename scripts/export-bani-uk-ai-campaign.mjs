@@ -8,6 +8,7 @@ const files = [
   'scripts/lib/proveit-campaign-email.mjs', 'scripts/lib/proveit-email-links.mjs',
   'scripts/lib/proveit-email-subject.mjs', 'api/shared/emailLinks.js',
   'api/shared/email-links.json', 'email-templates/proveit/base.html',
+  'api/shared/email-attribution-content.json',
   'email-templates/proveit/bani-uk-ai-01.json',
 ];
 const output = path.join(root, 'artifacts/campaigns/bani-uk-ai-email-01');
@@ -35,7 +36,7 @@ fs.writeFileSync(path.join(output, 'manifest.json'), JSON.stringify(manifest, nu
 fs.writeFileSync(path.join(output, 'package.json'), JSON.stringify({ private: true, engines: { node: '>=20' }, dependencies: { htmlparser2: '^10.0.0' } }, null, 2) + '\n');
 fs.copyFileSync(path.join(root, 'docs/launchingstack-bani-uk-ai-campaign-spec.md'), path.join(output, 'LAUNCHINGSTACK-HANDOFF.md'));
 fs.copyFileSync(path.join(root, 'docs/launchingstack-email-visit-matching-spec.md'), path.join(output, 'launchingstack-email-visit-matching-spec.md'));
-for (const file of ['google-advertising-frontend-readiness.md', 'launchingstack-google-backend-handover-2026-10-19.md', 'email-attribution-coordinated-readiness.md']) {
+for (const file of ['google-advertising-frontend-readiness.md', 'launchingstack-google-backend-handover-2026-10-19.md', 'email-attribution-coordinated-readiness.md', 'launchingstack-email-attribution-pilot-spec.md']) {
   fs.copyFileSync(path.join(root, 'docs', file), path.join(output, file));
 }
 fs.writeFileSync(path.join(output, 'README.md'), '# Bani UK AI email 01 integration bundle\n\nRead LAUNCHINGSTACK-HANDOFF.md first. This bundle renders content only; it cannot send or schedule emails.\n\nInstall the htmlparser2 dependency under the receiving project dependency policy. Preserve the directory structure. Import renderProveitCampaignEmail from scripts/lib/proveit-campaign-email.mjs. Pass recipientName and a real recipient-specific first-party unsubscribeUrl; add the actual recipient in the backend.\n\nmanifest.json identifies the exact source hashes and renderer version. No credentials or audience email addresses are included. Sending remains disabled.\n');
