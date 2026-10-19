@@ -3,6 +3,11 @@
 Prepared 19 October 2026. Status: template/rendering prepared; campaign NOT sent,
 scheduled or enabled. This document requests backend implementation, not launch.
 
+Additional requested feature: see
+[email-visit advertising matching](launchingstack-email-visit-matching-spec.md)
+for asynchronous token-based CRM resolution and eligible server-side matching.
+That feature is specified separately and is not yet enabled.
+
 ## Outcome and ownership
 
 Adrian needs a report for each recipient AND template: delivery, observed opens,
