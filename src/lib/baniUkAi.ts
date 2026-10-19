@@ -5,15 +5,15 @@ export const BANI_UK_AI_DEADLINE = "2026-11-01T23:59:59Z";
 
 export const BANI_UK_AI_SOURCES = [
   {
-    label: "01 / £150–£250 BONUSURI BANCARE",
-    title: "Primești bonusuri. Păstrezi contul principal separat.",
+    label: "01 / Bonusuri de la bănci!",
+    title: "£150–£300 de la bănci!",
     text: "Înveți să identifici bonusuri de £150–£250 pentru schimbarea unui cont dedicat. AI-ul explică termenii, verifică împreună cu tine condițiile și îți pregătește pașii. Unele cereri se pot completa în mai puțin de 15 minute; plata bonusului vine ulterior, după îndeplinirea condițiilor băncii.",
     detail: "Ofertele, taxele și eligibilitatea se verifică înainte de aplicare.",
     ai: "Bonusuri bancare: transformi termenii ofertei într-o listă cu eligibilitate, costuri, pași și termene.",
   },
   {
     label: "02 / VERIFICI TAXA DE CONSILIU",
-    title: "Plătești banda corectă? Verificăm, nu ghicim.",
+    title: "Verificăm să nu plătești mai multă taxă de consiliu.",
     text: "Compari banda de Council Tax cu locuințe similare și verifici reducerile care ți s-ar putea aplica. AI-ul te ajută să organizezi dovezile și să redactezi cererea. Dacă se confirmă că ai plătit prea mult, înveți cum să ceri recalcularea și rambursarea de la consiliu.",
     detail: "O revizuire poate și crește banda. Verificăm dovezile înainte de cerere.",
     ai: "Council Tax: organizezi comparațiile și dovezile, apoi pregătești o cerere clară pentru autoritatea competentă.",
@@ -48,7 +48,7 @@ export const BANI_UK_AI_SOURCES = [
   },
   {
     label: "07 / CHELTUIELI DE SERVICIU",
-    title: "Uniformă, unelte, deplasări. Ce poți declara?",
+    title: "Uniformă, unelte, deplasări. Ce taxe poți recupera?",
     text: "Lucrezi în construcții, curățenie, depozit, îngrijire sau alt domeniu? Poți avea cheltuieli de serviciu pentru care merită verificată o reducere de impozit: întreținerea uniformei, anumite unelte sau deplasări eligibile. AI-ul te ajută să le clasifici și să pregătești dovezile pentru HMRC.",
     detail: "Nu orice cheltuială se califică; naveta obișnuită nu este, în general, eligibilă.",
     ai: "Cheltuieli de serviciu: separi categoriile de verificat și îți organizezi documentele justificative.",

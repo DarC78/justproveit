@@ -102,7 +102,9 @@
 .aiSection .disclaimer { max-width: none; }
 .adrian { display: grid; grid-template-columns: 1fr 1.2fr; gap: 80px; border-bottom: 1px solid #d7e0e2; }
 .largeText { font-size: 23px; line-height: 1.55; }
-.adrian > div:last-child > p + p { margin-top: 22px; }
+.adrianBio > p + p { margin-top: 22px; }
+.adrianPhotos { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: center; }
+.adrianPhotos img { width: 100%; height: auto; max-height: 480px; object-fit: contain; border-radius: 12px; }
 .award { margin-top: 24px !important; font-size: 23px; line-height: 1.55; }
 .signature { font-weight: 600; font-size: 17px; }
 .signature > span { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 10px; }
@@ -131,6 +133,8 @@
 .offerGrid .largeText { margin-top: 25px; }
 .offerGrid > div > p:not(:first-child):not(.largeText) { margin-top: 22px; }
 .offerGrid > div:first-child > p:last-child { font-size: 13px; color: var(--muted); }
+.offerGrid > div:first-child > .founderAccess { font-size: 19px; color: var(--ink); line-height: 1.6; }
+.founderAccess span { color: #c92316; }
 .offerCard { border: 1px solid var(--blue); border-top: 5px solid var(--brand); border-radius: 16px; background: #ffffff; box-shadow: 0 4px 18px #00000012; padding: 32px; }
 .offerPrice { display: flex; align-items: center; gap: 20px; font-size: 76px; font-weight: 600; line-height: 1.15; margin: 20px 0 25px; letter-spacing: -.05em; color: var(--brand); }
 .offerPrice span { font-size: 12px; color: var(--muted); font-weight: 400; line-height: 1.65; letter-spacing: 0; }
@@ -231,7 +235,9 @@
   .methodGrid h3 { margin: 14px 0; }
   .methodDetail { margin-top: 18px; padding-top: 15px; }
   .largeText { font-size: 20px; }
-  .adrian > div:last-child > p:not(.largeText):not(.signature) { font-size: 15px; }
+  .adrianBio > p:not(.largeText):not(.signature) { font-size: 15px; }
+  .adrianPhotos { grid-template-columns: 1fr; gap: 24px; }
+  .adrianPhotos img { max-height: none; }
   .session { grid-template-columns: 60px 1fr; gap: 20px; padding-block: 24px; align-items: start; }
   .session h3 { font-size: 22px; }
   .date strong { font-size: 39px; }
