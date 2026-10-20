@@ -13,26 +13,38 @@
   "portraitImageAlt": "Adrian Defta, Director Proveit",
   "trustpilotImageUrl": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/trustpilot.png",
   "postscriptImages": [
-    { "url": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/top100-adrian-defta.png", "alt": "Adrian Defta în Top 100 Români de Pretutindeni" }
+    {
+      "url": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/top100-adrian-defta.png",
+      "alt": "Adrian Defta în Top 100 Români de Pretutindeni"
+    }
   ],
   "reviews": [
     "Recomand cu toată încrederea Proveit! Sunt o echipă foarte înțelegătoare, profesionistă și mereu gata să ajute. Am avut o experiență foarte plăcută cu ei și m-am simțit susținută pe tot parcursul colaborării. Le mulțumesc pentru seriozitate și amabilitate!",
     "Recomand cu încredere. La început am fost sceptică, am și uitat că am făcut rezervare, dar domnul Adrian m-a contactat și, în urma simulării, am aflat informații la care nu m-aș fi gândit. Felicitări pentru ceea ce faceți."
   ],
   "ctaUrl": "https://www.justproveit.co.uk/bani-uk-ai/?utm_source=resend&utm_medium=email&utm_campaign=bani-uk-ai&utm_content=ro-bani-uk-ai-email-01",
-  "ctaLabel": "Vreau locul meu de fondator",
+  "ctaLabel": "vreau locul meu de fondator",
   "unsubscribeUrl": null,
-  "intro": ["Salut,", "Adrian aici."],
+  "intro": [
+    "Salut,",
+    "Adrian aici."
+  ],
   "body": [
     "Când am venit în UK, mi-am deschis un cont la bancă. Și atât.",
     "8 ani l-am ținut acolo. Salariul intra, facturile ieșeau. Ca la toată lumea.",
     "Până într-o zi când am aflat ceva ce mi s-a părut prea frumos ca să fie adevărat:",
-    {"text": "Băncile din UK oferă bonusuri de £150–£300 ca să muți un cont la ele (nu cel principal).", "highlight": true},
+    {
+      "text": "Băncile din UK oferă bonusuri de £150–£300 ca să muți un cont la ele (nu cel principal).",
+      "highlight": true
+    },
     "Nu puncte. Nu reduceri. Bani în cont.",
     "Prima mea reacție: „Sigur e o capcană.”",
     "A soției mele: „Nu te atinge de contul cu salariul.”",
     "Și avea dreptate.",
-    {"text": "Aici a venit momentul care a schimbat tot: n-am atins contul principal. Am deschis un cont NOU, separat, doar pentru asta. Pe ăla l-am mutat. Banca nouă a plătit bonusul. Contul cu salariul a rămas exact unde era.", "strong": true},
+    {
+      "text": "Aici a venit momentul care a schimbat tot: n-am atins contul principal. Am deschis un cont NOU, separat, doar pentru asta. Pe ăla l-am mutat. Banca nouă a plătit bonusul. Contul cu salariul a rămas exact unde era.",
+      "strong": true
+    },
     "La început îmi lua ore. Termeni în engleză, condiții, calcule pe hârtie.",
     "Apoi am pus AI-ul la treabă. Acum îmi transformă termenii ofertei într-o listă clară: eligibilitate, pași, termene. Unele cereri le completez în mai puțin de 15 minute.",
     "În acest moment, sunt 6 bănci care oferă un bonus când vă mutați un cont la ele. În total, puteți primi £1.305 muncind doar 30 de minute pe lună. Dacă sunteți 2 adulți în gospodărie, primiți £2.610. Dacă aveți și 2 copii majori… vorbim de peste £5.000!",
@@ -42,5 +54,6 @@
   "offerExtra": "Banii de la bănci sunt doar o mică parte. Mai învățăm încă 8 modalități de a câștiga bani în UK. Profită de prețul redus de £39! Garantia banii tai inapoi timp de 90 de zile!",
   "psExtra": "Sunt super mândru că România a decis să mă includă în Top 100 de Români de Pretutindeni pentru munca pe care o fac pentru comunitatea de români din Marea Britanie! A venit timpul să te ajut și pe tine!",
   "ps": "P.S. Mâine îți arăt de ce două case identice de pe aceeași stradă pot plăti Council Tax diferit. Și cum verifici dacă ești tu cel care plătește în plus.",
-  "disclaimer": "Deschiderea unui cont poate implica o verificare de credit. £1.000 este un obiectiv, nu o sumă garantată. Rezultatele variază. Cursul este educațional și nu reprezintă consultanță financiară."
+  "disclaimer": "Deschiderea unui cont poate implica o verificare de credit. £1.000 este un obiectiv, nu o sumă garantată. Rezultatele variază. Cursul este educațional și nu reprezintă consultanță financiară.",
+  "ctaPriceText": "£37"
 }

@@ -47,7 +47,7 @@ export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl 
     }
     return `<img src="${httpsUrl(url)}" alt="${escape(alt)}" width="${width}" border="0" style="display:block;width:100%;max-width:${width}px;height:auto;margin:0 auto;">`;
   };
-  const cta = `<table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td bgcolor="#ff4e23" style="border-radius:8px;mso-padding-alt:16px 24px;"><a class="button" data-role="primary-cta" href="${httpsUrl(config.ctaUrl)}" style="display:inline-block;padding:16px 24px;font:700 16px/24px Arial,Helvetica,sans-serif;color:#111111;text-decoration:none;">${escape(config.ctaLabel)} &nbsp;<span style="white-space:nowrap;"><del style="font-weight:normal;">£97</del> &nbsp;£39</span></a></td></tr></table>`;
+  const cta = `<table role="presentation" cellspacing="0" cellpadding="0" border="0"><tr><td bgcolor="#ff4e23" style="border-radius:8px;mso-padding-alt:16px 24px;"><a class="button" data-role="primary-cta" href="${httpsUrl(config.ctaUrl)}" style="display:inline-block;padding:16px 24px;font:700 16px/24px Arial,Helvetica,sans-serif;color:#111111;text-decoration:none;">${escape(config.ctaLabel)} &nbsp;<span style="white-space:nowrap;">${config.ctaPriceText ? escape(config.ctaPriceText) : '<del style="font-weight:normal;">£97</del> &nbsp;£39'}</span></a></td></tr></table>`;
   if (final && !config.unsubscribeUrl) throw new Error('Campaign unsubscribe URL required before final export');
   const fields = {
     ps_extra_html: config.psExtra ? `<div style="margin-top:18px;">${paragraph(config.psExtra)}</div>` : '',
