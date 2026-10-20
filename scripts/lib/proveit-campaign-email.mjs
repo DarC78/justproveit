@@ -24,6 +24,8 @@ export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl 
   }
   const config = { ...sourceConfig, unsubscribeUrl };
   const subject = personalizedSubject(config.subject, recipientName);
+  const firstName = recipientName.trim().split(/\s+/)[0];
+  const intro = [firstName ? 'Buna, ' + firstName : 'Buna,', ...config.intro.slice(1)];
   const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   const httpsUrl = value => {
     const url = new URL(value);
@@ -52,7 +54,7 @@ export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl 
     postscript_images_html: (config.postscriptImages || []).map(asset => `<div style="margin-top:22px;">${image(asset.url, asset.alt, 524, 'Imagine suplimentară după P.S.')}</div>`).join('\n'),
     trustpilot_html: `<div style="margin:18px 0;">${image(config.trustpilotImageUrl, 'Profilul Proveit pe Trustpilot', 524, 'Imaginea profilului Trustpilot')}</div>`,
     reviews_html: config.reviews.map(review => `<table role="presentation" width="100%" bgcolor="#ffffff" style="margin-top:14px;"><tr><td style="padding:18px 20px;border:1px solid #c4d7f2;font:14px/22px Arial,Helvetica,sans-serif;color:#111111;"><p style="margin:0;">„${escape(review)}”</p></td></tr></table>`).join('\n'),
-    intro_html: config.intro.map(paragraph).join('\n'), body_html: config.body.map(paragraph).join('\n'),
+    intro_html: intro.map(paragraph).join('\n'), body_html: config.body.map(paragraph).join('\n'),
     cta_html: cta, offer_html: paragraph(config.offer) + paragraph(config.offerExtra), ps_html: escape(config.ps), disclaimer: escape(config.disclaimer),
     unsubscribe_html: config.unsubscribeUrl ? `<p style="margin:0;"><a href="${httpsUrl(config.unsubscribeUrl)}" style="color:#111111;">Dezabonare</a></p>` : test ? '<p style="margin:0;">E-mail de test trimis la solicitarea destinatarului.</p>' : '<p style="margin:0;font-style:italic;">PREVIZUALIZARE: linkul de dezabonare se completează în sistemul de trimitere.</p>',
   };
@@ -62,7 +64,7 @@ export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl 
   });
   const plainParagraph = value => typeof value === 'string' ? value : value.text;
   const signature = 'Mersi mult,\nAdrian Defta\nDirector Proveit\nTop 100 Români de Pretutindeni';
-  let text = [config.preheader, ...config.intro, ...config.body.map(plainParagraph), config.offer, config.offerExtra, `${config.ctaLabel}: ${config.ctaUrl}`, signature, config.ps, ...(config.psExtra ? [config.psExtra] : []), config.disclaimer,
+  let text = [config.preheader, ...intro, ...config.body.map(plainParagraph), config.offer, config.offerExtra, `${config.ctaLabel}: ${config.ctaUrl}`, signature, config.ps, ...(config.psExtra ? [config.psExtra] : []), config.disclaimer,
     ...config.reviews,
     'Review-uri Proveit: https://uk.trustpilot.com/review/proveitweb.co.uk', 'WhatsApp: https://api.whatsapp.com/send/?phone=447447707829&text=CRM_PROMO_BANI_UK_AI&type=phone_number&app_absent=0',
     'TikTok: https://www.tiktok.com/@proveit.ai', 'Facebook: https://www.facebook.com/ProveItWeb', 'Instagram: https://www.instagram.com/proveit.uk',
