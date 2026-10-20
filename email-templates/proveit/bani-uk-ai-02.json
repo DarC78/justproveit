@@ -1,0 +1,63 @@
+{
+  "templateKey": "ro-bani-uk-ai-email-02",
+  "sourceDocument": null,
+  "subject": "Plătești Council Tax pentru casa vecinului?",
+  "preheader": "Verificarea durează câteva minute. Greșeala poate dura ani.",
+  "from": "Adrian Defta <adrian@mail.justproveit.co.uk>",
+  "replyTo": "adrian@proveitweb.co.uk",
+  "testRecipient": "adrian@proveitweb.co.uk",
+  "testRecipientName": "Adrian",
+  "heroImageUrl": null,
+  "heroImageAlt": "Exemplu de ofertă Barclays: bonus de schimbare și recompense condiționate de eligibilitate",
+  "portraitImageUrl": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/adrian-defta.jpg",
+  "portraitImageAlt": "Adrian Defta, Director Proveit",
+  "trustpilotImageUrl": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/trustpilot.png",
+  "postscriptImages": [
+    {
+      "url": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/top100-adrian-defta.png",
+      "alt": "Adrian Defta în Top 100 Români de Pretutindeni"
+    }
+  ],
+  "reviews": [
+    "Recomand cu toată încrederea Proveit! Sunt o echipă foarte înțelegătoare, profesionistă și mereu gata să ajute. Am avut o experiență foarte plăcută cu ei și m-am simțit susținută pe tot parcursul colaborării. Le mulțumesc pentru seriozitate și amabilitate!",
+    "Recomand cu încredere. La început am fost sceptică, am și uitat că am făcut rezervare, dar domnul Adrian m-a contactat și, în urma simulării, am aflat informații la care nu m-aș fi gândit. Felicitări pentru ceea ce faceți."
+  ],
+  "ctaUrl": "https://www.justproveit.co.uk/bani-uk-ai/?utm_source=resend&utm_medium=email&utm_campaign=bani-uk-ai&utm_content=ro-bani-uk-ai-email-02",
+  "ctaLabel": "Vreau locul meu de fondator",
+  "unsubscribeUrl": null,
+  "intro": [
+    "Buna,",
+    "Ieri ți-am promis o poveste despre două case."
+  ],
+  "body": [
+    "Imaginează-ți două case identice, pe aceeași stradă. Același număr de camere. Aceeași grădină.",
+    "Una e în banda C. Cealaltă în banda D.",
+    "Proprietarii din banda D plătesc mai mult. În fiecare lună. Ani la rând. Și majoritatea nu află niciodată.",
+    "De ce? Pentru că benzile au fost stabilite acum zeci de ani. Iar noi ne uităm la factură, nu la bandă.",
+    {
+      "text": "Aici e partea care contează: benzile caselor sunt publice. Poți vedea pe gov.uk în ce bandă sunt casele vecinilor tăi.",
+      "strong": true
+    },
+    "La curs facem verificarea asta cu AI:",
+    {
+      "items": [
+        "Comparăm banda ta cu locuințe similare din zonă",
+        "Verificăm reducerile la care ai putea avea dreptul, de exemplu dacă locuiești singur",
+        "AI-ul te ajută să organizezi dovezile și să redactezi cererea"
+      ]
+    },
+    {
+      "text": "Dar îți spun și partea pe care alții n-o spun: o revizuire poate și crește banda. De aceea verificăm dovezile înainte de orice cerere. Nu ghicim.",
+      "strong": true
+    }
+  ],
+  "offer": "Asta e verificarea numărul 2 din 9. O facem împreună în prima sesiune live, pe 3 noiembrie.",
+  "offerExtra": "Locul de fondator: £39.",
+  "psExtra": null,
+  "ps": "P.S. Ai lucrat vreodată prin agenție? Sau ai schimbat jobul de câteva ori de când ești în UK? Mâine îți spun de ce s-ar putea să ai o pensie de care nu știi nimic.",
+  "disclaimer": "Benzile se contestă la Valuation Office Agency, iar reducerile se cer la consiliu. £1.000 este un obiectiv, nu o sumă garantată. Rezultatele variază. Cursul este educațional și nu reprezintă consultanță financiară.",
+  "campaignKey": "CRM_PROMO_BANI_UK_AI_2",
+  "alternativeSubject": "Două case identice. Două facturi diferite.",
+  "heroTitle": "Două case identice.",
+  "heroSubtitle": "Două facturi diferite. Verificarea 2 din 9: Council Tax."
+}

@@ -13,7 +13,7 @@ export function emailCampaignMetadata(recipientId) {
 }
 
 // Pure rendering only: never sends, schedules or writes recipient payloads.
-export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl = null, mode = 'campaign' } = {}) {
+export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl = null, mode = 'campaign', templateKey = 'ro-bani-uk-ai-email-01' } = {}) {
   if (!['campaign', 'test', 'preview'].includes(mode)) throw new Error('Invalid rendering mode');
   const final = mode === 'campaign', test = mode === 'test', ready = final || test;
   if (unsubscribeUrl) {
@@ -22,7 +22,9 @@ export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl 
     if (url.protocol !== 'https:' || url.username || url.password || !['www.justproveit.co.uk', 'send.justproveit.co.uk', 'mail.justproveit.co.uk'].includes(url.hostname)) throw new Error('Approved first-party HTTPS unsubscribe URL required');
     unsubscribeUrl = url.href;
   }
-  const config = { ...sourceConfig, unsubscribeUrl };
+  if (!/^ro-bani-uk-ai-email-\d{2}$/.test(templateKey)) throw new Error('Invalid template key');
+  const selected = templateKey === sourceConfig.templateKey ? sourceConfig : JSON.parse(fs.readFileSync(new URL('../../email-templates/proveit/bani-uk-ai-' + templateKey.slice(-2) + '.json', import.meta.url), 'utf8'));
+  const config = { ...selected, unsubscribeUrl };
   const subject = personalizedSubject(config.subject, recipientName);
   const firstName = recipientName.trim().split(/\s+/)[0];
   const intro = [firstName ? 'Buna, ' + firstName : 'Buna,', ...config.intro.slice(1)];
@@ -34,6 +36,7 @@ export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl 
   };
   const paragraph = value => {
     const block = typeof value === 'string' ? { text: value } : value;
+    if (block.items) return '<ul style="margin:0 0 18px;padding-left:24px;">' + block.items.map(item => '<li style="margin-bottom:10px;">' + escape(item) + '</li>').join('') + '</ul>';
     const text = escape(block.text);
     return `<p style="margin:0 0 18px;${block.highlight ? 'color:#ff4e23;font-size:20px;font-weight:bold;line-height:29px;' : ''}">${block.strong ? `<strong>${text}</strong>` : text}</p>`;
   };
@@ -49,7 +52,7 @@ export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl 
   const fields = {
     ps_extra_html: config.psExtra ? `<div style="margin-top:18px;">${paragraph(config.psExtra)}</div>` : '',
     subject: escape(subject), preheader: escape(config.preheader),
-    hero_html: image(config.heroImageUrl, config.heroImageAlt, 600, 'Imaginea de început va fi furnizată de Adrian.'),
+    hero_html: config.heroTitle ? '<table role="presentation" width="100%" bgcolor="#0057d9"><tr><td style="padding:38px 30px;color:#ffffff;font:700 30px/38px Arial,sans-serif;">' + escape(config.heroTitle) + '<br><span style="font:18px/28px Arial,sans-serif;">' + escape(config.heroSubtitle) + '</span></td></tr></table>' : image(config.heroImageUrl, config.heroImageAlt, 600, 'Imaginea de început va fi furnizată de Adrian.'),
     portrait_html: image(config.portraitImageUrl, config.portraitImageAlt, 280, 'Aici va apărea fotografia lui Adrian.'),
     postscript_images_html: (config.postscriptImages || []).map(asset => `<div style="margin-top:22px;">${image(asset.url, asset.alt, 524, 'Imagine suplimentară după P.S.')}</div>`).join('\n'),
     trustpilot_html: `<div style="margin:18px 0;">${image(config.trustpilotImageUrl, 'Profilul Proveit pe Trustpilot', 524, 'Imaginea profilului Trustpilot')}</div>`,
@@ -62,7 +65,7 @@ export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl 
     if (!(key in fields)) throw new Error(`Unknown template field: ${key}`);
     return fields[key];
   });
-  const plainParagraph = value => typeof value === 'string' ? value : value.text;
+  const plainParagraph = value => typeof value === 'string' ? value : value.items ? value.items.map(item => '- ' + item).join('\n') : value.text;
   const signature = 'Mersi mult,\nAdrian Defta\nDirector Proveit\nTop 100 Români de Pretutindeni';
   let text = [config.preheader, ...intro, ...config.body.map(plainParagraph), config.offer, config.offerExtra, `${config.ctaLabel}: ${config.ctaUrl}`, signature, config.ps, ...(config.psExtra ? [config.psExtra] : []), config.disclaimer,
     ...config.reviews,
@@ -75,5 +78,5 @@ export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl 
   
   return { from: config.from, reply_to: config.replyTo, subject, html, text,
     ...(final ? { headers: { 'List-Unsubscribe': '<' + unsubscribeUrl + '>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } } : {}),
-    tags: [{ name: 'campaign', value: 'CRM_PROMO_BANI_UK_AI_1' }, { name: 'template', value: config.templateKey }] };
+    tags: [{ name: 'campaign', value: config.campaignKey || 'CRM_PROMO_BANI_UK_AI_1' }, { name: 'template', value: config.templateKey }] };
 }
