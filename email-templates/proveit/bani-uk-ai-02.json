@@ -32,10 +32,10 @@
   "body": [
     "Imaginează-ți două case identice, pe aceeași stradă. Același număr de camere. Aceeași grădină.",
     "Una e în banda C. Cealaltă în banda D.",
-    "Proprietarii din banda D plătesc mai mult. În fiecare lună. Ani la rând. Și majoritatea nu află niciodată.",
+    "Locatarii din banda D plătesc mai mult. În fiecare lună. Ani la rând. Și majoritatea nu află niciodată.",
     "De ce? Pentru că benzile au fost stabilite acum zeci de ani. Iar noi ne uităm la factură, nu la bandă.",
     {
-      "text": "Aici e partea care contează: benzile caselor sunt publice. Poți vedea pe gov.uk în ce bandă sunt casele vecinilor tăi.",
+      "text": "Aici e partea care contează: benzile caselor sunt publice. AI-ul te ajuta sa verifici, sa contesti daca e cazul, si sa iti recuperezi banii pe ultimii 15 ani!!!",
       "strong": true
     },
     "La curs facem verificarea asta cu AI:",
@@ -45,10 +45,6 @@
         "Verificăm reducerile la care ai putea avea dreptul, de exemplu dacă locuiești singur",
         "AI-ul te ajută să organizezi dovezile și să redactezi cererea"
       ]
-    },
-    {
-      "text": "Dar îți spun și partea pe care alții n-o spun: o revizuire poate și crește banda. De aceea verificăm dovezile înainte de orice cerere. Nu ghicim.",
-      "strong": true
     }
   ],
   "offer": "Asta e verificarea numărul 2 din 9. O facem împreună în prima sesiune live, pe 3 noiembrie.",
