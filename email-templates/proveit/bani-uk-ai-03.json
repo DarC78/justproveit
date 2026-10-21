@@ -1,0 +1,66 @@
+{
+  "templateKey": "ro-bani-uk-ai-email-03",
+  "sourceDocument": null,
+  "subject": "Pensie la 55 de ani in UK? Banii tăi stau într-o pensie de care nu știi",
+  "preheader": "Am ajutat aproape 10.000 de români să-și caute banii.",
+  "from": "Adrian Defta <adrian@mail.justproveit.co.uk>",
+  "replyTo": "adrian@proveitweb.co.uk",
+  "testRecipient": "adrian@proveitweb.co.uk",
+  "testRecipientName": "Adrian",
+  "heroImageUrl": null,
+  "heroImageAlt": "",
+  "portraitImageUrl": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/adrian-defta.jpg",
+  "portraitImageAlt": "Adrian Defta, Director Proveit",
+  "trustpilotImageUrl": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/trustpilot.png",
+  "postscriptImages": [
+    {
+      "url": "https://www.justproveit.co.uk/email-assets/bani-uk-ai/top100-adrian-defta.png",
+      "alt": "Adrian Defta în Top 100 Români de Pretutindeni"
+    }
+  ],
+  "reviews": [
+    "Recomand cu toată încrederea Proveit! Sunt o echipă foarte înțelegătoare, profesionistă și mereu gata să ajute. Am avut o experiență foarte plăcută cu ei și m-am simțit susținută pe tot parcursul colaborării. Le mulțumesc pentru seriozitate și amabilitate!",
+    "Recomand cu încredere. La început am fost sceptică, am și uitat că am făcut rezervare, dar domnul Adrian m-a contactat și, în urma simulării, am aflat informații la care nu m-aș fi gândit. Felicitări pentru ceea ce faceți."
+  ],
+  "ctaUrl": "https://www.justproveit.co.uk/bani-uk-ai/?utm_source=resend&utm_medium=email&utm_campaign=bani-uk-ai&utm_content=ro-bani-uk-ai-email-03",
+  "ctaLabel": "👉 Locul de fondator,",
+  "unsubscribeUrl": null,
+  "intro": [
+    "Salut,",
+    "Îți spun ceva ce am văzut de mii de ori."
+  ],
+  "body": [
+    "Un român vine în UK. Lucrează ca angajat sau prin agenție. Apoi schimba angajatorul. Apoi schimbă orașul, jobul, angajatorul.",
+    "În tot timpul ăsta, fără să-și dea seama, angajatorul îl înscrie automat într-o pensie privată. Bani de la el. Bani de la angajator. Lună de lună.",
+    "Apoi pleacă de la job. Pensia rămâne în urmă. Uitată.",
+    "La ProveIt am ajutat aproape 10.000 de clienți, unu la unu, cu situații ca asta și altele. Așa că te întreb direct:",
+    {
+      "text": "Știi câte pensii private ai în UK?",
+      "strong": true
+    },
+    "Dacă ai lucrat ca angajat, inclusiv prin agenție sau cu contract cu zero ore, e posibil să ai cel puțin una.",
+    "La curs îți arăt cum o cauți singur, cu AI:",
+    {
+      "items": [
+        "Îți refaci lista angajatorilor, inclusiv din istoricul de angajări din contul tău HMRC",
+        "Folosești serviciul gratuit al guvernului pentru găsirea pensiilor",
+        "AI-ul îți scrie mesajele către foștii angajatori și furnizori, în engleză, iar tu le verifici"
+      ]
+    },
+    "O precizare cinstită: găsirea pensiei nu înseamnă că o poți scoate mâine. Poti sa o accesezi de la 55 de ani. Banii rămân pentru viitorul tău. Dar sunt ai tăi, și e bine să știi unde sunt."
+  ],
+  "offer": "Aceasta e verificarea numărul 3 din 9, în prima sesiune live, pe 3 noiembrie.",
+  "offerExtra": "",
+  "psExtra": null,
+  "ps": "P.S. Mâine îți arăt un cod scurt de pe fluturașul de salariu. Dacă e greșit, s-ar putea ca HMRC să-ți fi luat mai mult decât trebuia.",
+  "disclaimer": "Depinde de eligibilitate și înscriere. £1.000 este un obiectiv, nu o sumă garantată. Rezultatele variază. Cursul este educațional și nu reprezintă consultanță financiară.",
+  "campaignKey": "CRM_PROMO_BANI_UK_AI_3",
+  "alternativeSubject": null,
+  "heroTitle": "Pensie la 55 de ani în UK?",
+  "heroSubtitle": "Verificarea 3 din 9: pensii private uitate.",
+  "personalizeSubject": false,
+  "greeting": "Salut,",
+  "signatureText": "Adrian",
+  "ctaPriceText": "£39",
+  "ctaPlainLabel": "👉 Locul de fondator, £39"
+}
