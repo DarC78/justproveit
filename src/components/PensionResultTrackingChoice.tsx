@@ -1,5 +1,5 @@
 import {useEffect,useRef,useState} from 'react';
-import {startPensionResultTracking,stopPensionResultTracking,type PensionTrackingChoice} from '@/lib/pensionResultTracking';
+import {startPensionResultTracking,type PensionTrackingChoice} from '@/lib/pensionResultTracking';
 
 export default function PensionResultTrackingChoice({onContinue}:{onContinue:()=>void}){
   const dialog=useRef<HTMLDialogElement>(null);
@@ -20,7 +20,7 @@ export default function PensionResultTrackingChoice({onContinue}:{onContinue:()=
     // A blocked SDK or unavailable consent storage must never block the results.
     dialog.current?.close();setDone(true);onContinue();
   }
-  if(done)return <button type="button" className="text-sm font-semibold text-emerald-700 underline" onClick={stopPensionResultTracking}>Modifică preferințele de confidențialitate</button>;
+  if(done)return null;
   return <dialog ref={dialog} aria-labelledby="result-consent-title" aria-describedby="result-consent-description" onCancel={event=>{event.preventDefault();setSettings(true);}} className="w-[calc(100%-2rem)] max-w-lg rounded-2xl border-0 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/60">
     <div className="p-6 sm:p-8">
       <p className="mb-3 text-xs font-bold uppercase tracking-widest text-emerald-700">Proveit · Preferințele tale</p>
