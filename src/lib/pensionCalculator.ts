@@ -296,6 +296,7 @@ export async function submitPensionCalculator(payload: PensionCalculatorPayload)
 export async function sendPensionCalculatorEmail(
   resultId: string,
   contact: Pick<PensionCalculatorPayload, "fullName" | "email" | "phone">,
+  emailType: "simulation" | "after_sale" = "simulation",
 ) {
   if (resultId.startsWith("local-")) {
     throw new Error(
@@ -310,7 +311,7 @@ export async function sendPensionCalculatorEmail(
       headers: {
         "content-type": "application/json",
       },
-      body: JSON.stringify({ tenantKey: TENANT_KEY, ...contact }),
+      body: JSON.stringify({ tenantKey: TENANT_KEY, ...contact, emailType }),
     },
   );
 

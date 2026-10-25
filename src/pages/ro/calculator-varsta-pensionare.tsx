@@ -4,6 +4,7 @@ import Head from "next/head";
 import Link from "next/link";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
+  PensionCalculatorPayload,
   PensionCalculatorResponse,
   sendPensionCalculatorEmail,
   submitPensionCalculator,
@@ -190,6 +191,9 @@ export default function RomanianPensionCalculatorPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [response, setResponse] = useState<PensionCalculatorResponse | null>(null);
+  const [sendingAfterSaleEmail, setSendingAfterSaleEmail] = useState(false);
+  const [afterSaleMessage, setAfterSaleMessage] = useState("");
+  const [afterSaleStatus, setAfterSaleStatus] = useState<ActionStatus>("");
   const [sendingEmail, setSendingEmail] = useState(false);
   const [sendingSimulationEmail, setSendingSimulationEmail] = useState(false);
   const [sendingPurchaseEmail, setSendingPurchaseEmail] = useState(false);
@@ -246,6 +250,68 @@ export default function RomanianPensionCalculatorPage() {
     }));
   }, []);
 
+  function buildCurrentCalculatorPayload(): PensionCalculatorPayload {
+    const foreignPeriods = buildForeignPeriods(form);
+    const foreignTotalMonths = foreignPeriods.reduce((total, period) => total + (period.monthsTotal || 0), 0);
+    const additionalPeriods = buildAdditionalPeriodFields(form);
+    return {
+      fullName: form.fullName,
+      email: form.email,
+      phone: form.phone,
+      birthYearMonth: `${form.birthYear}-${form.birthMonth}`,
+      gender: form.gender,
+      periods: {
+        normalRoYears: asNumber(form.normalRoYears),
+        normalRoMonths: asNumber(form.normalRoMonths),
+        foreignYears: Math.floor(foreignTotalMonths / 12),
+        foreignMonths: foreignTotalMonths % 12,
+        deosebiteYears: asNumber(form.deosebiteYears),
+        deosebiteMonths: asNumber(form.deosebiteMonths),
+        specialeYears: asNumber(form.specialeYears),
+        specialeMonths: asNumber(form.specialeMonths),
+        grupaIYears: asNumber(form.grupaIYears),
+        grupaIMonths: asNumber(form.grupaIMonths),
+        grupaIIYears: asNumber(form.grupaIIYears),
+        grupaIIMonths: asNumber(form.grupaIIMonths),
+        ...additionalPeriods,
+      },
+      foreignPeriods,
+      childrenRaised: asNumber(form.childrenRaised),
+      handicapType: form.handicapType,
+      handicapYears: asNumber(form.handicapYears),
+      handicapMonths: asNumber(form.handicapMonths),
+      domain: typeof window !== "undefined" ? window.location.hostname : "justproveit.co.uk",
+      pageUrl: typeof window !== "undefined" ? window.location.href : CANONICAL,
+      referrer: typeof document !== "undefined" ? document.referrer : "",
+    };
+  }
+
+  async function handleSendAfterSaleEmail() {
+    setAfterSaleMessage("");
+    setAfterSaleStatus("");
+    setError("");
+    if (!form.fullName.trim() || !form.phone.trim() || !isValidEmail(form.email) || !form.birthYear || !form.birthMonth) {
+      setAfterSaleMessage("Completați numele, un email valid, telefonul și data nașterii înainte de trimitere.");
+      setAfterSaleStatus("error");
+      return;
+    }
+    setSendingAfterSaleEmail(true);
+    try {
+      const calculation = await submitPensionCalculator(buildCurrentCalculatorPayload());
+      await sendPensionCalculatorEmail(calculation.resultId, {
+        fullName: form.fullName, email: form.email, phone: form.phone,
+      }, "after_sale");
+      setResponse({ ...calculation, emailSent: true });
+      setAfterSaleMessage("Detaliile după vânzare au fost trimise pe email.");
+      setAfterSaleStatus("success");
+    } catch (error) {
+      setAfterSaleMessage(error instanceof Error ? error.message : "Emailul nu a putut fi trimis.");
+      setAfterSaleStatus("error");
+    } finally {
+      setSendingAfterSaleEmail(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
@@ -257,6 +323,8 @@ export default function RomanianPensionCalculatorPage() {
     setPurchaseSmsMessage("");
     setPurchaseSmsStatus("");
     setResponse(null);
+    setAfterSaleMessage("");
+    setAfterSaleStatus("");
 
     if (!form.birthYear || !form.birthMonth) {
       setError("Te rugam sa alegi luna si anul nasterii.");
@@ -265,39 +333,7 @@ export default function RomanianPensionCalculatorPage() {
 
     setSubmitting(true);
     try {
-      const foreignPeriods = buildForeignPeriods(form);
-      const foreignTotalMonths = foreignPeriods.reduce((total, period) => total + (period.monthsTotal || 0), 0);
-      const additionalPeriods = buildAdditionalPeriodFields(form);
-      const result = await submitPensionCalculator({
-        fullName: form.fullName,
-        email: form.email,
-        phone: form.phone,
-        birthYearMonth: `${form.birthYear}-${form.birthMonth}`,
-        gender: form.gender,
-        periods: {
-          normalRoYears: asNumber(form.normalRoYears),
-          normalRoMonths: asNumber(form.normalRoMonths),
-          foreignYears: Math.floor(foreignTotalMonths / 12),
-          foreignMonths: foreignTotalMonths % 12,
-          deosebiteYears: asNumber(form.deosebiteYears),
-          deosebiteMonths: asNumber(form.deosebiteMonths),
-          specialeYears: asNumber(form.specialeYears),
-          specialeMonths: asNumber(form.specialeMonths),
-          grupaIYears: asNumber(form.grupaIYears),
-          grupaIMonths: asNumber(form.grupaIMonths),
-          grupaIIYears: asNumber(form.grupaIIYears),
-          grupaIIMonths: asNumber(form.grupaIIMonths),
-          ...additionalPeriods,
-        },
-        foreignPeriods,
-        childrenRaised: asNumber(form.childrenRaised),
-        handicapType: form.handicapType,
-        handicapYears: asNumber(form.handicapYears),
-        handicapMonths: asNumber(form.handicapMonths),
-        domain: typeof window !== "undefined" ? window.location.hostname : "justproveit.co.uk",
-        pageUrl: typeof window !== "undefined" ? window.location.href : CANONICAL,
-        referrer: typeof document !== "undefined" ? document.referrer : "",
-      });
+      const result = await submitPensionCalculator(buildCurrentCalculatorPayload());
       setResponse(result);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Calculatorul nu a putut procesa cererea.");
@@ -741,7 +777,7 @@ export default function RomanianPensionCalculatorPage() {
               </fieldset>
 
               <div className="space-y-3">
-                <div className="grid gap-3 sm:grid-cols-3">
+                <div className="grid gap-3 sm:grid-cols-2">
                   <button
                     type="button"
                     disabled={sendingSimulationEmail}
@@ -766,7 +802,12 @@ export default function RomanianPensionCalculatorPage() {
                   >
                     {sendingPurchaseSms ? "Trimit..." : "SMS Cumparare"}
                   </button>
+                  <button type="button" disabled={sendingAfterSaleEmail} onClick={handleSendAfterSaleEmail}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-emerald-700 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-emerald-800 disabled:cursor-not-allowed disabled:bg-slate-400">
+                    {sendingAfterSaleEmail ? "Trimit..." : "Trimite Detalii După Vânzare"}
+                  </button>
                 </div>
+                {afterSaleMessage ? <div aria-live="polite"><ActionMessage status={afterSaleStatus}>{afterSaleMessage}</ActionMessage></div> : null}
                 {simulationEmailMessage || purchaseEmailMessage || purchaseSmsMessage ? (
                   <div aria-live="polite" className="space-y-1">
                     {simulationEmailMessage ? (
