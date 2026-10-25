@@ -58,9 +58,8 @@
   "alternativeSubject": null,
   "heroTitle": "Pensie la 55 de ani în UK?",
   "heroSubtitle": "Verificarea 3 din 9: pensii private uitate.",
-  "personalizeSubject": false,
-  "greeting": "Salut,",
-  "signatureText": "Adrian",
+  "personalizeSubject": true,
   "ctaPriceText": "£39",
-  "ctaPlainLabel": "👉 Locul de fondator, £39"
+  "ctaPlainLabel": "👉 Locul de fondator, £39",
+  "preserveSubjectCase": true
 }

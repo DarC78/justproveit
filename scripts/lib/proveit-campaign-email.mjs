@@ -25,7 +25,7 @@ export function renderProveitCampaignEmail({ recipientName = '', unsubscribeUrl 
   if (!/^ro-bani-uk-ai-email-\d{2}$/.test(templateKey)) throw new Error('Invalid template key');
   const selected = templateKey === sourceConfig.templateKey ? sourceConfig : JSON.parse(fs.readFileSync(new URL('../../email-templates/proveit/bani-uk-ai-' + templateKey.slice(-2) + '.json', import.meta.url), 'utf8'));
   const config = { ...selected, unsubscribeUrl };
-  const subject = config.personalizeSubject === false ? config.subject : personalizedSubject(config.subject, recipientName);
+  const subject = config.personalizeSubject === false ? config.subject : personalizedSubject(config.subject, recipientName, { preserveCase: config.preserveSubjectCase === true });
   const firstName = recipientName.trim().split(/\s+/)[0];
   const intro = [config.greeting || (firstName ? 'Buna, ' + firstName : 'Buna,'), ...config.intro.slice(1)];
   const escape = value => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
