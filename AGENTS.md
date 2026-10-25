@@ -10,3 +10,7 @@
 - Do not edit, stage, commit, pull, push, or otherwise operate inside nested or sibling repositories.
 - If a change is needed in another repository, write a spec document in this repository describing the required change, rationale, affected files or APIs, and acceptance criteria.
 - The owner will pass that spec to the other repository's team for implementation.
+
+## Code Delivery
+- After implementing requested code changes and passing the relevant checks, commit, push, and deploy through GitHub unless the user explicitly asks otherwise.
+- Verify the deployment before reporting completion. This standing authorization applies to code delivery, not publishing posts or sending messages.

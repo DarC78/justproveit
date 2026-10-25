@@ -38,7 +38,7 @@ test('saved results are not requested or rendered until the modal choice is reso
  assert.ok(person);assert.equal(person.props['data-clarity-mask'],'True');
  assert.deepEqual(nodes(person).filter(n=>n.type==='dd').map(n=>n.props.children),['Ion Popescu','ion@example.test','+44000000000']);
  const heading=all.findIndex(n=>n.type==='h1');assert.ok(all.indexOf(person)>heading);
- const cta=all.find(n=>n.props?.children==='Detalii Serviciu Pensionare');assert.equal(cta.props.href,'/saleconsultation/');assert.match(cta.props.className,/bg-emerald-700/);assert.match(cta.props.className,/text-white/);
+ const cta=all.find(n=>n.props?.children==='Detalii Serviciu Pensionare');assert.equal(cta.props.href,'https://www.proveitweb.co.uk/salepensieinternationala?UTM_CAMPAIGN=IP_SIMULARE_WEBPAGE_RES_BTN');assert.match(cta.props.className,/bg-emerald-700/);assert.match(cta.props.className,/text-white/);
  assert.equal(all.some(n=>['Fă o simulare nouă','Află mai multe despre serviciile Proveit','Modifică preferințele de confidențialitate'].includes(n.props?.children)),false);
  assert.ok(all.findIndex(n=>n.type==='footer')>all.indexOf(cta));
 });

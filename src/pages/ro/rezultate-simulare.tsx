@@ -52,7 +52,7 @@ export default function SavedPensionResultPage(){
 
       {response&&<section className="rounded-xl border border-emerald-200 bg-emerald-50 p-6 text-center">
         <p className="mb-4 text-base leading-7 text-slate-700">Proveit vă poate ajuta să ieșiți la pensia internațională. Apăsați butonul de mai jos.</p>
-        <Link className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-6 py-3 font-semibold text-white shadow-sm hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700" href="/saleconsultation/">Detalii Serviciu Pensionare</Link>
+        <Link className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-6 py-3 font-semibold text-white shadow-sm hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700" href="https://www.proveitweb.co.uk/salepensieinternationala?UTM_CAMPAIGN=IP_SIMULARE_WEBPAGE_RES_BTN">Detalii Serviciu Pensionare</Link>
       </section>}
       <footer className="border-t border-slate-200 pt-5 text-center"><button type="button" className="text-xs text-slate-500 underline" onClick={stopPensionResultTracking}>Preferințe cookie-uri</button></footer>
       </>}
