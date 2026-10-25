@@ -15,7 +15,7 @@ const lib = load('src/lib/clarity.ts');
 const excluded = ['/admin', '/admin/crm?tab=privatePensions', '/admin/support-inbox/',
   '/admin/dialler', '/admin/overdue-payments', '/admin/role-play-feedback',
   '/admin/future-tool', '/login?next=/admin', '/reset-password?token=secret',
-  '/ro/raport-gratuit', '/ro/rezultate-raport?token=secret', '/bani-uk-multumim/?session_id=cs_live_secret', '/bani-uk-ai-multumim/?session_id=cs_live_secret'];
+  '/ro/rezultate-simulare/#token=private', '/ro/raport-gratuit', '/ro/rezultate-raport?token=secret', '/bani-uk-multumim/?session_id=cs_live_secret', '/bani-uk-ai-multumim/?session_id=cs_live_secret'];
 test('private, authentication and bearer-link pages are excluded; marketing stays enabled', () => {
   for (const path of excluded) assert.equal(lib.isClarityPage(path), false, path);
   for (const path of ['/', '/ro/', '/car-finance-mis-selling/', '/ro/hai-in-club', '/saleconsultation']) {

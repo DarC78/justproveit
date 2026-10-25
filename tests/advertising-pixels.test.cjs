@@ -30,7 +30,7 @@ test('explicit refusal and unavailable storage block advertising', () => {
 });
 
 test('protected and authentication pages never load pixels, even with consent', () => {
-  for (const path of ['/admin', '/admin/crm', '/ADMIN//crm', '/%61dmin/crm', '/login', '/reset-password', '/api/email-link', '/ro/raport-gratuit', '/ro/rezultate-raport', '/%invalid']) {
+  for (const path of ['/admin', '/admin/crm', '/ADMIN//crm', '/%61dmin/crm', '/login', '/reset-password', '/api/email-link', '/ro/rezultate-simulare/', '/ro/raport-gratuit', '/ro/rezultate-raport', '/%invalid']) {
     const h = harness(path); h.run(); assert.equal(h.scripts.length, 0, path);
   }
 });

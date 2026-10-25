@@ -9,11 +9,12 @@
     try {
       var choice = JSON.parse(w.localStorage.getItem(key));
       var path = decodeURIComponent(w.location.pathname).replace(/\/+/g, '/').toLowerCase();
+      if (/^\/ro\/rezultate-simulare\/?$/.test(path)) return w.proveitPensionResultTracking === true && !w.location.search && !w.location.hash && choice && choice.value === 'granted' && choice.expires > Date.now();
       if (/^\/bani-uk-ai-multumim\/?$/.test(path)) return false;
       if (/^\/bani-uk-multumim\/?$/.test(path) && !w.proveitPurchaseVerified) return false;
       return !(choice && choice.value === 'denied' && choice.expires > Date.now()) &&
         !/^\/(admin|login|reset-password|api)(\/|$)/.test(path) &&
-        !/^\/ro\/(raport-gratuit|rezultate-raport)(\/|$)/.test(path);
+        !/^\/ro\/(raport-gratuit|rezultate-raport|rezultate-simulare)(\/|$)/.test(path);
     } catch (_) { return false; }
   }
   function add(src, id) {
