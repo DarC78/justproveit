@@ -1,0 +1,19 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';import {createHash,randomUUID} from 'node:crypto';import {execFileSync} from 'node:child_process';import {renderProveitCampaignEmail as render} from '../../scripts/lib/proveit-campaign-email.mjs';
+const prefix='tmp/email03-review/personalized-review';
+try{
+ const before=JSON.parse(fs.readFileSync('tmp/email03-review/previous-template-hashes.json','utf8'));
+ for(const [templateKey,expected] of Object.entries(before))assert.equal(createHash('sha256').update(JSON.stringify(render({templateKey,recipientName:'Adrian',mode:'test'}))).digest('hex'),expected);
+ for(const name of ['Adrian','Maria']){const r=render({templateKey:'ro-bani-uk-ai-email-03',recipientName:name,mode:'test'});assert.ok(r.subject.startsWith(name+', Pensie'));assert.ok(r.html.includes('Buna, '+name));assert.ok(r.text.includes('Mersi mult,\nAdrian Defta\nDirector Proveit\nTop 100 Rom\u00e2ni de Pretutindeni'));}
+ const rendered=render({templateKey:'ro-bani-uk-ai-email-03',recipientName:'Adrian',mode:'test'}),payload={...rendered,to:['adrian@proveitweb.co.uk']};
+ assert.equal(payload.from,'Adrian Defta <adrian@mail.justproveit.co.uk>');assert.equal(payload.reply_to,'adrian@proveitweb.co.uk');assert.ok(!/\{\{|__BANI_|PREVIZUALIZARE/.test(payload.html));assert.equal([...payload.html.matchAll(/data-role="primary-cta"/g)].length,1);
+ fs.writeFileSync('tmp/email03-review/preview.html',payload.html);fs.writeFileSync('tmp/email03-review/email.txt',payload.subject+'\n\n'+payload.text);fs.writeFileSync('tmp/email03-review/rendered.json',JSON.stringify(payload,null,2));
+ if(fs.existsSync(prefix+'.receipt.json')){console.log(fs.readFileSync(prefix+'.receipt.json','utf8'));process.exit(0);}
+ execFileSync('node',['scripts/verify-proveit-email-links.mjs'],{stdio:['ignore','pipe','pipe']});
+ const images=[...payload.html.matchAll(/<img[^>]+src="([^"]+)"/g)].map(m=>m[1].replaceAll('&amp;','&'));
+ for(const url of images){const r=await fetch(url,{method:'HEAD',signal:AbortSignal.timeout(20000)});assert.equal(r.status,200);assert.ok(r.headers.get('content-type')?.startsWith('image/'));}
+ let request;if(fs.existsSync(prefix+'.request.json')){request=JSON.parse(fs.readFileSync(prefix+'.request.json','utf8'));assert.deepEqual(request.payload,payload);}else{request={idempotencyKey:'bani-email03-personalized-review-'+randomUUID(),payload};fs.writeFileSync(prefix+'.request.json',JSON.stringify(request,null,2));}
+ const raw=execFileSync('powershell.exe',['-NoProfile','-NonInteractive','-Command','az functionapp config appsettings list --name launchingstack-func-dev --resource-group launchingstack-dev-rg --output json --only-show-errors'],{encoding:'utf8',stdio:['ignore','pipe','pipe']});
+ const s=Object.fromEntries(JSON.parse(raw).map(v=>[v.name,v.value]));const key=s.ResendApiKey||s.RESEND_API_KEY;if(!key)throw Error('Resend unavailable');
+ const r=await fetch('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+key,'Content-Type':'application/json','Idempotency-Key':request.idempotencyKey},body:JSON.stringify(request.payload),signal:AbortSignal.timeout(20000)});const b=await r.json();if(!r.ok||typeof b.id!=='string')throw Error('Provider did not accept the test');
+ const receipt={id:b.id,to:payload.to[0],template:'ro-bani-uk-ai-email-03',subject:payload.subject,status:'accepted',acceptedAt:new Date().toISOString(),campaignScheduled:false};fs.writeFileSync(prefix+'.receipt.json',JSON.stringify(receipt,null,2));console.log(JSON.stringify(receipt));
+}catch{console.error('Personalized test did not complete cleanly. Credentials suppressed; reconcile saved request/receipt before retrying.');process.exitCode=1;}
