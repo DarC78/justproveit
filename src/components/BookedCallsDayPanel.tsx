@@ -51,7 +51,7 @@ export default function BookedCallsDayPanel({ token, date, revision }: {
                 <li key={booking.intentId}>
                   <time dateTime={booking.appointmentAtUtc}>{bookedCallTime.format(new Date(booking.appointmentAtUtc))}</time>
                   <div>
-                    <strong>{booking.name || booking.phone || "Client"}</strong>
+                    <strong>{booking.name || "Client"}{booking.phone ? ` — ${booking.phone}` : ""}</strong>
                     <span>{booking.serviceName || booking.intentType}</span>
                     <BookingCallHistory booking={booking} />
                   </div>
