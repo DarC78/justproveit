@@ -301,6 +301,32 @@ export type CrmLeadIntentRow = {
   lead?: CrmLead | null;
 };
 
+export type ScheduledCallRow = {
+  intentId: string;
+  contactId: string;
+  name: string;
+  phone: string | null;
+  intentType: string;
+  serviceName: string | null;
+  leadCreatedAtUtc: string | null;
+  bookedAtUtc: string;
+  appointmentAtUtc: string;
+  bookingEmailSent: boolean | null;
+  bookingWhatsAppSent: boolean | null;
+  reminderEmailSent: boolean | null;
+  reminderWhatsAppSent: boolean | null;
+  manualCallsToday: number | null;
+  agentConversationsToday: number | null;
+  onDialler: boolean | null;
+};
+
+export type ScheduledCallsResponse = {
+  date: string;
+  timeZone: string;
+  rows: ScheduledCallRow[];
+  warnings?: string[];
+};
+
 export type CrmPredictiveCampaignSummary = {
   queueId?: number | null;
   campaignName?: string | null;
@@ -1020,6 +1046,12 @@ export function listCrmLeadIntents(
 ) {
   return fetchCanonicalCrmReadJson<CrmLeadIntentResponse>(`${BASE_PATH}/lead-intents${buildQuery(params)}`, {
     headers: authHeaders(token),
+  });
+}
+
+export function listScheduledCrmCalls(token: string, date: string, signal?: AbortSignal) {
+  return fetchCanonicalCrmReadJson<ScheduledCallsResponse>(`${BASE_PATH}/scheduled-calls${buildQuery({ date })}`, {
+    headers: authHeaders(token), signal,
   });
 }
 

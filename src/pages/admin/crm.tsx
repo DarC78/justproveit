@@ -1,6 +1,7 @@
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
 import BookedCallsDayPanel from "@/components/BookedCallsDayPanel";
+import ScheduledCallsPanel from "@/components/ScheduledCallsPanel";
 import { useAuth } from "@/context/AuthContext";
 import {
   addCrmLeadPhone,
@@ -53,6 +54,7 @@ type TabKey =
   | "privatePensions"
   | "details"
   | "new"
+  | "scheduledCalls"
   | "sales"
   | "all"
   | "intents"
@@ -88,6 +90,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "privatePensions", label: "Livrare Pensii Private" },
   { key: "details", label: "Detalii Lead" },
   { key: "new", label: "Lead Nou" },
+  { key: "scheduledCalls", label: "Scheduled calls" },
   { key: "sales", label: "Arata Vanzarile" },
   { key: "all", label: "All Leads CRM" },
   { key: "intents", label: "Lead Intents" },
@@ -1329,6 +1332,7 @@ export default function AdminCrmPage() {
               ) : null}
 
               {activeTab === "privatePensions" && canUsePrivatePensions ? <PrivatePensionsPanel token={token} /> : null}
+              {activeTab === "scheduledCalls" ? <ScheduledCallsPanel token={token} /> : null}
 
               {activeTab === "sales" ? (
                 <SalesPanel token={token} onError={setErrorMessage} />
