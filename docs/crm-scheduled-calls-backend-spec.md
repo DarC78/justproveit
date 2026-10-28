@@ -37,6 +37,20 @@ Each row contains:
 - `callCodesSinceAppointmentDay`: every code as `{ callCode, description, count }`,
   including a null code for calls without an outcome. Counts include voicemail and
   other non-conversation outcomes. Used in both the compact list and full table.
+- `whatsAppClientMessages`, `whatsAppTeamMessages`: inbound and outbound messages
+  on the appointment day only (UK time), including confirmed automated messages,
+  deduplicated by provider ID. Unknown phones give null, known phones give zero
+  when there are no messages. Queued messages are excluded.
+
+The compact list opens a third column when a client name is clicked, loading
+`GET /justproveit/admin/crm/scheduled-calls/{intentId}/whatsapp?date=YYYY-MM-DD`.
+Return `{ intentId, date, timeZone, clientMessages, teamMessages, messages }`, where
+each message has `id`, `direction` (`inbound`/`outbound`), `atUtc`, `author`, `text`
+and `type`. Include only the selected UK day, sorted chronologically. Check CRM
+access and booking ownership/date; do not accept a caller-supplied phone number.
+Changing the date or client must abort stale requests; closing the discussion
+restores the two-column form. Text is rendered as plain text and this view sends
+no messages.
 
 Authorization must match the existing CRM admin endpoints. Validate dates and
 return safe errors. Read-only: do not send messages, change bookings, close leads

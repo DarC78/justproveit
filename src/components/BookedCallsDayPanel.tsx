@@ -3,8 +3,8 @@ import { ScheduledCallRow, listScheduledCrmCalls } from "@/lib/crmAdmin";
 import { bookedCallTime } from "@/lib/bookedCalls";
 import BookingCallHistory from "./BookingCallHistory";
 
-export default function BookedCallsDayPanel({ token, date, revision }: {
-  token: string; date: string; revision: number;
+export default function BookedCallsDayPanel({ token, date, revision, selectedIntentId, onSelect }: {
+  token: string; date: string; revision: number; selectedIntentId?: string; onSelect: (booking: ScheduledCallRow) => void;
 }) {
   const [bookings, setBookings] = useState<ScheduledCallRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -51,9 +51,13 @@ export default function BookedCallsDayPanel({ token, date, revision }: {
                 <li key={booking.intentId}>
                   <time dateTime={booking.appointmentAtUtc}>{bookedCallTime.format(new Date(booking.appointmentAtUtc))}</time>
                   <div>
-                    <strong>{booking.name || "Client"}{booking.phone ? ` — ${booking.phone}` : ""}</strong>
+                    <button type="button" className="client-name" onClick={() => onSelect(booking)}
+                      aria-pressed={selectedIntentId === booking.intentId} aria-controls="booking-whatsapp-conversation">
+                      {booking.name || "Client"}{booking.phone ? ` — ${booking.phone}` : ""}
+                    </button>
                     <span>{booking.serviceName || booking.intentType}</span>
                     <BookingCallHistory booking={booking} />
+                    <p className="whatsapp-counts">WhatsApp · Client: {booking.whatsAppClientMessages ?? "indisponibil"} · Noi: {booking.whatsAppTeamMessages ?? "indisponibil"}</p>
                   </div>
                 </li>
               ))}
@@ -66,6 +70,10 @@ export default function BookedCallsDayPanel({ token, date, revision }: {
         h2 { margin: 0; font-size: 19px; font-weight: 800; }
         button { border: 1px solid #cbd5e1; border-radius: 4px; padding: 6px 9px; background: white; color: #123c92; cursor: pointer; font-size: 12px; }
         button:disabled { opacity: .5; cursor: default; }
+        .client-name { display: block; padding: 0; border: 0; border-radius: 0; background: transparent; color: #123c92; text-align: left; font-size: 13px; font-weight: 700; text-decoration: underline; overflow-wrap: anywhere; }
+        .client-name[aria-pressed="true"] { color: #196a35; }
+        .client-name:focus-visible { outline: 2px solid #123c92; outline-offset: 3px; }
+        .whatsapp-counts { margin: 8px 0 0; font-size: 11px; color: #196a35; }
         p { font-size: 13px; line-height: 1.5; }
         .date { margin: 8px 0 18px; color: #526077; }
         .count { font-weight: 700; }

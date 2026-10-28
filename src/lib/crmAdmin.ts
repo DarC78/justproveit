@@ -317,6 +317,8 @@ export type ScheduledCallRow = {
   reminderWhatsAppSent: boolean | null;
   manualCallsToday: number | null;
   callsSinceAppointmentDay: number | null;
+  whatsAppClientMessages: number | null;
+  whatsAppTeamMessages: number | null;
   callCodesSinceAppointmentDay: Array<{ callCode: number | null; description: string | null; count: number }>;
   agentConversationsToday: number | null;
   onDialler: boolean | null;
@@ -327,6 +329,15 @@ export type ScheduledCallsResponse = {
   timeZone: string;
   rows: ScheduledCallRow[];
   warnings?: string[];
+};
+
+export type ScheduledWhatsAppConversation = {
+  intentId: string;
+  date: string;
+  timeZone: string;
+  clientMessages: number | null;
+  teamMessages: number | null;
+  messages: Array<{ id: string; direction: "inbound" | "outbound"; atUtc: string; author: string; text: string; type: string }>;
 };
 
 export type CrmPredictiveCampaignSummary = {
@@ -1054,6 +1065,12 @@ export function listCrmLeadIntents(
 export function listScheduledCrmCalls(token: string, date: string, signal?: AbortSignal) {
   return fetchCanonicalCrmReadJson<ScheduledCallsResponse>(`${BASE_PATH}/scheduled-calls${buildQuery({ date })}`, {
     headers: authHeaders(token), signal,
+  });
+}
+
+export function getScheduledWhatsAppConversation(token: string, intentId: string, date: string, signal?: AbortSignal) {
+  return fetchCanonicalCrmReadJson<ScheduledWhatsAppConversation>(`${BASE_PATH}/scheduled-calls/${encodeURIComponent(intentId)}/whatsapp${buildQuery({ date })}`, {
+    headers: { Authorization: `Bearer ${token}` }, signal,
   });
 }
 

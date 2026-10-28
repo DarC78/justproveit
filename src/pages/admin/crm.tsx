@@ -1,6 +1,7 @@
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
 import BookedCallsDayPanel from "@/components/BookedCallsDayPanel";
+import BookingWhatsAppConversation from "@/components/BookingWhatsAppConversation";
 import ScheduledCallsPanel from "@/components/ScheduledCallsPanel";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -17,6 +18,7 @@ import {
   CrmLead,
   CrmLeadIntentServiceOption,
   CrmLeadIntentRow,
+  ScheduledCallRow,
   CrmMissedCall,
   CrmPredictiveCampaignSummary,
   CrmQuickReportDetails,
@@ -2491,6 +2493,7 @@ function NewLeadPanel({
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
   const [bookingsRevision, setBookingsRevision] = useState(0);
+  const [whatsAppSelection, setWhatsAppSelection] = useState<{ booking: ScheduledCallRow; date: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [stopDiallerPhone, setStopDiallerPhone] = useState("");
   const [stopDiallerSaving, setStopDiallerSaving] = useState(false);
@@ -2570,7 +2573,7 @@ function NewLeadPanel({
   }
 
   return (
-    <section className={`new-lead${showAppointmentFields ? " with-bookings" : ""}`}>
+    <section className={`new-lead${showAppointmentFields ? " with-bookings" : ""}${showAppointmentFields && whatsAppSelection?.date === appointmentDate ? " with-conversation" : ""}`}>
       <div className="lead-form-column">
       <h1>Adauga Lead Nou</h1>
       <form onSubmit={handleSubmit}>
@@ -2612,7 +2615,7 @@ function NewLeadPanel({
           <div className="appointment-row">
             <label>
               Data programarii *
-              <input type="date" value={appointmentDate} onChange={(event) => setAppointmentDate(event.target.value)} />
+              <input type="date" value={appointmentDate} onChange={(event) => { setAppointmentDate(event.target.value); setWhatsAppSelection(null); }} />
             </label>
             <label>
               Ora UK *
@@ -2646,9 +2649,16 @@ function NewLeadPanel({
       </div>
       {showAppointmentFields && (
         <div className="booked-calls-column">
-          <BookedCallsDayPanel token={token} date={appointmentDate} revision={bookingsRevision} />
+          <BookedCallsDayPanel token={token} date={appointmentDate} revision={bookingsRevision}
+            selectedIntentId={whatsAppSelection?.date === appointmentDate ? whatsAppSelection.booking.intentId : undefined}
+            onSelect={booking => setWhatsAppSelection({ booking, date: appointmentDate })} />
         </div>
       )}
+
+      {showAppointmentFields && whatsAppSelection?.date === appointmentDate && <div className="conversation-column">
+        <BookingWhatsAppConversation key={`${appointmentDate}-${whatsAppSelection.booking.intentId}`} token={token}
+          booking={whatsAppSelection.booking} date={appointmentDate} onClose={() => setWhatsAppSelection(null)} />
+      </div>}
 
       <style jsx>{`
         .new-lead {
@@ -2665,6 +2675,8 @@ function NewLeadPanel({
           width: min(100%, 730px);
         }
         .lead-form-column { min-width: 0; }
+        .new-lead.with-conversation { grid-template-columns: minmax(0, 300px) minmax(0, 340px) minmax(0, 390px); width: min(100%, 1110px); gap: 24px; }
+        .conversation-column { min-width: 0; margin-top: 8px; }
         .booked-calls-column { margin-top: 8px; min-width: 0; }
         h1 {
           margin: 0 0 6px;
@@ -2721,8 +2733,12 @@ function NewLeadPanel({
           color: white;
           font-weight: 800;
         }
+        @media (max-width: 1050px) {
+          .new-lead.with-conversation { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); width: min(100%, 730px); }
+          .conversation-column { grid-column: 1 / -1; }
+        }
         @media (max-width: 760px) {
-          .new-lead, .new-lead.with-bookings {
+          .new-lead, .new-lead.with-bookings, .new-lead.with-conversation {
             grid-template-columns: minmax(0, 1fr);
             width: min(100%, 420px);
             gap: 24px;

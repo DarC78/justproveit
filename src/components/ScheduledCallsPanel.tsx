@@ -75,6 +75,7 @@ export default function ScheduledCallsPanel({ token }: { token: string }) {
                 <th scope="col">Reminder email sent</th><th scope="col">Reminder WhatsApp sent</th>
                 <th scope="col">Manual calls that day</th><th scope="col">Agent conversations that day</th><th scope="col">On dialler now</th>
                 <th scope="col">Apeluri din ziua programarii si dupa / callcoduri</th>
+                <th scope="col">WhatsApp client in ziua programarii</th><th scope="col">WhatsApp noi in ziua programarii</th>
               </tr></thead>
               <tbody>{rows.map(row => <tr key={row.intentId}>
                 <td><time dateTime={row.appointmentAtUtc}>{londonTime.format(new Date(row.appointmentAtUtc))}</time></td>
@@ -87,6 +88,8 @@ export default function ScheduledCallsPanel({ token }: { token: string }) {
                 <td className="number">{row.manualCallsToday ?? "Unavailable"}</td><td className="number">{row.agentConversationsToday ?? "Unavailable"}</td>
                 <td><YesNo value={row.onDialler} /></td>
                 <td className="history"><BookingCallHistory booking={row} /></td>
+                <td className="number">{row.whatsAppClientMessages ?? "Unavailable"}</td>
+                <td className="number">{row.whatsAppTeamMessages ?? "Unavailable"}</td>
               </tr>)}</tbody>
             </table>
           </div>}
