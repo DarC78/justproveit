@@ -316,6 +316,8 @@ export type ScheduledCallRow = {
   reminderEmailSent: boolean | null;
   reminderWhatsAppSent: boolean | null;
   manualCallsToday: number | null;
+  callsSinceAppointmentDay: number | null;
+  callCodesSinceAppointmentDay: Array<{ callCode: number | null; description: string | null; count: number }>;
   agentConversationsToday: number | null;
   onDialler: boolean | null;
 };

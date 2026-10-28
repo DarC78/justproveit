@@ -1,11 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
-import { CrmLeadIntentRow, listCrmLeadIntents } from "@/lib/crmAdmin";
-import { bookedCallsForDate, bookedCallTime, loadBookedCalls } from "@/lib/bookedCalls";
+import { useEffect, useState } from "react";
+import { ScheduledCallRow, listScheduledCrmCalls } from "@/lib/crmAdmin";
+import { bookedCallTime } from "@/lib/bookedCalls";
+import BookingCallHistory from "./BookingCallHistory";
 
 export default function BookedCallsDayPanel({ token, date, revision }: {
   token: string; date: string; revision: number;
 }) {
-  const [bookings, setBookings] = useState<CrmLeadIntentRow[]>([]);
+  const [bookings, setBookings] = useState<ScheduledCallRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [refresh, setRefresh] = useState(0);
@@ -18,15 +19,18 @@ export default function BookedCallsDayPanel({ token, date, revision }: {
       if (cancelled) return [];
       setLoading(true);
       setError("");
-      return loadBookedCalls((params) => listCrmLeadIntents(token, params), () => cancelled);
+      return listScheduledCrmCalls(token, date).then(result => {
+        if (result.date !== date || !Array.isArray(result.rows)) throw new Error("Lista programarilor nu a putut fi verificata.");
+        return result.rows;
+      });
     })
       .then((rows) => { if (!cancelled) setBookings(rows); })
       .catch((cause) => { if (!cancelled) setError(cause instanceof Error ? cause.message : "Nu am putut incarca programarile."); })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [token, hasDate, revision, refresh]);
+  }, [token, hasDate, date, revision, refresh]);
 
-  const dayBookings = useMemo(() => bookedCallsForDate(bookings, date), [bookings, date]);
+  const dayBookings = bookings;
 
   return (
     <aside aria-label="Programarile zilei">
@@ -43,12 +47,13 @@ export default function BookedCallsDayPanel({ token, date, revision }: {
           : <>
             <p className="count">{dayBookings.length} {dayBookings.length === 1 ? "apel programat" : "apeluri programate"}</p>
             <ol>
-              {dayBookings.map((booking, index) => (
-                <li key={booking.interestId || `${booking.contactId}-${booking.contactTimeUtc}-${index}`}>
-                  <time dateTime={booking.contactTimeUtc!}>{bookedCallTime.format(new Date(booking.contactTimeUtc!))}</time>
+              {dayBookings.map((booking) => (
+                <li key={booking.intentId}>
+                  <time dateTime={booking.appointmentAtUtc}>{bookedCallTime.format(new Date(booking.appointmentAtUtc))}</time>
                   <div>
-                    <strong>{booking.lead?.fullName || booking.lead?.phoneNumber || "Client"}</strong>
-                    <span>{booking.serviceDisplayName || booking.serviceKey || booking.interestType}</span>
+                    <strong>{booking.name || booking.phone || "Client"}</strong>
+                    <span>{booking.serviceName || booking.intentType}</span>
+                    <BookingCallHistory booking={booking} />
                   </div>
                 </li>
               ))}

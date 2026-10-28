@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import BookingCallHistory from "./BookingCallHistory";
 import { listScheduledCrmCalls, ScheduledCallsResponse } from "@/lib/crmAdmin";
 
 const londonDate = new Intl.DateTimeFormat("en-CA", {
@@ -73,6 +74,7 @@ export default function ScheduledCallsPanel({ token }: { token: string }) {
                 <th scope="col">Booking email sent</th><th scope="col">Booking WhatsApp sent</th>
                 <th scope="col">Reminder email sent</th><th scope="col">Reminder WhatsApp sent</th>
                 <th scope="col">Manual calls that day</th><th scope="col">Agent conversations that day</th><th scope="col">On dialler now</th>
+                <th scope="col">Apeluri din ziua programarii si dupa / callcoduri</th>
               </tr></thead>
               <tbody>{rows.map(row => <tr key={row.intentId}>
                 <td><time dateTime={row.appointmentAtUtc}>{londonTime.format(new Date(row.appointmentAtUtc))}</time></td>
@@ -84,6 +86,7 @@ export default function ScheduledCallsPanel({ token }: { token: string }) {
                 <td><YesNo value={row.reminderEmailSent} /></td><td><YesNo value={row.reminderWhatsAppSent} /></td>
                 <td className="number">{row.manualCallsToday ?? "Unavailable"}</td><td className="number">{row.agentConversationsToday ?? "Unavailable"}</td>
                 <td><YesNo value={row.onDialler} /></td>
+                <td className="history"><BookingCallHistory booking={row} /></td>
               </tr>)}</tbody>
             </table>
           </div>}
@@ -115,6 +118,7 @@ export default function ScheduledCallsPanel({ token }: { token: string }) {
       small { display: block; font-size: 11px; color: #667085; font-weight: 400; margin-top: 5px; }
       time { color: #143b92; font-size: 17px; font-weight: 800; }
       .phone { white-space: nowrap; }
+      .history { min-width: 240px; }
       .number { text-align: center; font-variant-numeric: tabular-nums; font-weight: 700; }
       .note { margin-top: 14px; color: #667085; max-width: 1000px; }
       @media(max-width: 600px) { .heading { align-items: start; } .controls { width: 100%; } }

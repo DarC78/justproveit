@@ -31,6 +31,12 @@ Each row contains:
   does not establish a conversation.
 - `onDialler`: current active dialler membership for the normalized phone across
   queues; do not infer this from a historical CRM AddToDialler flag.
+- `callsSinceAppointmentDay`: distinct matched calltrace records from midnight of
+  the appointment date in UK time onwards, including later days and all call types.
+  Null means the phone is unavailable; zero means no calls were found.
+- `callCodesSinceAppointmentDay`: every code as `{ callCode, description, count }`,
+  including a null code for calls without an outcome. Counts include voicemail and
+  other non-conversation outcomes. Used in both the compact list and full table.
 
 Authorization must match the existing CRM admin endpoints. Validate dates and
 return safe errors. Read-only: do not send messages, change bookings, close leads
