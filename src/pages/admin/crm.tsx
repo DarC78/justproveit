@@ -2481,7 +2481,7 @@ function NewLeadPanel({
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
-  const [service, setService] = useState<"simulator pensie" | "FreeMoneyCheck" | "other">("simulator pensie");
+  const [service, setService] = useState<"simulator pensie" | "GasirePensiePrivata" | "FreeMoneyCheck" | "other">("simulator pensie");
   const [interestType, setInterestType] = useState<"ASAP" | "MANUAL_BOOK">("MANUAL_BOOK");
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
@@ -2593,9 +2593,10 @@ function NewLeadPanel({
           Serviciu *
           <select
             value={service}
-            onChange={(event) => setService(event.target.value as "simulator pensie" | "FreeMoneyCheck" | "other")}
+            onChange={(event) => setService(event.target.value as "simulator pensie" | "GasirePensiePrivata" | "FreeMoneyCheck" | "other")}
           >
             <option value="simulator pensie">simulator pensie</option>
+            <option value="GasirePensiePrivata">Găsire Pensie Privată</option>
             <option value="FreeMoneyCheck">Money Check</option>
             <option value="other">other</option>
           </select>
