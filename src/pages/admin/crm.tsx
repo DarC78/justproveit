@@ -2651,6 +2651,7 @@ function NewLeadPanel({
         <div className="booked-calls-column">
           <BookedCallsDayPanel token={token} date={appointmentDate} revision={bookingsRevision}
             selectedIntentId={whatsAppSelection?.date === appointmentDate ? whatsAppSelection.booking.intentId : undefined}
+            onBookingChanged={() => setWhatsAppSelection(null)}
             onSelect={booking => setWhatsAppSelection({ booking, date: appointmentDate })} />
         </div>
       )}

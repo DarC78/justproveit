@@ -340,6 +340,21 @@ export type ScheduledWhatsAppConversation = {
   messages: Array<{ id: string; direction: "inbound" | "outbound"; atUtc: string; author: string; text: string; type: string }>;
 };
 
+export type BookingActionResult = {
+  success: boolean; action: "reschedule" | "cancel"; intentId: string; appointmentAtUtc: string;
+  cancelledEmails: number; cancelledWhatsApp: number; emailQueued: boolean; replayed?: boolean;
+};
+
+export function changeScheduledBooking(token: string, booking: ScheduledCallRow, action: "reschedule" | "cancel", payload: {
+  requestId: string; appointmentDate?: string; appointmentTime?: string;
+}) {
+  return fetchCanonicalCrmReadJson<BookingActionResult>(`${BASE_PATH}/scheduled-calls/${encodeURIComponent(booking.intentId)}${action === "reschedule" ? "/reschedule" : ""}`, {
+    method: action === "reschedule" ? "POST" : "DELETE",
+    headers: { ...authHeaders(token), "Content-Type": "application/json" },
+    body: JSON.stringify({ ...payload, expectedAppointmentAtUtc: booking.appointmentAtUtc }),
+  });
+}
+
 export type CrmPredictiveCampaignSummary = {
   queueId?: number | null;
   campaignName?: string | null;

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BookingCallHistory from "./BookingCallHistory";
+import BookingActions from "./BookingActions";
 import { listScheduledCrmCalls, ScheduledCallsResponse } from "@/lib/crmAdmin";
 
 const londonDate = new Intl.DateTimeFormat("en-CA", {
@@ -34,6 +35,7 @@ export default function ScheduledCallsPanel({ token }: { token: string }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [refresh, setRefresh] = useState(0);
+  const [notice, setNotice] = useState("");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -61,6 +63,7 @@ export default function ScheduledCallsPanel({ token }: { token: string }) {
       </div>
     </div>
     <div aria-live="polite" aria-busy={loading}>
+      {notice && <p role="status" className="notice">{notice}</p>}
       {loading ? <p className="status">Loading scheduled calls...</p>
         : error ? <p role="alert" className="error">{error}</p>
         : <>
@@ -76,6 +79,7 @@ export default function ScheduledCallsPanel({ token }: { token: string }) {
                 <th scope="col">Manual calls that day</th><th scope="col">Agent conversations that day</th><th scope="col">On dialler now</th>
                 <th scope="col">Apeluri din ziua programarii si dupa / callcoduri</th>
                 <th scope="col">WhatsApp client in ziua programarii</th><th scope="col">WhatsApp noi in ziua programarii</th>
+                <th scope="col">Actiuni programare</th>
               </tr></thead>
               <tbody>{rows.map(row => <tr key={row.intentId}>
                 <td><time dateTime={row.appointmentAtUtc}>{londonTime.format(new Date(row.appointmentAtUtc))}</time></td>
@@ -90,6 +94,10 @@ export default function ScheduledCallsPanel({ token }: { token: string }) {
                 <td className="history"><BookingCallHistory booking={row} /></td>
                 <td className="number">{row.whatsAppClientMessages ?? "Unavailable"}</td>
                 <td className="number">{row.whatsAppTeamMessages ?? "Unavailable"}</td>
+                <td className="history"><BookingActions token={token} booking={row} onChanged={result => {
+                  setNotice(result.action === "reschedule" ? "Programare reprogramata. Emailul este in coada de trimitere; reminderele vechi au fost anulate." : "Programarea si mesajele netrimise aferente au fost anulate.");
+                  setRefresh(value => value + 1);
+                }} /></td>
               </tr>)}</tbody>
             </table>
           </div>}
@@ -110,6 +118,7 @@ export default function ScheduledCallsPanel({ token }: { token: string }) {
       .status, .error { padding: 24px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; }
       .error { color: #b42318; }
       .warning { padding: 12px; background: #fff7e4; margin-bottom: 12px; }
+      .notice { padding: 12px; background: #e5f4e9; color: #196a35; margin-bottom: 12px; }
       .table-scroll { overflow-x: auto; border: 1px solid #dce3ee; border-radius: 7px; }
       table { width: 100%; min-width: 1550px; border-collapse: collapse; font-size: 12px; text-align: left; }
       thead { background: #eef3fb; color: #17376e; }

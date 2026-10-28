@@ -2,14 +2,16 @@ import { useEffect, useState } from "react";
 import { ScheduledCallRow, listScheduledCrmCalls } from "@/lib/crmAdmin";
 import { bookedCallTime } from "@/lib/bookedCalls";
 import BookingCallHistory from "./BookingCallHistory";
+import BookingActions from "./BookingActions";
 
-export default function BookedCallsDayPanel({ token, date, revision, selectedIntentId, onSelect }: {
-  token: string; date: string; revision: number; selectedIntentId?: string; onSelect: (booking: ScheduledCallRow) => void;
+export default function BookedCallsDayPanel({ token, date, revision, selectedIntentId, onSelect, onBookingChanged }: {
+  token: string; date: string; revision: number; selectedIntentId?: string; onSelect: (booking: ScheduledCallRow) => void; onBookingChanged?: () => void;
 }) {
   const [bookings, setBookings] = useState<ScheduledCallRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [refresh, setRefresh] = useState(0);
+  const [notice, setNotice] = useState("");
   const hasDate = Boolean(date);
 
   useEffect(() => {
@@ -39,6 +41,7 @@ export default function BookedCallsDayPanel({ token, date, revision, selectedInt
         {hasDate && <button type="button" disabled={loading} onClick={() => setRefresh((value) => value + 1)}>Reincarca</button>}
       </div>
       <p className="date">{date ? date.split("-").reverse().join("/") : "Alege data programarii"} · Ora UK</p>
+      {notice && <p role="status" className="notice">{notice}</p>}
       <div aria-live="polite" aria-busy={loading}>
         {!hasDate ? <p>Selecteaza o data pentru a vedea apelurile rezervate.</p>
           : loading ? <p>Se incarca programarile...</p>
@@ -58,6 +61,10 @@ export default function BookedCallsDayPanel({ token, date, revision, selectedInt
                     <span>{booking.serviceName || booking.intentType}</span>
                     <BookingCallHistory booking={booking} />
                     <p className="whatsapp-counts">WhatsApp · Client: {booking.whatsAppClientMessages ?? "indisponibil"} · Noi: {booking.whatsAppTeamMessages ?? "indisponibil"}</p>
+                    <BookingActions token={token} booking={booking} onChanged={result => {
+                      setNotice(result.action === "reschedule" ? "Programare reprogramata. Emailul este in coada de trimitere; reminderele vechi au fost anulate." : "Programarea si mesajele netrimise aferente au fost anulate.");
+                      setRefresh(value => value + 1); onBookingChanged?.();
+                    }} />
                   </div>
                 </li>
               ))}
@@ -78,6 +85,7 @@ export default function BookedCallsDayPanel({ token, date, revision, selectedInt
         .date { margin: 8px 0 18px; color: #526077; }
         .count { font-weight: 700; }
         .error { color: #b42318; }
+        .notice { color: #196a35; padding: 9px; background: #e5f4e9; border-radius: 4px; }
         ol { padding: 0; margin: 0; list-style: none; }
         li { display: flex; gap: 16px; padding: 13px 0; border-top: 1px solid #dce3ee; }
         time { color: #123c92; font-weight: 800; font-size: 18px; font-variant-numeric: tabular-nums; }

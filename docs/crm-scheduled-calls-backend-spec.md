@@ -52,6 +52,23 @@ Changing the date or client must abort stale requests; closing the discussion
 restores the two-column form. Text is rendered as plain text and this view sends
 no messages.
 
+## Booking actions
+
+Both booking lists offer Reprogrameaza and Delete book. Rescheduling submits
+`POST /scheduled-calls/{intentId}/reschedule` with `requestId`,
+`expectedAppointmentAtUtc`, `appointmentDate` and `appointmentTime` in UK time.
+Delete book uses `DELETE /scheduled-calls/{intentId}` with the UUID and expected
+timestamp. Confirm each action inline; disable duplicate submissions and preserve
+the request UUID after an uncertain network result so a retry cannot duplicate mail.
+
+The backend atomically changes the booking, cancels linked pending confirmations
+and reminders, and queues the requested reschedule email. Missing email or stale
+bookings are rejected; Delete book retains history and sends no cancellation email.
+Success reports queued email rather than claiming delivery. Refresh the list and
+close any selected WhatsApp panel after either action. No new reminders are created.
+Calendly actions manage the CRM copy and CRM queues; external Calendly notifications
+are outside this integration and this is stated in the action editor.
+
 Authorization must match the existing CRM admin endpoints. Validate dates and
 return safe errors. Read-only: do not send messages, change bookings, close leads
 or modify dialler memberships. Distinguish unavailable metrics from confirmed zero
