@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import BookingCallHistory from "./BookingCallHistory";
 import BookingActions from "./BookingActions";
+import { bookingActionNotice } from "@/lib/bookedCalls";
 import { listScheduledCrmCalls, ScheduledCallsResponse } from "@/lib/crmAdmin";
 
 const londonDate = new Intl.DateTimeFormat("en-CA", {
@@ -95,7 +96,7 @@ export default function ScheduledCallsPanel({ token }: { token: string }) {
                 <td className="number">{row.whatsAppClientMessages ?? "Unavailable"}</td>
                 <td className="number">{row.whatsAppTeamMessages ?? "Unavailable"}</td>
                 <td className="history"><BookingActions token={token} booking={row} onChanged={result => {
-                  setNotice(result.action === "reschedule" ? "Programare reprogramata. Emailul este in coada de trimitere; reminderele vechi au fost anulate." : "Programarea si mesajele netrimise aferente au fost anulate.");
+                  setNotice(bookingActionNotice(result));
                   setRefresh(value => value + 1);
                 }} /></td>
               </tr>)}</tbody>

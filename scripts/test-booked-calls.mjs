@@ -5,7 +5,16 @@ import ts from "typescript";
 
 const source = await fs.readFile(new URL("../src/lib/bookedCalls.ts", import.meta.url), "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-const { bookedCallsForDate, bookedCallTime, loadBookedCalls } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
+const { bookedCallsForDate, bookedCallTime, loadBookedCalls, bookingActionNotice } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
+
+test("reschedule success distinguishes skipped email from queued WhatsApp text", () => {
+  const notice=bookingActionNotice({action:"reschedule",emailQueued:false,whatsAppQueued:true});
+  assert.match(notice,/Programare reprogramata/);assert.match(notice,/Email omis/);assert.match(notice,/WhatsApp text: in coada/);
+  const both=bookingActionNotice({action:"reschedule",emailQueued:true,whatsAppQueued:true});
+  assert.match(both,/Email: in coada/);assert.doesNotMatch(both,/Email omis/);
+  assert.match(bookingActionNotice({action:"reschedule",emailQueued:false,whatsAppQueued:false}),/WhatsApp omis/);
+  assert.match(bookingActionNotice({action:"cancel"}),/au fost anulate/);
+});
 
 test("UK date boundaries, daylight saving, cancelled calls and chronological ordering", () => {
   const rows = [

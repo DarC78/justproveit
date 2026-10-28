@@ -1,4 +1,12 @@
 import type { CrmLeadIntentResponse, CrmLeadIntentRow } from "./crmAdmin";
+import type { BookingActionResult } from "./crmAdmin";
+
+export function bookingActionNotice(result: BookingActionResult) {
+  if (result.action === "cancel") return "Programarea si mesajele netrimise aferente au fost anulate.";
+  const email = result.emailQueued ? "Email: in coada de trimitere." : "Email omis: adresa lipsa sau invalida.";
+  const whatsApp = result.whatsAppQueued ? "WhatsApp text: in coada de trimitere." : "WhatsApp omis: telefon lipsa sau invalid.";
+  return `Programare reprogramata. ${email} ${whatsApp} Reminderele vechi au fost anulate.`;
+}
 
 const londonDate = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit",

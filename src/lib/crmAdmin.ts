@@ -343,6 +343,7 @@ export type ScheduledWhatsAppConversation = {
 export type BookingActionResult = {
   success: boolean; action: "reschedule" | "cancel"; intentId: string; appointmentAtUtc: string;
   cancelledEmails: number; cancelledWhatsApp: number; emailQueued: boolean; replayed?: boolean;
+  whatsAppQueued: boolean; emailSkipReason?: string | null; whatsAppSkipReason?: string | null;
 };
 
 export function changeScheduledBooking(token: string, booking: ScheduledCallRow, action: "reschedule" | "cancel", payload: {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ScheduledCallRow, listScheduledCrmCalls } from "@/lib/crmAdmin";
-import { bookedCallTime } from "@/lib/bookedCalls";
+import { bookedCallTime, bookingActionNotice } from "@/lib/bookedCalls";
 import BookingCallHistory from "./BookingCallHistory";
 import BookingActions from "./BookingActions";
 
@@ -62,7 +62,7 @@ export default function BookedCallsDayPanel({ token, date, revision, selectedInt
                     <BookingCallHistory booking={booking} />
                     <p className="whatsapp-counts">WhatsApp · Client: {booking.whatsAppClientMessages ?? "indisponibil"} · Noi: {booking.whatsAppTeamMessages ?? "indisponibil"}</p>
                     <BookingActions token={token} booking={booking} onChanged={result => {
-                      setNotice(result.action === "reschedule" ? "Programare reprogramata. Emailul este in coada de trimitere; reminderele vechi au fost anulate." : "Programarea si mesajele netrimise aferente au fost anulate.");
+                      setNotice(bookingActionNotice(result));
                       setRefresh(value => value + 1); onBookingChanged?.();
                     }} />
                   </div>

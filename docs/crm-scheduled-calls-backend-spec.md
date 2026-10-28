@@ -62,8 +62,11 @@ timestamp. Confirm each action inline; disable duplicate submissions and preserv
 the request UUID after an uncertain network result so a retry cannot duplicate mail.
 
 The backend atomically changes the booking, cancels linked pending confirmations
-and reminders, and queues the requested reschedule email. Missing email or stale
-bookings are rejected; Delete book retains history and sends no cancellation email.
+and reminders, and queues the requested reschedule email when a valid address exists
+plus a WhatsApp text when a valid phone exists. Missing email/phone does not block
+rescheduling; stale bookings are rejected. `emailQueued`, `whatsAppQueued` and the
+channel skip reasons drive the success notice. Request UUIDs prevent duplicate
+notifications. Delete book retains history and sends no cancellation email.
 Success reports queued email rather than claiming delivery. Refresh the list and
 close any selected WhatsApp panel after either action. No new reminders are created.
 Calendly actions manage the CRM copy and CRM queues; external Calendly notifications
