@@ -1,5 +1,6 @@
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
+import BookedCallsDayPanel from "@/components/BookedCallsDayPanel";
 import { useAuth } from "@/context/AuthContext";
 import {
   addCrmLeadPhone,
@@ -2485,6 +2486,7 @@ function NewLeadPanel({
   const [interestType, setInterestType] = useState<"ASAP" | "MANUAL_BOOK">("MANUAL_BOOK");
   const [appointmentDate, setAppointmentDate] = useState("");
   const [appointmentTime, setAppointmentTime] = useState("");
+  const [bookingsRevision, setBookingsRevision] = useState(0);
   const [saving, setSaving] = useState(false);
   const [stopDiallerPhone, setStopDiallerPhone] = useState("");
   const [stopDiallerSaving, setStopDiallerSaving] = useState(false);
@@ -2521,7 +2523,7 @@ function NewLeadPanel({
       setPhoneNumber("");
       setService("simulator pensie");
       setInterestType("MANUAL_BOOK");
-      setAppointmentDate("");
+      setBookingsRevision((value) => value + 1);
       setAppointmentTime("");
       if (result?.lead) {
         onCreated(result.lead);
@@ -2564,7 +2566,8 @@ function NewLeadPanel({
   }
 
   return (
-    <section className="new-lead">
+    <section className={`new-lead${showAppointmentFields ? " with-bookings" : ""}`}>
+      <div className="lead-form-column">
       <h1>Adauga Lead Nou</h1>
       <form onSubmit={handleSubmit}>
         <label>
@@ -2636,12 +2639,29 @@ function NewLeadPanel({
         </form>
       </div>
 
+      </div>
+      {showAppointmentFields && (
+        <div className="booked-calls-column">
+          <BookedCallsDayPanel token={token} date={appointmentDate} revision={bookingsRevision} />
+        </div>
+      )}
+
       <style jsx>{`
         .new-lead {
-          width: 330px;
+          display: grid;
+          grid-template-columns: minmax(0, 1fr);
+          gap: 40px;
+          width: min(100%, 330px);
           margin: 24px auto 100px;
           text-align: left;
+          align-items: start;
         }
+        .new-lead.with-bookings {
+          grid-template-columns: minmax(0, 330px) minmax(0, 360px);
+          width: min(100%, 730px);
+        }
+        .lead-form-column { min-width: 0; }
+        .booked-calls-column { margin-top: 8px; min-width: 0; }
         h1 {
           margin: 0 0 6px;
           text-align: center;
@@ -2697,10 +2717,14 @@ function NewLeadPanel({
           color: white;
           font-weight: 800;
         }
-        @media (max-width: 420px) {
-          .new-lead {
-            width: 100%;
+        @media (max-width: 760px) {
+          .new-lead, .new-lead.with-bookings {
+            grid-template-columns: minmax(0, 1fr);
+            width: min(100%, 420px);
+            gap: 24px;
           }
+        }
+        @media (max-width: 420px) {
           .appointment-row {
             grid-template-columns: 1fr;
           }
