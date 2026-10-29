@@ -56,3 +56,7 @@ Read-only live checks on 29 October 2026: the proposed `/justproveit/admin/crm/c
 User authorized backend changes on 29 October 2026. Backend tests and isolated SQL fixtures cover received emails, WhatsApp, inbound calls, outgoing-only exclusions, canonical deduplication, tenant isolation, filters and pagination. Live read-only queries found 31,080 contacts and 5,926 with recorded inbound contact at verification time.
 
 Email coverage is explicitly limited: JustProveIt had zero Resend inbound email records; Mediatel stored 3,625 historical email tickets, latest 14 January 2025. No continuous OZ mailbox ingestion was found in backend processes. GenericReports Gmail access is on demand, while OZ campaign/reply audit records describe outbound mail. The view displays this coverage warning. It does not claim that current OZ mailbox emails are included.
+
+## Client definition correction
+
+Membership now comes exclusively from tenant-scoped `wix.ozClients`. Deduplicate by trimmed lowercase email; if missing, normalized phone; if both missing, the original row ID. CRM-only contacts do not qualify. Use the latest OZ row for display details, earliest OZ creation date for becoming a client, and retain all phones from grouped OZ rows for matching/filtering. Exact email links CRM contacts for bookings/history; phone fallback applies only to clients with no email. OZ clients without canonical CRM links still appear. The API row identifier identifies the client group; nested booking IDs remain real CRM IDs.

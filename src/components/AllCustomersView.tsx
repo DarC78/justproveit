@@ -70,7 +70,7 @@ export function CustomersSection({token,scope,title,description}:{token:string;s
 }
 export default function AllCustomersView({token}:{token:string}) {
   return <section><h1 className="text-3xl font-bold mt-7">AllCustomersView</h1><p className="mt-2 text-sm text-slate-600">Customer records and inbound contact · All times are UK time</p>
-    <CustomersSection token={token} scope="inbound" title="Customers who contacted us" description="Customers with at least one received email, WhatsApp message or inbound call. Each customer appears once."/>
-    <CustomersSection token={token} scope="all" title="All customers" description="Every customer, including customers without bookings or inbound contact. 50 customers per page."/>
+    <CustomersSection token={token} scope="inbound" title="Customers who contacted us" description="OZ clients with at least one received email, WhatsApp message or inbound call. CRM leads who are not clients are excluded."/>
+    <CustomersSection token={token} scope="all" title="All customers" description="All OZ clients, including clients without bookings or inbound contact. One row per email; phone is used when email is missing. 50 clients per page."/>
   </section>;
 }
