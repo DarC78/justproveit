@@ -1,6 +1,6 @@
 ﻿# AllCustomersView: required backend contract
 
-Frontend implementation: `src/components/AllCustomersView.tsx`, client `src/lib/allCustomers.ts`, tab `allCustomersView` in `/admin/crm`. The frontend is ready for the following API. Do not enable the tab in production until this endpoint is deployed and verified.
+Frontend implementation: `src/components/AllCustomersView.tsx`, client `src/lib/allCustomers.ts`, tab `allCustomersView` in `/admin/crm`. The matching backend API is implemented in LaunchingStack (`crmCustomers.js`, `justProveItCrmCustomers.js`) with the contract below.
 
 ## Endpoint
 
@@ -50,3 +50,9 @@ Read-only Azure function inventory confirms a deployed `adminInboundEmails` GET 
 - Frontend 404/501 reports unavailable service instead of misleading empty lists.
 
 Read-only live checks on 29 October 2026: the proposed `/justproveit/admin/crm/customers` route returns HTTP 404; the existing `/justproveit/admin/inbound-emails` route returns HTTP 401 without authentication. No customer messages were read or sent.
+
+## Implementation and source verification
+
+User authorized backend changes on 29 October 2026. Backend tests and isolated SQL fixtures cover received emails, WhatsApp, inbound calls, outgoing-only exclusions, canonical deduplication, tenant isolation, filters and pagination. Live read-only queries found 31,080 contacts and 5,926 with recorded inbound contact at verification time.
+
+Email coverage is explicitly limited: JustProveIt had zero Resend inbound email records; Mediatel stored 3,625 historical email tickets, latest 14 January 2025. No continuous OZ mailbox ingestion was found in backend processes. GenericReports Gmail access is on demand, while OZ campaign/reply audit records describe outbound mail. The view displays this coverage warning. It does not claim that current OZ mailbox emails are included.
