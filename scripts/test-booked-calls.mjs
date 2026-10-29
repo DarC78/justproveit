@@ -5,7 +5,19 @@ import ts from "typescript";
 
 const source = await fs.readFile(new URL("../src/lib/bookedCalls.ts", import.meta.url), "utf8");
 const { outputText } = ts.transpileModule(source, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } });
-const { bookedCallsForDate, bookedCallTime, loadBookedCalls, bookingActionNotice } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
+const { bookedCallsForDate, bookedCallTime, loadBookedCalls, bookingActionNotice, visibleScheduledCalls } = await import(`data:text/javascript;base64,${Buffer.from(outputText).toString("base64")}`);
+
+test("unfinished daily calls retain no-call, unsuccessful-call and unknown-history clients, while valid calls and Business marks finish follow-up",()=>{
+  const rows=[
+    {id:'no-calls',meaningfulCallsSinceAppointment:0,onWhatsAppBusiness:false,manualCallsToday:0},
+    {id:'voicemail-no-answer',meaningfulCallsSinceAppointment:0,onWhatsAppBusiness:false,manualCallsToday:3},
+    {id:'valid-short-call',meaningfulCallsSinceAppointment:1,onWhatsAppBusiness:false,manualCallsToday:1},
+    {id:'business',meaningfulCallsSinceAppointment:0,onWhatsAppBusiness:true,manualCallsToday:0},
+    {id:'unknown',meaningfulCallsSinceAppointment:null,onWhatsAppBusiness:false,manualCallsToday:null},
+  ];
+  assert.deepEqual(visibleScheduledCalls(rows,false).map(row=>row.id),['no-calls','voicemail-no-answer','unknown']);
+  assert.equal(visibleScheduledCalls(rows,true),rows);assert.equal(rows.length,5);
+});
 
 test("reschedule success distinguishes skipped email from queued WhatsApp text", () => {
   const notice=bookingActionNotice({action:"reschedule",emailQueued:false,whatsAppQueued:true});

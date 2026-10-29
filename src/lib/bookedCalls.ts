@@ -1,6 +1,10 @@
 import type { CrmLeadIntentResponse, CrmLeadIntentRow } from "./crmAdmin";
 import type { BookingActionResult } from "./crmAdmin";
 
+export function visibleScheduledCalls<T extends {meaningfulCallsSinceAppointment: number | null; onWhatsAppBusiness: boolean}>(rows: T[], showFinished: boolean) {
+  return showFinished ? rows : rows.filter(row => !(Number(row.meaningfulCallsSinceAppointment) > 0 || row.onWhatsAppBusiness));
+}
+
 export function bookingActionNotice(result: BookingActionResult) {
   if (result.action === "cancel") return "Programarea si mesajele netrimise aferente au fost anulate.";
   const email = result.emailQueued ? "Email: in coada de trimitere." : "Email omis: adresa lipsa sau invalida.";

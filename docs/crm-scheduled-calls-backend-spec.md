@@ -1,5 +1,13 @@
 # Scheduled calls CRM report
 
+The daily section has a `Show finished leads` checkbox, checked by default.
+When unchecked, the frontend uses `meaningfulCallsSinceAppointment` and
+`onWhatsAppBusiness` to hide contacted clients. A valid agent outcome on or
+after the appointment day counts regardless of duration; voicemail, no answer,
+no audio, default and invalid outcomes do not. Unknown call history remains
+visible. Attention is unchanged, and the daily count shows visible and total
+bookings. This filter requires no additional API request or backend changes.
+
 The CRM needs an authenticated, tenant-scoped read endpoint:
 `GET /justproveit/admin/crm/scheduled-calls?date=YYYY-MM-DD`.
 
