@@ -16,6 +16,7 @@ function component(file,mocks={}) {
 }
 const Actions=component('BookingActions.tsx',{'@/lib/crmAdmin':{}});
 const Table=component('ScheduledCallsTable.tsx',{
+  './PhoneHistoryModal':()=>null,
   'next/link':({children})=>React.createElement('a',null,children),
   './BookingCallHistory':()=>React.createElement('span',null,'Call history'),
   './BookingActions':Actions,'@/lib/bookedCalls':{bookingActionNotice:()=>''},'@/lib/crmAdmin':{}
@@ -28,6 +29,7 @@ const booking={intentId:'10000000-0000-4000-8000-000000000001',name:'Client',pho
 test('both tables expose the Business column/action and Attention displays the full appointment date and reasons',()=>{
   const render=(attention,row=booking)=>renderToStaticMarkup(React.createElement(Table,{token:'fixture',rows:[row],attention,onChanged:()=>{}}));
   assert.match(render(false),/On WhatsApp Business/);assert.match(render(false),/Actiuni programare/);
+  assert.match(render(false),/aria-haspopup="dialog"/);assert.match(render(false),/Open WhatsApp and call history for 447700900001/);
   const marked=render(true,{...booking,onWhatsAppBusiness:true,whatsAppBusinessAtUtc:'2026-10-28T12:30:00Z',whatsAppBusinessBy:'agent@example.test',
     attentionReasons:['Latest Mediatel WhatsApp message is from the client']});
   assert.match(marked,/28 Oct 2026/);assert.match(marked,/agent@example.test/);assert.match(marked,/Latest Mediatel WhatsApp/);

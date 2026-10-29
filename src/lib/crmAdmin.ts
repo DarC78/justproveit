@@ -357,6 +357,24 @@ export type ScheduledWhatsAppConversation = {
   messages: Array<{ id: string; direction: "inbound" | "outbound"; atUtc: string; author: string; text: string; type: string }>;
 };
 
+export type PhoneHistoryEvent = {
+  kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
+  author: string; text: string; messageType: string; status: string;
+} | {
+  kind: "call"; id: string; atUtc: string | null; endedAtUtc: string | null;
+  agentId: number | null; agent: string; callCode: number | null; resolution: string;
+  callType: string; queueId: number | null; durationSeconds: number | null; talkSeconds: number | null;
+};
+export type ScheduledPhoneHistory = {
+  intentId: string; phone: string; timeZone: string; whatsAppMessages: number; calls: number; events: PhoneHistoryEvent[];
+};
+
+export function getScheduledPhoneHistory(token: string, intentId: string, signal?: AbortSignal) {
+  return fetchCanonicalCrmReadJson<ScheduledPhoneHistory>(`${BASE_PATH}/scheduled-calls/${encodeURIComponent(intentId)}/history`, {
+    headers: authHeaders(token), signal,
+  });
+}
+
 export type BookingActionResult = {
   success: boolean; action: "reschedule" | "cancel"; intentId: string; appointmentAtUtc: string;
   cancelledEmails: number; cancelledWhatsApp: number; emailQueued: boolean; replayed?: boolean;

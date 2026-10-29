@@ -1,4 +1,6 @@
 import Link from "next/link";
+import {useState} from "react";
+import PhoneHistoryModal from "./PhoneHistoryModal";
 import BookingCallHistory from "./BookingCallHistory";
 import BookingActions from "./BookingActions";
 import {bookingActionNotice} from "@/lib/bookedCalls";
@@ -15,7 +17,8 @@ function YesNo({value}:{value:boolean|null}) {
 export default function ScheduledCallsTable({token,rows,attention=false,onChanged}:{
   token:string;rows:ScheduledCallRow[];attention?:boolean;onChanged:(notice:string)=>void;
 }) {
-  return <div className="table-scroll" tabIndex={0} role="region" aria-label={attention?"Attention calls table":"Scheduled calls table"}>
+  const [historyBooking,setHistoryBooking]=useState<ScheduledCallRow|null>(null);
+  return <><div className="table-scroll" tabIndex={0} role="region" aria-label={attention?"Attention calls table":"Scheduled calls table"}>
     <table><thead><tr>
       <th scope="col">Call time (UK)</th><th scope="col">Name</th><th scope="col">Phone number</th>
       <th scope="col">Became a lead</th><th scope="col">Call booked on</th>
@@ -33,7 +36,8 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
         {attention&&row.attentionReasons?.map(reason=><small className="reason" key={reason}>{reason}</small>)}
         {attention&&row.lastMediatelWhatsAppFromClient&&<small>Last client message: {dateTime(row.lastMediatelWhatsAppAtUtc)}</small>}
       </th>
-      <td className="phone">{row.phone||"Unavailable"}</td><td>{dateTime(row.leadCreatedAtUtc)}</td><td>{dateTime(row.bookedAtUtc)}</td>
+      <td className="phone">{row.phone?<button type="button" className="phone-history" aria-haspopup="dialog"
+        aria-label={`Open WhatsApp and call history for ${row.phone}`} onClick={()=>setHistoryBooking(row)}>{row.phone}</button>:"Unavailable"}</td><td>{dateTime(row.leadCreatedAtUtc)}</td><td>{dateTime(row.bookedAtUtc)}</td>
       <td><YesNo value={row.bookingEmailSent}/></td><td><YesNo value={row.bookingWhatsAppSent}/></td>
       <td><YesNo value={row.reminderEmailSent}/></td><td><YesNo value={row.reminderWhatsAppSent}/></td>
       <td className="number">{row.manualCallsToday??"Unavailable"}</td><td className="number">{row.agentConversationsToday??"Unavailable"}</td>
@@ -53,6 +57,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
       small{display:block;font-size:11px;color:#667085;font-weight:400;margin-top:5px}.reason{color:#a3480b;font-weight:600}
       time{color:#143b92;font-size:15px;font-weight:800}.phone{white-space:nowrap}.history{min-width:240px}
       .number{text-align:center;font-variant-numeric:tabular-nums;font-weight:700}
+      .phone-history{border:0;background:none;padding:0;color:#123c92;text-decoration:underline;font:inherit;cursor:pointer}.phone-history:focus-visible{outline:2px solid #123c92;outline-offset:4px}
     `}</style>
-  </div>;
+  </div>{historyBooking&&<PhoneHistoryModal token={token} booking={historyBooking} onClose={()=>setHistoryBooking(null)}/>}</>;
 }

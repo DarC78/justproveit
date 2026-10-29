@@ -107,3 +107,19 @@ and no audio remain excluded.
 Day-level table metrics refer to each row's appointment day. Unknown call
 history remains visible when no Business mark exists. Both lists refresh after
 marking, rescheduling or cancellation.
+
+## Full conversation and call history
+
+Phone numbers in both Scheduled calls and Attention open an 80vw by 80vh
+floating dialog with a combined oldest-first WhatsApp and call timeline.
+`GET /scheduled-calls/{id}/history` returns the server-resolved phone and all
+available historical events, independently of the selected date/lookback.
+Each WhatsApp event includes direction, author, full text or a media placeholder,
+and timestamp; each call includes agent, call type, callcode/resolution, start/end,
+total duration and agent talk time. Times display in Europe/London.
+
+The authenticated tenant's booking determines the phone. Provider IDs deduplicate
+mirrored messages across Mediatel, native WhatsApp history and accepted outbound
+messages. Unsent queued messages are excluded. There is no silent row limit.
+Closing or changing the dialog cancels its fetch. Native dialog focus handling,
+Escape, backdrop dismissal and return focus keep the page accessible.
