@@ -322,6 +322,13 @@ export type ScheduledCallRow = {
   callCodesSinceAppointmentDay: Array<{ callCode: number | null; description: string | null; count: number }>;
   agentConversationsToday: number | null;
   onDialler: boolean | null;
+  onWhatsAppBusiness: boolean;
+  whatsAppBusinessAtUtc: string | null;
+  whatsAppBusinessBy: string | null;
+  meaningfulCallsSinceAppointment: number | null;
+  lastMediatelWhatsAppFromClient: boolean | null;
+  lastMediatelWhatsAppAtUtc: string | null;
+  attentionReasons?: string[];
 };
 
 export type ScheduledCallsResponse = {
@@ -330,6 +337,16 @@ export type ScheduledCallsResponse = {
   rows: ScheduledCallRow[];
   warnings?: string[];
 };
+
+export type AttentionCallsResponse = ScheduledCallsResponse & {lookbackDays: number; periodStart: string; asOfUtc: string};
+
+export function markBookingWhatsAppBusiness(token: string, booking: ScheduledCallRow) {
+  return fetchCanonicalCrmReadJson<{success: boolean; intentId: string; onWhatsAppBusiness: boolean; whatsAppBusinessAtUtc: string; whatsAppBusinessBy: string}>(
+    `${BASE_PATH}/scheduled-calls/${encodeURIComponent(booking.intentId)}/whatsapp-business`, {
+      method: "POST", headers: {...authHeaders(token), "Content-Type": "application/json"},
+      body: JSON.stringify({expectedAppointmentAtUtc: booking.appointmentAtUtc}),
+    });
+}
 
 export type ScheduledWhatsAppConversation = {
   intentId: string;
@@ -1080,6 +1097,12 @@ export function listCrmLeadIntents(
 
 export function listScheduledCrmCalls(token: string, date: string, signal?: AbortSignal) {
   return fetchCanonicalCrmReadJson<ScheduledCallsResponse>(`${BASE_PATH}/scheduled-calls${buildQuery({ date })}`, {
+    headers: authHeaders(token), signal,
+  });
+}
+
+export function listAttentionCrmCalls(token: string, days: number, signal?: AbortSignal) {
+  return fetchCanonicalCrmReadJson<AttentionCallsResponse>(`${BASE_PATH}/scheduled-calls${buildQuery({view: "attention", days})}`, {
     headers: authHeaders(token), signal,
   });
 }

@@ -82,3 +82,26 @@ bookings created on another day; multiple appointments per phone; cancellation;
 booking-specific confirmation/reminder linkage; queued versus accepted messages;
 manual versus predictive calls; distinct call counting; valid conversation versus
 voicemail/no-audio codes; active versus removed dialler rows; tenant isolation.
+## WhatsApp Business and Attention extension
+
+The scheduled-calls response now includes `onWhatsAppBusiness`,
+`whatsAppBusinessAtUtc`, `whatsAppBusinessBy`,
+`meaningfulCallsSinceAppointment`, `lastMediatelWhatsAppFromClient` and
+`lastMediatelWhatsAppAtUtc`.
+
+`POST /scheduled-calls/{id}/whatsapp-business` records the authenticated actor,
+server timestamp and current appointment version. The request must contain
+`expectedAppointmentAtUtc`; a changed or cancelled appointment returns 409.
+The mark is persisted in booking metadata with an append-only mark history.
+The action sends no messages. Rescheduling invalidates the current mark.
+
+`GET /scheduled-calls?view=attention&days=7` returns the same row format plus
+`attentionReasons`, `lookbackDays`, `periodStart` and `asOfUtc`. The lookback
+uses UK appointment dates (1–90 days, default seven), through the current
+instant, excluding future and cancelled appointments. Include overdue bookings
+with no meaningful call and no Business mark, or with a client-last Mediatel
+WhatsApp conversation. A meaningful call requires a valid conversation outcome
+and more than 60 seconds of recorded agent talk time on or after the appointment day.
+Day-level table metrics refer to each row's appointment day. Unknown call
+history remains visible when no Business mark exists. Both lists refresh after
+marking, rescheduling or cancellation.
