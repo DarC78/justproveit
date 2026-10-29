@@ -328,6 +328,9 @@ export type ScheduledCallRow = {
   meaningfulCallsSinceAppointment: number | null;
   lastMediatelWhatsAppFromClient: boolean | null;
   lastMediatelWhatsAppAtUtc: string | null;
+  firstClientWhatsAppAtUtc: string | null;
+  validCallAfterFirstClientWhatsApp: boolean | null;
+  validCallAfterFirstClientWhatsAppAtUtc: string | null;
   attentionReasons?: string[];
 };
 

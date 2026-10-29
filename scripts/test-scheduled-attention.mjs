@@ -42,6 +42,7 @@ test('Attention precedes the daily schedule, defaults to seven days and loads wi
   assert.match(html,/<option value="7" selected="">7 days<\/option>/);
   assert.match(html,/Loading Attention calls/);assert.doesNotMatch(html,/0 calls need attention/);
   assert.match(html,/regardless of duration/);assert.doesNotMatch(html,/60 seconds/);
+  assert.match(html,/no valid agent call after their first message/);
 });
 
 test('unmarked bookings offer the action without opening a WhatsApp URL or sending a message',()=>{

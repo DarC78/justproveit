@@ -108,6 +108,15 @@ Day-level table metrics refer to each row's appointment day. Unknown call
 history remains visible when no Business mark exists. Both lists refresh after
 marking, rescheduling or cancellation.
 
+The client-last Attention rule excludes conversations that have a valid agent
+call after the first recorded client Mediatel WhatsApp message for that phone.
+This history comparison spans all dates, not just the appointment/lookback;
+later client messages do not negate that valid call. Voicemail/no-answer/no-audio
+outcomes remain invalid, with no minimum-duration requirement. The independent
+missing-appointment-follow-up rule still applies. Evidence fields are
+`firstClientWhatsAppAtUtc`, `validCallAfterFirstClientWhatsApp` and
+`validCallAfterFirstClientWhatsAppAtUtc`.
+
 ## Full conversation and call history
 
 Phone numbers in both Scheduled calls and Attention open an 80vw by 80vh
