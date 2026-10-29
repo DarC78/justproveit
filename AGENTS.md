@@ -1,5 +1,13 @@
 # AGENTS.md
 
+## Email delivery: Resend only
+
+- Never send email through the user's connected accounts, including Gmail or Outlook, using connectors, MCP tools, plugins, browser automation, or any other route.
+- When the user asks to send an email, use the application's Resend delivery route and its configured sender. A request to send email does not authorize using a connected mailbox.
+- If Resend is unavailable or delivery fails, report the failure and stop. Never fall back to a connected email account.
+- Verify the Resend response and report the actual delivery status; do not claim an email was sent without provider evidence. Check existing delivery state before retrying to avoid duplicates.
+- This rule applies to every agent and delegated task. Code delivery authorization does not authorize sending email; recipient and content must be authorized by the user.
+
 ## Deployment Rules
 - Deploy through GitHub only.
 - Do not deploy Azure Static Web Apps, Azure Functions, or any live service by zip/package upload or direct CLI deployment.
