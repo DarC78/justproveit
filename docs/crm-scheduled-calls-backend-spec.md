@@ -100,8 +100,10 @@ The action sends no messages. Rescheduling invalidates the current mark.
 uses UK appointment dates (1–90 days, default seven), through the current
 instant, excluding future and cancelled appointments. Include overdue bookings
 with no meaningful call and no Business mark, or with a client-last Mediatel
-WhatsApp conversation. A meaningful call requires a valid conversation outcome
-and more than 60 seconds of recorded agent talk time on or after the appointment day.
+WhatsApp conversation. A meaningful call requires a valid agent conversation
+outcome on or after the appointment day, regardless of duration. Short calls
+with outcomes such as CLIENT_EXISTENT count as handled; voicemail, no answer
+and no audio remain excluded.
 Day-level table metrics refer to each row's appointment day. Unknown call
 history remains visible when no Business mark exists. Both lists refresh after
 marking, rescheduling or cancellation.
