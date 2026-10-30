@@ -20,3 +20,21 @@ test('wrong-scope, wrong-page, oversized or invalid-total reports are rejected',
  for(const data of [page({scope:'inbound'}),page({offset:50}),page({limit:200}),page({rows:Array(51).fill({})}),page({total:-1})]){
  const f=fixture(response(data));await assert.rejects(()=>f.loadCustomerPage('x','all',{name:'',phone:'',email:''},0,new AbortController().signal),/could not be verified/);}
 });
+
+test('lead listing uses the same validated filters, auth and independent page contract',async()=>{
+ const f=fixture(response(page({scope:'inbound',offset:50})));const signal=new AbortController().signal;
+ await f.loadCustomerPage('token','inbound',{name:'Ana',phone:'447700900001',email:''},1,signal,'leads');
+ assert.match(f.calls[0].url,/\/leads-view\?/);assert.equal(new URL(f.calls[0].url).searchParams.get('offset'),'50');
+});
+test('callcode rendering shows text descriptions and never numeric identifiers',()=>{
+ const f=fixture();assert.equal(f.callcodeText('NU_SE_AUDE'),'NU_SE_AUDE');for(const value of [5,'5',null,undefined,''])assert.equal(f.callcodeText(value),'Unavailable');
+});
+test('contact action keeps idempotency key and message, and verifies solve and queue confirmation',async()=>{
+ const f=fixture(response({success:true,action:'reply',contactId:'contact',solved:true,whatsAppQueued:true}));
+ await f.runContactAction('token','contact','reply',{requestId:'request',text:'Message'});
+ const call=f.calls[0];assert.equal(call.options.method,'POST');assert.equal(call.options.headers.Authorization,'Bearer token');
+ assert.deepEqual(JSON.parse(call.options.body),{action:'reply',requestId:'request',text:'Message'});
+ for(const value of [{success:true,action:'reply',contactId:'contact',solved:false,whatsAppQueued:true},{success:true,action:'reply',contactId:'other',solved:true,whatsAppQueued:true},{success:true,action:'reply',contactId:'contact',solved:true,whatsAppQueued:false}]){
+  const bad=fixture(response(value));await assert.rejects(()=>bad.runContactAction('token','contact','reply',{requestId:'request',text:'Message'}),/could not be verified/);
+ }
+});

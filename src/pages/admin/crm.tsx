@@ -1,3 +1,4 @@
+import AllLeadsView from "@/components/AllLeadsView";
 import AllCustomersView from "@/components/AllCustomersView";
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
@@ -8,7 +9,6 @@ import { useAuth } from "@/context/AuthContext";
 import {
   addCrmLeadPhone,
   closeCrmInboundSmsCase,
-  createCrmAsapIntent,
   CrmActivity,
   CrmAgentReportPaymentSummary,
   CrmAgentReportPauseBreakdownRow,
@@ -814,11 +814,6 @@ const MONEY_CHECK_SERVICE_OPTION: CrmLeadIntentServiceOption = {
 };
 
 const HIDDEN_LEAD_INTENT_SERVICE_OPTIONS = ["Book Call", "Inbound SMS", "Missed Calls"];
-const DEFAULT_NEW_ASAP_SERVICE_OPTIONS: CrmLeadIntentServiceOption[] = [
-  { serviceKey: "simulator pensie", displayName: "simulator pensie" },
-  MONEY_CHECK_SERVICE_OPTION,
-  { serviceKey: "other", displayName: "other" },
-];
 
 function isMoneyCheckServiceValue(value?: string | null) {
   const normalized = normalizeLeadIntentType(value);
@@ -975,32 +970,6 @@ function isAsapLeadIntent(row?: CrmLeadIntentRow | null) {
 
 function getLeadIntentId(row?: CrmLeadIntentRow | null) {
   return String(row?.interestId || "").trim();
-}
-
-function getLeadIntentServiceKey(row?: CrmLeadIntentRow | null) {
-  return String(row?.serviceKey || row?.serviceDisplayName || "").trim();
-}
-
-function getLeadIntentServiceLabel(row?: CrmLeadIntentRow | null) {
-  return formatLeadIntentServiceDisplay(row?.serviceDisplayName, row?.serviceKey) || "n/a";
-}
-
-function resolveNewAsapServiceSelection(
-  options: CrmLeadIntentServiceOption[],
-  preferredService?: string | null,
-) {
-  const visibleOptions = mergeServiceOptions(
-    options.length ? options : DEFAULT_NEW_ASAP_SERVICE_OPTIONS,
-    preferredService,
-  );
-  const preferred = String(preferredService || "").trim().toLowerCase();
-  const preferredOption = visibleOptions.find(
-    (option) =>
-      option.serviceKey.toLowerCase() === preferred ||
-      String(option.displayName || "").trim().toLowerCase() === preferred,
-  );
-
-  return preferredOption?.serviceKey || visibleOptions[0]?.serviceKey || "";
 }
 
 function isEmailLookupValue(value: string) {
@@ -1212,41 +1181,6 @@ export default function AdminCrmPage() {
     openTab(nextTab);
   }
 
-  async function handleLeadSelected(lead: CrmLead) {
-    const phone = String(lead.phoneNumber || lead.normalizedPhone || "").trim();
-    const email = String(lead.email || "").trim();
-    setSelectedLead(lead);
-    setSelectedIntent(null);
-    detailsTabButtonRef.current?.click();
-
-    if (!token || (!phone && !email)) {
-      setStatusMessage("Lead incarcat.");
-      setErrorMessage("");
-      return;
-    }
-
-    try {
-      const latestIntent = await findCrmLeadIntentForDetails(token, phone ? { phone } : { email });
-      if (latestIntent?.lead) {
-        setSelectedLead(latestIntent.lead);
-        setSelectedIntent(latestIntent);
-        setStatusMessage(
-          isJobApplicationLeadIntent(latestIntent.interestType)
-            ? "Lead incarcat dupa intent JobApplication."
-            : "Lead incarcat dupa ultimul intent.",
-        );
-        setErrorMessage("");
-        return;
-      }
-
-      setStatusMessage("Lead incarcat.");
-      setErrorMessage("");
-    } catch (error) {
-      setStatusMessage("Lead incarcat.");
-      setErrorMessage(error instanceof Error ? error.message : "Nu am putut incarca ultimul intent.");
-    }
-  }
-
   function handleIntentSelected(row: CrmLeadIntentRow) {
     if (!row.lead) {
       setErrorMessage("Intentul selectat nu are lead atasat.");
@@ -1344,15 +1278,7 @@ export default function AdminCrmPage() {
                 <SalesPanel token={token} onError={setErrorMessage} />
               ) : null}
 
-              {activeTab === "all" ? (
-                <AllLeadsPanel
-                  token={token}
-                  agentName={agentName}
-                  onSelectLead={handleLeadSelected}
-                  onStatus={setStatusMessage}
-                  onError={setErrorMessage}
-                />
-              ) : null}
+              {activeTab === "all" ? <AllLeadsView token={token} /> : null}
 
               {activeTab === "intents" ? (
                 <LeadIntentPanel
@@ -3159,224 +3085,6 @@ function SaleHistoryPanel({
   );
 }
 
-function AllLeadsPanel({
-  token,
-  agentName,
-  onSelectLead,
-  onStatus,
-  onError,
-}: {
-  token: string;
-  agentName: string;
-  onSelectLead: (lead: CrmLead) => void;
-  onStatus: (message: string) => void;
-  onError: (message: string) => void;
-}) {
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [language, setLanguage] = useState("");
-  const [leads, setLeads] = useState<CrmLead[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [newAsapLoading, setNewAsapLoading] = useState(false);
-  const [serviceOptionsLoading, setServiceOptionsLoading] = useState(false);
-  const [newAsapServiceOptions, setNewAsapServiceOptions] =
-    useState<CrmLeadIntentServiceOption[]>(DEFAULT_NEW_ASAP_SERVICE_OPTIONS);
-  const [newAsapService, setNewAsapService] = useState(DEFAULT_NEW_ASAP_SERVICE_OPTIONS[0]?.serviceKey || "");
-  const [latestSingleLeadIntent, setLatestSingleLeadIntent] = useState<CrmLeadIntentRow | null>(null);
-  const [resultText, setResultText] = useState("");
-  const singleLead = leads.length === 1 ? leads[0] : null;
-  const visibleNewAsapServiceOptions = useMemo(
-    () => mergeServiceOptions(newAsapServiceOptions, newAsapService),
-    [newAsapService, newAsapServiceOptions],
-  );
-
-  async function loadLeads() {
-    setLoading(true);
-    setLatestSingleLeadIntent(null);
-    setNewAsapService(DEFAULT_NEW_ASAP_SERVICE_OPTIONS[0]?.serviceKey || "");
-    try {
-      const last6 = getLast6Digits(phone);
-      const result = await listCrmLeads(token, {
-        email,
-        phone,
-        last6,
-        language: language === "all" ? "" : language,
-        status: "all",
-        limit: 200,
-      });
-      const nextLeads = result.leads || [];
-      setLeads(nextLeads);
-      setResultText(`${result.total} rezultate`);
-      onError("");
-      if (nextLeads.length === 1) {
-        await loadSingleLeadNewAsapDefaults(nextLeads[0]);
-      }
-    } catch (error) {
-      onError(error instanceof Error ? error.message : "Nu am putut incarca lead-urile.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function loadSingleLeadNewAsapDefaults(lead: CrmLead) {
-    const latestIntent = await findLatestIntentForLead(lead);
-    setLatestSingleLeadIntent(latestIntent);
-    const preferredService = getLeadIntentServiceKey(latestIntent);
-    await loadNewAsapServiceOptions(preferredService);
-  }
-
-  async function findLatestIntentForLead(lead: CrmLead) {
-    const lookup = buildLeadIntentLookup(lead);
-    if (!lookup.phone && !lookup.email) {
-      return null;
-    }
-
-    try {
-      return await findLatestCrmLeadIntent(token, lookup);
-    } catch {
-      return null;
-    }
-  }
-
-  async function loadNewAsapServiceOptions(preferredService?: string | null) {
-    setServiceOptionsLoading(true);
-    try {
-      const result = await listCrmLeadIntents(token, {
-        createdLastDays: 3650,
-        statusBucket: "both",
-        toBeContacted: "oricand",
-        intent: "all",
-        service: "all",
-        language: "all",
-        lastCallAgentId: "all",
-        closed: false,
-        limit: 1,
-      });
-      const options = result.options?.services?.length
-        ? result.options.services
-        : DEFAULT_NEW_ASAP_SERVICE_OPTIONS;
-      setNewAsapServiceOptions(options);
-      setNewAsapService(resolveNewAsapServiceSelection(options, preferredService));
-    } catch {
-      setNewAsapServiceOptions(DEFAULT_NEW_ASAP_SERVICE_OPTIONS);
-      setNewAsapService(resolveNewAsapServiceSelection(DEFAULT_NEW_ASAP_SERVICE_OPTIONS, preferredService));
-    } finally {
-      setServiceOptionsLoading(false);
-    }
-  }
-
-  async function handleCreateNewAsapIntent() {
-    if (!singleLead) {
-      onStatus("");
-      onError("Cauta un lead unic inainte de New ASAP.");
-      return;
-    }
-
-    if (!newAsapService) {
-      onStatus("");
-      onError("Alege serviciul pentru noul intent ASAP.");
-      return;
-    }
-
-    const leadId = getLeadRecordId(singleLead);
-    const contactId = getLeadCanonicalContactId(singleLead, latestSingleLeadIntent);
-    const phoneValue = getLeadPhoneValue(singleLead);
-    const emailValue = getLeadStatusUpdateEmail(singleLead);
-    if (!leadId && !contactId && !phoneValue && !emailValue) {
-      onStatus("");
-      onError("Lead-ul unic nu are id, telefon sau email pentru crearea intentului.");
-      return;
-    }
-
-    setNewAsapLoading(true);
-    try {
-      const result = await createCrmAsapIntent(token, {
-        leadId: leadId || undefined,
-        contactId: contactId || undefined,
-        email: emailValue || undefined,
-        phone: phoneValue || undefined,
-        interestType: "ASAP",
-        serviceKey: newAsapService,
-        source: "crm_admin_all_leads",
-        agent: agentName,
-      });
-      const createdIntent = result.intent || result.leadIntent || null;
-      setLatestSingleLeadIntent(createdIntent);
-      if (createdIntent?.serviceKey) {
-        setNewAsapService(createdIntent.serviceKey);
-      }
-      if (result.lead) {
-        setLeads([result.lead]);
-      }
-      onStatus(result.message || "New ASAP intent creat.");
-      onError("");
-    } catch (error) {
-      onStatus("");
-      onError(error instanceof Error ? error.message : "Nu am putut crea intentul ASAP.");
-    } finally {
-      setNewAsapLoading(false);
-    }
-  }
-
-  return (
-    <CrmCard title="Leads CRM - all">
-      <div className="filter-grid all-filter">
-        <label>Email</label>
-        <input value={email} onChange={(event) => setEmail(event.target.value)} />
-        <button type="button" className="orange small" onClick={loadLeads}>
-          Filter
-        </button>
-        <label>Telefon:</label>
-        <input value={phone} onChange={(event) => setPhone(event.target.value)} />
-        <label>Language</label>
-        <select value={language} onChange={(event) => setLanguage(event.target.value)}>
-          <option value="">Status</option>
-          <option value="all">all</option>
-          {LANGUAGE_OPTIONS.map((item) => (
-            <option key={item}>{item}</option>
-          ))}
-        </select>
-      </div>
-      <p className="green-label">{resultText ? `Rezultat actiune: ${resultText}` : "Rezultat actiune:"}</p>
-      {singleLead ? (
-        <div className="new-asap-row">
-          <label>
-            Service
-            <select
-              value={newAsapService}
-              onChange={(event) => setNewAsapService(event.target.value)}
-              disabled={serviceOptionsLoading || newAsapLoading}
-            >
-              {visibleNewAsapServiceOptions.map((option) => (
-                <option key={option.serviceKey} value={option.serviceKey}>
-                  {option.displayName || option.serviceKey}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            className="orange small"
-            onClick={handleCreateNewAsapIntent}
-            disabled={newAsapLoading || serviceOptionsLoading || !newAsapService}
-          >
-            {newAsapLoading ? "Creating..." : "New ASAP"}
-          </button>
-          <span>
-            {serviceOptionsLoading
-              ? "Se incarca serviciile..."
-              : latestSingleLeadIntent
-                ? `Ultimul intent: ${getLeadIntentServiceLabel(latestSingleLeadIntent)}`
-                : "Nu am gasit intent precedent."}
-          </span>
-        </div>
-      ) : null}
-      <LeadTable leads={leads} loading={loading} onSelectLead={onSelectLead} />
-      <style jsx>{panelStyles}</style>
-    </CrmCard>
-  );
-}
-
 function LeadIntentPanel({
   token,
   agentName,
@@ -4742,49 +4450,6 @@ function MissedCallsPanel({ token, onError }: { token: string; onError: (message
       />
       <style jsx>{panelStyles}</style>
     </CrmCard>
-  );
-}
-
-function LeadTable({
-  leads,
-  loading,
-  onSelectLead,
-  personal,
-}: {
-  leads: CrmLead[];
-  loading: boolean;
-  onSelectLead: (lead: CrmLead) => void;
-  personal?: boolean;
-}) {
-  const columns = personal
-    ? ["Name", "Phone", "NextContactDate", "Status", "Lead Date"]
-    : ["Name", "Phone", "Agent", "Status", "Lead Date"];
-  const rows = leads.map((lead) =>
-    personal
-      ? [
-          lead.fullName,
-          lead.phoneNumber,
-          formatDate(lead.dataUrmatorContact),
-          lead.statusOriginal,
-          formatDate(lead.leadDate),
-        ]
-      : [
-          lead.fullName,
-          lead.phoneNumber,
-          lead.lastAgent || lead.initialAgent,
-          lead.statusOriginal,
-          formatDate(lead.leadDate),
-        ],
-  );
-
-  return (
-    <DataTable
-      columns={columns}
-      rows={rows}
-      loading={loading}
-      onRowClick={(index) => onSelectLead(leads[index])}
-      minWidth={personal ? 720 : 700}
-    />
   );
 }
 
@@ -6616,17 +6281,6 @@ function getLeadContactId(lead?: CrmLead | null, intent?: CrmLeadIntentRow | nul
   ).trim();
 }
 
-function getLeadCanonicalContactId(lead?: CrmLead | null, intent?: CrmLeadIntentRow | null) {
-  return String(
-    intent?.contactId ||
-      intent?.canonicalContactId ||
-      lead?.contactId ||
-      lead?.canonicalContactId ||
-      lead?.canonical?.contactId ||
-      "",
-  ).trim();
-}
-
 function getLeadPhoneValue(lead?: CrmLead | null) {
   return String(lead?.phoneNumber || lead?.normalizedPhone || "").trim();
 }
@@ -6648,10 +6302,6 @@ function getLeadPhoneValues(lead?: CrmLead | null) {
     });
   });
   return Array.from(phones);
-}
-
-function getLeadRecordId(lead?: CrmLead | null) {
-  return String(lead?.id || lead?.wixId || lead?._id || lead?.leadid || "").trim();
 }
 
 function getLeadUpdateIdCandidates(
@@ -7030,12 +6680,6 @@ function getLeadLookupValue(lead?: CrmLead | null) {
   return getLeadPhoneValue(lead) || getLeadEmailValue(lead);
 }
 
-function buildLeadIntentLookup(lead?: CrmLead | null) {
-  const phone = getLeadPhoneValue(lead);
-  const email = getLeadStatusUpdateEmail(lead);
-  return phone ? { phone } : { email };
-}
-
 function lookupMatchesLead(lookup: string, lead?: CrmLead | null) {
   if (!lookup || !lead) {
     return false;
@@ -7160,11 +6804,6 @@ function buildDateTimeValue(dateValue?: string | null, timeValue?: string) {
   }
 
   return date.toISOString();
-}
-
-function getLast6Digits(value: string) {
-  const digits = value.replace(/\D/g, "");
-  return digits.length >= 6 ? digits.slice(-6) : "";
 }
 
 function getSaleKey(sale: CrmSale) {
