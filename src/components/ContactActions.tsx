@@ -41,7 +41,7 @@ export default function ContactActions({token,contactId,name,phone,onChanged}:{t
    .contact-actions{margin:0 0 10px}.buttons{display:flex;flex-wrap:wrap;gap:7px}
    button{border:1px solid #cbd5e1;border-radius:4px;padding:7px 9px;background:white;color:#123c92;cursor:pointer;font-size:12px;font-weight:600}
    button:disabled{opacity:.5;cursor:default}p[role=alert]{color:#b42318;max-width:300px;margin:8px 0}
-   dialog{border:1px solid #dce3ee;border-radius:12px;padding:24px;width:min(520px,calc(100vw - 32px));max-height:90vh;overflow:auto;box-shadow:0 20px 60px #102a5640;color:#344054}
+   dialog{box-sizing:border-box;border:1px solid #dce3ee;border-radius:12px;padding:24px;width:min(520px,calc(100vw - 32px));max-height:90vh;overflow:auto;box-shadow:0 20px 60px #102a5640;color:#344054}
    dialog::backdrop{background:#10213d80}h3{font-size:21px;color:#17376e;margin:0 0 8px}.recipient{font-size:13px;margin:0 0 20px;overflow-wrap:anywhere}
    label{display:grid;gap:8px;font-size:14px;font-weight:600}textarea{width:100%;box-sizing:border-box;resize:vertical;border:1px solid #94a3b8;border-radius:6px;padding:12px;font:inherit;line-height:1.6}
    .hint{font-size:12px;line-height:1.6;margin:12px 0 18px}
