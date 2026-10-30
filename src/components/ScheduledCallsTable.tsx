@@ -61,5 +61,5 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
       .number{text-align:center;font-variant-numeric:tabular-nums;font-weight:700}
       .phone-history{border:0;background:none;padding:0;color:#123c92;text-decoration:underline;font:inherit;cursor:pointer}.phone-history:focus-visible{outline:2px solid #123c92;outline-offset:4px}
     `}</style>
-  </div>{historyBooking&&<PhoneHistoryModal token={token} booking={historyBooking} onClose={()=>setHistoryBooking(null)}/>}</>;
+  </div>{historyBooking&&<PhoneHistoryModal key={historyBooking.intentId} token={token} booking={historyBooking} onClose={()=>setHistoryBooking(null)}/>}</>;
 }

@@ -1,3 +1,4 @@
+import WhatsAppReplyComposer from "@/components/WhatsAppReplyComposer";
 import {useEffect,useRef,useState} from "react";
 import {getScheduledPhoneHistory,PhoneHistoryEvent,ScheduledCallRow,ScheduledPhoneHistory} from "@/lib/crmAdmin";
 
@@ -14,7 +15,7 @@ export function PhoneHistoryTimeline({events}:{events:PhoneHistoryEvent[]}) {
       <article>
         <div className="event-heading"><strong>{event.kind==="call"?"Phone call":event.direction==="inbound"?"WhatsApp · Client":"WhatsApp · ProveIt"}</strong>
           <time dateTime={event.atUtc||undefined}>{dateTime(event.atUtc)}</time></div>
-        {event.kind==="whatsapp"?<><p className="author">{event.author}{event.messageType!=="text"?` · ${event.messageType}`:""}</p><p className="body">{event.text}</p></>
+        {event.kind==="whatsapp"?<><p className="author">{event.author}{event.messageType!=="text"?` · ${event.messageType}`:""}</p><p className="body">{event.text}</p>{event.direction==="outbound"&&event.status!=="recorded"&&<p className={event.status==="failed"?"delivery failure":"delivery"} role={event.status==="failed"?"alert":undefined}>Status: {event.status==="accepted"?"Accepted by WhatsApp (delivery not confirmed)":event.status}{event.errorMessage?` ? ${event.errorMessage}`:""}</p>}</>
           : <><p className="resolution">{event.resolution}{event.callCode!=null?` · Callcode ${event.callCode}`:""}</p>
             <dl><div><dt>Agent</dt><dd>{event.agent}</dd></div><div><dt>Call type</dt><dd>{event.callType}</dd></div>
               <div><dt>Total duration</dt><dd>{duration(event.durationSeconds)}</dd></div><div><dt>Agent talk time</dt><dd>{duration(event.talkSeconds)}</dd></div>
@@ -26,7 +27,7 @@ export function PhoneHistoryTimeline({events}:{events:PhoneHistoryEvent[]}) {
       .inbound{background:white;margin-right:8%}.outbound{background:#e4f4ea;margin-left:8%}.call{background:#edf3ff;border-left:4px solid #315fba}
       .event-heading{display:flex;align-items:start;justify-content:space-between;gap:14px;font-size:14px}time{font-size:12px;white-space:nowrap;color:#526077}
       .author{font-size:11px;color:#667085;margin:6px 0}.body{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.65;margin:10px 0 0}
-      .resolution{font-weight:700;color:#17376e;font-size:14px;margin:10px 0}dl{display:flex;flex-wrap:wrap;gap:12px 28px;margin:0;font-size:12px}dt{color:#667085}dd{margin:4px 0 0;font-weight:600}
+      .delivery{font-size:12px;font-weight:600;margin:12px 0 0}.failure{color:#b42318}.resolution{font-weight:700;color:#17376e;font-size:14px;margin:10px 0}dl{display:flex;flex-wrap:wrap;gap:12px 28px;margin:0;font-size:12px}dt{color:#667085}dd{margin:4px 0 0;font-weight:600}
       @media(max-width:600px){.event-heading{display:grid;gap:6px}.inbound{margin-right:2%}.outbound{margin-left:2%}li{padding:12px}}
     `}</style>
   </ol>;
@@ -46,7 +47,7 @@ export default function PhoneHistoryModal({token,booking,onClose}:{token:string;
   useEffect(()=>{
     const controller=new AbortController();
     Promise.resolve().then(async()=>{
-      if(controller.signal.aborted)return;setLoading(true);setError("");setHistory(null);
+      if(controller.signal.aborted)return;setLoading(true);setError("");
       try{const result=await getScheduledPhoneHistory(token,booking.intentId,controller.signal);
         if(result.intentId.toLowerCase()!==booking.intentId.toLowerCase()||phoneKey(result.phone)!==phoneKey(booking.phone||"")||!Array.isArray(result.events))
           throw new Error("The history does not match this phone number. Reload the schedule.");
@@ -55,6 +56,18 @@ export default function PhoneHistoryModal({token,booking,onClose}:{token:string;
       finally{if(!controller.signal.aborted)setLoading(false);}
     });return()=>controller.abort();
   },[token,booking.intentId,booking.phone,refresh]);
+  useEffect(()=>{
+    const controller=new AbortController();let active=false;
+    const interval=setInterval(async()=>{
+      if(document.visibilityState!=="visible"||active)return;active=true;
+      try{const value=await getScheduledPhoneHistory(token,booking.intentId,controller.signal);
+        if(!controller.signal.aborted&&value.intentId.toLowerCase()===booking.intentId.toLowerCase()&&phoneKey(value.phone)===phoneKey(booking.phone||""))setHistory(value);
+      }catch{/* Keep the existing timeline and draft; manual Refresh exposes read errors. */}
+      finally{active=false;}
+    },15000);
+    return()=>{controller.abort();clearInterval(interval);};
+  },[token,booking.intentId,booking.phone]);
+  const matched=history&&history.intentId.toLowerCase()===booking.intentId.toLowerCase()&&phoneKey(history.phone)===phoneKey(booking.phone||"");
   return <dialog ref={dialog} aria-labelledby="phone-history-title" aria-describedby="phone-history-description"
     onCancel={event=>{event.preventDefault();onClose();}} onClick={event=>{if(event.target===event.currentTarget)onClose();}}>
     <div className="window">
@@ -63,9 +76,10 @@ export default function PhoneHistoryModal({token,booking,onClose}:{token:string;
           <button type="button" onClick={onClose} aria-label="Close phone history">Close</button></div></header>
       <p id="phone-history-description" className="description">Full recorded history for this number · Oldest first · All times UK. Queued WhatsApp messages are not shown as sent.</p>
       <div className="content" aria-busy={loading} aria-live="polite">
-        {loading?<p className="status">Loading the full WhatsApp conversation and call history...</p>:error?<p role="alert" className="error">{error}</p>:history&&<>
-          <p className="totals">{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
+        {loading&&!matched?<p className="status">Loading the full WhatsApp conversation and call history...</p>:!matched&&error?<p role="alert" className="error">{error}</p>:matched&&history&&<>
+          {error&&<p role="alert" className="error">{error}</p>}<p className="totals">{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
           {history.events.length?<PhoneHistoryTimeline events={history.events}/>:<p className="status">No recorded WhatsApp messages or calls were found for this number.</p>}
+          <WhatsAppReplyComposer key={booking.intentId+history.phone} token={token} intentId={booking.intentId} phone={history.phone} onSent={()=>setRefresh(value=>value+1)}/>
         </>}
       </div>
     </div>

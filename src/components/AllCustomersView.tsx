@@ -57,7 +57,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
           <button type="button" disabled={(page+1)*CUSTOMER_PAGE_SIZE>=report.total} onClick={()=>{setLoading(true);setReport(null);setPage(p=>p+1);}}>Next</button></nav>
       </>}
     </div>
-    {history&&<PhoneHistoryModal token={token} booking={history} onClose={()=>setHistory(null)}/>}
+    {history&&<PhoneHistoryModal key={history.intentId} token={token} booking={history} onClose={()=>setHistory(null)}/>}
     <style jsx>{`
       .customer-section{margin:24px 0 40px;color:#344054}h2{font-size:23px;color:#17376e;margin:0 0 8px}p{font-size:13px;line-height:1.5;margin:0}
       .filters{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:18px 0}label{display:grid;gap:6px;font-size:13px;font-weight:700}

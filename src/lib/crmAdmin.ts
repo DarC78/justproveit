@@ -373,7 +373,7 @@ export type ScheduledWhatsAppConversation = {
 
 export type PhoneHistoryEvent = {
   kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
-  author: string; text: string; messageType: string; status: string;
+  author: string; text: string; messageType: string; status: string; errorCode?: string | null; errorMessage?: string | null;
 } | {
   kind: "call"; id: string; atUtc: string | null; endedAtUtc: string | null;
   agentId: number | null; agent: string; callCode: number | null; resolution: string;
@@ -1363,4 +1363,11 @@ export function queueManualCrmSms(token: string, payload: ManualCrmSmsPayload) {
     headers: authHeaders(token),
     body: JSON.stringify(payload),
   });
+}
+
+export type WhatsAppReplyResult = { id: string; status: string; providerMessageId: string | null; errorCode: string | null; errorMessage: string | null };
+export function sendScheduledWhatsAppReply(token: string, intentId: string, body: {text: string; requestId: string; expectedPhone: string}) {
+  return fetchCanonicalCrmReadJson<WhatsAppReplyResult>(    `${BASE_PATH}/scheduled-calls/${encodeURIComponent(intentId)}/whatsapp/replies`, {
+      method: 'POST', headers: authHeaders(token), body: JSON.stringify(body),
+    });
 }
