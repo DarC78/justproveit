@@ -51,3 +51,12 @@ test('unmarked bookings offer the action without opening a WhatsApp URL or sendi
   const html=renderToStaticMarkup(React.createElement(Actions,{token:'fixture',booking,onChanged:()=>{}}));
   assert.match(html,/>On WhatsApp Business<\/button>/);assert.doesNotMatch(html,/href=|wa\.me/);
 });
+
+test('solved status has an independent column, actor and disabled action',()=>{
+  const html=renderToStaticMarkup(React.createElement(Table,{token:'fixture',rows:[{...booking,
+    solvedOnWhatsApp:true,solvedOnWhatsAppAtUtc:'2026-10-28T13:00:00Z',solvedOnWhatsAppBy:'solver@example.test'}],onChanged:()=>{}}));
+  assert.match(html,/<th scope="col">Solved on WhatsApp<\/th>/);
+  assert.match(html,/solver@example.test/);
+  assert.match(html,/<button[^>]*disabled=""[^>]*>Solved on WhatsApp<\/button>/);
+  assert.doesNotMatch(html,/<button[^>]*disabled=""[^>]*>On WhatsApp Business<\/button>/);
+});

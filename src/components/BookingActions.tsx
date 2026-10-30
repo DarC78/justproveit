@@ -1,11 +1,11 @@
 import { FormEvent, useState } from "react";
-import { BookingActionResult, changeScheduledBooking, markBookingWhatsAppBusiness, ScheduledCallRow } from "@/lib/crmAdmin";
+import { BookingActionResult, changeScheduledBooking, markBookingWhatsAppBusiness, markBookingSolvedOnWhatsApp, ScheduledCallRow } from "@/lib/crmAdmin";
 
 const londonDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" });
 const londonTime = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
-export default function BookingActions({ token, booking, onChanged, onBusinessMarked }: {
-  token: string; booking: ScheduledCallRow; onChanged: (result: BookingActionResult) => void; onBusinessMarked?: () => void;
+export default function BookingActions({ token, booking, onChanged, onBusinessMarked, onSolved }: {
+  token: string; booking: ScheduledCallRow; onChanged: (result: BookingActionResult) => void; onBusinessMarked?: () => void; onSolved?: () => void;
 }) {
   const [mode, setMode] = useState<"reschedule" | "cancel" | null>(null);
   const [date, setDate] = useState(() => londonDate.format(new Date(booking.appointmentAtUtc)));
@@ -25,6 +25,19 @@ export default function BookingActions({ token, booking, onChanged, onBusinessMa
     }catch(cause){setError(cause instanceof Error?cause.message:"Marcarea nu a putut fi salvata. Reincarca lista.");}
     finally{setSaving(false);}
   }
+  const [solvedAppointment, setSolvedAppointment] = useState("");
+  const solved = solvedAppointment === booking.appointmentAtUtc || booking.solvedOnWhatsApp === true;
+  async function markSolved() {
+    if (saving || solved) return;
+    setSaving(true); setError("");
+    try {
+      const result = await markBookingSolvedOnWhatsApp(token, booking);
+      if (!result.success || !result.solvedOnWhatsApp || result.intentId.toLowerCase() !== booking.intentId.toLowerCase())
+        throw new Error("Marcarea nu a putut fi verificata. Reincarca lista.");
+      setSolvedAppointment(booking.appointmentAtUtc); onSolved?.();
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Marcarea nu a putut fi salvata. Reincarca lista."); }
+    finally { setSaving(false); }
+  }
   function open(action: "reschedule" | "cancel") { setMode(action); setRequestId(crypto.randomUUID()); setError(""); }
   async function save(event: FormEvent) {
     event.preventDefault(); if (!mode || saving) return;
@@ -42,6 +55,8 @@ export default function BookingActions({ token, booking, onChanged, onBusinessMa
       <button type="button" disabled={saving} className="delete" onClick={() => open("cancel")}>Delete book</button>
       <button type="button" className="business" disabled={saving || businessMarked || booking.onWhatsAppBusiness}
         title="Inregistreaza continuarea conversatiei pe WhatsApp Business. Nu trimite un mesaj." onClick={markBusiness}>On WhatsApp Business</button>
+      <button type="button" className="business" disabled={saving || solved}
+        title="Inregistreaza rezolvarea pe WhatsApp. Nu trimite un mesaj." onClick={markSolved}>Solved on WhatsApp</button>
     </div> : <form onSubmit={save} aria-label={mode === "reschedule" ? "Reprogramare" : "Anulare programare"}>
       <strong>{mode === "reschedule" ? "Reprogrameaza (ora UK)" : "Anulezi aceasta programare?"}</strong>
       {mode === "reschedule" && <div className="date-time">

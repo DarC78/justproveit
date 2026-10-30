@@ -42,7 +42,7 @@ export default function ScheduledCallsPanel({token}:{token:string}) {
   function changed(message:string){setNotice(message);setRefresh(value=>value+1);}
   const dayRows=report?.date===date?report.rows:[];
   const rows=visibleScheduledCalls(dayRows,showFinished);
-  const attentionRows=attention?.lookbackDays===days?attention.rows:[];
+  const attentionRows=attention?.lookbackDays===days?attention.rows.filter(row=>row.solvedOnWhatsApp!==true):[];
   return <section className="scheduled-calls">
     <div className="heading"><div><h1>Scheduled calls</h1><p>Manual and Calendly bookings · All times are UK time</p></div>
       <button type="button" disabled={loading||attentionLoading} onClick={()=>setRefresh(value=>value+1)}>Refresh</button></div>
@@ -53,7 +53,7 @@ export default function ScheduledCallsPanel({token}:{token:string}) {
         <label>Past days<select value={days} onChange={event=>setDays(Number(event.target.value))}>
           {[1,3,7,14,30,60,90].map(value=><option key={value} value={value}>{value} {value===1?"day":"days"}</option>)}
         </select></label></div>
-      <p className="note">Needs attention if there is no meaningful call and no WhatsApp Business mark, or if the latest Mediatel WhatsApp message is from the client and there has been no valid agent call after their first message. A meaningful call has a valid agent outcome on or after the appointment day, regardless of duration. Voicemail, no answer and no audio do not count.</p>
+      <p className="note">Bookings marked Solved on WhatsApp are excluded. Needs attention if there is no meaningful call and no WhatsApp Business mark, or if the latest Mediatel WhatsApp message is from the client and there has been no valid agent call after their first message. A meaningful call has a valid agent outcome on or after the appointment day, regardless of duration. Voicemail, no answer and no audio do not count.</p>
       <div aria-live="polite" aria-busy={attentionLoading}>
         {attentionLoading?<p className="status">Loading Attention calls...</p>:attentionError?<p role="alert" className="error">{attentionError}</p>:<>
           {attention?.warnings?.map(warning=><p className="warning" key={warning}>{warning}</p>)}

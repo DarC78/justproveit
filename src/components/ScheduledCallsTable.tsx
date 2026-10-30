@@ -9,7 +9,7 @@ import {ScheduledCallRow} from "@/lib/crmAdmin";
 const londonDateTime=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"short"});
 const londonTime=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
 function dateTime(value: string|null) {const timestamp=Date.parse(value||"");return Number.isFinite(timestamp)?londonDateTime.format(timestamp):"Unavailable";}
-function YesNo({value}:{value:boolean|null}) {
+function YesNo({value}:{value:boolean|null|undefined}) {
   return <span className={value===true?"yes":value===false?"no":"unknown"}>{value===true?"Yes":value===false?"No":"Unavailable"}
     <style jsx>{`span{display:inline-block;border-radius:20px;padding:3px 9px;font-weight:700;font-size:12px}.yes{background:#e5f4e9;color:#196a35}.no{background:#fff2d6;color:#855a0b}.unknown{color:#667085}`}</style></span>;
 }
@@ -25,7 +25,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
       <th scope="col">Booking email sent</th><th scope="col">Booking WhatsApp sent</th>
       <th scope="col">Reminder email sent</th><th scope="col">Reminder WhatsApp sent</th>
       <th scope="col">Manual calls that day</th><th scope="col">Agent conversations that day</th><th scope="col">On dialler now</th>
-      <th scope="col">On WhatsApp Business</th>
+      <th scope="col">On WhatsApp Business</th><th scope="col">Solved on WhatsApp</th>
       <th scope="col">Apeluri din ziua programarii si dupa / callcoduri</th>
       <th scope="col">WhatsApp client in ziua programarii</th><th scope="col">WhatsApp noi in ziua programarii</th>
       <th scope="col">Actiuni programare</th>
@@ -43,10 +43,12 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
       <td className="number">{row.manualCallsToday??"Unavailable"}</td><td className="number">{row.agentConversationsToday??"Unavailable"}</td>
       <td><YesNo value={row.onDialler}/></td>
       <td><YesNo value={row.onWhatsAppBusiness}/>{row.onWhatsAppBusiness&&<small>{dateTime(row.whatsAppBusinessAtUtc)}<br/>{row.whatsAppBusinessBy}</small>}</td>
+      <td><YesNo value={row.solvedOnWhatsApp}/>{row.solvedOnWhatsApp&&<small>{dateTime(row.solvedOnWhatsAppAtUtc ?? null)}<br/>{row.solvedOnWhatsAppBy}</small>}</td>
       <td className="history"><BookingCallHistory booking={row}/></td>
       <td className="number">{row.whatsAppClientMessages??"Unavailable"}</td><td className="number">{row.whatsAppTeamMessages??"Unavailable"}</td>
       <td className="history"><BookingActions token={token} booking={row}
         onChanged={result=>onChanged(bookingActionNotice(result))}
+        onSolved={()=>onChanged("Rezolvarea pe WhatsApp a fost inregistrata.")}
         onBusinessMarked={()=>onChanged("Continuarea conversatiei pe WhatsApp Business a fost inregistrata.")}/></td>
     </tr>)}</tbody></table>
     <style jsx>{`

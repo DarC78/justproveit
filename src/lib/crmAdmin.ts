@@ -322,6 +322,9 @@ export type ScheduledCallRow = {
   callCodesSinceAppointmentDay: Array<{ callCode: number | null; description: string | null; count: number }>;
   agentConversationsToday: number | null;
   onDialler: boolean | null;
+  solvedOnWhatsApp?: boolean | null;
+  solvedOnWhatsAppAtUtc?: string | null;
+  solvedOnWhatsAppBy?: string | null;
   onWhatsAppBusiness: boolean;
   whatsAppBusinessAtUtc: string | null;
   whatsAppBusinessBy: string | null;
@@ -346,6 +349,14 @@ export type AttentionCallsResponse = ScheduledCallsResponse & {lookbackDays: num
 export function markBookingWhatsAppBusiness(token: string, booking: ScheduledCallRow) {
   return fetchCanonicalCrmReadJson<{success: boolean; intentId: string; onWhatsAppBusiness: boolean; whatsAppBusinessAtUtc: string; whatsAppBusinessBy: string}>(
     `${BASE_PATH}/scheduled-calls/${encodeURIComponent(booking.intentId)}/whatsapp-business`, {
+      method: "POST", headers: {...authHeaders(token), "Content-Type": "application/json"},
+      body: JSON.stringify({expectedAppointmentAtUtc: booking.appointmentAtUtc}),
+    });
+}
+
+export function markBookingSolvedOnWhatsApp(token: string, booking: ScheduledCallRow) {
+  return fetchCanonicalCrmReadJson<{success: boolean; intentId: string; solvedOnWhatsApp: boolean}>(
+    `${BASE_PATH}/scheduled-calls/${encodeURIComponent(booking.intentId)}/solved-on-whatsapp`, {
       method: "POST", headers: {...authHeaders(token), "Content-Type": "application/json"},
       body: JSON.stringify({expectedAppointmentAtUtc: booking.appointmentAtUtc}),
     });

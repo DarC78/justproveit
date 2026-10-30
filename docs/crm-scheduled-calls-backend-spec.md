@@ -140,3 +140,24 @@ mirrored messages across Mediatel, native WhatsApp history and accepted outbound
 messages. Unsent queued messages are excluded. There is no silent row limit.
 Closing or changing the dialog cancels its fetch. Native dialog focus handling,
 Escape, backdrop dismissal and return focus keep the page accessible.
+
+## Solved on WhatsApp: backend implementation required
+
+Implement POST /justproveit/admin/crm/scheduled-calls/{id}/solved-on-whatsapp
+with { expectedAppointmentAtUtc }, following whatsapp-business authorization,
+tenant ownership and 409 checks for changed/cancelled bookings. Atomically record
+an independent appointment-versioned event named "Solved On WhatsApp", the
+server UTC timestamp and authenticated actor, preserving append-only history.
+Retries must return the existing mark without duplicate events. Send no messages.
+Return { success: true, intentId, solvedOnWhatsApp: true,
+solvedOnWhatsAppAtUtc, solvedOnWhatsAppBy }. Include the three solved fields
+in daily and Attention rows (false/null/null when unmarked). Rescheduling clears
+the current mark while preserving history. Keep the Business mark independent.
+Exclude solved bookings before either Attention rule, counting or pagination,
+including client-last conversations. Retain them in the daily schedule.
+
+Acceptance: persistence across reload, actor/time, both booking types, both
+Attention reasons, rescheduling, stale/cancelled rejection, idempotency, tenant
+isolation and no outbound messages. Deploy this endpoint before the frontend
+action can successfully save. Frontend also filters solved Attention rows and
+refreshes both reports after verified success.
