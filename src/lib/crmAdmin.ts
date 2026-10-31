@@ -1071,6 +1071,18 @@ export function listCrmLeads(
   });
 }
 
+export type DispatchContact = {name: string | null; email: string | null; phone: string};
+export function loadCrmDispatchContact(token: string, phone: string) {
+  return fetchCanonicalCrmReadJson<{contact: DispatchContact | null}>(
+    `${BASE_PATH}/dispatch${buildQuery({phone})}`, {headers: authHeaders(token), signal: AbortSignal.timeout(4500)},
+  );
+}
+export function loadCrmDispatchRouting(token: string, phone: string) {
+  return fetchCanonicalCrmReadJson<{automatic: boolean}>(
+    `${BASE_PATH}/dispatch${buildQuery({phone,routing:true})}`, {headers: authHeaders(token), signal: AbortSignal.timeout(4500)},
+  );
+}
+
 export function findCrmLeadByPhone(token: string, phone: string) {
   return fetchCanonicalCrmReadJson<{ phone: string; lead: CrmLead | null }>(
     `${BASE_PATH}/leads/by-phone${buildQuery({ phone })}`,
