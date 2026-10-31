@@ -4,19 +4,19 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { DispatchContact, loadCrmDispatchContact, loadCrmDispatchRouting } from "@/lib/crmAdmin";
-import { dispatchPhone } from "@/lib/crmDispatch";
+import { dispatchPhoneFromQuery } from "@/lib/crmDispatch";
 
 type Result={key:string;contact:DispatchContact|null;url:string;checked:boolean};
 export default function CrmDispatchPage() {
   const router=useRouter();
   const {status,token,isCrm}=useAuth();
-  const phone=typeof router.query.phone==="string"?dispatchPhone(router.query.phone):"";
+  const phone=dispatchPhoneFromQuery(router.query);
   const [loaded,setLoaded]=useState<Result|null>(null);
   const [failure,setFailure]=useState<{key:string;message:string}|null>(null);
   const [attempt,setAttempt]=useState(0);
   const requestKey=`${phone}:${attempt}:${token}`;
   const result=loaded?.key===requestKey?loaded:null;
-  const error=router.isReady&&!phone?"Adauga un numar de telefon valid in adresa: /crmdispatch?phone=447440526630":failure?.key===requestKey?failure.message:"";
+  const error=router.isReady&&!phone?"Adauga un numar valid folosind phone_leads, phone_dnis, phone_ani sau phone. Exemplu: /crmdispatch?phone_leads=447440526630":failure?.key===requestKey?failure.message:"";
   useEffect(()=>{
     if(!router.isReady || status==="loading") return;
     if(status!=="authenticated") {

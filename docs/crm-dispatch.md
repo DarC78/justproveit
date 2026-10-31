@@ -1,6 +1,8 @@
 ﻿# CRM dispatcher
 
-Open `/crmdispatch?phone=447440526630`. CRM authentication is required; login preserves the dispatch URL.
+Open `/crmdispatch?phone_leads=447440526630`. CRM authentication is required; login preserves the dispatch URL.
+
+Phone query parameters are checked in priority order: `phone_leads`, `phone_dnis`, `phone_ani`, then legacy `phone`. The first valid normalized phone is used for contact lookup, display, routing and destination prefilling. Empty, invalid or repeated values are skipped. Lower-priority numbers are not searched if the selected valid number has no contact match.
 
 The dispatcher first calls the authenticated `GET /justproveit/admin/crm/dispatch?phone=...` endpoint. An exact indexed phone lookup returns only name, email and phone, which are displayed immediately. It avoids the full CRM lead read model and all history/list pagination. The existing unique tenant/normalized-phone index and an email lookup covering index support this query. Contact requests have a 4.5-second client deadline and SQL requests a 3.5-second query deadline; failures show Retry rather than empty contact details. Browser loading, login and network time still affect overall latency.
 

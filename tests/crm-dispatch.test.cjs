@@ -6,7 +6,7 @@ const ts=require('typescript');
 const exportsObject={};
 const source=ts.transpileModule(fs.readFileSync('src/lib/crmDispatch.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 vm.runInNewContext(source,{exports:exportsObject,URLSearchParams});
-const {resolveCrmDispatch,dispatchPhone,qualifyingDispatchIntent}=exportsObject;
+const {resolveCrmDispatch,dispatchPhone,dispatchPhoneFromQuery,qualifyingDispatchIntent}=exportsObject;
 const now=Date.parse('2026-10-29T12:00:00Z');
 const lead={contactId:'contact-1',fullName:'Dan & Urse',email:'dan+test@example.com',phoneNumber:'+44 7440 526630'};
 const row=(overrides={})=>({contactId:'contact-1',lead,createdAtUtc:'2026-10-28T12:00:00Z',interestType:'ASAP',serviceKey:'SimulatorPensie',...overrides});
@@ -16,6 +16,16 @@ function deps(rows,found=lead){return {now,findLead:async()=>({lead:found}),list
 test('phone accepts international, 00 and UK local formats and rejects malformed inputs',()=>{
   for(const p of ['+44 7440 526630','00447440526630','07440526630'])assert.equal(dispatchPhone(p),'447440526630');
   for(const p of ['', 'abc447440526630','123','//example.com'])assert.equal(dispatchPhone(p),'');
+});
+test('phone query selects first valid value in leads, dnis, ani, legacy order',()=>{
+  const query={phone_leads:'07440526630',phone_dnis:'447700900002',phone_ani:'447700900003',phone:'447700900004'};
+  assert.equal(dispatchPhoneFromQuery(query),'447440526630');
+  assert.equal(dispatchPhoneFromQuery({...query,phone_leads:''}),'447700900002');
+  assert.equal(dispatchPhoneFromQuery({...query,phone_leads:'not a number',phone_dnis:' '}),'447700900003');
+  assert.equal(dispatchPhoneFromQuery({phone:'00447700900004'}),'447700900004');
+  assert.equal(dispatchPhoneFromQuery({phone_leads:['447700900001','447700900002'],phone_ani:'447700900003'}),'447700900003');
+  assert.equal(dispatchPhoneFromQuery({}), '');
+  assert.equal(dispatchPhoneFromQuery({phone_leads:'123',phone_dnis:'abc',phone_ani:''}), '');
 });
 test('manual booking for any service OR pension service qualifies within exact 30 day boundary',()=>{
   assert.equal(qualifyingDispatchIntent(row({interestType:'MANUAL_BOOK',serviceKey:'Other'}),now),true);

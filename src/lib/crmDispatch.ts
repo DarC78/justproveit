@@ -9,6 +9,16 @@ export function dispatchPhone(value: string) {
   return /^\d{8,15}$/.test(digits)?digits:"";
 }
 
+export function dispatchPhoneFromQuery(query: Record<string, string | string[] | undefined>) {
+  for (const key of ['phone_leads', 'phone_dnis', 'phone_ani', 'phone']) {
+    const value=query[key];
+    // Repeated parameters are ambiguous; only accept a single value per key.
+    const phone=typeof value==='string'?dispatchPhone(value):'';
+    if(phone) return phone;
+  }
+  return '';
+}
+
 function matchesPhone(lead: CrmLead | null | undefined, phone: string) {
   return [lead?.normalizedPhone,lead?.phoneNumber,...(lead?.phones||[]).flatMap(p=>[p.normalizedPhone,p.phone])]
     .some(value=>value && dispatchPhone(value)===phone);
