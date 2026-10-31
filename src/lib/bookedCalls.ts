@@ -7,7 +7,7 @@ export function visibleScheduledCalls<T extends {meaningfulCallsSinceAppointment
 
 export function bookingActionNotice(result: BookingActionResult) {
   if (result.action === "dialler") return "Booking solved. Number added back to the ASAP / SimulatorPensie dialler.";
-  if (result.action === "cancel") return "Programarea si mesajele netrimise aferente au fost anulate.";
+  if (result.action === "cancel") return "Programarea și mesajele netrimise aferente au fost anulate. " + (result.whatsAppQueued ? "Mesajul WhatsApp text de anulare este în coada de trimitere." : "Mesajul WhatsApp de anulare nu a fost pus în coadă: telefon lipsă sau invalid.");
   const email = result.emailQueued ? "Email: in coada de trimitere." : "Email omis: adresa lipsa sau invalida.";
   const whatsApp = result.whatsAppQueued ? "WhatsApp text: in coada de trimitere." : "WhatsApp omis: telefon lipsa sau invalid.";
   return `Programare reprogramata. ${email} ${whatsApp} Reminderele vechi au fost anulate.`;

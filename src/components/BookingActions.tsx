@@ -77,7 +77,7 @@ export default function BookingActions({ token, booking, onChanged, onBusinessMa
         <label>Ora UK<input type="time" required disabled={saving} value={time}
           onChange={event => { setTime(event.target.value); setRequestId(crypto.randomUUID()); setError(""); }} /></label>
       </div>}
-      <p>{mode === "reschedule" ? "Confirmarea se trimite prin WhatsApp ca text si prin email, daca adresa este valida. Lipsa emailului nu blocheaza reprogramarea. Reminderele vechi se anuleaza." : "Programarea si mesajele email/WhatsApp de confirmare sau reminder netrimise vor fi anulate."}</p>
+      <p>{mode === "reschedule" ? "Confirmarea se trimite prin WhatsApp ca text si prin email, daca adresa este valida. Lipsa emailului nu blocheaza reprogramarea. Reminderele vechi se anuleaza." : "Programarea și mesajele email/WhatsApp de confirmare sau reminder netrimise vor fi anulate. Mesajul WhatsApp text de anulare va fi pus în coada de trimitere, dacă numărul de telefon este valid."}</p>
       {booking.intentType === "CALENDLY" && <p className="provider-note">Actiunea modifica programarea in CRM. Notificarile trimise direct de Calendly nu sunt controlate de CRM.</p>}
       <div className="buttons">
         <button type="submit" disabled={saving}>{saving ? "Se salveaza..." : mode === "reschedule" ? "Confirma reprogramarea" : "Confirma Delete book"}</button>
