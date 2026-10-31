@@ -53,7 +53,7 @@ export default function WhatsAppReplyComposer({token,intentId,phone,onSent}:{tok
     {media&&<label>{media.format} attachment URL<input type="url" disabled={sending||unresolved} value={headerUrl} placeholder="https://..." onChange={event=>setHeaderUrl(event.target.value)}/></label>}
     <label htmlFor="whatsapp-reply">Reply on WhatsApp</label>
     <p className="help">Send to {phone}. WhatsApp may reject replies outside the 24-hour window after the client’s last message.</p>
-    <textarea id="whatsapp-reply" rows={4} maxLength={4096} value={template?preview:text} disabled={sending||unresolved||!!template}
+    <textarea id="whatsapp-reply" rows={template?12:4} maxLength={4096} value={template?preview:text} disabled={sending||unresolved||!!template}
       onChange={event=>{setText(event.target.value);setResult(null);setError("");}} placeholder="Type your WhatsApp reply…" />
     <div className="actions"><small>{template?"Approved template preview":text.length+"/4096"}</small><button type="submit" disabled={sending||(!unresolved&&!valid)}>
       {sending?"Sending…":unresolved?"Check send status":"Send WhatsApp"}</button></div>
