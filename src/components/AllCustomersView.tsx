@@ -1,6 +1,8 @@
+import WhatsAppDraftRow from "./WhatsAppDraftRow";
+import {WhatsAppDraft,listWhatsAppDrafts} from "@/lib/whatsappDrafts";
 import ContactActions from "./ContactActions";
 import Link from "next/link";
-import {FormEvent,useEffect,useState} from "react";
+import {Fragment,FormEvent,useEffect,useState} from "react";
 import {CustomerFilters,CustomerPage,CustomerScope,CUSTOMER_PAGE_SIZE,loadCustomerPage,RecordKind,callcodeText,contactActionNotice} from "@/lib/allCustomers";
 import PhoneHistoryModal from "./PhoneHistoryModal";
 import BookingActions from "./BookingActions";
@@ -26,6 +28,18 @@ export function CustomersSection({token,scope,title,description,kind="customers"
       finally{if(!controller.signal.aborted)setLoading(false);}
     });return()=>controller.abort();
   },[token,scope,applied,page,revision,kind,refreshKey]);
+  const [drafts,setDrafts]=useState<WhatsAppDraft[]>([]),[draftError,setDraftError]=useState("");
+  useEffect(()=>{
+    if(kind!=="leads"||!report?.rows.length){setDrafts([]);return;}
+    const controller=new AbortController();let running=false;
+    async function refreshDrafts(){if(running||controller.signal.aborted)return;running=true;
+      try{const result=await listWhatsAppDrafts(token,report!.rows.map(row=>row.contactId),controller.signal);if(!controller.signal.aborted){setDrafts(result.drafts);setDraftError("");}}
+      catch(cause){if(!controller.signal.aborted)setDraftError(cause instanceof Error?cause.message:"Unable to load WhatsApp drafts.");}
+      finally{running=false;}
+    }
+    setDrafts([]);void refreshDrafts();const interval=setInterval(()=>{if(document.visibilityState==="visible")void refreshDrafts();},30000);
+    return()=>{controller.abort();clearInterval(interval);};
+  },[token,kind,report]);
   function apply(event:FormEvent){event.preventDefault();setLoading(true);setError("");setReport(null);setPage(0);setApplied({...filters});}
   return <section className="customer-section" aria-labelledby={`${kind}-${scope}-title`}>
     <h2 id={`${kind}-${scope}-title`}>{title}</h2><p>{description}</p>
@@ -35,13 +49,14 @@ export function CustomersSection({token,scope,title,description,kind="customers"
       <button type="button" onClick={()=>setRevision(n=>n+1)} disabled={loading}>Refresh</button>
     </form>
     {notice&&<p role="status">{notice}</p>}
+    {draftError&&<p role="alert" className="error">{draftError}</p>}
     <div aria-live="polite" aria-busy={loading}>
       {loading?<p className="status">Loading {noun}...</p>:error?<p className="error" role="alert">{error}</p>:report&&<>
         {report.warnings?.map(warning=><p className="warning" key={warning}>{warning}</p>)}
         <p className="count">{report.total} {noun} · {report.rows.length?`${page*CUSTOMER_PAGE_SIZE+1}–${page*CUSTOMER_PAGE_SIZE+report.rows.length}`:"0"} shown</p>
         {!report.rows.length?<p className="status">No matching {noun}.</p>:<div className="table-scroll" tabIndex={0} role="region" aria-label={title}><table>
           <thead><tr>{["Name","Phone number","Email",kind==="leads"?"Became a lead":"Became a customer","Latest inbound contact","Call booked for (UK)","First call (UK)","Last call (UK)","Number of calls","First callcode","Last callcode","Latest WhatsApp message","Booking actions"].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
-          <tbody>{report.rows.map(row=><tr key={row.contactId}>
+          <tbody>{report.rows.map(row=><Fragment key={row.contactId}><tr>
             <th scope="row">{row.phone?<Link href={{pathname:"/crmdispatch",query:{phone:row.phone}}}>{row.name||(kind==="leads"?"Lead":"Customer")}</Link>:row.name||(kind==="leads"?"Lead":"Customer")}</th>
             <td>{row.phone?row.booking?<button type="button" className="text-link" onClick={()=>setHistory(row.booking)}>{row.phone}</button>:<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.phone}</Link>:"—"}</td>
             <td>{row.email||"—"}</td><td>{time(row.createdAtUtc)}</td>
@@ -50,7 +65,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
             <td>{row.callCount??"Unavailable"}</td><td>{callcodeText(row.firstCallCode)}</td><td>{callcodeText(row.lastCallCode)}</td>
             <td>{row.lastWhatsApp?<><strong>{row.lastWhatsApp.direction==="inbound"?"Customer":"Us"}</strong><small>{time(row.lastWhatsApp.atUtc)} · {row.lastWhatsApp.source||"Source unavailable"}</small><p className="message">{row.lastWhatsApp.text}</p></>:"No WhatsApp message recorded"}</td>
             <td>{(row.actionContactId||(kind==="leads"?row.contactId:row.booking?.contactId))&&<ContactActions token={token} contactId={(row.actionContactId||(kind==="leads"?row.contactId:row.booking?.contactId))!} name={row.name} phone={row.phone} onChanged={result=>{setNotice(contactActionNotice(result));setRevision(n=>n+1);onChanged?.();}}/>}{row.booking?<BookingActions token={token} booking={row.booking} onChanged={result=>{setNotice(bookingActionNotice(result));setRevision(n=>n+1);}} onBusinessMarked={()=>setRevision(n=>n+1)} onSolved={()=>{setNotice("Booking marked solved on WhatsApp.");setRevision(n=>n+1);onChanged?.();}}/>:"—"}</td>
-          </tr>)}</tbody>
+          </tr>{kind==="leads"&&drafts.filter(draft=>draft.contactId.toLowerCase()===row.contactId.toLowerCase()).map(draft=><WhatsAppDraftRow key={draft.id} token={token} draft={draft} onSent={()=>{setRevision(n=>n+1);onChanged?.();}}/>)}</Fragment>)}</tbody>
         </table></div>}
         <nav aria-label={`${title} pagination`} className="pagination"><button type="button" disabled={page===0} onClick={()=>{setLoading(true);setReport(null);setPage(p=>p-1);}}>Previous</button>
           <span>Page {page+1} of {Math.max(1,Math.ceil(report.total/CUSTOMER_PAGE_SIZE))}</span>
