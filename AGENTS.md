@@ -13,11 +13,12 @@
 - Do not deploy Azure Static Web Apps, Azure Functions, or any live service by zip/package upload or direct CLI deployment.
 - For this frontend, production deployment is triggered by pushing to `main` and letting the Azure Static Web Apps GitHub workflow run.
 
-## Repository Boundary Rules
-- Work only in this repository.
-- Do not edit, stage, commit, pull, push, or otherwise operate inside nested or sibling repositories.
-- If a change is needed in another repository, write a spec document in this repository describing the required change, rationale, affected files or APIs, and acceptance criteria.
-- The owner will pass that spec to the other repository's team for implementation.
+## End-to-end development across both repositories
+- Own requested development end to end, including the frontend in `C:\DevProjects\JustProveit\justproveit` and the backend in `C:\DevProjects\LaunchingStack`.
+- You may read, edit, test, stage, commit, pull, push, and deliver changes in both repositories as needed for the requested task. Follow each repository's applicable instructions and GitHub deployment workflow.
+- Implement and verify related frontend and backend changes directly; do not stop at a specification or hand work over to another repository's team.
+- Keep development work within these two folders unless the user explicitly authorizes another location. This replaces earlier single-repository restrictions and cross-repository handoff requirements.
+- Keep commits scoped to the relevant repository and requested changes, and preserve unrelated work.
 
 ## Code Delivery
 - After implementing requested code changes and passing the relevant checks, commit, push, and deploy through GitHub unless the user explicitly asks otherwise.

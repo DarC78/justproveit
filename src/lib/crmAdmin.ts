@@ -390,16 +390,16 @@ export function getScheduledPhoneHistory(token: string, intentId: string, signal
 }
 
 export type BookingActionResult = {
-  success: boolean; action: "reschedule" | "cancel"; intentId: string; appointmentAtUtc: string;
+  success: boolean; action: "reschedule" | "cancel" | "dialler"; intentId: string; appointmentAtUtc: string;
   cancelledEmails: number; cancelledWhatsApp: number; emailQueued: boolean; replayed?: boolean;
   whatsAppQueued: boolean; emailSkipReason?: string | null; whatsAppSkipReason?: string | null;
 };
 
-export function changeScheduledBooking(token: string, booking: ScheduledCallRow, action: "reschedule" | "cancel", payload: {
+export function changeScheduledBooking(token: string, booking: ScheduledCallRow, action: "reschedule" | "cancel" | "dialler", payload: {
   requestId: string; appointmentDate?: string; appointmentTime?: string;
 }) {
-  return fetchCanonicalCrmReadJson<BookingActionResult>(`${BASE_PATH}/scheduled-calls/${encodeURIComponent(booking.intentId)}${action === "reschedule" ? "/reschedule" : ""}`, {
-    method: action === "reschedule" ? "POST" : "DELETE",
+  return fetchCanonicalCrmReadJson<BookingActionResult>(`${BASE_PATH}/scheduled-calls/${encodeURIComponent(booking.intentId)}${action === "reschedule" ? "/reschedule" : action === "dialler" ? "/dialler" : ""}`, {
+    method: action === "cancel" ? "DELETE" : "POST",
     headers: { ...authHeaders(token), "Content-Type": "application/json" },
     body: JSON.stringify({ ...payload, expectedAppointmentAtUtc: booking.appointmentAtUtc }),
   });
@@ -1366,8 +1366,11 @@ export function queueManualCrmSms(token: string, payload: ManualCrmSmsPayload) {
 }
 
 export type WhatsAppReplyResult = { id: string; status: string; providerMessageId: string | null; errorCode: string | null; errorMessage: string | null };
-export function sendScheduledWhatsAppReply(token: string, intentId: string, body: {text: string; requestId: string; expectedPhone: string}) {
+export function sendScheduledWhatsAppReply(token: string, intentId: string, body: ComposerRequest & {expectedPhone: string}) {
   return fetchCanonicalCrmReadJson<WhatsAppReplyResult>(    `${BASE_PATH}/scheduled-calls/${encodeURIComponent(intentId)}/whatsapp/replies`, {
       method: 'POST', headers: authHeaders(token), body: JSON.stringify(body),
     });
 }
+export type ComposerTemplate = {name:string;language:string;components:Array<{type:string;text?:string;format?:string;buttons?:Array<{url?:string}>}>};
+export type ComposerRequest = {requestId:string;text?:string;templateName?:string;templateLanguage?:string;parameters?:Record<string,string>;headerUrl?:string};
+export function getComposerTemplates(token:string){return fetchCanonicalCrmReadJson<{templates:ComposerTemplate[]}>(`${BASE_PATH}/whatsapp-composer/templates`,{headers:authHeaders(token)});}

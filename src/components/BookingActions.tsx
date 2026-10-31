@@ -49,8 +49,20 @@ export default function BookingActions({ token, booking, onChanged, onBusinessMa
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Modificarea nu a putut fi salvata. Reincarca lista inainte de a reincerca."); }
     finally { setSaving(false); }
   }
+  const [diallerRequestId] = useState(() => crypto.randomUUID());
+  const [returned, setReturned] = useState(false);
+  async function returnToDialler() {
+    if(saving || returned)return;
+    setSaving(true);setError("");
+    try {const result=await changeScheduledBooking(token,booking,"dialler",{requestId:diallerRequestId});
+      if(!result.success)throw new Error("Dialler enrollment was not confirmed.");
+      setReturned(true);onChanged(result);
+    }catch(cause){setError(cause instanceof Error?cause.message:"Unable to add back to dialler. Retry this same action to check its result.");}
+    finally{setSaving(false);}
+  }
   return <div className="booking-actions">
     {!mode ? <div className="buttons">
+      <button type="button" disabled={saving || returned} onClick={returnToDialler}>Add Back To Dialler</button>
       <button type="button" disabled={saving} onClick={() => open("reschedule")}>Reprogrameaza</button>
       <button type="button" disabled={saving} className="delete" onClick={() => open("cancel")}>Delete book</button>
       <button type="button" className="business" disabled={saving || businessMarked || booking.onWhatsAppBusiness}
