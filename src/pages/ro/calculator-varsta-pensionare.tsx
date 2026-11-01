@@ -1,4 +1,5 @@
 import ResultPanel from '@/components/PensionResultPanel';
+import PensionAgentWorkflow from '@/components/PensionAgentWorkflow';
 import { sendPublicManualCrmEmail, sendPublicManualCrmSms } from "@/lib/crmAdmin";
 import Head from "next/head";
 import Link from "next/link";
@@ -598,20 +599,14 @@ export default function RomanianPensionCalculatorPage() {
           </div>
         </header>
 
-        <main className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,0.4fr)_minmax(0,0.6fr)]">
+        <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8">
           <section>
-            <p className="text-sm font-semibold tracking-wide text-emerald-700">
-              Calculator informativ
-            </p>
             <h1 className="mt-2 text-3xl font-extrabold tracking-normal md:text-4xl">
               Calculator varsta de pensionare in Romania
             </h1>
-            <p className="mt-3 max-w-3xl text-base leading-7 text-slate-700">
-              Completeaza datele principale, iar noi calculam scenariile de pensionare dupa
-              Legea 360/2023. Datele de contact sunt necesare doar daca vrei sa trimiti
-              rezultatul pe email.
-            </p>
-
+            <PensionAgentWorkflow contact={form} onContact={(key,value)=>update(key,value)} onResult={setResponse}/>
+            <details className="mt-8 rounded-lg border border-slate-200 bg-white p-4">
+            <summary className="cursor-pointer text-lg font-bold">Calculator detaliat și acțiuni suplimentare</summary>
             <form onSubmit={handleSubmit} className="mt-6 space-y-6 rounded-lg border border-slate-200 bg-slate-100/80 p-5 shadow-sm">
               <fieldset>
                 <legend className="mb-3 text-base font-bold">Stagii de cotizare</legend>
@@ -843,6 +838,7 @@ export default function RomanianPensionCalculatorPage() {
                 {submitting ? "Calculez..." : "Calculeaza variantele"}
               </button>
             </form>
+            </details>
           </section>
 
           <aside className="space-y-4">

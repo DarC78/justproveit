@@ -93,6 +93,8 @@ export type PensionCalculatorEmailResponse = {
 };
 
 export type PensionCalculatorPayload = {
+  projectFutureContributions?: boolean;
+  interview?: Record<string, unknown>;
   fullName?: string;
   email?: string;
   phone?: string;
@@ -263,17 +265,20 @@ export async function submitPensionCalculator(payload: PensionCalculatorPayload)
       },
     );
   } catch {
+    if(payload.projectFutureContributions) throw new Error('Serviciul de proiectie nu este disponibil. Reincercati.');
     return calculatePensionLocally(payload, "endpoint-ul LS nu a putut fi apelat din browser");
   }
 
   const body = await response.json().catch(() => null);
   if (!response.ok) {
     if (response.status === 404) {
+      if(payload.projectFutureContributions) throw new Error('Serviciul de proiectie nu este disponibil.');
       return calculatePensionLocally(payload, "endpoint-ul LS /justproveit/pension-calculator/calculate a raspuns Not Found");
     }
 
     const apiError = readApiError(body, response.statusText);
     if (response.status >= 500) {
+      if(payload.projectFutureContributions) throw new Error('Proiectia nu a putut fi salvata. Reincercati.');
       return calculatePensionLocally(
         payload,
         `endpoint-ul LS /justproveit/pension-calculator/calculate a raspuns ${response.status}: ${apiError}`,
@@ -284,6 +289,7 @@ export async function submitPensionCalculator(payload: PensionCalculatorPayload)
   }
 
   if (!isPensionCalculatorResponse(body)) {
+    if(payload.projectFutureContributions) throw new Error('Raspuns incomplet de la serviciul de proiectie.');
     return calculatePensionLocally(
       payload,
       "endpoint-ul LS /justproveit/pension-calculator/calculate a returnat un raspuns incomplet",
