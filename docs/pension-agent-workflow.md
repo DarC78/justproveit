@@ -50,3 +50,6 @@ Tests: node --test tests/pension-agent-workflow.test.cjs tests/pension-next-step
 
 
 The first service offer includes a WhatsApp details link with WEB_REZULTATE_SIMULARE. Step 2 explains that liaison competence follows the foreign-country allocation rather than the former Romanian domicile; multi-office countries retain their regional allocation details. Step 7 uses the current CNPP FAQ URL supplied by the user.
+
+Both service offers now include the WhatsApp details link. The UK under-ten-years explanation displays total declared work: Romanian contributory service plus all displayed foreign worked periods, falling back to the saved contributory total for older results. At ten total years it explains the aggregation route, subject to official recognition and applicable agreements; below ten total years it does not promise eligibility. The UK amount remains based on UK years only.
+

@@ -18,7 +18,7 @@ function ServiceOffer({final=false}:{final?:boolean}) {return <div className="sp
   <p>Puteți face aceste demersuri pe cont propriu sau ne puteți lăsa pe noi să ne ocupăm de tot procesul. Avem o singură taxă: <strong>£297 (aproximativ 350 euro)</strong>, care se poate plăti în <strong>3 rate lunare</strong>.</p>
   <p>{final?'Pentru a începe, avem nevoie de o copie după cartea de muncă, dacă o mai aveți, și o copie după buletin. Transmiteți actele prin canalul indicat de echipă.':'Puteți achiziționa serviciul online sau puteți solicita o programare cu unul dintre agenți prin pagina serviciului.'}</p>
   <a href={sale} className="inline-flex rounded-lg bg-emerald-700 px-5 py-3 font-semibold text-white hover:bg-emerald-800">{final?'Vreau să vă ocupați de pensionarea mea':'Detalii și achiziție serviciu pensionare'}</a>
-  {!final&&<div><a href="https://wa.me/447447707829?text=WEB_REZULTATE_SIMULARE" className="inline-flex rounded-lg border border-emerald-700 bg-white px-5 py-3 font-semibold text-emerald-800 hover:bg-emerald-100">Cere detalii pe WhatsApp</a></div>}
+  <div><a href="https://wa.me/447447707829?text=WEB_REZULTATE_SIMULARE" className="inline-flex rounded-lg border border-emerald-700 bg-white px-5 py-3 font-semibold text-emerald-800 hover:bg-emerald-100">Cere detalii pe WhatsApp</a></div>
 </div>;}
 export default function PensionNextSteps({result,residenceCountry=''}:{result:PensionCalculatorResult;residenceCountry?:string}) {
   const code=residenceCountry;

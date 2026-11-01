@@ -29,6 +29,13 @@ test('UK result section renders both estimates and the eligibility qualification
  function expand(tree){if(Array.isArray(tree))return tree.map(expand);if(!tree||typeof tree!=='object')return tree;if(typeof tree.type==='function')return expand(tree.type(tree.props));return {...tree,props:{...tree.props,children:expand(tree.props?.children)}};}
  const text=JSON.stringify(expand(exports.default({response,readOnly:true,emailMessage:'',sendingEmail:false,onSendEmail(){}})));
  assert.ok(text.includes('£209.60'));assert.ok(text.includes('£431.68'));
- assert.ok(text.includes('sub 10 ani UK'));
+ assert.ok(text.includes('sub 10 ani în UK'));
+ assert.ok(text.includes('pragul total de 10 ani nu este încă atins'));
  assert.ok(text.includes('National Insurance'));
+ response.result.stagiu.roContributiv=age(20,6);
+ response.result.foreignPensionSections.push({countryCode:'IT',countryName:'Italia',workedPeriod:age(3),retirementAge:age(67),retirementDate:'2034-04'});
+ const eligibleText=JSON.stringify(expand(exports.default({response,readOnly:true,emailMessage:'',sendingEmail:false,onSendEmail(){}})));
+ assert.ok(eligibleText.includes('30 ani si 6 luni'));
+ assert.ok(eligibleText.includes('chiar dacă nu munciți 10 ani în UK'));
+ assert.ok(eligibleText.includes('dacă instituțiile competente confirmă'));
 });

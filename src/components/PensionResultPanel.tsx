@@ -33,6 +33,11 @@ export default function ResultPanel({
   );
   const recommendedScenario = result.recommended;
   const sortedScenarios = sortPensionScenariosForDisplay(result.scenarios);
+  const declaredForeignMonths=result.foreignPensionSections?.reduce((sum,section)=>sum+section.workedPeriod.years*12+section.workedPeriod.months,0);
+  const totalWorkedMonths=declaredForeignMonths!==undefined&&result.foreignPensionSections?.length
+    ? result.stagiu.roContributiv.years*12+result.stagiu.roContributiv.months+declaredForeignMonths
+    : result.stagiu.totalContributiv.years*12+result.stagiu.totalContributiv.months;
+  const totalWorked={years:Math.floor(totalWorkedMonths/12),months:totalWorkedMonths%12};
 
   return (
     <section className="rounded-lg border border-emerald-200 bg-white p-5 shadow-sm">
@@ -215,7 +220,7 @@ export default function ResultPanel({
             {section.earlyRetirementText&&<div className="mt-3 rounded-lg border border-slate-200 bg-white p-4"><h3 className="font-bold">Se poate ieși mai devreme? Condiții principale</h3><p className="mt-2 text-sm">{section.earlyRetirementText}</p><p className="mt-2 text-xs text-slate-600">Acestea sunt condițiile schemei, nu confirmarea eligibilității personale. Nu sunt presupuse automat perioade speciale, puncte, cuantumuri ori totalizarea cu toate statele.</p></div>}
             {section.rulesCheckedAt&&<p className="mt-3 text-xs text-slate-600">Reguli verificate la {section.rulesCheckedAt}. Data este o estimare lunară după vârstă; acordarea depinde și de stagiul confirmat și de cerere.</p>}
             {section.countryCode!=='UK'&&!section.rulesCheckedAt&&<p className="mt-3 text-sm text-amber-900">Acesta este un rezultat salvat anterior regulilor internaționale detaliate. Rulați o simulare nouă pentru vârstă, stagiu minim și condițiile de anticipare actualizate.</p>}
-            {section.countryCode==='UK'&&section.retirementAge&&<UkPensionEstimate worked={section.workedPeriod} currentAge={result.currentAge} retirementAge={section.retirementAge}/>}
+            {section.countryCode==='UK'&&section.retirementAge&&<UkPensionEstimate worked={section.workedPeriod} totalWorked={totalWorked} currentAge={result.currentAge} retirementAge={section.retirementAge}/>}
             {section.note ? (
               <p className="mt-3 text-xs leading-5 text-slate-600">{section.note}</p>
             ) : null}
@@ -260,7 +265,7 @@ export default function ResultPanel({
   );
 }
 
-function UkPensionEstimate({worked,currentAge,retirementAge}:{worked:{years:number;months:number};currentAge:{years:number;months:number};retirementAge:{years:number;months:number}}) {
+function UkPensionEstimate({worked,totalWorked,currentAge,retirementAge}:{worked:AgeYM;totalWorked:AgeYM;currentAge:AgeYM;retirementAge:AgeYM}) {
   const estimate=estimateUkPension(worked,currentAge,retirementAge);
   const money=(value:number)=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(value);
   return <section className="mt-4 space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
@@ -270,7 +275,7 @@ function UkPensionEstimate({worked,currentAge,retirementAge}:{worked:{years:numb
     <Metric label="Stagiu UK estimat atunci" value={formatAge(estimate.projectedPeriod)}/>
     <p className="text-sm">Calcul proporțional: £1.048 ÷ 35 × anii UK, plafonat la £1.048 pe lună. Bază fixă de estimare, nu tarif oficial garantat. Proiecția presupune contribuții continue în UK până la data indicată și nu include majorări viitoare sau inflație.</p>
     <p className="text-xs leading-5">Anii lucrați declarați sunt folosiți ca aproximare pentru anii eligibili National Insurance; lunile sunt prorate orientativ. Istoricul anterior lui 2016 și perioadele contracted-out pot schimba suma. Aceasta nu este o ofertă sau o confirmare de drept la pensie.</p>
-    {estimate.belowMinimum&&<p className="text-sm font-semibold text-amber-900">Aveți sub 10 ani UK declarați. De regulă sunt necesari minimum 10 ani eligibili; perioadele din alte țări pot ajuta, conform regulilor aplicabile. Ele nu măresc automat suma calculată pentru anii UK. Estimarea de mai sus este condiționată de confirmarea eligibilității.</p>}
+    {estimate.belowMinimum&&<p className="text-sm font-semibold text-emerald-900">Aveți sub 10 ani în UK declarați. Dar, în total, vechimea dvs. declarată în toate țările în care ați muncit este de <strong>{formatAge(totalWorked)}</strong>. {totalWorked.years>=10?'Prin urmare, veți putea primi pensie și din UK chiar dacă nu munciți 10 ani în UK, dacă instituțiile competente confirmă cel puțin 10 ani eligibili cumulați conform acordurilor aplicabile.':'Nu trebuie ca toți cei 10 ani eligibili să fie lucrați în UK; pragul poate fi completat cu perioade recunoscute din celelalte țări. Din vechimea declarată acum, pragul total de 10 ani nu este încă atins.'} Suma pensiei UK se calculează pentru anii eligibili din UK.</p>}
     <a className="text-sm font-semibold text-emerald-800 underline" href="https://www.gov.uk/check-state-pension" target="_blank" rel="noreferrer">Verificați estimarea oficială și National Insurance record</a>
   </section>;
 }

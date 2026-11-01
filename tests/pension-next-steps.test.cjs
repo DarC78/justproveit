@@ -36,6 +36,7 @@ test('saved result shows seven steps, sorted milestones, correct office and both
  assert.equal(nodes.some(n=>n.type==='select'),false);
  const whatsapp=nodes.find(n=>n.type==='a'&&n.props.href==='https://wa.me/447447707829?text=WEB_REZULTATE_SIMULARE');
  assert.equal(text(whatsapp),'Cere detalii pe WhatsApp');
+ assert.equal(nodes.filter(n=>n.type==='a'&&n.props.href==='https://wa.me/447447707829?text=WEB_REZULTATE_SIMULARE').length,2);
  assert.ok(body.indexOf('Județul Covasna este centru de competență')<body.indexOf('Orientativ, comunicarea'));
  assert.match(body,/indiferent de județul în care aveați domiciliul în România/);
  assert.ok(nodes.some(n=>n.type==='a'&&n.props.href==='https://www.cnpp.ro/intrebari_frecvente/cum-si-in-ce-termen-se-contesta-decizia-de-pensie/'));
