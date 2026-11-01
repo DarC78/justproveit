@@ -10,6 +10,8 @@ const {act}=React;
 // Exercise the actual components with an isolated CRM service, never a live sender.
 const dom=new JSDOM('<!doctype html><html><body></body></html>',{url:'http://localhost'});
 global.window=dom.window;global.document=dom.window.document;
+Object.defineProperty(global,'navigator',{value:dom.window.navigator,configurable:true});
+Object.defineProperty(global,'crypto',{value:require('node:crypto').webcrypto,configurable:true});
 global.HTMLElement=dom.window.HTMLElement;global.HTMLInputElement=dom.window.HTMLInputElement;
 global.IS_REACT_ACT_ENVIRONMENT=true;
 const {createRoot}=require('react-dom/client');
