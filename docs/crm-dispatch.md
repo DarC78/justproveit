@@ -13,3 +13,5 @@ Other contacts see the CRM list, currently just **Simulator Pensie International
 Backend deployment creates the email index and runs `node scripts/verify-crm-dispatch.mjs`, which checks three database lookup timings against five seconds without logging contact data. Initial live database verification: first contact lookup 936 ms, subsequent lookups 113 ms; routing 107–125 ms. These are database-path measurements, not authenticated browser timings.
 
 Validation: backend `npm test`, frontend `node --test tests/crm-dispatch.test.cjs`, `npm run build`.
+
+Queue/agent context: accepts single-valued `queue` and `agent` parameters. With `queue=Inbound` (case insensitive), authenticated CRM users go directly to `https://www.proveitweb.co.uk/oz/crm?OZ_UUID=112&PHONE=<selected phone>&AGENT=<agent>&queue=Inbound`, without waiting for contact/history lookups. This overrides pension intent rules. For other queues, existing routing remains and both `queue` and `agent` are forwarded to the pension destination. All destination values are URL encoded; login preserves the complete dispatch URL.

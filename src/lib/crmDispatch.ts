@@ -30,8 +30,16 @@ export function qualifyingDispatchIntent(row: CrmLeadIntentRow, now: number) {
     && (key(row.interestType)==="manualbook" || ["simulatorpensie","simulatorpensii","simularepensii","simularepensie"]
       .includes(key(row.serviceKey)));
 }
-export function calculatorDispatchUrl(lead: CrmLead | null, phone: string) {
+export function inboundDispatchUrl(phone: string, queue: string, agent: string) {
+  if(queue.trim().toLowerCase()!=='inbound') return null;
+  const query=new URLSearchParams({OZ_UUID:'112',PHONE:phone,AGENT:agent,queue});
+  return `https://www.proveitweb.co.uk/oz/crm?${query}`;
+}
+
+export function calculatorDispatchUrl(lead: Partial<Pick<CrmLead,'fullName'|'email'|'secondaryemail'>> | null, phone: string, context: {queue?:string;agent?:string} = {}) {
   const query=new URLSearchParams({name:lead?.fullName||"",email:lead?.email||lead?.secondaryemail||"",phone});
+  if(context.queue) query.set('queue',context.queue);
+  if(context.agent) query.set('agent',context.agent);
   return `/ro/calculator-varsta-pensionare?${query}`;
 }
 

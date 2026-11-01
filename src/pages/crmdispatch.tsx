@@ -4,17 +4,19 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { DispatchContact, loadCrmDispatchContact, loadCrmDispatchRouting } from "@/lib/crmAdmin";
-import { dispatchPhoneFromQuery } from "@/lib/crmDispatch";
+import { calculatorDispatchUrl, dispatchPhoneFromQuery, inboundDispatchUrl } from "@/lib/crmDispatch";
 
 type Result={key:string;contact:DispatchContact|null;url:string;checked:boolean};
 export default function CrmDispatchPage() {
   const router=useRouter();
   const {status,token,isCrm}=useAuth();
   const phone=dispatchPhoneFromQuery(router.query);
+  const queue=typeof router.query.queue==='string'?router.query.queue.trim():'';
+  const agent=typeof router.query.agent==='string'?router.query.agent.trim():'';
   const [loaded,setLoaded]=useState<Result|null>(null);
   const [failure,setFailure]=useState<{key:string;message:string}|null>(null);
   const [attempt,setAttempt]=useState(0);
-  const requestKey=`${phone}:${attempt}:${token}`;
+  const requestKey=JSON.stringify([phone,queue,agent,attempt,token]);
   const result=loaded?.key===requestKey?loaded:null;
   const error=router.isReady&&!phone?"Adauga un numar valid folosind phone_leads, phone_dnis, phone_ani sau phone. Exemplu: /crmdispatch?phone_leads=447440526630":failure?.key===requestKey?failure.message:"";
   useEffect(()=>{
@@ -23,12 +25,16 @@ export default function CrmDispatchPage() {
       void router.replace({pathname:"/login",query:{next:router.asPath}});return;
     }
     if(!isCrm || !token || !phone) return;
+    const inboundUrl=inboundDispatchUrl(phone,queue,agent);
+    if(inboundUrl) {
+      window.location.replace(inboundUrl);
+      return;
+    }
     let cancelled=false;
     async function load() {
       const {contact}=await loadCrmDispatchContact(token!,phone);
       if(cancelled)return;
-      const query=new URLSearchParams({name:contact?.name||"",email:contact?.email||"",phone});
-      const url=`/ro/calculator-varsta-pensionare?${query}`;
+      const url=calculatorDispatchUrl(contact?{fullName:contact.name,email:contact.email}:null,phone,{queue,agent});
       // Render contact details before starting the independent routing lookup.
       setLoaded({key:requestKey,contact,url,checked:false});
       const {automatic}=await loadCrmDispatchRouting(token!,phone);
@@ -40,7 +46,7 @@ export default function CrmDispatchPage() {
       if(!cancelled)setFailure({key:requestKey,message:"Nu am putut verifica datele clientului. Reincearca."});
     });
     return ()=>{cancelled=true;};
-  },[router.isReady,router.asPath,status,token,isCrm,phone,attempt,requestKey,router]);
+  },[router.isReady,router.asPath,status,token,isCrm,phone,queue,agent,attempt,requestKey,router]);
   return <>
     <Head><title>Alege CRM | ProveIt</title><meta name="robots" content="noindex,nofollow"/><meta name="referrer" content="no-referrer"/></Head>
     <main className="min-h-screen bg-slate-50 px-4 py-12 text-slate-900">
