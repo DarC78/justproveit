@@ -1,39 +1,42 @@
-const {test}=require('node:test');
+﻿const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 const ts=require('typescript');
 const jsx={jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props}),Fragment:'fragment'};
-function nodes(tree){if(!tree||typeof tree!=='object')return [];const children=tree.props?.children;return [tree,...(Array.isArray(children)?children:[children]).flatMap(nodes)];}
-test('calculator form presents work history first and the four actions after personal details',()=>{
-  const source=ts.transpileModule(fs.readFileSync('src/pages/ro/calculator-varsta-pensionare.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2019,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
-  const exports={};const react={useState:initial=>[initial,()=>{}],useEffect:()=>{},useMemo:fn=>fn()};
-  vm.runInNewContext(source,{exports,require:name=>name==='react'?react:name==='react/jsx-runtime'?jsx:{},URLSearchParams});
-  const tree=exports.default();
-  const form=nodes(tree).find(n=>n.type==='form');
-  const ordered=nodes(form);
-  assert.deepEqual(ordered.filter(n=>n.type==='legend').map(n=>n.props.children),['Stagii de cotizare','Situatii speciale pentru vechime','Handicap, daca se aplica','Date de contact','Date personale']);
-  const actions=ordered.filter(n=>n.type==='button');
-  assert.deepEqual(actions.slice(0,4).map(n=>n.props.children),['Email Simulare','Email cumparare','SMS Cumparare','Trimite Detalii După Vânzare']);
-  assert.ok(ordered.indexOf(actions[0])>ordered.findIndex(n=>n.type==='legend'&&n.props.children==='Date personale'));
+function nodes(tree){if(Array.isArray(tree))return tree.flatMap(nodes);if(!tree||typeof tree!=='object')return [];return [tree,...nodes(tree.props?.children)];}
+const compile=file=>ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
+function setup(search,token='auth') {
+ const states=[],deps=[],jobs=[],calls=[];let cursor=0,effect=0;
+ const react={useState:initial=>{const i=cursor++;if(!(i in states))states[i]=initial;return [states[i],value=>states[i]=typeof value==='function'?value(states[i]):value];},useEffect:(fn,next)=>{const i=effect++;if(JSON.stringify(deps[i])!==JSON.stringify(next)){deps[i]=next;jobs.push(fn);}}};
+ const dispatch={};vm.runInNewContext(compile('src/lib/crmDispatch.ts'),{exports:dispatch,URLSearchParams});
+ const api={loadCrmDispatchContact:async(...args)=>{calls.push(['lookup',...args]);return {contact:{name:'Latest CRM Name',email:'latest@example.com',phone:'447440526630'}};},saveCrmPensionContactEmail:async(...args)=>{calls.push(['save',...args]);return {action:'added-secondary'};}};
+ const exports={};vm.runInNewContext(compile('src/pages/ro/calculator-varsta-pensionare.tsx'),{exports,URLSearchParams,Object,window:{location:{search}},require:name=>name==='react'?react:name==='react/jsx-runtime'?jsx:name==='@/context/AuthContext'?{useAuth:()=>({token})}:name==='@/lib/crmDispatch'?dispatch:name==='@/lib/crmAdmin'?api:()=>null});
+ return {states,calls,render(){cursor=0;effect=0;return nodes(exports.default());},async flush(){while(jobs.length)jobs.shift()();await Promise.resolve();await Promise.resolve();}};
+}
+test('calculator removes detailed form and keeps one-column results after workflow',()=>{
+ const h=setup('');const tree=h.render();
+ assert.ok(tree.find(n=>n.type==='main').props.className.includes('flex-col'));
+ assert.equal(tree.some(n=>n.type==='details'),false);
+ assert.equal(tree.some(n=>n.type==='form'),false);
+ assert.ok(tree.findIndex(n=>n.type==='aside')>tree.findIndex(n=>n.props?.onContact));
 });
-
-
-test('after-sale action calculates the current form and requests the legacy after-sale email',async()=>{
-  const source=ts.transpileModule(fs.readFileSync('src/pages/ro/calculator-varsta-pensionare.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2019,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
-  const calls=[];let stateIndex=0;
-  const react={useState:initial=>[stateIndex++===0?{...initial,fullName:'Client Test',email:'client@example.com',phone:'07123456789',birthYear:'1967',birthMonth:'04',normalRoYears:'28',foreignCountry1:'ES',foreignYears1:'6'}:initial,()=>{}],useEffect:()=>{},useMemo:fn=>fn()};
-  const api={submitPensionCalculator:async payload=>{calls.push(payload);return {resultId:'saved-result',emailSent:false};},sendPensionCalculatorEmail:async(...args)=>{calls.push(args);return {emailSent:true};}};
-  const exports={};
-  vm.runInNewContext(source,{exports,require:name=>name==='react'?react:name==='react/jsx-runtime'?jsx:name==='@/lib/pensionCalculator'?api:{},URLSearchParams});
-  const action=nodes(exports.default()).find(n=>n.type==='button'&&String(n.props.children).startsWith('Trimite Detalii'));
-  await action.props.onClick();
-  assert.equal(calls.length,2);
-  assert.equal(calls[0].birthYearMonth,'1967-04');
-  assert.equal(calls[0].periods.normalRoYears,28);
-  assert.equal(calls[0].foreignPeriods[0].country,'ES');
-  assert.equal(calls[0].foreignPeriods[0].years,6);
-  assert.equal(calls[1][0],'saved-result');
-  assert.equal(calls[1][1].email,'client@example.com');
-  assert.equal(calls[1][2],'after_sale');
+test('contact parameters take precedence and CRM fills missing fields using normalized phone',async()=>{
+ const h=setup('?phone_leads=07440526630&nume=Page%20Name');h.render();await h.flush();h.render();await h.flush();
+ assert.equal(h.states[0].fullName,'Page Name');
+ assert.equal(h.states[0].phone,'447440526630');
+ assert.equal(h.states[0].email,'latest@example.com');
+ assert.equal(h.calls[0][0],'lookup');
+});
+test('saving edited email uses the authenticated CRM endpoint and current contact',async()=>{
+ const h=setup('?phone=447440526630&nume=Page&email=old@example.com');h.render();await h.flush();
+ h.states[0].email='new@example.com';
+ await h.render().find(n=>n.props?.onSaveEmail).props.onSaveEmail();
+ assert.deepEqual(h.calls[0],['save','auth','447440526630','new@example.com']);
+ assert.ok(h.states[2].includes('păstrată'));
+});
+test('anonymous page never reads or writes CRM contacts',async()=>{
+ const h=setup('?phone=447440526630',null);h.render();await h.flush();h.render();await h.flush();
+ await h.render().find(n=>n.props?.onSaveEmail).props.onSaveEmail();
+ assert.equal(h.calls.length,0);
 });

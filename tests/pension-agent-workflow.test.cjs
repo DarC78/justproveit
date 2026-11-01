@@ -18,7 +18,7 @@ function setup(overrides={}) {
 }
 test('interview has five country selectors, digits-only fields, and UK questions upon selection',()=>{
  const h=setup();let nodes=h.render();
- assert.equal(nodes.filter(n=>n.type==='select').length,6); // five countries and sex
+ assert.equal(nodes.filter(n=>n.type==='select').length,8); // five countries, birth month/year and sex
  h.states[5][0]={country:'UK',years:''};
  nodes=h.render();assert.ok(nodes.some(n=>n.type==='option'&&n.props.value==='contract'));
  const ro=nodes.find(n=>n.type==='input'&&n.props.pattern==='[0-9]*');
@@ -26,6 +26,11 @@ test('interview has five country selectors, digits-only fields, and UK questions
  ro.props.onChange({target:{value:'20'}});assert.equal(h.states[1],'20');
  const options=nodes.filter(n=>n.type==='option').map(n=>n.props.value);
  for(const country of ['US','CA','IL','UK','CH','NO','MD','UA','VA'])assert.ok(options.includes(country));
+ for(let year=1950;year<=1980;year++)assert.ok(options.includes(year));
+ assert.ok(options.includes('1980+'));
+ const cards=nodes.filter(n=>n.type==='div'&&n.props.className==='space-y-2 rounded-lg border bg-white p-3');
+ assert.ok(all(cards[0]).some(n=>n.type==='option'&&n.props.value==='contract'));
+ assert.equal(all(cards[1]).some(n=>n.type==='option'&&n.props.value==='contract'),false);
 });
 test('simulation counts Romania groups once and does not send an email automatically',async()=>{
  const h=setup();h.render();h.states[1]='20';h.states[3]='5';h.states[4]='3';h.states[5][0]={country:'UK',years:'15'};h.states[10]='1968-01';

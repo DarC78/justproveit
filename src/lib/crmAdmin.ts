@@ -1072,6 +1072,9 @@ export function listCrmLeads(
 }
 
 export type DispatchContact = {name: string | null; email: string | null; phone: string};
+export function saveCrmPensionContactEmail(token: string, phone: string, email: string) {
+  return fetchCanonicalCrmReadJson<{action:string}>(`${BASE_PATH}/dispatch/contact-email`,{method:'POST',headers:authHeaders(token),body:JSON.stringify({phone,email})});
+}
 export function loadCrmDispatchContact(token: string, phone: string) {
   return fetchCanonicalCrmReadJson<{contact: DispatchContact | null}>(
     `${BASE_PATH}/dispatch${buildQuery({phone})}`, {headers: authHeaders(token), signal: AbortSignal.timeout(4500)},
