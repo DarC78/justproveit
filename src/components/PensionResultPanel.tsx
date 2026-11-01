@@ -1,4 +1,5 @@
 import type {AgeYM,PensionCalculatorResponse} from '@/lib/pensionCalculator';
+import {estimateUkPension} from '@/lib/pensionUkEstimate';
 const ADDITIONAL_BREAKDOWN_LABELS: Record<string,string>={armyNormal:'Armata - termen normal',armyReduced:'Armata - termen redus',paidUnemployment:'Șomaj plătit',maternityLeave:'Concediu de maternitate',university:'Facultate fără suprapunere'};
 export default function ResultPanel({
   emailMessage,
@@ -169,6 +170,7 @@ export default function ResultPanel({
             ? [
                 {
                   countryName: "UK",
+                  countryCode: "UK",
                   workedPeriod: result.stagiu.foreign,
                   retirementAge: result.ukStatePension.retirementAge,
                   retirementDate: result.ukStatePension.retirementDate,
@@ -183,7 +185,7 @@ export default function ResultPanel({
             <h2 className="text-lg font-extrabold">{section.countryName}</h2>
             {section.retirementDate ? (
               <p className="mt-2 text-xl font-extrabold">
-                Puteti primi pensia de stat din {section.countryName} de la data de{" "}
+                {section.countryCode==='UK'?'Data estimată pentru vârsta pensiei de stat din UK:':`Puteti primi pensia de stat din ${section.countryName} de la data de`}{" "}
                 <strong>{section.retirementDate}</strong>.
               </p>
             ) : (
@@ -200,10 +202,11 @@ export default function ResultPanel({
               {section.retirementDate ? (
                 <Metric
                   label="Status"
-                  value={section.eligibleNow ? "Eligibil acum" : "Eligibil la data indicata"}
+                  value={section.countryCode==='UK'?(section.eligibleNow?'Vârsta este îndeplinită; dreptul se verifică':'Vârsta se împlinește la data indicată'):section.eligibleNow ? "Eligibil acum" : "Eligibil la data indicata"}
                 />
               ) : null}
             </div>
+            {section.countryCode==='UK'&&section.retirementAge&&<UkPensionEstimate worked={section.workedPeriod} currentAge={result.currentAge} retirementAge={section.retirementAge}/>}
             {section.note ? (
               <p className="mt-3 text-xs leading-5 text-slate-600">{section.note}</p>
             ) : null}
@@ -245,6 +248,21 @@ export default function ResultPanel({
       </div>}
     </section>
   );
+}
+
+function UkPensionEstimate({worked,currentAge,retirementAge}:{worked:{years:number;months:number};currentAge:{years:number;months:number};retirementAge:{years:number;months:number}}) {
+  const estimate=estimateUkPension(worked,currentAge,retirementAge);
+  const money=(value:number)=>new Intl.NumberFormat('en-GB',{style:'currency',currency:'GBP'}).format(value);
+  return <section className="mt-4 space-y-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+    <h3 className="font-bold">Estimare pensie de stat UK</h3>
+    <Metric label="Cu stagiul UK declarat acum" value={`${money(estimate.currentMonthly)} / lună`}/>
+    <Metric label="Dacă lucrați în UK până la pensionare" value={`${money(estimate.projectedMonthly)} / lună`}/>
+    <Metric label="Stagiu UK estimat atunci" value={formatAge(estimate.projectedPeriod)}/>
+    <p className="text-sm">Calcul proporțional: £1.048 ÷ 35 × anii UK, plafonat la £1.048 pe lună. Bază fixă de estimare, nu tarif oficial garantat. Proiecția presupune contribuții continue în UK până la data indicată și nu include majorări viitoare sau inflație.</p>
+    <p className="text-xs leading-5">Anii lucrați declarați sunt folosiți ca aproximare pentru anii eligibili National Insurance; lunile sunt prorate orientativ. Istoricul anterior lui 2016 și perioadele contracted-out pot schimba suma. Aceasta nu este o ofertă sau o confirmare de drept la pensie.</p>
+    {estimate.belowMinimum&&<p className="text-sm font-semibold text-amber-900">Aveți sub 10 ani UK declarați. De regulă sunt necesari minimum 10 ani eligibili; perioadele din alte țări pot ajuta, conform regulilor aplicabile. Ele nu măresc automat suma calculată pentru anii UK. Estimarea de mai sus este condiționată de confirmarea eligibilității.</p>}
+    <a className="text-sm font-semibold text-emerald-800 underline" href="https://www.gov.uk/check-state-pension" target="_blank" rel="noreferrer">Verificați estimarea oficială și National Insurance record</a>
+  </section>;
 }
 
 function Metric({ label, value }: { label: string; value: string }) {
