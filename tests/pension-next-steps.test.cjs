@@ -33,6 +33,12 @@ test('saved result shows seven steps, sorted milestones, correct office and both
  assert.match(body,/45 de zile de la comunicare/);
  assert.equal(nodes.filter(n=>n.type==='h3'&&text(n).startsWith('Pasul ')).length,7);
  assert.equal(nodes.filter(n=>n.type==='a'&&n.props.href==='https://www.proveitweb.co.uk/salepensieinternationala').length,2);
- nodes.find(n=>n.type==='select').props.onChange({target:{value:'IT'}});
- body=text(render());assert.match(body,/județul de referință/);assert.match(body,/INPS/);
+ assert.equal(nodes.some(n=>n.type==='select'),false);
+ const whatsapp=nodes.find(n=>n.type==='a'&&n.props.href==='https://wa.me/447447707829?text=WEB_REZULTATE_SIMULARE');
+ assert.equal(text(whatsapp),'Cere detalii pe WhatsApp');
+ assert.ok(body.indexOf('Județul Covasna este centru de competență')<body.indexOf('Orientativ, comunicarea'));
+ assert.match(body,/indiferent de județul în care aveați domiciliul în România/);
+ assert.ok(nodes.some(n=>n.type==='a'&&n.props.href==='https://www.cnpp.ro/intrebari_frecvente/cum-si-in-ce-termen-se-contesta-decizia-de-pensie/'));
+ body=text(Component({result,residenceCountry:'IT'}));assert.match(body,/județul de referință/);assert.match(body,/INPS/);
+ body=text(Component({result}));assert.doesNotMatch(body,/Selectați țara|Alegeți țara/);
 });
