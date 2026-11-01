@@ -1,6 +1,6 @@
 export const INTERVIEW_COUNTRIES = [
   ['AL','Albania'],['AD','Andorra'],['AM','Armenia'],['AT','Austria'],['AZ','Azerbaidjan'],['BY','Belarus'],['BE','Belgia'],['BA','Bosnia și Herțegovina'],['BG','Bulgaria'],['CA','Canada'],['CZ','Cehia'],['CY','Cipru'],['HR','Croația'],['DK','Danemarca'],['CH','Elveția'],['EE','Estonia'],['FI','Finlanda'],['FR','Franța'],['GE','Georgia'],['DE','Germania'],['GR','Grecia'],['IE','Irlanda'],['IS','Islanda'],['IL','Israel'],['IT','Italia'],['XK','Kosovo'],['LV','Letonia'],['LI','Liechtenstein'],['LT','Lituania'],['LU','Luxemburg'],['MK','Macedonia de Nord'],['MT','Malta'],['MD','Republica Moldova'],['MC','Monaco'],['ME','Muntenegru'],['NO','Norvegia'],['NL','Olanda'],['PL','Polonia'],['PT','Portugalia'],['UK','Regatul Unit'],['RU','Rusia'],['SM','San Marino'],['RS','Serbia'],['SK','Slovacia'],['SI','Slovenia'],['ES','Spania'],['US','USA / Statele Unite'],['SE','Suedia'],['TR','Turcia'],['UA','Ucraina'],['HU','Ungaria'],['VA','Vatican'],['KZ','Kazahstan']
-].map(([value,label])=>({value,label}));
+].map(([value,label])=>({value,label})).sort((a,b)=>a.value==='UK'?-1:b.value==='UK'?1:0);
 
 // This shortlist is covered by EU coordination or a verified bilateral route.
 // Other declared countries remain in the interview but need specialist review.

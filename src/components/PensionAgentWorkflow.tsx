@@ -11,7 +11,7 @@ const inputClass='mt-1 block w-full rounded-md border border-slate-300 bg-white 
 export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveEmail,crmStatus=''}:{contact:Contact;onContact:(key:keyof Contact,value:string)=>void;onResult:(value:PensionCalculatorResponse|null)=>void;onSaveEmail?:()=>Promise<void>;crmStatus?:string}) {
   const [agent,setAgent]=useState('');
   const [ro,setRo]=useState('');
-  const [book,setBook]=useState(false);
+  const [book,setBook]=useState(true);
   const [group1,setGroup1]=useState('');
   const [group2,setGroup2]=useState('');
   const [periods,setPeriods]=useState<Period[]>(Array.from({length:5},()=>({country:'',years:''})));
@@ -30,6 +30,7 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
   const [confirmed,setConfirmed]=useState(false);
   const [result,setResult]=useState<PensionCalculatorResponse|null>(null);
   const [birthOver,setBirthOver]=useState(false);
+  const [residenceCountry,setResidenceCountry]=useState('');
   useEffect(()=>{setAgent(new URLSearchParams(window.location.search).get('agent')||'');},[]);
   const countries=[...new Set(periods.filter(p=>p.country&&number(p.years)>0).map(p=>p.country))];
   function reset() {setResult(null);onResult(null);setSent(false);setConfirmed(false);setEmailState('');setError('');}
@@ -50,7 +51,7 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
         periods:{normalRoYears:number(ro)-number(group1)-number(group2),grupaIYears:number(group1),grupaIIYears:number(group2)},
         foreignPeriods:selected.filter(p=>PROJECTABLE_COUNTRIES.has(p.country)).map(p=>({country:p.country,years:number(p.years),months:0})),
         childrenRaised:number(children),projectFutureContributions:true,
-        interview:{agent,hasWorkBook:book,declaredForeignPeriods:selected,ukEmployment:employment,ukJobs:number(jobs),privatePensionsKnown:privateKnown,privatePensionsPaid:privatePaid},
+        interview:{agent,residenceCountry,hasWorkBook:book,declaredForeignPeriods:selected,ukEmployment:employment,ukJobs:number(jobs),privatePensionsKnown:privateKnown,privatePensionsPaid:privateKnown&&privatePaid},
         source:'ro-pension-agent-interview',pageUrl:window.location.href.split('?')[0]});
       setResult(response);onResult(response);
     }catch(e){setError(e instanceof Error?e.message:'Simularea nu a reușit.');}
@@ -84,7 +85,8 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
       <fieldset className="space-y-4" disabled={busy||sending}>
         <legend className="mb-4 text-xl font-bold">Întrebări și stagii de cotizare</legend>
         <Digits label="Câți ani ați muncit în România? (total, inclusiv grupe)" value={ro} onChange={v=>edit(()=>setRo(v))} required/>
-        <Check label="Mai aveți cartea de muncă?" checked={book} onChange={setBook}/>
+        <YesNo label="Mai aveți cartea de muncă?" value={book} onChange={setBook}/>
+        <label className="block text-sm font-semibold">Țara de reședință<select required className={inputClass} value={residenceCountry} onChange={e=>edit(()=>setResidenceCountry(e.target.value))}><option value="">Alege țara de reședință</option><option value="RO">România</option>{INTERVIEW_COUNTRIES.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}</select></label>
         <Digits label="Ați muncit la grupa I? Număr de ani" value={group1} onChange={v=>edit(()=>setGroup1(v))}/>
         <Digits label="Ați muncit la grupa II? Număr de ani" value={group2} onChange={v=>edit(()=>setGroup2(v))}/>
         <h3 className="font-bold">În ce altă țară ați mai muncit și câți ani?</h3>
@@ -96,8 +98,8 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
         {period.country==='UK'&&<section className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4"><h3 className="font-bold">Munca și pensiile private în Regatul Unit</h3>
           <label className="block">Ați muncit cu contract de muncă sau ca self-employed?<select className={inputClass} value={employment} onChange={e=>setEmployment(e.target.value)}><option value="contract">Contract de muncă</option><option value="self-employed">Self-employed</option><option value="both">Ambele</option></select></label>
           <Digits label="Câte locuri de muncă ați avut?" value={jobs} onChange={setJobs}/>
-          <Check label="Știți unde vă sunt pensiile private?" checked={privateKnown} onChange={setPrivateKnown}/>
-          <Check label="A încasat pensiile private" checked={privatePaid} onChange={setPrivatePaid}/>
+          <YesNo label="Știți unde vă sunt pensiile private?" value={privateKnown} onChange={value=>{setPrivateKnown(value);if(!value)setPrivatePaid(false);}}/>
+          {privateKnown&&<div className="space-y-2"><YesNo label="Ați încasat toate pensiile private?" value={privatePaid} onChange={setPrivatePaid}/><p className="text-sm">Fiecare angajator avea obligația să vă înscrie într-un fond de pensie privată dacă îndeplineați condițiile legale de eligibilitate. De multe ori, noul angajator vă înscria la un alt fond.</p></div>}
         </section>}
         </div>)}
         <fieldset className="space-y-3"><legend className="font-semibold">Luna și anul nașterii</legend>
@@ -151,3 +153,4 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
 
 function Digits({label,value,onChange,required=false}:{label:string;value:string;onChange:(value:string)=>void;required?:boolean}) {return <label className="block text-sm font-semibold">{label}<input className={inputClass} inputMode="numeric" pattern="[0-9]*" maxLength={2} required={required} value={value} onChange={e=>{if(/^\d*$/.test(e.target.value))onChange(e.target.value);}}/></label>;}
 function Check({label,checked,onChange}:{label:string;checked:boolean;onChange:(value:boolean)=>void}) {return <label className="flex items-center gap-3"><input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)}/>{label}</label>;}
+function YesNo({label,value,onChange}:{label:string;value:boolean;onChange:(value:boolean)=>void}) {return <label className="block text-sm font-semibold">{label}<select className={inputClass} value={value?'DA':'NU'} onChange={e=>onChange(e.target.value==='DA')}><option value="DA">DA</option><option value="NU">NU</option></select></label>;}

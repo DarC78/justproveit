@@ -18,7 +18,7 @@ function setup(overrides={}) {
 }
 test('interview has five country selectors, digits-only fields, and UK questions upon selection',()=>{
  const h=setup();let nodes=h.render();
- assert.equal(nodes.filter(n=>n.type==='select').length,8); // five countries, birth month/year and sex
+ assert.equal(nodes.filter(n=>n.type==='select').length,10); // countries, birth, sex, workbook and residence
  h.states[5][0]={country:'UK',years:''};
  nodes=h.render();assert.ok(nodes.some(n=>n.type==='option'&&n.props.value==='contract'));
  const ro=nodes.find(n=>n.type==='input'&&n.props.pattern==='[0-9]*');
@@ -31,6 +31,26 @@ test('interview has five country selectors, digits-only fields, and UK questions
  const cards=nodes.filter(n=>n.type==='div'&&n.props.className==='space-y-2 rounded-lg border bg-white p-3');
  assert.ok(all(cards[0]).some(n=>n.type==='option'&&n.props.value==='contract'));
  assert.equal(all(cards[1]).some(n=>n.type==='option'&&n.props.value==='contract'),false);
+});
+
+test('DA/NU defaults and private-pension follow-up clear stale answers; UK is the first country',()=>{
+ const h=setup();let nodes=h.render();
+ assert.equal(h.states[2],true);
+ const countries=nodes.find(n=>n.type==='select'&&n.props.children.flat?.().some?.(c=>c?.props?.value==='UK'));
+ assert.ok(countries);
+ h.states[5][0]={country:'UK',years:'7'};
+ nodes=h.render();
+ const label=text=>nodes.find(n=>n.type==='label'&&n.props.children[0]===text);
+ const select=text=>all(label(text)).find(n=>n.type==='select');
+ assert.equal(select('Știți unde vă sunt pensiile private?').props.value,'NU');
+ assert.equal(Boolean(label('Ați încasat toate pensiile private?')),false);
+ select('Știți unde vă sunt pensiile private?').props.onChange({target:{value:'DA'}});
+ nodes=h.render();assert.ok(label('Ați încasat toate pensiile private?'));
+ select('Ați încasat toate pensiile private?').props.onChange({target:{value:'DA'}});
+ select('Știți unde vă sunt pensiile private?').props.onChange({target:{value:'NU'}});
+ nodes=h.render();assert.equal(h.states[9],false);
+ const countryOptions=all(nodes.find(n=>n.type==='select'&&n.props.value==='UK')).filter(n=>n.type==='option');
+ assert.equal(countryOptions[1].props.value,'UK');
 });
 test('simulation counts Romania groups once and does not send an email automatically',async()=>{
  const h=setup();h.render();h.states[1]='20';h.states[3]='5';h.states[4]='3';h.states[5][0]={country:'UK',years:'15'};h.states[10]='1968-01';

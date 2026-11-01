@@ -37,3 +37,14 @@ References: https://www.gov.uk/new-state-pension and https://www.gov.uk/new-stat
 
 New results show official-age date estimates, minimum service, early-retirement conditions and official sources for selected foreign countries. Backend rules were reviewed on 2026-11-01. Age milestones do not establish entitlement; unsupported cohorts/regimes require individual verification. Existing saved results need a new simulation to obtain the new rules. UK amount estimates are unchanged.
 
+
+## Lead details and saved-result next steps
+
+The calculator displays current lead name, email and phone below its title. UK is first in country lists. Workbook defaults to DA; private-pension location defaults to NU and only DA reveals the all-pensions-paid question. Changing back to NU clears the hidden paid answer.
+
+Residence is explicitly selected and saved as interview.residenceCountry. The private result endpoint returns only that extra field, without exposing the interview. Older results can select residence locally without altering the saved simulation. The selected residence drives the filing guide and Romanian liaison office; uncertain allocations show de referinta.
+
+PensionNextSteps renders Romania then chronological foreign age milestones and seven process steps, with two service links. preparationTiming uses the current month: passed/current, up to 24 months, or a two-to-one year window. This window covers preparation rather than an unsupported promise that institutions accept applications two years early. Legal copy distinguishes certified copies, statutory extensions, court appeals and revision requests. An unverified claim that 2.7 million decisions are wrong is not presented as established fact.
+
+Tests: node --test tests/pension-agent-workflow.test.cjs tests/pension-next-steps.test.cjs
+

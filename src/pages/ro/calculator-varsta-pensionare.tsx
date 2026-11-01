@@ -45,6 +45,11 @@ export default function RomanianPensionCalculatorPage() {
     <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 text-slate-900">
       <Link href="/ro" className="font-bold text-emerald-800">JustProveIt</Link>
       <section><h1 className="text-3xl font-extrabold">Calculator varsta de pensionare in Romania</h1>
+        <dl data-clarity-mask="True" className="mt-4 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
+          <div><dt className="text-sm font-semibold text-slate-600">Nume</dt><dd className="break-words">{contact.fullName||'Nespecificat'}</dd></div>
+          <div><dt className="text-sm font-semibold text-slate-600">Email</dt><dd className="break-all">{contact.email||'Nespecificat'}</dd></div>
+          <div><dt className="text-sm font-semibold text-slate-600">Telefon</dt><dd className="break-words">{contact.phone||'Nespecificat'}</dd></div>
+        </dl>
         <PensionAgentWorkflow contact={contact} onContact={(key,value)=>setContact(current=>({...current,[key]:value}))} onResult={setResponse} onSaveEmail={saveEmail} crmStatus={crmStatus}/>
       </section>
       <aside><ResultPanel response={response} emailMessage="" sendingEmail={false} onSendEmail={()=>{}} readOnly/></aside>
