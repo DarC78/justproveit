@@ -171,6 +171,11 @@ export default function ResultPanel({
                 {
                   countryName: "UK",
                   countryCode: "UK",
+                  minimumServiceText: undefined,
+                  serviceAssessment: undefined,
+                  earlyRetirementText: undefined,
+                  rulesCheckedAt: undefined,
+                  sourceUrls: undefined,
                   workedPeriod: result.stagiu.foreign,
                   retirementAge: result.ukStatePension.retirementAge,
                   retirementDate: result.ukStatePension.retirementDate,
@@ -185,7 +190,7 @@ export default function ResultPanel({
             <h2 className="text-lg font-extrabold">{section.countryName}</h2>
             {section.retirementDate ? (
               <p className="mt-2 text-xl font-extrabold">
-                {section.countryCode==='UK'?'Data estimată pentru vârsta pensiei de stat din UK:':`Puteti primi pensia de stat din ${section.countryName} de la data de`}{" "}
+                Data estimată pentru împlinirea vârstei de pensionare în {section.countryName}:{" "}
                 <strong>{section.retirementDate}</strong>.
               </p>
             ) : (
@@ -202,10 +207,14 @@ export default function ResultPanel({
               {section.retirementDate ? (
                 <Metric
                   label="Status"
-                  value={section.countryCode==='UK'?(section.eligibleNow?'Vârsta este îndeplinită; dreptul se verifică':'Vârsta se împlinește la data indicată'):section.eligibleNow ? "Eligibil acum" : "Eligibil la data indicata"}
+                  value={section.eligibleNow?'Vârsta din model este îndeplinită; dreptul se verifică':'Vârsta din model se împlinește la data indicată'}
                 />
               ) : null}
             </div>
+            {section.minimumServiceText&&<div className="mt-4 space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-4"><h3 className="font-bold">Vechimea minimă și verificarea stagiului</h3><p className="text-sm">{section.minimumServiceText}</p><p className="text-sm font-semibold">{section.serviceAssessment}</p></div>}
+            {section.earlyRetirementText&&<div className="mt-3 rounded-lg border border-slate-200 bg-white p-4"><h3 className="font-bold">Se poate ieși mai devreme? Condiții principale</h3><p className="mt-2 text-sm">{section.earlyRetirementText}</p><p className="mt-2 text-xs text-slate-600">Acestea sunt condițiile schemei, nu confirmarea eligibilității personale. Nu sunt presupuse automat perioade speciale, puncte, cuantumuri ori totalizarea cu toate statele.</p></div>}
+            {section.rulesCheckedAt&&<p className="mt-3 text-xs text-slate-600">Reguli verificate la {section.rulesCheckedAt}. Data este o estimare lunară după vârstă; acordarea depinde și de stagiul confirmat și de cerere.</p>}
+            {section.countryCode!=='UK'&&!section.rulesCheckedAt&&<p className="mt-3 text-sm text-amber-900">Acesta este un rezultat salvat anterior regulilor internaționale detaliate. Rulați o simulare nouă pentru vârstă, stagiu minim și condițiile de anticipare actualizate.</p>}
             {section.countryCode==='UK'&&section.retirementAge&&<UkPensionEstimate worked={section.workedPeriod} currentAge={result.currentAge} retirementAge={section.retirementAge}/>}
             {section.note ? (
               <p className="mt-3 text-xs leading-5 text-slate-600">{section.note}</p>
@@ -220,6 +229,7 @@ export default function ResultPanel({
                 Verifica sursa oficiala
               </a>
             ) : null}
+            {section.sourceUrls?.filter(url=>url!==section.sourceUrl).map((url,i)=><a key={url} href={url} target="_blank" rel="noreferrer" className="mt-2 block text-sm font-semibold text-emerald-700 underline">Sursă oficială suplimentară {i+1}</a>)}
           </div>
         ))}
       </div>

@@ -59,6 +59,11 @@ export type PensionCalculatorResult = {
     note?: string;
   } | null;
   foreignPensionSections?: Array<{
+    minimumServiceText?: string;
+    serviceAssessment?: string;
+    earlyRetirementText?: string;
+    rulesCheckedAt?: string;
+    sourceUrls?: string[];
     countryCode?: string;
     countryName: string;
     workedPeriod: AgeYM;
