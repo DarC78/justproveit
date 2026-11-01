@@ -1,5 +1,4 @@
 import AllLeadsView from "@/components/AllLeadsView";
-import PensionQualificationProfiles from '@/components/PensionQualificationProfiles';
 import AllCustomersView from "@/components/AllCustomersView";
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
@@ -1246,7 +1245,6 @@ export default function AdminCrmPage() {
                   onStatus={setStatusMessage}
                   onError={setErrorMessage}
                 />
-                <PensionQualificationProfiles key={selectedLead.normalizedPhone||selectedLead.phoneNumber||'all-profiles'} token={token} initialPhone={selectedLead.normalizedPhone||selectedLead.phoneNumber||undefined}/>
                 </>
               ) : null}
 
