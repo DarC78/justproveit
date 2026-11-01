@@ -1,3 +1,4 @@
+import LeadPhoneHistory from "./LeadPhoneHistory";
 import WhatsAppDraftRow from "./WhatsAppDraftRow";
 import {WhatsAppDraft,listWhatsAppDrafts} from "@/lib/whatsappDrafts";
 import ContactActions from "./ContactActions";
@@ -13,21 +14,25 @@ const clock=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:
 const time=(value:string|null)=>value&&Number.isFinite(Date.parse(value))?clock.format(new Date(value)):"—";
 
 export function CustomersSection({token,scope,title,description,kind="customers",refreshKey=0,onChanged}:{token:string;scope:CustomerScope;title:string;description:string;kind?:RecordKind;refreshKey?:number;onChanged?:()=>void}) {
+  const searchFirst=kind==="leads"&&scope==="all";
+  const pageSize=searchFirst?5:CUSTOMER_PAGE_SIZE;
   const noun=kind==="leads"?"leads":"customers";
   const [filters,setFilters]=useState(initialFilters),[applied,setApplied]=useState(initialFilters);
   const [page,setPage]=useState(0),[revision,setRevision]=useState(0);
-  const [report,setReport]=useState<CustomerPage|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState("");
+  const [report,setReport]=useState<CustomerPage|null>(null),[loading,setLoading]=useState(!searchFirst),[error,setError]=useState("");
   const [history,setHistory]=useState<ScheduledCallRow|null>(null),[notice,setNotice]=useState("");
+  const hasSearch=!searchFirst||Object.values(applied).some(value=>value.trim());
   useEffect(()=>{
     const controller=new AbortController();
     Promise.resolve().then(async()=>{
       if(controller.signal.aborted)return;
+      if(!hasSearch){setReport(null);setLoading(false);setError("");setNotice("");return;}
       setLoading(true);setError("");setReport(null);
-      try{const data=await loadCustomerPage(token,scope,applied,page,controller.signal,kind);if(!controller.signal.aborted)setReport(data);}
+      try{const data=await loadCustomerPage(token,scope,applied,page,controller.signal,kind,pageSize);if(!controller.signal.aborted)setReport(data);}
       catch(cause){if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:"Unable to load CRM records.");}
       finally{if(!controller.signal.aborted)setLoading(false);}
     });return()=>controller.abort();
-  },[token,scope,applied,page,revision,kind,refreshKey]);
+  },[token,scope,applied,page,revision,kind,refreshKey,hasSearch,pageSize]);
   const [drafts,setDrafts]=useState<WhatsAppDraft[]>([]),[draftError,setDraftError]=useState("");
   useEffect(()=>{
     if(kind!=="leads"||!report?.rows.length){setDrafts([]);return;}
@@ -45,15 +50,15 @@ export function CustomersSection({token,scope,title,description,kind="customers"
     <h2 id={`${kind}-${scope}-title`}>{title}</h2><p>{description}</p>
     <form onSubmit={apply} className="filters">
       {(["name","phone","email"] as const).map(field=><label key={field}>{field[0].toUpperCase()+field.slice(1)}<input type="search" value={filters[field]} onChange={e=>setFilters({...filters,[field]:e.target.value})}/></label>)}
-      <button type="submit">Apply filters</button><button type="button" onClick={()=>{setFilters(initialFilters);setApplied({...initialFilters});setPage(0);setLoading(true);setReport(null);}}>Clear</button>
-      <button type="button" onClick={()=>setRevision(n=>n+1)} disabled={loading}>Refresh</button>
+      <button type="submit">{searchFirst?"Search CRM leads":"Apply filters"}</button><button type="button" onClick={()=>{setFilters(initialFilters);setApplied({...initialFilters});setPage(0);setLoading(true);setReport(null);}}>Clear</button>
+      <button type="button" onClick={()=>setRevision(n=>n+1)} disabled={loading||!hasSearch}>Refresh</button>
     </form>
     {notice&&<p role="status">{notice}</p>}
     {draftError&&<p role="alert" className="error">{draftError}</p>}
     <div aria-live="polite" aria-busy={loading}>
-      {loading?<p className="status">Loading {noun}...</p>:error?<p className="error" role="alert">{error}</p>:report&&<>
+      {!hasSearch?<p className="status">Search by name, phone or email to display CRM leads and their history.</p>:loading?<p className="status">Loading {noun}...</p>:error?<p className="error" role="alert">{error}</p>:report&&<>
         {report.warnings?.map(warning=><p className="warning" key={warning}>{warning}</p>)}
-        <p className="count">{report.total} {noun} · {report.rows.length?`${page*CUSTOMER_PAGE_SIZE+1}–${page*CUSTOMER_PAGE_SIZE+report.rows.length}`:"0"} shown</p>
+        <p className="count">{report.total} {noun} · {report.rows.length?`${page*pageSize+1}–${page*pageSize+report.rows.length}`:"0"} shown</p>
         {!report.rows.length?<p className="status">No matching {noun}.</p>:<div className="table-scroll" tabIndex={0} role="region" aria-label={title}><table>
           <thead><tr>{["Name","Phone number","Email",kind==="leads"?"Became a lead":"Became a customer","Latest inbound contact","Call booked for (UK)","First call (UK)","Last call (UK)","Number of calls","First callcode","Last callcode","Latest WhatsApp message","Booking actions"].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
           <tbody>{report.rows.map(row=><Fragment key={row.contactId}><tr>
@@ -65,11 +70,11 @@ export function CustomersSection({token,scope,title,description,kind="customers"
             <td>{row.callCount??"Unavailable"}</td><td>{callcodeText(row.firstCallCode)}</td><td>{callcodeText(row.lastCallCode)}</td>
             <td>{row.lastWhatsApp?<><strong>{row.lastWhatsApp.direction==="inbound"?"Customer":"Us"}</strong><small>{time(row.lastWhatsApp.atUtc)} · {row.lastWhatsApp.source||"Source unavailable"}</small><p className="message">{row.lastWhatsApp.text}</p></>:"No WhatsApp message recorded"}</td>
             <td>{(row.actionContactId||(kind==="leads"?row.contactId:row.booking?.contactId))&&<ContactActions token={token} contactId={(row.actionContactId||(kind==="leads"?row.contactId:row.booking?.contactId))!} name={row.name} phone={row.phone} onChanged={result=>{setNotice(contactActionNotice(result));setRevision(n=>n+1);onChanged?.();}}/>}{row.booking?<BookingActions token={token} booking={row.booking} onChanged={result=>{setNotice(bookingActionNotice(result));setRevision(n=>n+1);}} onBusinessMarked={()=>setRevision(n=>n+1)} onSolved={()=>{setNotice("Booking marked solved on WhatsApp.");setRevision(n=>n+1);onChanged?.();}}/>:"—"}</td>
-          </tr>{kind==="leads"&&drafts.filter(draft=>draft.contactId.toLowerCase()===row.contactId.toLowerCase()).map(draft=><WhatsAppDraftRow key={draft.id} token={token} draft={draft} onSent={()=>{setRevision(n=>n+1);onChanged?.();}}/>)}</Fragment>)}</tbody>
+          </tr>{searchFirst&&<tr className="lead-history-row"><td colSpan={13}><LeadPhoneHistory key={row.contactId} token={token} contactId={row.contactId} phone={row.phone} name={row.name}/></td></tr>}{kind==="leads"&&drafts.filter(draft=>draft.contactId.toLowerCase()===row.contactId.toLowerCase()).map(draft=><WhatsAppDraftRow key={draft.id} token={token} draft={draft} onSent={()=>{setRevision(n=>n+1);onChanged?.();}}/>)}</Fragment>)}</tbody>
         </table></div>}
         <nav aria-label={`${title} pagination`} className="pagination"><button type="button" disabled={page===0} onClick={()=>{setLoading(true);setReport(null);setPage(p=>p-1);}}>Previous</button>
-          <span>Page {page+1} of {Math.max(1,Math.ceil(report.total/CUSTOMER_PAGE_SIZE))}</span>
-          <button type="button" disabled={(page+1)*CUSTOMER_PAGE_SIZE>=report.total} onClick={()=>{setLoading(true);setReport(null);setPage(p=>p+1);}}>Next</button></nav>
+          <span>Page {page+1} of {Math.max(1,Math.ceil(report.total/pageSize))}</span>
+          <button type="button" disabled={(page+1)*pageSize>=report.total} onClick={()=>{setLoading(true);setReport(null);setPage(p=>p+1);}}>Next</button></nav>
       </>}
     </div>
     {history&&<PhoneHistoryModal key={history.intentId} token={token} booking={history} onClose={()=>setHistory(null)}/>}
@@ -77,7 +82,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
       .customer-section{margin:24px 0 40px;color:#344054}h2{font-size:23px;color:#17376e;margin:0 0 8px}p{font-size:13px;line-height:1.5;margin:0}
       .filters{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:18px 0}label{display:grid;gap:6px;font-size:13px;font-weight:700}
       input,button{border:1px solid #cbd5e1;border-radius:5px;padding:9px 12px;background:white;font:inherit}button{color:#143b92;cursor:pointer;font-size:13px;font-weight:700}button:disabled{opacity:.5;cursor:default}
-      .table-scroll{overflow-x:auto;border:1px solid #dce3ee;border-radius:7px}table{width:100%;min-width:1700px;border-collapse:collapse;font-size:12px;text-align:left}thead{background:#eef3fb;color:#17376e}
+      .lead-history-row td{padding:18px;background:#f1f5f9}.table-scroll{overflow-x:auto;border:1px solid #dce3ee;border-radius:7px}table{width:100%;min-width:1700px;border-collapse:collapse;font-size:12px;text-align:left}thead{background:#eef3fb;color:#17376e}
       th,td{padding:14px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top;min-width:110px}tbody th{min-width:160px}tbody tr:hover{background:#f8fafc}
       small{display:block;font-size:11px;color:#667085;margin:5px 0}.message{white-space:pre-wrap;overflow-wrap:anywhere;min-width:220px;max-height:150px;overflow:auto}
       .status,.error{padding:20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px}.error{color:#b42318}.warning{padding:12px;background:#fff7e4}.count{margin:12px 0;font-weight:700}

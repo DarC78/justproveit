@@ -1397,3 +1397,11 @@ export function sendScheduledWhatsAppReply(token: string, intentId: string, body
 export type ComposerTemplate = {name:string;language:string;components:Array<{type:string;text?:string;format?:string;buttons?:Array<{url?:string}>}>};
 export type ComposerRequest = {requestId:string;text?:string;templateName?:string;templateLanguage?:string;parameters?:Record<string,string>;headerUrl?:string};
 export function getComposerTemplates(token:string){return fetchCanonicalCrmReadJson<{templates:ComposerTemplate[]}>(`${BASE_PATH}/whatsapp-composer/templates`,{headers:authHeaders(token)});}
+
+export type ContactPhoneHistory = Omit<ScheduledPhoneHistory,"intentId"> & {contactId:string};
+export function getContactPhoneHistory(token:string,contactId:string,signal?:AbortSignal) {
+ return fetchCanonicalCrmReadJson<ContactPhoneHistory>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/history`,{headers:authHeaders(token),signal});
+}
+export function sendContactWhatsAppReply(token:string,contactId:string,body:ComposerRequest & {expectedPhone:string}) {
+ return fetchCanonicalCrmReadJson<WhatsAppReplyResult>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/whatsapp/replies`,{method:"POST",headers:authHeaders(token),body:JSON.stringify(body)});
+}

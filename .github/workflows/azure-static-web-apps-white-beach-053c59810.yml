@@ -29,6 +29,11 @@ jobs:
         with:
           node-version: '20.11.0'
 
+      - name: Test CRM lead search
+        run: |
+          npm ci
+          npm run test:crm-lead-search
+
       - name: Build And Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1

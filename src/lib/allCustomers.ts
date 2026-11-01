@@ -14,17 +14,17 @@ export type CustomerRow={
 };
 export type CustomerPage={scope:CustomerScope;rows:CustomerRow[];total:number;limit:number;offset:number;warnings?:string[]};
 export const CUSTOMER_PAGE_SIZE=50;
-export function customerPageQuery(scope:CustomerScope,filters:CustomerFilters,page:number) {
+export function customerPageQuery(scope:CustomerScope,filters:CustomerFilters,page:number,pageSize=CUSTOMER_PAGE_SIZE) {
   if(!Number.isInteger(page)||page<0)throw new Error("Invalid customer page.");
-  return new URLSearchParams({scope,name:filters.name.trim(),phone:filters.phone.trim(),email:filters.email.trim(),limit:String(CUSTOMER_PAGE_SIZE),offset:String(page*CUSTOMER_PAGE_SIZE)});
+  return new URLSearchParams({scope,name:filters.name.trim(),phone:filters.phone.trim(),email:filters.email.trim(),limit:String(pageSize),offset:String(page*pageSize)});
 }
-export async function loadCustomerPage(token:string,scope:CustomerScope,filters:CustomerFilters,page:number,signal:AbortSignal,kind:RecordKind="customers"):Promise<CustomerPage> {
+export async function loadCustomerPage(token:string,scope:CustomerScope,filters:CustomerFilters,page:number,signal:AbortSignal,kind:RecordKind="customers",pageSize=CUSTOMER_PAGE_SIZE):Promise<CustomerPage> {
   const base=process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||API_BASE_URL;
-  const response=await fetch(`${base.replace(/\/+$/,"")}/justproveit/admin/crm/${kind==="leads"?"leads-view":"customers"}?${customerPageQuery(scope,filters,page)}`,{headers:{Authorization:`Bearer ${token}`},signal});
+  const response=await fetch(`${base.replace(/\/+$/,"")}/justproveit/admin/crm/${kind==="leads"?"leads-view":"customers"}?${customerPageQuery(scope,filters,page,pageSize)}`,{headers:{Authorization:`Bearer ${token}`},signal});
   if(response.status===404||response.status===501)throw new Error("The CRM data service is not available yet. Please try again after deployment.");
   const data=await response.json();
   if(!response.ok)throw new Error(data.error?.message||"Unable to load CRM records.");
-  if(data.scope!==scope||data.limit!==CUSTOMER_PAGE_SIZE||data.offset!==page*CUSTOMER_PAGE_SIZE||!Array.isArray(data.rows)||data.rows.length>CUSTOMER_PAGE_SIZE||!Number.isInteger(data.total)||data.total<0)
+  if(data.scope!==scope||data.limit!==pageSize||data.offset!==page*pageSize||!Array.isArray(data.rows)||data.rows.length>pageSize||!Number.isInteger(data.total)||data.total<0)
     throw new Error("The CRM response could not be verified. Please refresh.");
   return data;
 }

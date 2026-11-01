@@ -1,7 +1,8 @@
-import {FormEvent, useEffect, useRef, useState} from "react";
-import {sendScheduledWhatsAppReply, WhatsAppReplyResult, ComposerRequest, ComposerTemplate, getComposerTemplates} from "@/lib/crmAdmin";
+import {FormEvent, useEffect, useId, useRef, useState} from "react";
+import {sendContactWhatsAppReply,sendScheduledWhatsAppReply, WhatsAppReplyResult, ComposerRequest, ComposerTemplate, getComposerTemplates} from "@/lib/crmAdmin";
 
-export default function WhatsAppReplyComposer({token,intentId,phone,onSent}:{token:string;intentId:string;phone:string;onSent:()=>void}) {
+export default function WhatsAppReplyComposer({token,intentId,contactId,phone,onSent}:{token:string;intentId?:string;contactId?:string;phone:string;onSent:()=>void}) {
+  const fieldId=useId();
   const [text,setText]=useState("");
   const [sending,setSending]=useState(false);
   const [result,setResult]=useState<WhatsAppReplyResult|null>(null);
@@ -30,7 +31,7 @@ export default function WhatsAppReplyComposer({token,intentId,phone,onSent}:{tok
     const current=attempt.current||{requestId:crypto.randomUUID(),...(template?{templateName:template.name,templateLanguage:template.language,parameters:values,headerUrl}:{text:text.trim()})};
     attempt.current=current;
     try {
-      const response=await sendScheduledWhatsAppReply(token,intentId,{...current,expectedPhone:phone});
+      const response=await (contactId?sendContactWhatsAppReply(token,contactId,{...current,expectedPhone:phone}):sendScheduledWhatsAppReply(token,intentId!,{...current,expectedPhone:phone}));
       if(!mounted.current)return;
       setResult(response);
       if(["accepted","sent","delivered","read"].includes(response.status)) {
@@ -44,16 +45,16 @@ export default function WhatsAppReplyComposer({token,intentId,phone,onSent}:{tok
     } finally {busy.current=false;if(mounted.current)setSending(false);}
   }
   return <form onSubmit={submit} aria-label="Reply on WhatsApp">
-    <label htmlFor="whatsapp-template">Meta template</label>
-    <select id="whatsapp-template" value={selected} disabled={sending||unresolved} onChange={event=>{setSelected(event.target.value);setValues({});setHeaderUrl("");setResult(null);setError("");}}>
+    <label htmlFor={fieldId+"-template"}>Meta template</label>
+    <select id={fieldId+"-template"} value={selected} disabled={sending||unresolved} onChange={event=>{setSelected(event.target.value);setValues({});setHeaderUrl("");setResult(null);setError("");}}>
       <option value="">Free text message</option>{templates.map(item=><option key={item.name+":"+item.language} value={item.name+":"+item.language}>{item.name} ({item.language})</option>)}
     </select>
     {templateError&&<p role="alert" className="failure">{templateError}</p>}
     {fields.map(field=><label key={field.key}>{field.label}<input maxLength={1024} disabled={sending||unresolved} value={values[field.key]||""} onChange={event=>setValues({...values,[field.key]:event.target.value})}/></label>)}
     {media&&<label>{media.format} attachment URL<input type="url" disabled={sending||unresolved} value={headerUrl} placeholder="https://..." onChange={event=>setHeaderUrl(event.target.value)}/></label>}
-    <label htmlFor="whatsapp-reply">Reply on WhatsApp</label>
+    <label htmlFor={fieldId+"-reply"}>Reply on WhatsApp</label>
     <p className="help">Send to {phone}. WhatsApp may reject replies outside the 24-hour window after the client’s last message.</p>
-    <textarea id="whatsapp-reply" rows={template?12:4} maxLength={4096} value={template?preview:text} disabled={sending||unresolved||!!template}
+    <textarea id={fieldId+"-reply"} rows={template?12:4} maxLength={4096} value={template?preview:text} disabled={sending||unresolved||!!template}
       onChange={event=>{setText(event.target.value);setResult(null);setError("");}} placeholder="Type your WhatsApp reply…" />
     <div className="actions"><small>{template?"Approved template preview":text.length+"/4096"}</small><button type="submit" disabled={sending||(!unresolved&&!valid)}>
       {sending?"Sending…":unresolved?"Check send status":"Send WhatsApp"}</button></div>
