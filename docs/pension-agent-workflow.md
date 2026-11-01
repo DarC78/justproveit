@@ -53,3 +53,8 @@ The first service offer includes a WhatsApp details link with WEB_REZULTATE_SIMU
 
 Both service offers now include the WhatsApp details link. The UK under-ten-years explanation displays total declared work: Romanian contributory service plus all displayed foreign worked periods, falling back to the saved contributory total for older results. At ten total years it explains the aggregation route, subject to official recognition and applicable agreements; below ten total years it does not promise eligibility. The UK amount remains based on UK years only.
 
+
+## Result delivery over WhatsApp
+
+The agent interview email button also queues a plain-text WhatsApp summary to the same contact phone after Resend email success. It includes the email opening, ordered country dates and preparation warning. Backend scopes this to the agent-interview simulation source. UI reports queued/provider-accepted states without claiming delivery, and distinguishes queue failure from email failure. A queue-write failure exposes Reincearca WhatsApp; the saved successful email is not resent to the same email on retry. Queue references are stable per result and normalized recipient; existing failed messages are not duplicated or converted to templates. The existing WhatsApp sender and 24-hour service-window rules apply.
+

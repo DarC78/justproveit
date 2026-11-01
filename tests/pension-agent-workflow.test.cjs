@@ -80,3 +80,17 @@ test('confirmed email acceptance reveals the receipt step and prevents resending
  await button.props.onClick();
  assert.equal(sends,1);
 });
+
+test('WhatsApp queue failure preserves email success and permits a separate retry',async()=>{
+ let attempts=0;
+ const h=setup({sendPensionCalculatorEmail:async()=>++attempts===1?{emailSent:true,whatsappQueued:false,whatsappStatus:'queue_failed',whatsappError:'WhatsApp queue unavailable'}:{emailSent:true,whatsappQueued:true,whatsappStatus:'queued'}});
+ h.render();h.states[19]={resultId:'saved-id',result:{scenarios:[],recommended:null}};
+ await h.render().find(n=>n.type==='button'&&n.props.onClick).props.onClick();
+ assert.equal(h.states[17],true);
+ assert.ok(h.states[16].includes('WhatsApp queue unavailable'));
+ const retry=h.render().find(n=>n.type==='button'&&n.props.children==='Reîncearcă WhatsApp');
+ assert.ok(retry);await retry.props.onClick();
+ assert.equal(attempts,2);assert.equal(h.states[17],true);
+ assert.ok(h.states[16].includes('pus în coadă'));
+ assert.equal(h.render().some(n=>n.type==='button'&&n.props.children==='Reîncearcă WhatsApp'),false);
+});

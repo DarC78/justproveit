@@ -31,9 +31,10 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
   const [result,setResult]=useState<PensionCalculatorResponse|null>(null);
   const [birthOver,setBirthOver]=useState(false);
   const [residenceCountry,setResidenceCountry]=useState('');
+  const [whatsappFailed,setWhatsappFailed]=useState(false);
   useEffect(()=>{setAgent(new URLSearchParams(window.location.search).get('agent')||'');},[]);
   const countries=[...new Set(periods.filter(p=>p.country&&number(p.years)>0).map(p=>p.country))];
-  function reset() {setResult(null);onResult(null);setSent(false);setConfirmed(false);setEmailState('');setError('');}
+  function reset() {setResult(null);onResult(null);setSent(false);setConfirmed(false);setEmailState('');setError('');setWhatsappFailed(false);}
   function edit(action:()=>void){reset();action();}
   async function simulate(event:FormEvent) {
     event.preventDefault();reset();
@@ -57,15 +58,17 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
     }catch(e){setError(e instanceof Error?e.message:'Simularea nu a reușit.');}
     finally{setBusy(false);}
   }
-  async function sendEmail() {
-    if(!result||sent)return;
+  async function sendEmail(retryWhatsApp=false) {
+    if(!result||(sent&&!retryWhatsApp))return;
     if(!contact.fullName.trim()||!contact.phone.trim()||!/^\S+@\S+\.\S+$/.test(contact.email)){setEmailState('Completați numele, telefonul și un email valid înainte de trimitere.');return;}
     setSending(true);setEmailState('');
     try {
       await onSaveEmail?.();
       const response=await sendPensionCalculatorEmail(result.resultId,contact);
       if(!response.emailSent)throw new Error(response.emailError||'Emailul nu a putut fi trimis.');
-      setSent(true);setEmailState('V-am trimis acum rezultatul pe email. Puteți verifica?');
+      setSent(true);setWhatsappFailed(response.whatsappStatus==='queue_failed');
+      const whatsappMessage=response.whatsappQueued===false?` ${response.whatsappError||'Mesajul WhatsApp nu a putut fi pus în coadă.'}`:response.whatsappQueued?(['accepted','sent','delivered','read'].includes(response.whatsappStatus||'')?' Mesajul WhatsApp a fost preluat de furnizor.':' Mesajul text WhatsApp a fost pus în coadă pentru trimitere.') : '';
+      setEmailState('V-am trimis acum rezultatul pe email. Puteți verifica?'+whatsappMessage);
       const updated={...result,emailSent:true};setResult(updated);onResult(updated);
     }catch(e){setEmailState(e instanceof Error?e.message:'Trimiterea nu a reușit.');}
     finally{setSending(false);}
@@ -122,7 +125,9 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
       <h3 className="font-bold">Trimiterea rezultatului</h3>
       {(['fullName','email','phone'] as const).map(key=><label key={key} className="block text-sm font-semibold">{key==='fullName'?'Nume':key==='email'?'Email':'Telefon'}<input className={inputClass} type={key==='email'?'email':key==='phone'?'tel':'text'} value={contact[key]} disabled={sending||sent} onChange={e=>onContact(key,e.target.value)} onBlur={()=>{if(key==='email'&&contact.email)void onSaveEmail?.().catch(()=>{});}}/></label>)}
       {crmStatus&&<p role="status" className="text-sm text-slate-700">{crmStatus}</p>}
-      <button type="button" disabled={sending||sent} onClick={sendEmail} className="rounded-lg bg-emerald-700 px-5 py-3 font-bold text-white disabled:opacity-50">{sending?'Se trimite…':sent?'Email trimis':'Trimite rezultatul pe email'}</button>
+      <button type="button" disabled={sending||sent} onClick={()=>sendEmail()} className="rounded-lg bg-emerald-700 px-5 py-3 font-bold text-white disabled:opacity-50">{sending?'Se trimite…':sent?'Email trimis':'Trimite rezultatul pe email'}</button>
+      {whatsappFailed&&<button type="button" disabled={sending} onClick={()=>sendEmail(true)} className="ml-2 rounded-lg border border-emerald-700 px-5 py-3 font-bold text-emerald-800 disabled:opacity-50">Reîncearcă WhatsApp</button>}
+      <p className="text-sm text-slate-600">La trimitere, rezumatul este trimis și ca mesaj text WhatsApp la telefonul de mai sus. Livrarea depinde de regulile WhatsApp și de fereastra de conversație de 24 de ore.</p>
       {emailState&&<p role="status" className={sent?'font-bold text-emerald-800':'text-red-700'}>{emailState}</p>}
       {sent&&<><p className="font-bold text-red-700">Se așteaptă verificarea emailului. Uneori durează mai mult sau ajunge în Spam. Rugați clientul să îl găsească, să îl scoată din Spam și să deschidă linkul pentru a vedea rezultatele pe site.</p><Check label="Clientul confirmă că a primit emailul și a deschis rezultatul" checked={confirmed} onChange={setConfirmed}/></>}
     </section>}

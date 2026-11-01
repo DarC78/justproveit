@@ -91,6 +91,9 @@ export type PensionCalculatorResponse = {
 };
 
 export type PensionCalculatorEmailResponse = {
+  whatsappQueued?: boolean;
+  whatsappStatus?: string;
+  whatsappError?: string | null;
   success: boolean;
   resultId: string;
   emailSent: boolean;
