@@ -4,7 +4,7 @@ import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { DispatchContact, loadCrmDispatchContact, loadCrmDispatchRouting } from "@/lib/crmAdmin";
-import { calculatorDispatchUrl, dispatchPhoneFromQuery, inboundDispatchUrl } from "@/lib/crmDispatch";
+import { calculatorDispatchUrl, dispatchPhoneFromQuery, inboundDispatchUrl, isPensionDispatchQueue } from "@/lib/crmDispatch";
 
 type Result={key:string;contact:DispatchContact|null;url:string;checked:boolean};
 export default function CrmDispatchPage() {
@@ -37,6 +37,10 @@ export default function CrmDispatchPage() {
       const url=calculatorDispatchUrl(contact?{fullName:contact.name,email:contact.email}:null,phone,{queue,agent});
       // Render contact details before starting the independent routing lookup.
       setLoaded({key:requestKey,contact,url,checked:false});
+      if(isPensionDispatchQueue(queue)) {
+        void router.replace(url);
+        return;
+      }
       const {automatic}=await loadCrmDispatchRouting(token!,phone);
       if(cancelled)return;
       if(automatic) void router.replace(url);

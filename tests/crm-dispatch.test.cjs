@@ -1,4 +1,4 @@
-﻿const {test}=require('node:test');
+const {test}=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
@@ -6,7 +6,7 @@ const ts=require('typescript');
 const exportsObject={};
 const source=ts.transpileModule(fs.readFileSync('src/lib/crmDispatch.ts','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText;
 vm.runInNewContext(source,{exports:exportsObject,URLSearchParams});
-const {resolveCrmDispatch,dispatchPhone,dispatchPhoneFromQuery,qualifyingDispatchIntent,calculatorDispatchUrl,inboundDispatchUrl}=exportsObject;
+const {resolveCrmDispatch,dispatchPhone,dispatchPhoneFromQuery,qualifyingDispatchIntent,calculatorDispatchUrl,inboundDispatchUrl,isPensionDispatchQueue}=exportsObject;
 const now=Date.parse('2026-10-29T12:00:00Z');
 test('Inbound queue overrides routing with fixed external CRM and encoded agent',()=>{
   const phone=dispatchPhoneFromQuery({phone_leads:'07440526630',phone_ani:'447700900003'});
@@ -25,7 +25,7 @@ test('existing CRM destination preserves queue and agent alongside contact detai
   const url=new URL(calculatorDispatchUrl({fullName:'Test',email:'a@example.com'},'447440526630',{queue:'Pensii & UK',agent:'Ana + Ion'}),'https://www.justproveit.co.uk');
   assert.equal(url.searchParams.get('queue'),'Pensii & UK');
   assert.equal(url.searchParams.get('agent'),'Ana + Ion');
-  assert.equal(url.searchParams.get('name'),'Test');
+  assert.equal(url.searchParams.get('nume'),'Test');
   assert.equal(url.searchParams.get('phone'),'447440526630');
 });
 const lead={contactId:'contact-1',fullName:'Dan & Urse',email:'dan+test@example.com',phoneNumber:'+44 7440 526630'};
@@ -59,7 +59,7 @@ test('automatic route encodes all three contact parameters and ignores wrong-per
   const resolved=await resolveCrmDispatch('+447440526630',deps([row()]));
   assert.equal(resolved.automatic,true);
   const url=new URL(resolved.url,'https://www.justproveit.co.uk');
-  assert.equal(url.searchParams.get('name'),lead.fullName);assert.equal(url.searchParams.get('email'),lead.email);
+  assert.equal(url.searchParams.get('nume'),lead.fullName);assert.equal(url.searchParams.get('email'),lead.email);
   assert.equal(url.searchParams.get('phone'),'447440526630');
   const wrong={...lead,contactId:'other',phoneNumber:'447700900001'};
   assert.equal((await resolveCrmDispatch(lead.phoneNumber,deps([row({contactId:'other',lead:wrong})]))).automatic,false);
@@ -77,10 +77,23 @@ test('unknown contacts and old intents show choice, never another contact detail
   const wrong={...lead,phoneNumber:'447700900001'};
   const unknown=await resolveCrmDispatch(lead.phoneNumber,deps([],wrong));
   assert.equal(unknown.lead,null);assert.equal(unknown.automatic,false);
-  assert.equal(new URL(unknown.url,'https://x.test').searchParams.get('name'),'');
+  assert.equal(new URL(unknown.url,'https://x.test').searchParams.get('nume'),'');
   assert.equal((await resolveCrmDispatch(lead.phoneNumber,deps([row({createdAtUtc:'2026-09-01T00:00:00Z'})]))).automatic,false);
 });
 test('failed or incomplete database lookup must not silently select a CRM',async()=>{
   await assert.rejects(()=>resolveCrmDispatch(lead.phoneNumber,{...deps([]),listIntents:async()=>{throw Error('offline');}}),/offline/);
   await assert.rejects(()=>resolveCrmDispatch(lead.phoneNumber,{...deps([]),listIntents:async()=>({rows:[],total:1})}),/incompleta/);
+});
+
+test('explicit pension queues route regardless of history and use nume prefill',()=>{
+  for(const queue of ['Outbound','SIMULATOR_PENSII_JUNE_2026_REAL_TIME',' outbound ']) {
+    assert.equal(isPensionDispatchQueue(queue),true);
+    const url=new URL(calculatorDispatchUrl({fullName:'Ana & Ion',email:'a+b@example.com'},'447440526630',{queue}),'https://www.justproveit.co.uk');
+    assert.equal(url.pathname,'/ro/calculator-varsta-pensionare');
+    assert.equal(url.searchParams.get('nume'),'Ana & Ion');
+    assert.equal(url.searchParams.has('name'),false);
+    assert.equal(url.searchParams.get('email'),'a+b@example.com');
+    assert.equal(url.searchParams.get('phone'),'447440526630');
+  }
+  for(const queue of ['Inbound','','Other'])assert.equal(isPensionDispatchQueue(queue),false);
 });

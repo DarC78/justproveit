@@ -36,8 +36,12 @@ export function inboundDispatchUrl(phone: string, queue: string, agent: string) 
   return `https://www.proveitweb.co.uk/oz/crm?${query}`;
 }
 
+export function isPensionDispatchQueue(queue: string) {
+  return ['outbound','simulator_pensii_june_2026_real_time'].includes(queue.trim().toLowerCase());
+}
+
 export function calculatorDispatchUrl(lead: Partial<Pick<CrmLead,'fullName'|'email'|'secondaryemail'>> | null, phone: string, context: {queue?:string;agent?:string} = {}) {
-  const query=new URLSearchParams({name:lead?.fullName||"",email:lead?.email||lead?.secondaryemail||"",phone});
+  const query=new URLSearchParams({nume:lead?.fullName||"",email:lead?.email||lead?.secondaryemail||"",phone});
   if(context.queue) query.set('queue',context.queue);
   if(context.agent) query.set('agent',context.agent);
   return `/ro/calculator-varsta-pensionare?${query}`;

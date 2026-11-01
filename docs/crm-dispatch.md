@@ -15,3 +15,5 @@ Backend deployment creates the email index and runs `node scripts/verify-crm-dis
 Validation: backend `npm test`, frontend `node --test tests/crm-dispatch.test.cjs`, `npm run build`.
 
 Queue/agent context: accepts single-valued `queue` and `agent` parameters. With `queue=Inbound` (case insensitive), authenticated CRM users go directly to `https://www.proveitweb.co.uk/oz/crm?OZ_UUID=112&PHONE=<selected phone>&AGENT=<agent>&queue=Inbound`, without waiting for contact/history lookups. This overrides pension intent rules. For other queues, existing routing remains and both `queue` and `agent` are forwarded to the pension destination. All destination values are URL encoded; login preserves the complete dispatch URL.
+
+Explicit pension queue routing: `Outbound` and `SIMULATOR_PENSII_JUNE_2026_REAL_TIME` (case insensitive) always redirect to the pension calculator after the fast contact lookup, without checking intent history. All calculator links now use `nume`, `email`, and `phone` for contact prefill; `queue` and `agent` remain forwarded. The calculator already accepts `nume`. Unknown contacts use empty name/email and the selected phone.
