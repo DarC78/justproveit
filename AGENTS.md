@@ -23,3 +23,11 @@
 ## Code Delivery
 - After implementing requested code changes and passing the relevant checks, commit, push, and deploy through GitHub unless the user explicitly asks otherwise.
 - Verify the deployment before reporting completion. This standing authorization applies to code delivery, not publishing posts or sending messages.
+
+## Continuous delivery for every feature
+
+- Before developing each new feature, fetch and pull the latest sources from the repository's remote branch. Preserve unrelated local work; never discard or overwrite it while synchronizing.
+- Deliver each requested feature end to end: implement it, pass the relevant checks, commit the scoped changes, and push them to the repository without waiting for a separate commit/push/release request, unless the user explicitly asks otherwise.
+- Release through the repository's GitHub deployment workflow and verify the deployed feature before reporting completion. Keep delivery continuous with small, focused commits and minimal delay between validation and release.
+- For work spanning both repositories, synchronize and deliver each affected repository, coordinating backend/frontend releases so dependencies are available before the feature uses them.
+- This standing authorization covers source synchronization and code delivery only; it does not authorize sending emails, publishing social content, or other external messages.
