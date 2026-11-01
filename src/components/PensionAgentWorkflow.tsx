@@ -106,7 +106,7 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
           {birthOver&&<label className="block">Anul exact (după 1980)<input className={inputClass} type="number" min="1981" max={new Date().getUTCFullYear()-16} required value={birth.split('-')[0]||''} onChange={e=>edit(()=>setBirth(`${e.target.value}-${birth.split('-')[1]||''}`))}/></label>}
         </fieldset>
         <label className="block font-semibold">Sex<select className={inputClass} value={gender} onChange={e=>edit(()=>setGender(e.target.value))}><option value="F">Femeie</option><option value="M">Bărbat</option></select></label>
-        <Digits label="Număr de copii crescuți până la 16 ani (pentru reducere, dacă sunt îndeplinite condițiile legale)" value={children} onChange={v=>edit(()=>setChildren(v))}/>
+        {gender==='F'&&<Digits label="Număr de copii crescuți până la 16 ani (pentru reducere, dacă sunt îndeplinite condițiile legale)" value={children} onChange={v=>edit(()=>setChildren(v))}/>}
         <p className="text-sm text-slate-600">Ipoteză: persoana continuă să lucreze fără întrerupere, acumulând un an contributiv pe an. Grupele declarate sunt vechime deja realizată, nu se dublează și nu sunt proiectate în viitor.</p>
         <button disabled={busy||sending} className="rounded-lg bg-emerald-700 px-6 py-3 font-bold text-white disabled:opacity-50">{busy?'Se calculează…':'Simulare'}</button>
       </fieldset>
