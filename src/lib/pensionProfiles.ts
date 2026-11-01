@@ -1,0 +1,11 @@
+export type PensionCategory={category:string;priority:number;provisional:boolean;appointmentEligible:boolean;reason:string;serviceKey:string};
+export type PensionProfile={id:string;contactId:string;name:string|null;phone:string;country:string|null;age:number|null;ageDeclaredAtUtc:string|null;gender:string|null;totalYears:number;ukEmployee:boolean|null;privatePension:string|null;workbookLost:boolean|null;workbookMissing:boolean|null;status:string;bookingId:string|null;version:string;updatedAtUtc:string;answers:Record<string,unknown>;evidence:Record<string,unknown>;categories:PensionCategory[];work:{countryCode:string;years:number|null;approximate:boolean;answered:boolean}[]};
+export type PensionProfilesResult={rows:PensionProfile[];total:number;limit:number;offset:number};
+export type PensionHistory={rows:{messageId:string;generation:number;createdAtUtc:string;snapshot:Record<string,unknown>}[]};
+const csvCell=(value:unknown)=>{let text=String(value??'');if(/^[=+\-@\t\r]/.test(text))text="'"+text;return '"'+text.replaceAll('"','""')+'"';};
+export function pensionProfilesCsv(rows:PensionProfile[]){
+ const seen=new Set<string>(),unique=rows.filter(row=>{const key=row.contactId||row.phone;if(seen.has(key))return false;seen.add(key);return true;});
+ const header=['Contact ID','Name','WhatsApp phone','Phone country','Declared age','Age declaration date','Gender','Declared years (overlaps included)','International priority','Private priority','Work book priority','Provisional','UK employee','Private pension knowledge','RO book lost','RO missing periods','Work by country','UK agency','UK zero hours','UK self employed','Status','Booking ID','Updated'];
+ const values=unique.map(row=>[row.contactId,row.name,row.phone,row.country,row.age,row.ageDeclaredAtUtc,row.gender,row.totalYears,...['international','private','workbook'].map(category=>row.categories.find(c=>c.category===category)?.priority),row.categories.some(c=>c.provisional),row.ukEmployee,row.privatePension,row.workbookLost,row.workbookMissing,row.work.map(w=>`${w.countryCode}:${w.years??'unknown'}${w.approximate?'~':''}`).join(';'),row.answers.ukAgency,row.answers.ukZeroHours,row.answers.ukSelfEmployed,row.status,row.bookingId,row.updatedAtUtc]);
+ return '\uFEFF'+[header,...values].map(row=>row.map(csvCell).join(',')).join('\r\n');
+}

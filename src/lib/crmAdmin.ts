@@ -7,6 +7,14 @@ const CANONICAL_READ_API_BASE_URL =
   "https://launchingstack-func-dev.azurewebsites.net/api";
 const ASAP_LEAD_API_URL = "https://launchingstack-func-dev.azurewebsites.net/api/justproveit/leads/asap";
 
+export function getPensionProfiles(token:string,filters:Record<string,string>={}) {
+ const query=new URLSearchParams(Object.entries(filters).filter(([,value])=>value!==''));
+ return fetchCanonicalCrmReadJson<import('./pensionProfiles').PensionProfilesResult>(`${BASE_PATH}/pension-profiles?${query}`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store'});
+}
+export function getPensionProfileHistory(token:string,id:string) {
+ return fetchCanonicalCrmReadJson<import('./pensionProfiles').PensionHistory>(`${BASE_PATH}/pension-profiles/${encodeURIComponent(id)}/history`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store'});
+}
+
 function resolveUrl(baseUrl: string, path: string) {
   return `${baseUrl.replace(/\/+$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
 }
