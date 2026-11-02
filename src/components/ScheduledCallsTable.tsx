@@ -21,12 +21,12 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
   return <><div className="table-scroll" tabIndex={0} role="region" aria-label={attention?"Attention calls table":"Scheduled calls table"}>
     <table><thead><tr>
       <th scope="col">Call time (UK)</th><th scope="col">Name</th><th scope="col">Phone number</th>
+      <th scope="col">Apeluri din ziua programarii si dupa / callcoduri</th>
       <th scope="col">Became a lead</th><th scope="col">Call booked on</th>
       <th scope="col">Booking email sent</th><th scope="col">Booking WhatsApp sent</th>
       <th scope="col">Reminder email sent</th><th scope="col">Reminder WhatsApp sent</th>
       <th scope="col">Manual calls that day</th><th scope="col">Agent conversations that day</th><th scope="col">On dialler now</th>
       <th scope="col">On WhatsApp Business</th><th scope="col">Solved on WhatsApp</th>
-      <th scope="col">Apeluri din ziua programarii si dupa / callcoduri</th>
       <th scope="col">WhatsApp client in ziua programarii</th><th scope="col">WhatsApp noi in ziua programarii</th>
       <th scope="col">Actiuni programare</th>
     </tr></thead><tbody>{rows.map(row=><tr key={row.intentId}>
@@ -37,14 +37,15 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
         {attention&&row.lastMediatelWhatsAppFromClient&&<small>Last client message: {dateTime(row.lastMediatelWhatsAppAtUtc)}</small>}
       </th>
       <td className="phone">{row.phone?<button type="button" className="phone-history" aria-haspopup="dialog"
-        aria-label={`Open WhatsApp and call history for ${row.phone}`} onClick={()=>setHistoryBooking(row)}>{row.phone}</button>:"Unavailable"}</td><td>{dateTime(row.leadCreatedAtUtc)}</td><td>{dateTime(row.bookedAtUtc)}</td>
+        aria-label={`Open WhatsApp and call history for ${row.phone}`} onClick={()=>setHistoryBooking(row)}>{row.phone}</button>:"Unavailable"}</td>
+      <td className="history"><BookingCallHistory booking={row}/></td>
+      <td>{dateTime(row.leadCreatedAtUtc)}</td><td>{dateTime(row.bookedAtUtc)}</td>
       <td><YesNo value={row.bookingEmailSent}/></td><td><YesNo value={row.bookingWhatsAppSent}/></td>
       <td><YesNo value={row.reminderEmailSent}/></td><td><YesNo value={row.reminderWhatsAppSent}/></td>
       <td className="number">{row.manualCallsToday??"Unavailable"}</td><td className="number">{row.agentConversationsToday??"Unavailable"}</td>
       <td><YesNo value={row.onDialler}/></td>
       <td><YesNo value={row.onWhatsAppBusiness}/>{row.onWhatsAppBusiness&&<small>{dateTime(row.whatsAppBusinessAtUtc)}<br/>{row.whatsAppBusinessBy}</small>}</td>
       <td><YesNo value={row.solvedOnWhatsApp}/>{row.solvedOnWhatsApp&&<small>{dateTime(row.solvedOnWhatsAppAtUtc ?? null)}<br/>{row.solvedOnWhatsAppBy}</small>}</td>
-      <td className="history"><BookingCallHistory booking={row}/></td>
       <td className="number">{row.whatsAppClientMessages??"Unavailable"}</td><td className="number">{row.whatsAppTeamMessages??"Unavailable"}</td>
       <td className="history"><BookingActions token={token} booking={row}
         onChanged={result=>onChanged(bookingActionNotice(result))}
