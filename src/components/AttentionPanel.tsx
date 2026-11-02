@@ -1,4 +1,4 @@
-﻿import {Fragment,useEffect,useState} from "react";
+import {Fragment,useEffect,useState} from "react";
 import ScheduledCallsTable from "./ScheduledCallsTable";
 import ContactActions from "./ContactActions";
 import LeadPhoneHistory from "./LeadPhoneHistory";
@@ -20,8 +20,8 @@ function ContactTable({token,rows,onChanged}:{token:string;rows:AttentionContact
 export default function AttentionPanel({token}:{token:string}){
  const [report,setReport]=useState<CrmAttentionResponse|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState("");
  const [days,setDays]=useState(7),[revision,setRevision]=useState(0),[notice,setNotice]=useState("");
- useEffect(()=>{const controller=new AbortController();setLoading(true);setError("");setReport(null);
- listCrmAttention(token,days,controller.signal).then(result=>{if(result.lookbackDays!==days||!Array.isArray(result.overdue)||!Array.isArray(result.returned)||!Array.isArray(result.other))throw Error("Răspunsul Attention nu a putut fi verificat.");if(!controller.signal.aborted)setReport(result);}).catch(cause=>{if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:"Nu am putut încărca Attention.");}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
+ useEffect(()=>{const controller=new AbortController();
+ Promise.resolve().then(()=>{if(controller.signal.aborted)return null;setLoading(true);setError("");setReport(null);return listCrmAttention(token,days,controller.signal);}).then(result=>{if(!result||controller.signal.aborted)return;if(result.lookbackDays!==days||!Array.isArray(result.overdue)||!Array.isArray(result.returned)||!Array.isArray(result.other))throw Error("Răspunsul Attention nu a putut fi verificat.");if(!controller.signal.aborted)setReport(result);}).catch(cause=>{if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:"Nu am putut încărca Attention.");}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
  return()=>controller.abort();},[token,days,revision]);
  function changed(message:string){setNotice(message);setRevision(n=>n+1);}
  return <section className="my-7 text-slate-700"><div className="flex justify-between flex-wrap gap-4 items-end mb-5"><div><h1 className="text-3xl font-bold">Attention</h1><p className="mt-2 text-sm">Contacte care necesită atenție · Toate orele sunt exprimate în fusul orar al Marii Britanii.</p></div>
