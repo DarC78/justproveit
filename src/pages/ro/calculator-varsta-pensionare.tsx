@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import {useEffect,useState} from 'react';
 import PensionAgentWorkflow from '@/components/PensionAgentWorkflow';
+import PensionServicesTable from '@/components/PensionServicesTable';
 import ResultPanel from '@/components/PensionResultPanel';
 import {useAuth} from '@/context/AuthContext';
 import {loadCrmDispatchContact,saveCrmPensionContactEmail} from '@/lib/crmAdmin';
@@ -50,6 +51,7 @@ export default function RomanianPensionCalculatorPage() {
           <div><dt className="text-sm font-semibold text-slate-600">Email</dt><dd className="break-all">{contact.email||'Nespecificat'}</dd></div>
           <div><dt className="text-sm font-semibold text-slate-600">Telefon</dt><dd className="break-words">{contact.phone||'Nespecificat'}</dd></div>
         </dl>
+        <PensionServicesTable/>
         <PensionAgentWorkflow contact={contact} onContact={(key,value)=>setContact(current=>({...current,[key]:value}))} onResult={setResponse} onSaveEmail={saveEmail} crmStatus={crmStatus}/>
       </section>
       <aside><ResultPanel response={response} emailMessage="" sendingEmail={false} onSendEmail={()=>{}} readOnly/></aside>
