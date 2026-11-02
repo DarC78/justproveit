@@ -309,7 +309,9 @@ export type CrmLeadIntentRow = {
   lead?: CrmLead | null;
 };
 
+export type LeadAssignment={agent:string;assignedAtUtc:string;assignedBy:string|null};
 export type ScheduledCallRow = {
+  assignment?:LeadAssignment|null;
   intentId: string;
   contactId: string;
   name: string;
@@ -1406,8 +1408,10 @@ export function sendContactWhatsAppReply(token:string,contactId:string,body:Comp
  return fetchCanonicalCrmReadJson<WhatsAppReplyResult>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/whatsapp/replies`,{method:"POST",headers:authHeaders(token),body:JSON.stringify(body)});
 }
 
-export type AttentionContact = {contactId:string;name:string;phone:string|null;primaryPhone:string|null;channel:"whatsapp"|"call";atUtc:string;text:string|null;bookingId:string|null;appointmentAtUtc:string|null};
+export type AttentionContact = {assignment?:LeadAssignment|null;contactId:string;name:string;phone:string|null;primaryPhone:string|null;channel:"whatsapp"|"call";atUtc:string;text:string|null;bookingId:string|null;appointmentAtUtc:string|null};
 export type CrmAttentionResponse = {overdue:ScheduledCallRow[];returned:AttentionContact[];other:AttentionContact[];lookbackDays:number;asOfUtc:string;timeZone:string;warnings:string[]};
 export function listCrmAttention(token:string,days:number,signal?:AbortSignal){
  return fetchCanonicalCrmReadJson<CrmAttentionResponse>(`${BASE_PATH}/attention${buildQuery({days})}`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store',signal});
 }
+
+export function assignCrmLead(token:string,contactId:string,agent:string){return fetchCanonicalCrmReadJson<{success:boolean;assignment:LeadAssignment}>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/assignment`,{method:"POST",headers:authHeaders(token),body:JSON.stringify({agent})});}
