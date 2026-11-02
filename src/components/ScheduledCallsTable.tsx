@@ -21,7 +21,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
   const [historyBooking,setHistoryBooking]=useState<ScheduledCallRow|null>(null);
   return <><div className="table-scroll" tabIndex={0} role="region" aria-label={attention?"Attention calls table":"Scheduled calls table"}>
     <table><thead><tr>
-      <th scope="col">Call time (UK)</th><th scope="col">Name</th>{attention&&<th scope="col">Agent</th>}<th scope="col">Phone number</th>
+      <th scope="col">Call time (UK)</th><th scope="col">Name</th><th scope="col">Agent</th><th scope="col">Phone number</th>
       <th scope="col">Apeluri din ziua programarii si dupa / callcoduri</th>
       <th scope="col">Became a lead</th><th scope="col">Call booked on</th>
       <th scope="col">Booking email sent</th><th scope="col">Booking WhatsApp sent</th>
@@ -37,7 +37,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
         {attention&&row.attentionReasons?.map(reason=><small className="reason" key={reason}>{reason}</small>)}
         {attention&&row.lastMediatelWhatsAppFromClient&&<small>Last client message: {dateTime(row.lastMediatelWhatsAppAtUtc)}</small>}
       </th>
-      {attention&&<td><LeadAgentAssignment token={token} contactId={row.contactId} assignment={row.assignment} onChanged={onChanged}/></td>}
+      <td><LeadAgentAssignment token={token} contactId={row.contactId} assignment={row.assignment} onChanged={onChanged}/></td>
       <td className="phone">{row.phone?<button type="button" className="phone-history" aria-haspopup="dialog"
         aria-label={`Open WhatsApp and call history for ${row.phone}`} onClick={()=>setHistoryBooking(row)}>{row.phone}</button>:"Unavailable"}</td>
       <td className="history"><BookingCallHistory booking={row}/></td>
