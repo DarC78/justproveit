@@ -4,6 +4,7 @@ import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
 import BookedCallsDayPanel from "@/components/BookedCallsDayPanel";
 import BookingWhatsAppConversation from "@/components/BookingWhatsAppConversation";
+import AttentionPanel from "@/components/AttentionPanel";
 import ScheduledCallsPanel from "@/components/ScheduledCallsPanel";
 import { useAuth } from "@/context/AuthContext";
 import {
@@ -58,6 +59,7 @@ type TabKey =
   | "details"
   | "new"
   | "scheduledCalls"
+  | "attention"
   | "allCustomersView"
   | "sales"
   | "all"
@@ -95,6 +97,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "details", label: "Detalii Lead" },
   { key: "new", label: "Lead Nou" },
   { key: "scheduledCalls", label: "Scheduled calls" },
+  { key: "attention", label: "Attention" },
   { key: "allCustomersView", label: "AllCustomersView" },
   { key: "sales", label: "Arata Vanzarile" },
   { key: "all", label: "All Leads CRM" },
@@ -1274,6 +1277,7 @@ export default function AdminCrmPage() {
 
               {activeTab === "privatePensions" && canUsePrivatePensions ? <PrivatePensionsPanel token={token} /> : null}
               {activeTab === "scheduledCalls" ? <ScheduledCallsPanel token={token} /> : null}
+              {activeTab === "attention" ? <AttentionPanel token={token} /> : null}
               {activeTab === "allCustomersView" ? <AllCustomersView token={token} /> : null}
 
               {activeTab === "sales" ? (

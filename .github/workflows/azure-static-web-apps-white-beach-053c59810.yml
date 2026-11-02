@@ -33,6 +33,7 @@ jobs:
         run: |
           npm ci
           npm run test:crm-lead-search
+          node --test tests/crm-attention.test.cjs
 
       - name: Build And Deploy
         id: builddeploy
