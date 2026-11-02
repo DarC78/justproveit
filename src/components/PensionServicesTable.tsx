@@ -42,8 +42,11 @@ const services = [
 ];
 
 export default function PensionServicesTable() {
-  return <section aria-labelledby="pension-services-title" className="mt-6">
-    <h2 id="pension-services-title" className="text-2xl font-bold">Produsele și serviciile noastre</h2>
+  return <details aria-labelledby="pension-services-title" className="mt-6">
+    <summary className="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-emerald-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+      <h2 id="pension-services-title" className="inline text-xl font-bold">Produsele și serviciile noastre</h2>
+      <span className="ml-2 text-sm font-normal text-slate-600">5 servicii</span>
+    </summary>
     <p id="pension-services-description" className="mt-2 text-sm leading-6 text-slate-600">Ghid pentru agent: serviciul potrivit, prețul, calificarea clientului și următorul pas.</p>
     <p className="mt-2 text-sm text-slate-600 md:hidden">Derulați tabelul pe orizontală pentru a vedea toate coloanele.</p>
     <div role="region" aria-labelledby="pension-services-title" tabIndex={0} className="mt-4 overflow-x-auto rounded-xl border border-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
@@ -62,5 +65,5 @@ export default function PensionServicesTable() {
         </tbody>
       </table>
     </div>
-  </section>;
+  </details>;
 }
