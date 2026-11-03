@@ -403,6 +403,7 @@ export type BookingActionResult = {
   success: boolean; action: "reschedule" | "cancel" | "dialler"; intentId: string; appointmentAtUtc: string;
   cancelledEmails: number; cancelledWhatsApp: number; emailQueued: boolean; replayed?: boolean;
   whatsAppQueued: boolean; emailSkipReason?: string | null; whatsAppSkipReason?: string | null;
+  dialler?: { success: boolean; queued?: boolean; commandId?: string | null } | null;
 };
 
 export function changeScheduledBooking(token: string, booking: ScheduledCallRow, action: "reschedule" | "cancel" | "dialler", payload: {

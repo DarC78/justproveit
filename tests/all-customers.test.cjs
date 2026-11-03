@@ -29,6 +29,11 @@ test('lead listing uses the same validated filters, auth and independent page co
 test('callcode rendering shows text descriptions and never numeric identifiers',()=>{
  const f=fixture();assert.equal(f.callcodeText('NU_SE_AUDE'),'NU_SE_AUDE');for(const value of [5,'5',null,undefined,''])assert.equal(f.callcodeText(value),'Unavailable');
 });
+test('queued dialler enrollment is shown as pending confirmation',()=>{
+ const f=fixture();const result={action:'asap',dialler:{success:false,queued:true}};
+ assert.match(f.contactActionNotice(result),/queued; awaiting confirmation/);
+ assert.doesNotMatch(f.contactActionNotice(result),/Lead scheduled as/);
+});
 test('contact action keeps idempotency key and message, and verifies solve and queue confirmation',async()=>{
  const f=fixture(response({success:true,action:'reply',contactId:'contact',solved:true,whatsAppQueued:true}));
  await f.runContactAction('token','contact','reply',{requestId:'request',text:'Message'});

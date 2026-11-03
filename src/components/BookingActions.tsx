@@ -55,7 +55,7 @@ export default function BookingActions({ token, booking, onChanged, onBusinessMa
     if(saving || returned)return;
     setSaving(true);setError("");
     try {const result=await changeScheduledBooking(token,booking,"dialler",{requestId:diallerRequestId});
-      if(!result.success)throw new Error("Dialler enrollment was not confirmed.");
+      if(!result.success || (!result.dialler?.success && !result.dialler?.queued))throw new Error("Dialler enrollment was not confirmed or queued.");
       setReturned(true);onChanged(result);
     }catch(cause){setError(cause instanceof Error?cause.message:"Unable to add back to dialler. Retry this same action to check its result.");}
     finally{setSaving(false);}

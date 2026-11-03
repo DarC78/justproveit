@@ -30,7 +30,7 @@ export async function loadCustomerPage(token:string,scope:CustomerScope,filters:
 }
 
 export type ContactAction="reply"|"solve"|"asap";
-export type ContactActionResult={success:boolean;action:ContactAction;contactId:string;solved:boolean;whatsAppQueued?:boolean;messageId?:string|null;replayed?:boolean;intentId?:string|null;dialler?:{attempted:boolean;success:boolean;error?:string|null}|null};
+export type ContactActionResult={success:boolean;action:ContactAction;contactId:string;solved:boolean;whatsAppQueued?:boolean;messageId?:string|null;replayed?:boolean;intentId?:string|null;dialler?:{attempted:boolean;success:boolean;queued?:boolean;commandId?:string|null;error?:string|null}|null};
 export async function runContactAction(token:string,contactId:string,action:ContactAction,payload:{requestId:string;text?:string}):Promise<ContactActionResult> {
  const base=process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||API_BASE_URL;
  const response=await fetch(`${base.replace(/\/+$/,"")}/justproveit/admin/crm/contacts/${encodeURIComponent(contactId)}/actions`,{
@@ -48,5 +48,6 @@ export function callcodeText(value:string|number|null|undefined) {
 export function contactActionNotice(result:ContactActionResult) {
  if(result.action==="reply")return "WhatsApp reply queued. Lead marked solved.";
  if(result.action==="solve")return "Lead marked solved.";
+ if(result.dialler?.queued)return "ASAP intent created. Dialler enrollment queued; awaiting confirmation.";
  return result.dialler?.success?"Lead scheduled as ASAP / SimulatorPensie.":"ASAP / SimulatorPensie intent created. Dialler enrollment is not confirmed; check the lead details.";
 }
