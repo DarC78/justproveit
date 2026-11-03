@@ -1,4 +1,4 @@
-﻿const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript'),React=require('react'),{JSDOM}=require('jsdom');
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript'),React=require('react'),{JSDOM}=require('jsdom');
 const dom=new JSDOM('<html><body></body></html>',{url:'http://localhost'});global.window=dom.window;global.document=dom.window.document;Object.defineProperty(global,'navigator',{value:dom.window.navigator,configurable:true});global.IS_REACT_ACT_ENVIRONMENT=true;
 const {act}=React,{createRoot}=require('react-dom/client');let calls=[],histories=0,solved=false;
 const contact={contactId:'returned',name:'Returning client',phone:'447700900001',primaryPhone:'447700900001',channel:'whatsapp',atUtc:'2026-11-02T11:30:00Z',text:'Please call back',bookingId:'past',appointmentAtUtc:'2026-11-01T09:00:00Z'};
@@ -16,10 +16,10 @@ test('Attention displays its three groups, loads seven days, opens history on de
 });
 
 function loadAssignment(api){const mod={exports:{}};const source=ts.transpileModule(fs.readFileSync('src/components/LeadAgentAssignment.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true,target:ts.ScriptTarget.ES2020}}).outputText;new Function('require','module','exports',source)(name=>name==='@/lib/crmAdmin'?{assignCrmLead:api}:require(name),mod,mod.exports);return mod.exports.default;}
-test('assignment offers four agents and becomes read-only after saving',async()=>{
+test('assignment offers Adrian last and becomes read-only after saving',async()=>{
  let saves=0,notice='';const Component=loadAssignment(async(token,id,agent)=>{saves++;assert.equal(id,'contact');return {success:true,assignment:{agent,assignedAtUtc:'2026-11-02T12:00:00Z'}};});
  const host=document.createElement('div');document.body.append(host);const root=createRoot(host);
- try{await act(async()=>root.render(React.createElement(Component,{token:'token',contactId:'contact',onChanged:value=>{notice=value;}})));assert.equal(host.querySelector('button').disabled,true);assert.deepEqual([...host.querySelectorAll('option')].slice(1).map(o=>o.textContent),['Daniel','Andreea','Elena','Georgiana']);
- await act(async()=>{const select=host.querySelector('select');select.value='Elena';select.dispatchEvent(new window.Event('change',{bubbles:true}));});await act(async()=>{host.querySelector('button').click();});assert.equal(saves,1);assert.equal(host.querySelector('select'),null);assert.equal(host.querySelector('button'),null);assert.equal(host.textContent,'Elena');assert.match(notice,/Elena/);
+ try{await act(async()=>root.render(React.createElement(Component,{token:'token',contactId:'contact',onChanged:value=>{notice=value;}})));assert.equal(host.querySelector('button').disabled,true);assert.deepEqual([...host.querySelectorAll('option')].slice(1).map(o=>o.textContent),['Daniel','Andreea','Elena','Georgiana','Adrian']);
+ await act(async()=>{const select=host.querySelector('select');select.value='Adrian';select.dispatchEvent(new window.Event('change',{bubbles:true}));});await act(async()=>{host.querySelector('button').click();});assert.equal(saves,1);assert.equal(host.querySelector('select'),null);assert.equal(host.querySelector('button'),null);assert.equal(host.textContent,'Adrian');assert.match(notice,/Adrian/);
  }finally{await act(async()=>root.unmount());host.remove();}
 });
