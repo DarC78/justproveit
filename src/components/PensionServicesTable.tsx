@@ -6,6 +6,10 @@ const services = [
     hook: 'Dăm în lucru dosarul de pensie, apoi aveți un apel cu dl. Adrian pentru finalizarea dosarului. După finalizare, veți plăti prima rată.',
     action: 'Programează un apel cu Adrian',
     url: 'https://calendly.com/proveitweb/new-meeting',
+    purchaseLinks: [
+      { label: '£297', url: 'https://www.proveitweb.co.uk/salepensieinternationala' },
+      { label: 'În rate', url: 'https://www.proveitweb.co.uk/salepensieinternationala?UTM_SOURCE=RATE' },
+    ],
   },
   {
     name: 'Pensia Privată',
@@ -14,6 +18,8 @@ const services = [
     hook: 'Pe baza denumirii firmelor, vă descoperim gratuit un fond de pensie privată.',
     action: 'Programează un apel cu Adrian',
     url: 'https://calendly.com/proveitweb/verificare-pensie-privata',
+    purchaseLinks: [{ label: 'Cumpărare', url: 'https://www.proveitweb.co.uk/gaseste-mi-pensia' }],
+    purchaseNote: 'Cod de discount DISC100 dacă are doar un loc de muncă; DISC50 dacă are două locuri de muncă.',
   },
   {
     name: 'Recuperare vechime cartea de muncă',
@@ -22,6 +28,7 @@ const services = [
     hook: 'În cadrul discuției veți înțelege procesul prin care vă puteți găsi vechimea în muncă.',
     action: 'Programează un apel cu Adrian',
     url: 'https://calendly.com/proveitweb/apel-sa-va-gasim-anii-de-pensie',
+    purchaseLinks: [{ label: 'Cumpărare', url: 'https://www.proveitweb.co.uk/sale-gasim-anii-pensie-romania' }],
   },
   {
     name: 'Consultație Pensia Internațională',
@@ -30,6 +37,7 @@ const services = [
     hook: 'Primiți un plan cu tot ce aveți de făcut pentru a ieși la pensia internațională: formularele de completat și unde să le depuneți. După consultație puteți pune întrebări timp de 30 de zile, iar răspunsurile sunt incluse în aceeași taxă.',
     action: 'Vânzare consultație',
     url: 'https://www.proveitweb.co.uk/saleconsultation',
+    purchaseLinks: [{ label: 'Cumpărare', url: 'https://www.proveitweb.co.uk/salepensieinternationala?UTM_SOURCE=DISC200' }],
   },
   {
     name: 'Contestare decizie de pensionare',
@@ -38,6 +46,7 @@ const services = [
     hook: 'Vă analizăm decizia de pensionare și vă spunem dacă are rost să o contestați și de ce.',
     action: 'Programează un apel cu Adrian',
     url: 'https://calendly.com/proveitweb/free-consultation',
+    purchaseLinks: [{ label: 'Cumpărare', url: 'https://www.proveitweb.co.uk/sale-contestatie' }],
   },
 ];
 
@@ -59,7 +68,16 @@ export default function PensionServicesTable() {
             <th scope="row" className="w-[16%] px-4 py-5 align-top font-bold text-emerald-900">{service.name}</th>
             <td className="w-[15%] px-4 py-5 align-top font-semibold">{service.price}</td>
             <td className="w-[22%] px-4 py-5 align-top">{service.qualification}</td>
-            <td className="w-[29%] px-4 py-5 align-top">{service.hook}</td>
+            <td className="w-[29%] px-4 py-5 align-top">
+              <p>{service.hook}</p>
+              <div className="mt-3 space-y-2">
+                {service.purchaseLinks.map(link => <p key={link.url}>
+                  <span className="font-semibold">{link.label}: </span>
+                  <a href={link.url} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-emerald-800 underline hover:text-emerald-950">{link.url}<span className="sr-only"> — {service.name}; se deschide într-o filă nouă</span></a>
+                </p>)}
+                {service.purchaseNote && <p className="font-semibold">{service.purchaseNote}</p>}
+              </div>
+            </td>
             <td className="w-[18%] px-4 py-5 align-top"><a href={service.url} target="_blank" rel="noopener noreferrer" className="inline-block rounded-lg bg-emerald-700 px-4 py-3 font-bold text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">{service.action}<span className="sr-only"> — {service.name}; se deschide într-o filă nouă</span></a></td>
           </tr>)}
         </tbody>
