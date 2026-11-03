@@ -2555,7 +2555,7 @@ function NewLeadPanel({
             </label>
             <label>
               Ora UK *
-              <input type="time" value={appointmentTime} onChange={(event) => setAppointmentTime(event.target.value)} />
+              <input type="time" min="10:00" value={appointmentTime} onChange={(event) => setAppointmentTime(event.target.value)} />
             </label>
           </div>
         ) : null}
