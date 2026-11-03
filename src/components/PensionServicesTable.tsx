@@ -57,6 +57,10 @@ export default function PensionServicesTable() {
       <span className="ml-2 text-sm font-normal text-slate-600">5 servicii</span>
     </summary>
     <p id="pension-services-description" className="mt-2 text-sm leading-6 text-slate-600">Ghid pentru agent: serviciul potrivit, prețul, calificarea clientului și următorul pas.</p>
+    <div className="mt-3 space-y-2 text-sm font-bold leading-6 text-slate-900">
+      <p>Dacă dorește plata în cont, poate trimite din UK pentru Proveit Limited, Sort Code: 04-29-09 / Account number: 23688955. Sau internațional IBAN: GB20 REVO 0099 6924 9571 21 BIC: REVOGB21.</p>
+      <p>Sau, dacă le e mai ușor, pot trimite de pe Revolut cu @proveitlimite.</p>
+    </div>
     <p className="mt-2 text-sm text-slate-600 md:hidden">Derulați tabelul pe orizontală pentru a vedea toate coloanele.</p>
     <div role="region" aria-labelledby="pension-services-title" tabIndex={0} className="mt-4 overflow-x-auto rounded-xl border border-slate-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
       <table aria-describedby="pension-services-description" className="w-full min-w-[800px] border-collapse text-left text-sm leading-6">
