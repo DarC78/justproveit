@@ -25,6 +25,7 @@ const crm={
  async sendScheduledWhatsAppReply(){assert.fail('A booking must not be required for lead replies');}
 };
 const mocks={
+ 'next/router':{useRouter:()=>router},
  '@/lib/crmAdmin':crm,
  '@/lib/allCustomers':{CUSTOMER_PAGE_SIZE:50,callcodeText:()=>'',contactActionNotice:()=>'',async loadCustomerPage(token,scope,applied,page,signal,kind,size){calls.pages.push({applied,page,kind,size});return {scope,total:rows.length,limit:size,offset:page*size,rows:rows.slice(page*size,(page+1)*size)};}},
  '@/lib/whatsappDrafts':{async listWhatsAppDrafts(){return {drafts:[]};}},
@@ -32,6 +33,7 @@ const mocks={
  'next/link':{default:({children})=>React.createElement('span',null,children)},
  './PensionQualificationProfiles':{default:()=>null},'./ContactActions':{default:()=>null},'./BookingActions':{default:()=>null},'./WhatsAppDraftRow':{default:()=>null}
 };
+const router={isReady:true,query:{}};
 const cache=new Map();
 function load(file){
  file=path.resolve(file);if(cache.has(file))return cache.get(file).exports;
@@ -84,6 +86,22 @@ test('All Leads waits for search, pages five contacts with inline history, suppo
   const pageCalls=calls.pages.length;
   await click(button('Clear'));assert.equal(host.querySelectorAll('.lead-history-row').length,0);assert.equal(calls.pages.length,pageCalls);
  }finally{await act(async()=>root.unmount());host.remove();}
+});
+
+test('URL searches automatically select phone before email before name and react to navigation',async()=>{
+ const host=document.createElement('div');document.body.append(host);const root=createRoot(host);
+ try{
+  for(const [query,expected] of [
+   [{phone:'40746088353',email:'lead@example.invalid',name:'Daniel'},{phone:'40746088353',email:'',name:''}],
+   [{email:'lead@example.invalid',name:'Daniel'},{phone:'',email:'lead@example.invalid',name:''}],
+   [{name:'Daniel'},{phone:'',email:'',name:'Daniel'}]
+  ]){
+   router.query=query;const before=calls.pages.length;
+   await act(async()=>root.render(React.createElement(AllLeadsView,{token:'fixture-token'})));await flush();
+   assert.equal(calls.pages.length,before+1);assert.deepEqual(calls.pages.at(-1).applied,expected);
+   assert.deepEqual([...host.querySelectorAll('.filters input')].map(input=>input.value),[expected.name,expected.phone,expected.email]);
+  }
+ }finally{router.query={};await act(async()=>root.unmount());host.remove();}
 });
 
 test('customer query helper sends five-lead offsets without changing the default customer page size',()=>{

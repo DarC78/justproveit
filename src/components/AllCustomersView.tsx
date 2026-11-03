@@ -13,11 +13,11 @@ const initialFilters:CustomerFilters={name:"",phone:"",email:""};
 const clock=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"short"});
 const time=(value:string|null)=>value&&Number.isFinite(Date.parse(value))?clock.format(new Date(value)):"—";
 
-export function CustomersSection({token,scope,title,description,kind="customers",refreshKey=0,onChanged}:{token:string;scope:CustomerScope;title:string;description:string;kind?:RecordKind;refreshKey?:number;onChanged?:()=>void}) {
+export function CustomersSection({token,scope,title,description,kind="customers",refreshKey=0,onChanged,defaultFilters=initialFilters}:{token:string;scope:CustomerScope;title:string;description:string;kind?:RecordKind;refreshKey?:number;onChanged?:()=>void;defaultFilters?:CustomerFilters}) {
   const searchFirst=kind==="leads"&&scope==="all";
   const pageSize=searchFirst?5:CUSTOMER_PAGE_SIZE;
   const noun=kind==="leads"?"leads":"customers";
-  const [filters,setFilters]=useState(initialFilters),[applied,setApplied]=useState(initialFilters);
+  const [filters,setFilters]=useState(defaultFilters),[applied,setApplied]=useState(defaultFilters);
   const [page,setPage]=useState(0),[revision,setRevision]=useState(0);
   const [report,setReport]=useState<CustomerPage|null>(null),[loading,setLoading]=useState(!searchFirst),[error,setError]=useState("");
   const [history,setHistory]=useState<ScheduledCallRow|null>(null),[notice,setNotice]=useState("");
