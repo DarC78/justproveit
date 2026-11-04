@@ -18,7 +18,7 @@ function setup(overrides={}) {
 }
 test('interview has five country selectors, digits-only fields, and UK questions upon selection',()=>{
  const h=setup();let nodes=h.render();
- assert.equal(nodes.filter(n=>n.type==='select').length,10); // countries, birth, sex, workbook and residence
+ assert.equal(nodes.filter(n=>n.type==='select').length,16); // existing selectors plus months for RO and five countries
  h.states[5][0]={country:'UK',years:''};
  nodes=h.render();assert.ok(nodes.some(n=>n.type==='option'&&n.props.value==='contract'));
  const ro=nodes.find(n=>n.type==='input'&&n.props.pattern==='[0-9]*');
@@ -59,6 +59,22 @@ test('simulation counts Romania groups once and does not send an email automatic
  assert.equal(h.calls[0].payload.periods.normalRoYears,12);
  assert.equal(h.calls[0].payload.projectFutureContributions,true);
  assert.equal(h.calls[0].payload.interview.ukEmployment,'contract');
+});
+
+test('country years and months reach the calculator, including month-only periods and Romania remainder',async()=>{
+ const h=setup();h.render();h.states[1]='20';h.states[3]='5';h.states[4]='3';h.states[5][0]={country:'UK',years:'15',months:'7'};h.states[5][1]={country:'IT',years:'',months:'4'};h.states[10]='1968-01';
+ const monthLabel=h.render().find(n=>n.type==='label'&&n.props.children[0]==='Luni lucrate în România (în plus față de ani)');
+ all(monthLabel).find(n=>n.type==='select').props.onChange({target:{value:'9'}});
+ await h.render().find(n=>n.type==='form').props.onSubmit({preventDefault(){}});
+ assert.equal(h.calls.length,1);const payload=h.calls[0].payload;
+ assert.equal(payload.periods.normalRoYears,12);assert.equal(payload.periods.normalRoMonths,9);
+ assert.deepEqual(JSON.parse(JSON.stringify(payload.foreignPeriods)),[{country:'UK',years:15,months:7},{country:'IT',years:0,months:4}]);
+ assert.equal(payload.interview.declaredForeignPeriods[1].months,'4');
+});
+
+test('months without a country are rejected before calculation',async()=>{
+ const h=setup();h.render();h.states[1]='20';h.states[5][0]={country:'',years:'',months:'3'};h.states[10]='1968-01';
+ await h.render().find(n=>n.type==='form').props.onSubmit({preventDefault(){}});assert.equal(h.calls.length,0);assert.match(h.states[15],/Alegeți țara/);
 });
 test('provider failure does not claim email sent or reveal receipt confirmation',async()=>{
  const h=setup();h.render();h.states[19]={resultId:'saved-id',result:{scenarios:[],recommended:null}};

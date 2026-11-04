@@ -37,7 +37,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
         {attention&&row.attentionReasons?.map(reason=><small className="reason" key={reason}>{reason}</small>)}
         {attention&&row.lastMediatelWhatsAppFromClient&&<small>Last client message: {dateTime(row.lastMediatelWhatsAppAtUtc)}</small>}
       </th>
-      <td><LeadAgentAssignment token={token} contactId={row.contactId} assignment={row.assignment} onChanged={onChanged}/></td>
+      <td><LeadAgentAssignment token={token} contactId={row.contactId} assignment={row.assignment} calledAgents={row.calledAgents} onChanged={onChanged}/></td>
       <td className="phone">{row.phone?<button type="button" className="phone-history" aria-haspopup="dialog"
         aria-label={`Open WhatsApp and call history for ${row.phone}`} onClick={()=>setHistoryBooking(row)}>{row.phone}</button>:"Unavailable"}</td>
       <td className="history"><BookingCallHistory booking={row}/></td>

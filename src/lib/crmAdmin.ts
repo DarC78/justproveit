@@ -310,8 +310,10 @@ export type CrmLeadIntentRow = {
 };
 
 export type LeadAssignment={agent:string;assignedAtUtc:string;assignedBy:string|null};
+export type CalledAgent={agentId:number;agent:string;firstCallAtUtc:string|null;lastCallAtUtc:string|null;callCount:number};
 export type ScheduledCallRow = {
   assignment?:LeadAssignment|null;
+  calledAgents?:CalledAgent[];
   intentId: string;
   contactId: string;
   name: string;

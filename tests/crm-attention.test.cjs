@@ -23,3 +23,16 @@ test('assignment offers Adrian last and becomes read-only after saving',async()=
  await act(async()=>{const select=host.querySelector('select');select.value='Adrian';select.dispatchEvent(new window.Event('change',{bubbles:true}));});await act(async()=>{host.querySelector('button').click();});assert.equal(saves,1);assert.equal(host.querySelector('select'),null);assert.equal(host.querySelector('button'),null);assert.equal(host.textContent,'Adrian');assert.match(notice,/Adrian/);
  }finally{await act(async()=>root.unmount());host.remove();}
 });
+
+test('agent column preserves the manual owner and every caller without duplicate names',async()=>{
+ const Component=loadAssignment(()=>assert.fail('Reading call associations must not overwrite assignment'));
+ const host=document.createElement('div');document.body.append(host);const root=createRoot(host);
+ const assignment={agent:'Daniel',assignedAtUtc:'2026-11-01T10:00:00Z',assignedBy:'admin'};
+ const calledAgents=[{agentId:10,agent:'Daniel Petrariu'},{agentId:26,agent:'Elena Mailat'},{agentId:21,agent:'Andreea'},{agentId:26,agent:'Elena Mailat'}];
+ try{
+  await act(async()=>root.render(React.createElement(Component,{token:'token',contactId:'contact',assignment,calledAgents,onChanged:()=>{}})));
+  assert.deepEqual([...host.querySelectorAll('li')].map(n=>n.textContent),['Daniel Petrariu','Elena Mailat','Andreea']);assert.equal(host.querySelector('select'),null);
+  await act(async()=>root.render(React.createElement(Component,{token:'token',contactId:'contact',assignment,calledAgents:[...calledAgents,{agentId:20,agent:'Georgiana D'}],onChanged:()=>{}})));
+  assert.deepEqual([...host.querySelectorAll('li')].map(n=>n.textContent),['Daniel Petrariu','Elena Mailat','Andreea','Georgiana D']);
+ }finally{await act(async()=>root.unmount());host.remove();}
+});

@@ -3,9 +3,10 @@ import {PensionCalculatorResponse, submitPensionCalculator, sendPensionCalculato
 import {COUNTRY_GUIDES, INTERVIEW_COUNTRIES, INTERVIEW_DOCUMENTS, PROJECTABLE_COUNTRIES} from '@/lib/pensionInterview';
 
 type Contact={fullName:string;email:string;phone:string};
-type Period={country:string;years:string};
+type Period={country:string;years:string;months?:string};
 const source='https://www.cjpbn.ro/informare-privind-rolul-de-organism-de-legatura-in-materie-de-pensii-si-ajutoare-deces-a-directiei-relatii-internationale-din-cadrul-casei-nationale-de-pensii-publice/';
 const number=(value:string)=>Number(value||0);
+const periodMonths=(period:Period)=>number(period.years)*12+number(period.months||'');
 const month=(value:string)=>value?`${value.slice(5,7)}/${value.slice(0,4)}`:'—';
 const inputClass='mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2';
 export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveEmail,crmStatus=''}:{contact:Contact;onContact:(key:keyof Contact,value:string)=>void;onResult:(value:PensionCalculatorResponse|null)=>void;onSaveEmail?:()=>Promise<void>;crmStatus?:string}) {
@@ -14,7 +15,7 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
   const [book,setBook]=useState(true);
   const [group1,setGroup1]=useState('');
   const [group2,setGroup2]=useState('');
-  const [periods,setPeriods]=useState<Period[]>(Array.from({length:5},()=>({country:'',years:''})));
+  const [periods,setPeriods]=useState<Period[]>(Array.from({length:5},()=>({country:'',years:'',months:'0'})));
   const [employment,setEmployment]=useState('contract');
   const [jobs,setJobs]=useState('');
   const [privateKnown,setPrivateKnown]=useState(false);
@@ -32,25 +33,28 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
   const [birthOver,setBirthOver]=useState(false);
   const [residenceCountry,setResidenceCountry]=useState('');
   const [whatsappFailed,setWhatsappFailed]=useState(false);
+  const [roMonths,setRoMonths]=useState('0');
   useEffect(()=>{setAgent(new URLSearchParams(window.location.search).get('agent')||'');},[]);
-  const countries=[...new Set(periods.filter(p=>p.country&&number(p.years)>0).map(p=>p.country))];
+  const countries=[...new Set(periods.filter(p=>p.country&&periodMonths(p)>0).map(p=>p.country))];
   function reset() {setResult(null);onResult(null);setSent(false);setConfirmed(false);setEmailState('');setError('');setWhatsappFailed(false);}
   function edit(action:()=>void){reset();action();}
   async function simulate(event:FormEvent) {
     event.preventDefault();reset();
     if(!/^\d{4}-\d{2}$/.test(birth)){setError('Selectați luna și anul exact al nașterii.');return;}
-    const total=number(ro)+periods.reduce((sum,p)=>sum+number(p.years),0);
-    if(number(group1)+number(group2)>number(ro)){setError('Anii de grupa I și II sunt incluși în totalul din România; nu pot depăși acest total.');return;}
-    if(periods.some(p=>number(p.years)>0&&!p.country)){setError('Alegeți țara pentru fiecare perioadă lucrată.');return;}
-    const selected=periods.filter(p=>p.country&&number(p.years)>0);
+    const romaniaMonths=number(ro)*12+number(roMonths),totalMonths=romaniaMonths+periods.reduce((sum,p)=>sum+periodMonths(p),0);
+    if([roMonths,...periods.map(p=>p.months||'')].some(value=>!Number.isInteger(number(value))||number(value)<0||number(value)>11)){setError('Lunile trebuie să fie între 0 și 11.');return;}
+    const normalRoMonths=romaniaMonths-(number(group1)+number(group2))*12;
+    if(normalRoMonths<0){setError('Anii de grupa I și II sunt incluși în totalul din România; nu pot depăși acest total.');return;}
+    if(periods.some(p=>periodMonths(p)>0&&!p.country)){setError('Alegeți țara pentru fiecare perioadă lucrată.');return;}
+    const selected=periods.filter(p=>p.country&&periodMonths(p)>0);
     if(new Set(selected.map(p=>p.country)).size!==selected.length){setError('Selectați fiecare țară o singură dată.');return;}
     const ageMonths=(new Date().getUTCFullYear()-number(birth.slice(0,4)))*12+new Date().getUTCMonth()+1-number(birth.slice(5,7));
-    if(ageMonths<16*12||total*12>ageMonths-14*12){setError('Verificați data nașterii și anii lucrați. Perioadele nu trebuie să se suprapună.');return;}
+    if(ageMonths<16*12||totalMonths>ageMonths-14*12){setError('Verificați data nașterii și anii lucrați. Perioadele nu trebuie să se suprapună.');return;}
     setBusy(true);
     try {
       const response=await submitPensionCalculator({...contact,email:/^\S+@\S+\.\S+$/.test(contact.email)?contact.email:'',birthYearMonth:birth,gender:gender as 'M'|'F',
-        periods:{normalRoYears:number(ro)-number(group1)-number(group2),grupaIYears:number(group1),grupaIIYears:number(group2)},
-        foreignPeriods:selected.filter(p=>PROJECTABLE_COUNTRIES.has(p.country)).map(p=>({country:p.country,years:number(p.years),months:0})),
+        periods:{normalRoYears:Math.floor(normalRoMonths/12),normalRoMonths:normalRoMonths%12,grupaIYears:number(group1),grupaIIYears:number(group2)},
+        foreignPeriods:selected.filter(p=>PROJECTABLE_COUNTRIES.has(p.country)).map(p=>({country:p.country,years:number(p.years),months:number(p.months||'')})),
         childrenRaised:number(children),projectFutureContributions:true,
         interview:{agent,residenceCountry,hasWorkBook:book,declaredForeignPeriods:selected,ukEmployment:employment,ukJobs:number(jobs),privatePensionsKnown:privateKnown,privatePensionsPaid:privateKnown&&privatePaid},
         source:'ro-pension-agent-interview',pageUrl:window.location.href.split('?')[0]});
@@ -88,15 +92,17 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
       <fieldset className="space-y-4" disabled={busy||sending}>
         <legend className="mb-4 text-xl font-bold">Întrebări și stagii de cotizare</legend>
         <Digits label="Câți ani ați muncit în România? (total, inclusiv grupe)" value={ro} onChange={v=>edit(()=>setRo(v))} required/>
+        <Months label="Luni lucrate în România (în plus față de ani)" value={roMonths} onChange={v=>edit(()=>setRoMonths(v))}/>
         <YesNo label="Mai aveți cartea de muncă?" value={book} onChange={setBook}/>
         <label className="block text-sm font-semibold">Țara de reședință<select required className={inputClass} value={residenceCountry} onChange={e=>edit(()=>setResidenceCountry(e.target.value))}><option value="">Alege țara de reședință</option><option value="RO">România</option>{INTERVIEW_COUNTRIES.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}</select></label>
         <Digits label="Ați muncit la grupa I? Număr de ani" value={group1} onChange={v=>edit(()=>setGroup1(v))}/>
         <Digits label="Ați muncit la grupa II? Număr de ani" value={group2} onChange={v=>edit(()=>setGroup2(v))}/>
-        <h3 className="font-bold">În ce altă țară ați mai muncit și câți ani?</h3>
+        <h3 className="font-bold">În ce alte țări ați mai muncit? Câți ani și câte luni în fiecare?</h3>
         <p className="text-sm text-slate-600">Introduceți perioade fără suprapunere. O țară selectată nu garantează că anii se totalizează automat cu toate celelalte țări.</p>
         {periods.map((period,i)=><div key={i} className="space-y-2 rounded-lg border bg-white p-3">
           <label className="block text-sm font-semibold">Țara {i+1}<select className={inputClass} value={period.country} onChange={e=>edit(()=>setPeriods(rows=>rows.map((row,n)=>n===i?{...row,country:e.target.value}:row)))}><option value="">Alege țara</option>{INTERVIEW_COUNTRIES.map(c=><option key={c.value} value={c.value}>{c.label}</option>)}</select></label>
           <Digits label={`Ani lucrați — țara ${i+1}`} value={period.years} onChange={v=>edit(()=>setPeriods(rows=>rows.map((row,n)=>n===i?{...row,years:v}:row)))}/>
+          <Months label={`Luni lucrate — țara ${i+1}`} value={period.months||'0'} onChange={v=>edit(()=>setPeriods(rows=>rows.map((row,n)=>n===i?{...row,months:v}:row)))}/>
           {period.country&&!PROJECTABLE_COUNTRIES.has(period.country)&&<p className="text-sm text-amber-900">Perioada este înregistrată în interviu, dar nu este inclusă automat în proiecție. Specialistul trebuie să confirme acordul aplicabil.</p>}
         {period.country==='UK'&&<section className="space-y-3 rounded-lg border border-blue-200 bg-blue-50 p-4"><h3 className="font-bold">Munca și pensiile private în Regatul Unit</h3>
           <label className="block">Ați muncit cu contract de muncă sau ca self-employed?<select className={inputClass} value={employment} onChange={e=>setEmployment(e.target.value)}><option value="contract">Contract de muncă</option><option value="self-employed">Self-employed</option><option value="both">Ambele</option></select></label>
@@ -157,5 +163,6 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
 }
 
 function Digits({label,value,onChange,required=false}:{label:string;value:string;onChange:(value:string)=>void;required?:boolean}) {return <label className="block text-sm font-semibold">{label}<input className={inputClass} inputMode="numeric" pattern="[0-9]*" maxLength={2} required={required} value={value} onChange={e=>{if(/^\d*$/.test(e.target.value))onChange(e.target.value);}}/></label>;}
+function Months({label,value,onChange}:{label:string;value:string;onChange:(value:string)=>void}) {return <label className="block text-sm font-semibold">{label}<select className={inputClass} value={value} onChange={e=>onChange(e.target.value)}>{Array.from({length:12},(_,n)=><option key={n} value={String(n)}>{n} {n===1?'lună':'luni'}</option>)}</select></label>;}
 function Check({label,checked,onChange}:{label:string;checked:boolean;onChange:(value:boolean)=>void}) {return <label className="flex items-center gap-3"><input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)}/>{label}</label>;}
 function YesNo({label,value,onChange}:{label:string;value:boolean;onChange:(value:boolean)=>void}) {return <label className="block text-sm font-semibold">{label}<select className={inputClass} value={value?'DA':'NU'} onChange={e=>onChange(e.target.value==='DA')}><option value="DA">DA</option><option value="NU">NU</option></select></label>;}
