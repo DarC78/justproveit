@@ -1,3 +1,5 @@
+import PensionServiceSendButtons from './PensionServiceSendButtons';
+const serviceKeys=['international','private','work-history','consultation','appeal'];
 const services = [
   {
     name: 'Pensia Internațională',
@@ -50,7 +52,7 @@ const services = [
   },
 ];
 
-export default function PensionServicesTable() {
+export default function PensionServicesTable({contact={email:'',phone:''},token}:{contact?:{email:string;phone:string};token?:string|null}) {
   return <details aria-labelledby="pension-services-title" className="mt-6">
     <summary className="cursor-pointer rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-emerald-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
       <h2 id="pension-services-title" className="inline text-xl font-bold">Produsele și serviciile noastre</h2>
@@ -68,7 +70,7 @@ export default function PensionServicesTable() {
           <tr>{['Serviciu', 'Preț', 'Calificare Agent', 'Hook de comunicat clientului', 'Next action'].map(label => <th key={label} scope="col" className="px-4 py-4 font-bold">{label}</th>)}</tr>
         </thead>
         <tbody>
-          {services.map(service => <tr key={service.url} className="border-t border-slate-200 odd:bg-white even:bg-slate-50">
+          {services.map((service,index) => <tr key={service.url} className="border-t border-slate-200 odd:bg-white even:bg-slate-50">
             <th scope="row" className="w-[16%] px-4 py-5 align-top font-bold text-emerald-900">{service.name}</th>
             <td className="w-[15%] px-4 py-5 align-top font-semibold">{service.price}</td>
             <td className="w-[22%] px-4 py-5 align-top">{service.qualification}</td>
@@ -80,6 +82,7 @@ export default function PensionServicesTable() {
                   <a href={link.url} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-emerald-800 underline hover:text-emerald-950">{link.url}<span className="sr-only"> — {service.name}; se deschide într-o filă nouă</span></a>
                 </p>)}
                 {service.purchaseNote && <p className="font-semibold">{service.purchaseNote}</p>}
+                <PensionServiceSendButtons service={serviceKeys[index]} serviceName={service.name} contact={contact} token={token}/>
               </div>
             </td>
             <td className="w-[18%] px-4 py-5 align-top"><a href={service.url} target="_blank" rel="noopener noreferrer" className="inline-block rounded-lg bg-emerald-700 px-4 py-3 font-bold text-white hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">{service.action}<span className="sr-only"> — {service.name}; se deschide într-o filă nouă</span></a></td>

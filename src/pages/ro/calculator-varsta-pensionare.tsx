@@ -51,7 +51,7 @@ export default function RomanianPensionCalculatorPage() {
           <div><dt className="text-sm font-semibold text-slate-600">Email</dt><dd className="break-all">{contact.email||'Nespecificat'}</dd></div>
           <div><dt className="text-sm font-semibold text-slate-600">Telefon</dt><dd className="break-words">{contact.phone||'Nespecificat'}</dd></div>
         </dl>
-        <PensionServicesTable/>
+        <PensionServicesTable contact={contact} token={token}/>
         <PensionAgentWorkflow contact={contact} onContact={(key,value)=>setContact(current=>({...current,[key]:value}))} onResult={setResponse} onSaveEmail={saveEmail} crmStatus={crmStatus}/>
       </section>
       <aside><ResultPanel response={response} emailMessage="" sendingEmail={false} onSendEmail={()=>{}} readOnly/></aside>

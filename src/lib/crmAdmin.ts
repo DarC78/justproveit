@@ -1335,6 +1335,12 @@ export function sendManualCrmEmail(token: string, payload: ManualCrmEmailPayload
   });
 }
 
+export function sendPensionServiceLink(token:string,payload:{service:string;channel:'email'|'whatsapp'|'sms';email:string;phone:string;requestId:string}) {
+  return fetchCanonicalCrmReadJson<{status:string;providerMessageId?:string;errorMessage?:string}>(`${BASE_PATH}/pension-service-message`,{
+    method:'POST',headers:authHeaders(token),body:JSON.stringify(payload),
+  });
+}
+
 export function sendPublicManualCrmEmail(payload: ManualCrmEmailPayload) {
   return fetchCanonicalCrmReadJson<{ success: boolean; result?: string; message?: string }>(`${BASE_PATH}/manual-email`, {
     method: "POST",
