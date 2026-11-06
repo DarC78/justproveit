@@ -1,7 +1,7 @@
 import {FormEvent, useEffect, useId, useRef, useState} from "react";
 import {sendContactWhatsAppReply,sendScheduledWhatsAppReply, WhatsAppReplyResult, ComposerRequest, ComposerTemplate, getComposerTemplates} from "@/lib/crmAdmin";
 
-export default function WhatsAppReplyComposer({token,intentId,contactId,phone,onSent}:{token:string;intentId?:string;contactId?:string;phone:string;onSent:()=>void}) {
+export default function WhatsAppReplyComposer({token,intentId,contactId,phone,onSent}:{token:string;intentId?:string;contactId?:string;phone:string;onSent:(result:WhatsAppReplyResult)=>void}) {
   const fieldId=useId();
   const [text,setText]=useState("");
   const [sending,setSending]=useState(false);
@@ -39,7 +39,7 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
       } else if(response.status==="failed") {
         attempt.current=null;
       }
-      onSent();
+      onSent(response);
     } catch(cause) {
       if(mounted.current)setError((cause instanceof Error?cause.message:"Unable to confirm the send.")+" Use Check send status to safely check the same request; do not create another copy.");
     } finally {busy.current=false;if(mounted.current)setSending(false);}

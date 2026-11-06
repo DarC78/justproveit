@@ -3,7 +3,7 @@ function fixture(send,templates){
  const effects=[];
  const states=[],refs=[];let stateIndex=0,refIndex=0,updated=0;
  const exports={};const source=ts.transpileModule(fs.readFileSync('src/components/WhatsAppReplyComposer.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText;
- const react={useState(initial){const i=stateIndex++;if(!(i in states))states[i]=initial;return [states[i],v=>{states[i]=typeof v==='function'?v(states[i]):v;}];},useRef(initial){const i=refIndex++;return refs[i]||(refs[i]={current:initial});},useEffect(effect){if(templates)effects.push(effect);}};
+ const react={useId:()=>"reply-fixture",useState(initial){const i=stateIndex++;if(!(i in states))states[i]=initial;return [states[i],v=>{states[i]=typeof v==='function'?v(states[i]):v;}];},useRef(initial){const i=refIndex++;return refs[i]||(refs[i]={current:initial});},useEffect(effect){if(templates)effects.push(effect);}};
  const jsx=(type,props)=>({type,props});
  vm.runInNewContext(source,{exports,crypto:{randomUUID:()=> 'fixed-request-id'},require:name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:{sendScheduledWhatsAppReply:send,getComposerTemplates:async()=>({templates})}});
  function render(){stateIndex=0;refIndex=0;return exports.default({token:'token',intentId:'booking',phone:'447700900001',onSent:()=>updated++});}

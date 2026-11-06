@@ -25,16 +25,19 @@ test('background warmup is limited to two readers and stops new work on navigati
 });
 test('composer is visible before the history loads and the timeline is newest first',async()=>{
  const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
- let resolveRead;const api={getContactPhoneHistory:()=>new Promise(r=>resolveRead=r)};
- const composer={default:()=>React.createElement('textarea',{'aria-label':'WhatsApp message'})};
+ let resolveRead,onSent,replied=0;const api={getContactPhoneHistory:()=>new Promise(r=>resolveRead=r)};
+ const composer={default:props=>{onSent=props.onSent;return React.createElement('textarea',{'aria-label':'WhatsApp message'});}};
  const timeline={exports:{}};new Function('require','module','exports',compile('src/components/PhoneHistoryModal.tsx'))(name=>name.includes('WhatsAppReplyComposer')?{__esModule:true,...composer}:name==='@/lib/crmAdmin'?api:require(name),timeline,timeline.exports);
  const component={exports:{}};new Function('require','module','exports',compile('src/components/LeadPhoneHistory.tsx'))(name=>name==='@/lib/crmAdmin'?api:name==='./PhoneHistoryModal'?timeline.exports:name==='./WhatsAppReplyComposer'?{__esModule:true,...composer}:require(name),component,component.exports);
  const events=[{kind:'whatsapp',id:'old',atUtc:'2026-11-01T10:00:00Z',direction:'inbound',author:'Client',messageType:'text',text:'Older message'},{kind:'whatsapp',id:'new',atUtc:'2026-11-06T10:00:00Z',direction:'inbound',author:'Client',messageType:'text',text:'Newest message'}];
  const root=createRoot(document.getElementById('root'));
- try{await React.act(async()=>root.render(React.createElement(component.exports.default,{token:'agent',contactId:'contact',phone:'447700900001',name:'Test'})));assert.ok(document.querySelector('textarea'));assert.equal(document.querySelector('ol'),null);
+ try{await React.act(async()=>root.render(React.createElement(component.exports.default,{token:'agent',contactId:'contact',phone:'447700900001',name:'Test',onReplied:()=>replied++})));assert.ok(document.querySelector('textarea'));assert.equal(document.querySelector('ol'),null);
   await React.act(async()=>resolveRead({contactId:'contact',phone:'447700900001',events,whatsAppMessages:2,calls:0}));
   assert.deepEqual([...document.querySelectorAll('ol .body')].map(n=>n.textContent),['Newest message','Older message']);
   assert.ok(document.querySelector('textarea').compareDocumentPosition(document.querySelector('ol'))&dom.window.Node.DOCUMENT_POSITION_FOLLOWING);
   assert.deepEqual(events.map(e=>e.id),['old','new']);
+  await React.act(async()=>onSent({status:'failed'}));assert.equal(replied,0);
+  await React.act(async()=>onSent({status:'processing'}));assert.equal(replied,0);
+  await React.act(async()=>onSent({status:'accepted'}));assert.equal(replied,1);
  }finally{await React.act(async()=>root.unmount());dom.window.close();}
 });

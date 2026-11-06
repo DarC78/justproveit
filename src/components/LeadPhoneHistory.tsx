@@ -5,7 +5,7 @@ import WhatsAppReplyComposer from "./WhatsAppReplyComposer";
 
 function phoneKey(value:string){let digits=value.replace(/\D/g,"");if(digits.startsWith("00"))digits=digits.slice(2);if(digits.startsWith("0")&&[10,11].includes(digits.length))digits=(digits.length===11?"44":"40")+digits.slice(1);return digits;}
 
-export default function LeadPhoneHistory({token,contactId,phone,name}:{token:string;contactId:string;phone:string|null;name:string}) {
+export default function LeadPhoneHistory({token,contactId,phone,name,onReplied}:{token:string;contactId:string;phone:string|null;name:string;onReplied?:()=>void}) {
  const [history,setHistory]=useState<ContactPhoneHistory|null>(null);
  const [loading,setLoading]=useState(!!phone),[error,setError]=useState(""),[revision,setRevision]=useState(0);
  useEffect(()=>{
@@ -27,7 +27,7 @@ export default function LeadPhoneHistory({token,contactId,phone,name}:{token:str
   <header><div><h3>WhatsApp &amp; call history</h3><p>{name||"Lead"} · {phone||"No phone number recorded"} · Newest first · UK time</p></div>
    {phone&&<button type="button" disabled={loading} onClick={()=>setRevision(n=>n+1)}>Refresh history</button>}</header>
   {!phone?<p>Add a phone number to this lead to view phone history and send WhatsApp messages.</p>:<>
-   <WhatsAppReplyComposer key={contactId+phone} token={token} contactId={contactId} phone={phone} onSent={()=>setRevision(n=>n+1)}/>
+   <WhatsAppReplyComposer key={contactId+phone} token={token} contactId={contactId} phone={phone} onSent={result=>{setRevision(n=>n+1);if(['accepted','sent','delivered','read'].includes(result.status))onReplied?.();}}/>
    <div aria-live="polite" aria-busy={loading}>
     {loading&&<p role="status">Loading history…</p>}
     {error&&<p role="alert">{error}</p>}
