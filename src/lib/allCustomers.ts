@@ -30,7 +30,7 @@ export async function loadCustomerPage(token:string,scope:CustomerScope,filters:
 }
 
 export type ContactAction="reply"|"solve"|"asap";
-export type ContactActionResult={success:boolean;action:ContactAction|'book';contactId:string;solved:boolean;whatsAppQueued?:boolean;messageId?:string|null;replayed?:boolean;intentId?:string|null;appointmentAtUtc?:string;mode?:'created'|'rescheduled';dialler?:{attempted:boolean;success:boolean;queued?:boolean;commandId?:string|null;error?:string|null}|null};
+export type ContactActionResult={success:boolean;action:ContactAction|'book'|'end';contactId:string;solved:boolean;whatsAppQueued?:boolean;messageId?:string|null;replayed?:boolean;intentId?:string|null;appointmentAtUtc?:string;mode?:'created'|'rescheduled';dialler?:{attempted:boolean;success:boolean;queued?:boolean;commandId?:string|null;error?:string|null}|null};
 export type ContactBookingContext={contactId:string;name:string;phone:string|null;serviceKey:string|null;bookings:Array<{id:string;appointmentAtUtc:string;serviceName:string}>};
 export type ContactBookingInput={requestId:string;appointmentDate:string;appointmentTime:string;expectedPhone:string;expectedBookingId:string|null;expectedAppointmentAtUtc:string|null};
 async function bookingRequest<T>(token:string,contactId:string,payload?:ContactBookingInput):Promise<T>{
@@ -58,6 +58,7 @@ export function callcodeText(value:string|number|null|undefined) {
 }
 
 export function contactActionNotice(result:ContactActionResult) {
+ if(result.action==='end')return 'Lead closed. Motivul a fost salvat intern.';
  if(result.action==='book')return `${result.mode==='rescheduled'?'Programare modificata':'Programare creata'}: ${result.appointmentAtUtc?new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'}).format(new Date(result.appointmentAtUtc)):''} (ora UK).`;
  if(result.action==="reply")return "WhatsApp reply queued. Lead marked solved.";
  if(result.action==="solve")return "Lead marked solved.";
