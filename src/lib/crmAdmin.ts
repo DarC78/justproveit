@@ -1,4 +1,5 @@
 import { API_BASE_URL, fetchJson } from "@/lib/auth";
+import {readPhoneHistoryCached,warmPhoneHistories} from './phoneHistoryCache';
 
 const BASE_PATH = "/justproveit/admin/crm";
 const CANONICAL_READ_API_BASE_URL =
@@ -395,10 +396,11 @@ export type ScheduledPhoneHistory = {
   intentId: string; phone: string; timeZone: string; whatsAppMessages: number; calls: number; events: PhoneHistoryEvent[];
 };
 
-export function getScheduledPhoneHistory(token: string, intentId: string, signal?: AbortSignal) {
-  return fetchCanonicalCrmReadJson<ScheduledPhoneHistory>(`${BASE_PATH}/scheduled-calls/${encodeURIComponent(intentId)}/history`, {
-    headers: authHeaders(token), signal,
-  });
+export function getScheduledPhoneHistory(token: string, intentId: string, signal?: AbortSignal,fresh=false) {
+  if(signal?.aborted)return Promise.reject(new DOMException('Aborted','AbortError'));
+  return readPhoneHistoryCached(token,`booking:${intentId}`,()=>fetchCanonicalCrmReadJson<ScheduledPhoneHistory>(`${BASE_PATH}/scheduled-calls/${encodeURIComponent(intentId)}/history`, {
+    headers: authHeaders(token),cache:'no-store',
+  }),fresh);
 }
 
 export type BookingActionResult = {
@@ -1410,8 +1412,9 @@ export type ComposerRequest = {requestId:string;text?:string;templateName?:strin
 export function getComposerTemplates(token:string){return fetchCanonicalCrmReadJson<{templates:ComposerTemplate[]}>(`${BASE_PATH}/whatsapp-composer/templates`,{headers:authHeaders(token)});}
 
 export type ContactPhoneHistory = Omit<ScheduledPhoneHistory,"intentId"> & {contactId:string};
-export function getContactPhoneHistory(token:string,contactId:string,signal?:AbortSignal) {
- return fetchCanonicalCrmReadJson<ContactPhoneHistory>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/history`,{headers:authHeaders(token),signal});
+export function getContactPhoneHistory(token:string,contactId:string,signal?:AbortSignal,fresh=false) {
+ if(signal?.aborted)return Promise.reject(new DOMException('Aborted','AbortError'));
+ return readPhoneHistoryCached(token,`contact:${contactId}`,()=>fetchCanonicalCrmReadJson<ContactPhoneHistory>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/history`,{headers:authHeaders(token),cache:'no-store'}),fresh);
 }
 export function sendContactWhatsAppReply(token:string,contactId:string,body:ComposerRequest & {expectedPhone:string}) {
  return fetchCanonicalCrmReadJson<WhatsAppReplyResult>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/whatsapp/replies`,{method:"POST",headers:authHeaders(token),body:JSON.stringify(body)});
@@ -1421,6 +1424,12 @@ export type AttentionContact = {assignment?:LeadAssignment|null;contactId:string
 export type CrmAttentionResponse = {overdue:ScheduledCallRow[];returned:AttentionContact[];other:AttentionContact[];lookbackDays:number;asOfUtc:string;timeZone:string;warnings:string[]};
 export function listCrmAttention(token:string,days:number,signal?:AbortSignal){
  return fetchCanonicalCrmReadJson<CrmAttentionResponse>(`${BASE_PATH}/attention${buildQuery({days})}`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store',signal});
+}
+export function prefetchAttentionPhoneHistories(token:string,report:CrmAttentionResponse,signal?:AbortSignal){
+ const targets=new Map<string,()=>Promise<unknown>>();
+ for(const row of report.overdue)if(row.phone)targets.set(`booking:${row.intentId}`,()=>getScheduledPhoneHistory(token,row.intentId,signal));
+ for(const row of [...report.returned,...report.other])if(row.phone)targets.set(`contact:${row.contactId}`,()=>getContactPhoneHistory(token,row.contactId,signal));
+ return warmPhoneHistories([...targets.values()],signal);
 }
 
 export function assignCrmLead(token:string,contactId:string,agent:string){return fetchCanonicalCrmReadJson<{success:boolean;assignment:LeadAssignment}>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/assignment`,{method:"POST",headers:authHeaders(token),body:JSON.stringify({agent})});}

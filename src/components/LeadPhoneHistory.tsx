@@ -14,7 +14,7 @@ export default function LeadPhoneHistory({token,contactId,phone,name}:{token:str
   Promise.resolve().then(()=>{
    if(controller.signal.aborted)return null;
    setLoading(true);setError("");
-   return getContactPhoneHistory(token,contactId,controller.signal);
+   return getContactPhoneHistory(token,contactId,controller.signal,revision>0);
   }).then(result=>{
    if(!result||controller.signal.aborted)return;
    if(result.contactId.toLowerCase()!==contactId.toLowerCase()||phoneKey(result.phone)!==phoneKey(phone)||!Array.isArray(result.events))throw new Error("The history does not match this lead. Refresh the search results.");
@@ -24,16 +24,16 @@ export default function LeadPhoneHistory({token,contactId,phone,name}:{token:str
   return()=>controller.abort();
  },[token,contactId,phone,revision]);
  return <section aria-label={`History for ${name||phone||"lead"}`}>
-  <header><div><h3>WhatsApp &amp; call history</h3><p>{name||"Lead"} · {phone||"No phone number recorded"} · Oldest first · UK time</p></div>
+  <header><div><h3>WhatsApp &amp; call history</h3><p>{name||"Lead"} · {phone||"No phone number recorded"} · Newest first · UK time</p></div>
    {phone&&<button type="button" disabled={loading} onClick={()=>setRevision(n=>n+1)}>Refresh history</button>}</header>
   {!phone?<p>Add a phone number to this lead to view phone history and send WhatsApp messages.</p>:<>
+   <WhatsAppReplyComposer key={contactId+phone} token={token} contactId={contactId} phone={phone} onSent={()=>setRevision(n=>n+1)}/>
    <div aria-live="polite" aria-busy={loading}>
     {loading&&<p role="status">Loading history…</p>}
     {error&&<p role="alert">{error}</p>}
-    {history&&<><p>{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
+    {history&&history.contactId.toLowerCase()===contactId.toLowerCase()&&phoneKey(history.phone)===phoneKey(phone)&&<><p>{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
      {history.events.length?<PhoneHistoryTimeline events={history.events}/>:<p>No recorded WhatsApp messages or calls for this number.</p>}</>}
    </div>
-   {history&&<WhatsAppReplyComposer token={token} contactId={contactId} phone={history.phone} onSent={()=>setRevision(n=>n+1)}/>}
   </>}
   <style jsx>{`
    section{max-width:1100px;min-width:0;color:#344054}header{display:flex;justify-content:space-between;gap:16px;align-items:start;margin-bottom:16px}h3{font-size:17px;margin:0 0 6px;color:#17376e}p{font-size:13px;line-height:1.5;margin:8px 0 14px}button{background:white;border:1px solid #cbd5e1;border-radius:5px;padding:8px 12px;color:#143b92;cursor:pointer}button:disabled{opacity:.5}[role=alert]{color:#b42318}
