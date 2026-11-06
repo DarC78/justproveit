@@ -1,6 +1,6 @@
 import WhatsAppReplyComposer from "@/components/WhatsAppReplyComposer";
 import {useEffect,useRef,useState} from "react";
-import {getScheduledPhoneHistory,PhoneHistoryEvent,ScheduledCallRow,ScheduledPhoneHistory} from "@/lib/crmAdmin";
+import {getScheduledPhoneHistory,PhoneHistoryEvent,ScheduledCallRow,ScheduledPhoneHistory,CallTranscription} from "@/lib/crmAdmin";
 
 const clock=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"medium"});
 function dateTime(value:string|null){const at=Date.parse(value||"");return Number.isFinite(at)?clock.format(at):"Time unavailable";}
@@ -8,6 +8,19 @@ function duration(value:number|null){if(value==null)return "Unavailable";const t
 function phoneKey(phone:string){let digits=phone.replace(/\D/g,"");if(digits.startsWith("00"))digits=digits.slice(2);
   if(digits.startsWith("0")&&digits.length===11)digits="44"+digits.slice(1);
   else if(digits.startsWith("0")&&digits.length===10)digits="40"+digits.slice(1);return digits;}
+
+export function CallTranscriptRow({item}:{item:CallTranscription}) {
+  const [expanded,setExpanded]=useState(false);
+  const waiting=item.status==="awaiting_audio"||item.status==="pending";
+  return <section aria-label="Call transcription" style={{borderTop:"1px solid #cbd5e1",marginTop:14,paddingTop:12}}>
+    <strong>Call summary</strong>
+    {item.summary?<p style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{item.summary}</p>:
+      <p>{waiting?"Waiting for a playable recording.":item.status==="processing"||item.status==="transcribed"?"Transcription and summary are being prepared.":item.status==="ineligible"?"This call is no longer eligible for automatic transcription.":"Transcription needs review. The recording has not been marked as transcribed."}</p>}
+    {item.transcript&&<><button type="button" aria-expanded={expanded} aria-controls={`transcript-${item.recordingId}`} onClick={()=>setExpanded(value=>!value)}
+      style={{background:"white",border:"1px solid #94a3b8",borderRadius:5,padding:"7px 11px",cursor:"pointer",color:"#17376e"}}>{expanded?"Hide full transcript":"View full transcript"}</button>
+      {expanded&&<div id={`transcript-${item.recordingId}`} style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",marginTop:12,lineHeight:1.65}}>{item.transcript}</div>}</>}
+  </section>;
+}
 
 export function PhoneHistoryTimeline({events}:{events:PhoneHistoryEvent[]}) {
   const ordered=[...events].sort((a,b)=>{const left=Date.parse(a.atUtc||''),right=Date.parse(b.atUtc||'');return (Number.isFinite(right)?right:-Infinity)-(Number.isFinite(left)?left:-Infinity)||a.id.localeCompare(b.id,undefined,{numeric:true});});
@@ -20,7 +33,8 @@ export function PhoneHistoryTimeline({events}:{events:PhoneHistoryEvent[]}) {
           : <><p className="resolution">{event.resolution}{event.callCode!=null?` · Callcode ${event.callCode}`:""}</p>
             <dl><div><dt>Agent</dt><dd>{event.agent}</dd></div><div><dt>Call type</dt><dd>{event.callType}</dd></div>
               <div><dt>Total duration</dt><dd>{duration(event.durationSeconds)}</dd></div><div><dt>Agent talk time</dt><dd>{duration(event.talkSeconds)}</dd></div>
-              <div><dt>Ended</dt><dd>{event.endedAtUtc?dateTime(event.endedAtUtc):"Unavailable"}</dd></div></dl></>}
+              <div><dt>Ended</dt><dd>{event.endedAtUtc?dateTime(event.endedAtUtc):"Unavailable"}</dd></div></dl>
+              {event.transcriptions?.map(item=><CallTranscriptRow key={item.recordingId} item={item}/>)}</>}
       </article>
     </li>)}
     <style jsx>{`

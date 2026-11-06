@@ -384,6 +384,10 @@ export type ScheduledWhatsAppConversation = {
   messages: Array<{ id: string; direction: "inbound" | "outbound"; atUtc: string; author: string; text: string; type: string }>;
 };
 
+export type CallTranscription = {
+  recordingId: number; status: string; summary: string | null; transcript: string | null;
+  errorCode?: string | null; updatedAtUtc?: string | null;
+};
 export type PhoneHistoryEvent = {
   kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
   author: string; text: string; messageType: string; status: string; errorCode?: string | null; errorMessage?: string | null;
@@ -391,6 +395,7 @@ export type PhoneHistoryEvent = {
   kind: "call"; id: string; atUtc: string | null; endedAtUtc: string | null;
   agentId: number | null; agent: string; callCode: number | null; resolution: string;
   callType: string; queueId: number | null; durationSeconds: number | null; talkSeconds: number | null;
+  transcriptions?: CallTranscription[];
 };
 export type ScheduledPhoneHistory = {
   intentId: string; phone: string; timeZone: string; whatsAppMessages: number; calls: number; events: PhoneHistoryEvent[];
