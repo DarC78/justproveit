@@ -1421,14 +1421,14 @@ export function sendContactWhatsAppReply(token:string,contactId:string,body:Comp
 }
 
 export type AttentionContact = {assignment?:LeadAssignment|null;contactId:string;name:string;phone:string|null;primaryPhone:string|null;channel:"whatsapp"|"call";atUtc:string;text:string|null;bookingId:string|null;appointmentAtUtc:string|null};
-export type CrmAttentionResponse = {overdue:ScheduledCallRow[];returned:AttentionContact[];other:AttentionContact[];lookbackDays:number;asOfUtc:string;timeZone:string;warnings:string[]};
+export type CrmAttentionResponse = {overdue:ScheduledCallRow[];returned:AttentionContact[];willBuy:AttentionContact[];other:AttentionContact[];lookbackDays:number;asOfUtc:string;timeZone:string;warnings:string[]};
 export function listCrmAttention(token:string,days:number,signal?:AbortSignal){
  return fetchCanonicalCrmReadJson<CrmAttentionResponse>(`${BASE_PATH}/attention${buildQuery({days})}`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store',signal});
 }
 export function prefetchAttentionPhoneHistories(token:string,report:CrmAttentionResponse,signal?:AbortSignal){
  const targets=new Map<string,()=>Promise<unknown>>();
  for(const row of report.overdue)if(row.phone)targets.set(`booking:${row.intentId}`,()=>getScheduledPhoneHistory(token,row.intentId,signal));
- for(const row of [...report.returned,...report.other])if(row.phone)targets.set(`contact:${row.contactId}`,()=>getContactPhoneHistory(token,row.contactId,signal));
+ for(const row of [...report.returned,...(report.willBuy||[]),...report.other])if(row.phone)targets.set(`contact:${row.contactId}`,()=>getContactPhoneHistory(token,row.contactId,signal));
  return warmPhoneHistories([...targets.values()],signal);
 }
 

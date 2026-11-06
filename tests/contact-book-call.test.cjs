@@ -19,3 +19,5 @@ test('reschedule targets selected active booking and retry retains request ID; d
  const h=harness([{id:'booking',appointmentAtUtc:'2030-06-01T09:00:00.000Z',serviceName:'Fixture'}]);await h.open();h.results.push(new Error('Temporary failure'));const pending=h.submit();h.submit();await pending;h.render();assert.equal(h.calls.length,1);assert.equal(h.calls[0][2].expectedBookingId,'booking');assert.equal(h.calls[0][2].expectedAppointmentAtUtc,'2030-06-01T09:00:00.000Z');
  h.results.push({success:true});await h.submit();assert.equal(h.calls[1][2].requestId,h.calls[0][2].requestId);assert.equal(h.changes.length,1);
 });
+
+test('Book a Call has button styling before the modal is opened',()=>{const h=harness();h.render();assert.ok(h.button('Book a Call'));assert.ok(h.nodes('style').some(n=>String(n.props.children).includes('border:1px solid #cbd5e1')));});

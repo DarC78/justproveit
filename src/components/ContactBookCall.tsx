@@ -33,6 +33,7 @@ export default function ContactBookCall({token,contactId,name,disabled,onBooked}
    {error&&<p role="alert">{error}</p>}
    <button type="button" disabled={saving} onClick={()=>setOpen(false)}>Renunta</button>
   </form>
-  <style jsx>{`dialog{border:1px solid #cbd5e1;border-radius:12px;padding:24px;width:min(520px,calc(100vw - 32px));max-height:90vh;overflow:auto;color:#344054}dialog::backdrop{background:#10213d80}h3{font-size:21px;color:#17376e}label{display:grid;gap:6px;margin:12px 0;font-weight:600}input,select{box-sizing:border-box;width:100%;padding:10px;border:1px solid #94a3b8;border-radius:6px}p{font-size:13px;line-height:1.6}button{margin:8px 8px 0 0;padding:8px 12px;border:1px solid #cbd5e1;border-radius:5px;background:white;cursor:pointer}button:disabled{opacity:.5}[role=alert]{color:#b42318}`}</style>
- </dialog>}</>;
+ </dialog>}
+  <style jsx>{`dialog{border:1px solid #cbd5e1;border-radius:12px;padding:24px;width:min(520px,calc(100vw - 32px));max-height:90vh;overflow:auto;color:#344054}dialog::backdrop{background:#10213d80}h3{font-size:21px;color:#17376e}label{display:grid;gap:6px;margin:12px 0;font-weight:600}input,select{box-sizing:border-box;width:100%;padding:10px;border:1px solid #94a3b8;border-radius:6px}p{font-size:13px;line-height:1.6}button{display:inline-block;margin:0;padding:7px 9px;border:1px solid #cbd5e1;border-radius:4px;background:white;color:#123c92;cursor:pointer;font-size:12px;font-weight:600}dialog button{margin:8px 8px 0 0}button:disabled{opacity:.5}[role=alert]{color:#b42318}`}</style>
+ </>;
 }
