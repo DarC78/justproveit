@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const applySession = useCallback(
-    (nextSession: { user: AuthUser; token: string; refreshToken: string }) => {
+    (nextSession: { user: AuthUser; token: string; refreshToken: string | null }) => {
       saveStoredSession(nextSession);
       setUser(nextSession.user);
       setToken(nextSession.token);
@@ -96,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function restoreSession() {
       const stored = getStoredSession();
 
-      if (!stored.token || !stored.refreshToken) {
+      if (!stored.token || (!stored.refreshToken && stored.user?.supportAdmin !== true)) {
         if (!cancelled) {
           setStatus("anonymous");
         }
@@ -110,6 +110,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const restoredUser = await meRequest(stored.token);
 
+        // A local profile flag only permits verification; the API must confirm
+        // support access before restoring a session without a refresh token.
+        if (!stored.refreshToken && restoredUser.supportAdmin !== true) {
+          if (!cancelled) clearSession();
+          return;
+        }
+
         if (!cancelled) {
           applySession({
             user: restoredUser,
@@ -119,6 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch {
         if (cancelled) {
+          return;
+        }
+
+        if (!stored.refreshToken) {
+          clearSession();
           return;
         }
 

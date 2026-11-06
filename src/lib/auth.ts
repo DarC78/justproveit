@@ -28,7 +28,7 @@ export type AdminProfile = {
 type SessionPayload = {
   user?: AuthUser;
   token?: string;
-  refreshToken?: string;
+  refreshToken?: string | null;
 };
 
 export class ApiError extends Error {
@@ -88,7 +88,11 @@ export function getStoredSession() {
 
 export function saveStoredSession(payload: Required<SessionPayload>) {
   window.localStorage.setItem(STORAGE_KEYS.accessToken, payload.token);
-  window.localStorage.setItem(STORAGE_KEYS.refreshToken, payload.refreshToken);
+  if (payload.refreshToken) {
+    window.localStorage.setItem(STORAGE_KEYS.refreshToken, payload.refreshToken);
+  } else {
+    window.localStorage.removeItem(STORAGE_KEYS.refreshToken);
+  }
   window.localStorage.setItem(STORAGE_KEYS.user, JSON.stringify(payload.user));
 }
 
@@ -124,14 +128,14 @@ export async function loginRequest(email: string, password: string) {
     window.clearTimeout(timeoutId);
   }
 
-  if (!payload.user || !payload.token || !payload.refreshToken) {
+  if (!payload.user || !payload.token || (!payload.refreshToken && payload.user.supportAdmin !== true)) {
     throw new Error("Login response was missing session data.");
   }
 
   return {
     user: normalizeUser(payload.user),
     token: payload.token,
-    refreshToken: payload.refreshToken,
+    refreshToken: payload.refreshToken || null,
   };
 }
 
