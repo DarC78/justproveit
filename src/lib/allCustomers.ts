@@ -30,7 +30,19 @@ export async function loadCustomerPage(token:string,scope:CustomerScope,filters:
 }
 
 export type ContactAction="reply"|"solve"|"asap";
-export type ContactActionResult={success:boolean;action:ContactAction;contactId:string;solved:boolean;whatsAppQueued?:boolean;messageId?:string|null;replayed?:boolean;intentId?:string|null;dialler?:{attempted:boolean;success:boolean;queued?:boolean;commandId?:string|null;error?:string|null}|null};
+export type ContactActionResult={success:boolean;action:ContactAction|'book';contactId:string;solved:boolean;whatsAppQueued?:boolean;messageId?:string|null;replayed?:boolean;intentId?:string|null;appointmentAtUtc?:string;mode?:'created'|'rescheduled';dialler?:{attempted:boolean;success:boolean;queued?:boolean;commandId?:string|null;error?:string|null}|null};
+export type ContactBookingContext={contactId:string;name:string;phone:string|null;serviceKey:string|null;bookings:Array<{id:string;appointmentAtUtc:string;serviceName:string}>};
+export type ContactBookingInput={requestId:string;appointmentDate:string;appointmentTime:string;expectedPhone:string;expectedBookingId:string|null;expectedAppointmentAtUtc:string|null};
+async function bookingRequest<T>(token:string,contactId:string,payload?:ContactBookingInput):Promise<T>{
+ const base=process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||API_BASE_URL;
+ const response=await fetch(`${base.replace(/\/+$/,"")}/justproveit/admin/crm/contacts/${encodeURIComponent(contactId)}/book-call`,{method:payload?'POST':'GET',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},...(payload?{body:JSON.stringify(payload)}:{}),cache:'no-store'});
+ const result=await response.json();if(!response.ok)throw Error(result.error?.message||'Programarea nu a putut fi confirmata. Reincercati aceeasi cerere.');return result;
+}
+export const loadContactBooking=(token:string,contactId:string)=>bookingRequest<ContactBookingContext>(token,contactId);
+export async function bookContactCall(token:string,contactId:string,payload:ContactBookingInput){
+ const result=await bookingRequest<ContactActionResult>(token,contactId,payload);
+ if(!result.success||result.action!=='book'||result.contactId.toLowerCase()!==contactId.toLowerCase()||!result.intentId||!result.appointmentAtUtc)throw Error('Rezultatul programarii nu a putut fi verificat. Reincercati aceeasi cerere.');return result;
+}
 export async function runContactAction(token:string,contactId:string,action:ContactAction,payload:{requestId:string;text?:string}):Promise<ContactActionResult> {
  const base=process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||API_BASE_URL;
  const response=await fetch(`${base.replace(/\/+$/,"")}/justproveit/admin/crm/contacts/${encodeURIComponent(contactId)}/actions`,{
@@ -46,6 +58,7 @@ export function callcodeText(value:string|number|null|undefined) {
 }
 
 export function contactActionNotice(result:ContactActionResult) {
+ if(result.action==='book')return `${result.mode==='rescheduled'?'Programare modificata':'Programare creata'}: ${result.appointmentAtUtc?new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'}).format(new Date(result.appointmentAtUtc)):''} (ora UK).`;
  if(result.action==="reply")return "WhatsApp reply queued. Lead marked solved.";
  if(result.action==="solve")return "Lead marked solved.";
  if(result.dialler?.queued)return "ASAP intent created. Dialler enrollment queued; awaiting confirmation.";

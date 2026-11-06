@@ -1,5 +1,6 @@
 import {FormEvent,useEffect,useRef,useState} from "react";
 import {ContactAction,ContactActionResult,runContactAction} from "@/lib/allCustomers";
+import ContactBookCall from './ContactBookCall';
 
 export default function ContactActions({token,contactId,name,phone,onChanged}:{token:string;contactId:string;name:string;phone:string|null;onChanged:(result:ContactActionResult)=>void}) {
  const [reply,setReply]=useState(false),[text,setText]=useState("");
@@ -24,6 +25,7 @@ export default function ContactActions({token,contactId,name,phone,onChanged}:{t
    <button type="button" disabled={!!saving||!phone} onClick={()=>{setReply(true);setError("");}}>Reply on WhatsApp</button>
    <button type="button" disabled={!!saving} onClick={()=>void act("solve")}>{saving==="solve"?"Solving":"Solve"}</button>
    <button type="button" disabled={!!saving||!phone} onClick={()=>void act("asap")}>{saving==="asap"?"Scheduling":"New ASAP"}</button>
+   <ContactBookCall token={token} contactId={contactId} name={name||phone||'Lead'} disabled={!!saving||!phone} onBooked={onChanged}/>
   </div>
   {error&&!reply&&<p role="alert">{error}</p>}
   {reply&&<dialog ref={dialog} aria-label={`Reply to ${name||phone} on WhatsApp`} onCancel={event=>{if(saving)event.preventDefault();else setReply(false);}}>
