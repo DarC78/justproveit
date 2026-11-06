@@ -1092,8 +1092,16 @@ export function listCrmLeads(
 }
 
 export type DispatchContact = {name: string | null; email: string | null; phone: string};
-export function saveCrmPensionContactEmail(token: string, phone: string, email: string) {
-  return fetchCanonicalCrmReadJson<{action:string}>(`${BASE_PATH}/dispatch/contact-email`,{method:'POST',headers:authHeaders(token),body:JSON.stringify({phone,email})});
+export type PensionEmailConflict = {email:string;reviewToken:string;current:{id:string;name:string;phones:string[];emails:string[]};other:{id:string;name:string;phones:string[];emails:string[]}};
+export async function saveCrmPensionContactEmail(token: string, phone: string, email: string) {
+  const response=await fetch(resolveUrl(CANONICAL_READ_API_BASE_URL,`${BASE_PATH}/dispatch/contact-email`),{method:'POST',headers:{...authHeaders(token),'Content-Type':'application/json'},body:JSON.stringify({phone,email})});
+  const payload=await response.json().catch(()=>null);
+  if(response.status===409&&payload?.error?.code==='crm_email_conflict'&&payload.conflict)return {action:'email-conflict',conflict:payload.conflict as PensionEmailConflict};
+  if(!response.ok)throw new Error(readCrmApiError(payload,'Emailul nu a putut fi salvat în CRM.'));
+  return payload as {action:string;conflict?:PensionEmailConflict};
+}
+export function linkCrmPensionContactEmail(token:string,phone:string,email:string,conflict:PensionEmailConflict){
+  return fetchCanonicalCrmReadJson<{action:string;contactId:string}>(`${BASE_PATH}/dispatch/contact-email/link`,{method:'POST',headers:authHeaders(token),body:JSON.stringify({phone,email,currentContactId:conflict.current.id,otherContactId:conflict.other.id,reviewToken:conflict.reviewToken,confirmSamePerson:true})});
 }
 export function loadCrmDispatchContact(token: string, phone: string) {
   return fetchCanonicalCrmReadJson<{contact: DispatchContact | null}>(

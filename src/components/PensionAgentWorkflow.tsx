@@ -1,4 +1,4 @@
-import {FormEvent, useEffect, useState} from 'react';
+import {FormEvent, useEffect, useState, type ReactNode} from 'react';
 import {PensionCalculatorResponse, submitPensionCalculator, sendPensionCalculatorEmail} from '@/lib/pensionCalculator';
 import {COUNTRY_GUIDES, INTERVIEW_COUNTRIES, INTERVIEW_DOCUMENTS, PROJECTABLE_COUNTRIES} from '@/lib/pensionInterview';
 
@@ -9,7 +9,7 @@ const number=(value:string)=>Number(value||0);
 const periodMonths=(period:Period)=>number(period.years)*12+number(period.months||'');
 const month=(value:string)=>value?`${value.slice(5,7)}/${value.slice(0,4)}`:'—';
 const inputClass='mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2';
-export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveEmail,crmStatus=''}:{contact:Contact;onContact:(key:keyof Contact,value:string)=>void;onResult:(value:PensionCalculatorResponse|null)=>void;onSaveEmail?:()=>Promise<void>;crmStatus?:string}) {
+export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveEmail,crmStatus='',contactReview,contactReviewBusy=false,contactLinkVersion=0}:{contact:Contact;onContact:(key:keyof Contact,value:string)=>void;onResult:(value:PensionCalculatorResponse|null)=>void;onSaveEmail?:()=>Promise<void>;crmStatus?:string;contactReview?:ReactNode;contactReviewBusy?:boolean;contactLinkVersion?:number}) {
   const [agent,setAgent]=useState('');
   const [ro,setRo]=useState('');
   const [book,setBook]=useState(true);
@@ -34,6 +34,7 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
   const [residenceCountry,setResidenceCountry]=useState('');
   const [whatsappFailed,setWhatsappFailed]=useState(false);
   const [roMonths,setRoMonths]=useState('0');
+  const [emailMessageVersion,setEmailMessageVersion]=useState(contactLinkVersion);
   useEffect(()=>{setAgent(new URLSearchParams(window.location.search).get('agent')||'');},[]);
   const countries=[...new Set(periods.filter(p=>p.country&&periodMonths(p)>0).map(p=>p.country))];
   function reset() {setResult(null);onResult(null);setSent(false);setConfirmed(false);setEmailState('');setError('');setWhatsappFailed(false);}
@@ -63,7 +64,8 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
     finally{setBusy(false);}
   }
   async function sendEmail(retryWhatsApp=false) {
-    if(!result||(sent&&!retryWhatsApp))return;
+    if(!result||contactReviewBusy||Boolean(contactReview)||(sent&&!retryWhatsApp))return;
+    setEmailMessageVersion(contactLinkVersion);
     if(!contact.fullName.trim()||!contact.phone.trim()||!/^\S+@\S+\.\S+$/.test(contact.email)){setEmailState('Completați numele, telefonul și un email valid înainte de trimitere.');return;}
     setSending(true);setEmailState('');
     try {
@@ -129,12 +131,13 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
       <p className="text-lg font-bold">{earliest?`OK, din toate aceste variante, cel mai devreme vă puteți pensiona estimativ în ${month(earliest)}.`:'Este necesară verificarea situației de către un specialist.'}</p>
       <p className="text-sm">Estimarea nu reprezintă o decizie de pensie. Numai instituțiile competente confirmă stagiile și drepturile; combinațiile de state pot necesita calcule distincte.</p>
       <h3 className="font-bold">Trimiterea rezultatului</h3>
-      {(['fullName','email','phone'] as const).map(key=><label key={key} className="block text-sm font-semibold">{key==='fullName'?'Nume':key==='email'?'Email':'Telefon'}<input className={inputClass} type={key==='email'?'email':key==='phone'?'tel':'text'} value={contact[key]} disabled={sending||sent} onChange={e=>onContact(key,e.target.value)} onBlur={()=>{if(key==='email'&&contact.email)void onSaveEmail?.().catch(()=>{});}}/></label>)}
+      {(['fullName','email','phone'] as const).map(key=><label key={key} className="block text-sm font-semibold">{key==='fullName'?'Nume':key==='email'?'Email':'Telefon'}<input className={inputClass} type={key==='email'?'email':key==='phone'?'tel':'text'} value={contact[key]} disabled={sending||sent||contactReviewBusy} onChange={e=>onContact(key,e.target.value)} onBlur={()=>{if(key==='email'&&contact.email)void onSaveEmail?.().catch(()=>{});}}/></label>)}
       {crmStatus&&<p role="status" className="text-sm text-slate-700">{crmStatus}</p>}
-      <button type="button" disabled={sending||sent} onClick={()=>sendEmail()} className="rounded-lg bg-emerald-700 px-5 py-3 font-bold text-white disabled:opacity-50">{sending?'Se trimite…':sent?'Email trimis':'Trimite rezultatul pe email'}</button>
+      {contactReview}
+      <button type="button" disabled={sending||sent||contactReviewBusy||Boolean(contactReview)} onClick={()=>sendEmail()} className="rounded-lg bg-emerald-700 px-5 py-3 font-bold text-white disabled:opacity-50">{sending?'Se trimite…':sent?'Email trimis':'Trimite rezultatul pe email'}</button>
       {whatsappFailed&&<button type="button" disabled={sending} onClick={()=>sendEmail(true)} className="ml-2 rounded-lg border border-emerald-700 px-5 py-3 font-bold text-emerald-800 disabled:opacity-50">Reîncearcă WhatsApp</button>}
       <p className="text-sm text-slate-600">La trimitere, rezumatul este trimis și ca mesaj text WhatsApp la telefonul de mai sus. Livrarea depinde de regulile WhatsApp și de fereastra de conversație de 24 de ore.</p>
-      {emailState&&<p role="status" className={sent?'font-bold text-emerald-800':'text-red-700'}>{emailState}</p>}
+      {emailState&&emailMessageVersion===contactLinkVersion&&<p role="status" className={sent?'font-bold text-emerald-800':'text-red-700'}>{emailState}</p>}
       {sent&&<><p className="font-bold text-red-700">Se așteaptă verificarea emailului. Uneori durează mai mult sau ajunge în Spam. Rugați clientul să îl găsească, să îl scoată din Spam și să deschidă linkul pentru a vedea rezultatele pe site.</p><Check label="Clientul confirmă că a primit emailul și a deschis rezultatul" checked={confirmed} onChange={setConfirmed}/></>}
     </section>}
     <section className="space-y-4 rounded-xl border bg-white p-5 leading-7">
