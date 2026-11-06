@@ -16,7 +16,7 @@ function ContactTable({token,rows,onChanged,onReplied}:{token:string;rows:Attent
  <td className="p-3"><button type="button" className="text-blue-800 underline" disabled={phoneKey(row.phone)!==phoneKey(row.primaryPhone)} title={phoneKey(row.phone)!==phoneKey(row.primaryPhone)?"Contact primit pe un număr secundar":"Deschide istoricul"} aria-expanded={historyId===row.contactId} onClick={()=>setHistoryId(historyId===row.contactId?null:row.contactId)}>{row.phone||"Istoric"}</button></td>
  <td className="p-3">{time(row.appointmentAtUtc)}</td><td className="p-3"><strong>{row.channel==="call"?"Apel primit":"WhatsApp primit"}</strong><p>{time(row.atUtc)}</p><p className="whitespace-pre-wrap break-words max-w-lg mt-2">{row.text||(row.channel==="whatsapp"?"Mesaj fără text / atașament":"")}</p></td>
  <td className="p-3">{phoneKey(row.phone)===phoneKey(row.primaryPhone)?<ContactActions token={token} contactId={row.contactId} name={row.name} phone={row.phone} onChanged={result=>onChanged(contactActionNotice(result))}/>:<a className="text-blue-800 underline" href={`/admin/crm/?tab=details&phone=${encodeURIComponent(row.phone||"")}`}>Deschide lead-ul — contact pe un număr secundar</a>}</td></tr>
- {historyId===row.contactId&&<tr><td colSpan={6} className="p-4"><LeadPhoneHistory token={token} contactId={row.contactId} phone={row.phone} name={row.name} onReplied={()=>onReplied(row.contactId)}/></td></tr>}
+ {historyId===row.contactId&&<tr><td colSpan={6} className="p-4"><LeadPhoneHistory token={token} contactId={row.contactId} phone={row.phone} name={row.name} onReplied={()=>onReplied(row.contactId)} onCollapse={()=>setHistoryId(null)}/></td></tr>}
  </Fragment>)}</tbody></table></div>;
 }
 export default function AttentionPanel({token}:{token:string}){
