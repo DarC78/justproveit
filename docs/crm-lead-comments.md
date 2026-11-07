@@ -7,3 +7,5 @@ Every lead/customer shown in Scheduled Calls, Attention, AllCustomersView and Al
 API routes: GET/POST `contacts/{id}/internal`, GET/POST `customers/{id}/internal`, POST `contacts/internal-summaries` under `/justproveit/admin/crm`. A note's `nextActionDate` sets a date, null clears it, omission preserves it. The request UUID is retained for retries and regenerated after editing text/date. Date-only saves are not exposed: a comment is required. Saving is blocked if the initial record read was not verified.
 
 Backend contract: LaunchingStack `docs/engineering/systems/crm-lead-comments.md`. Tests cover date setting/clearing, comment-only saves, no closure side effects, idempotency, actor/tenant authorization and both database providers.
+
+Rows with a Next Action Date use pale red for past dates, pale green for today and pale blue for future dates, compared in Europe/London. No date preserves the existing row styling, including chatbot handoff highlighting. The colours indicate date timing, not task completion.

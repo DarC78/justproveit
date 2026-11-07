@@ -1,5 +1,5 @@
 import InternalLeadActions from './InternalLeadActions';
-import {useLeadNoteSummaries} from '@/lib/leadNotes';
+import {nextActionRowStyle,useLeadNoteSummaries} from '@/lib/leadNotes';
 import LeadPhoneHistory from "./LeadPhoneHistory";
 import WhatsAppDraftRow from "./WhatsAppDraftRow";
 import {WhatsAppDraft,listWhatsAppDrafts} from "@/lib/whatsappDrafts";
@@ -80,7 +80,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
         <p className="count">{report.total} {noun} · {report.rows.length?`${page*pageSize+1}–${page*pageSize+report.rows.length}`:"0"} shown</p>
         {!report.rows.length?<p className="status">No matching {noun}.</p>:<div className="table-scroll" tabIndex={0} role="region" aria-label={title}><table>
           <thead><tr>{["Name","Phone number","Email",...(kind==='customers'?['Servicii']:[]),kind==="leads"?"Became a lead":"Became a customer","Latest inbound contact","Call booked for (UK)","First call (UK)","Last call (UK)","Number of calls","First callcode","Last callcode","Latest WhatsApp message","Booking actions"].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
-          <tbody>{report.rows.map(row=><Fragment key={row.contactId}><tr>
+          <tbody>{report.rows.map(row=><Fragment key={row.contactId}><tr style={nextActionRowStyle(notes.summaries[(noteContactId(row)?'contact:'+noteContactId(row)!.toLowerCase():'customer:'+row.contactId.toLowerCase())]?.nextActionDate)}>
             <th scope="row">{row.phone?<Link href={{pathname:"/crmdispatch",query:{phone:row.phone}}}>{row.name||(kind==="leads"?"Lead":"Customer")}</Link>:row.name||(kind==="leads"?"Lead":"Customer")}</th>
             <td>{row.phone?row.booking?<button type="button" className="text-link" onClick={()=>setHistory(row.booking)}>{row.phone}</button>:<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.phone}</Link>:"—"}</td>
             <td>{row.email||"—"}</td>{kind==='customers'&&<td><InternationalPensionCase token={token} customerId={row.contactId} summary={serviceSummaries[row.contactId.toLowerCase()]} summaryError={serviceError} onSaved={summary=>setServiceSummaries(previous=>({...previous,[row.contactId.toLowerCase()]:summary}))}/></td>}<td>{time(row.createdAtUtc)}</td>

@@ -30,3 +30,13 @@ test('a comment without editing the date preserves another agents newer follow-u
  h.results.push({success:true,action:'note',contactId:'contact',closed:false,nextActionDate:'2030-03-10',note:{id:'concurrent',kind:'note',text:'Internal update',atUtc:'2030-01-01T10:00:00Z',actor:'Agent'}});await h.submit();h.render();assert.equal(Object.hasOwn(h.calls[0],'nextActionDate'),false);assert.equal(h.nodes('dialog').length,0);assert.equal(h.nodes('small').some(n=>JSON.stringify(n.props.children).includes('10/03/2030')),true);
 });
 
+
+test('follow-up row colours use UK calendar dates including the summer midnight boundary',()=>{
+ const exports={};const source=ts.transpileModule(fs.readFileSync('src/lib/leadNotes.ts','utf8'),{compilerOptions:{target:ts.ScriptTarget.ES2020,module:ts.ModuleKind.CommonJS}}).outputText;
+ vm.runInNewContext(source,{exports,require:()=>({}),Intl,Date});const style=exports.nextActionRowStyle,now=new Date('2026-07-01T23:30:00Z');
+ assert.equal(style(null,now),undefined);assert.equal(style('',now),undefined);
+ assert.equal(style('2026-07-01',now).backgroundColor,'#fee2e2');
+ assert.equal(style('2026-07-02',now).backgroundColor,'#dcfce7');
+ assert.equal(style('2026-07-03',now).backgroundColor,'#dbeafe');
+ assert.equal(style('2026-12-31',new Date('2027-01-01T00:01:00Z')).backgroundColor,'#fee2e2');
+});

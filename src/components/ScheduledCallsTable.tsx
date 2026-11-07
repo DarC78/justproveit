@@ -7,7 +7,7 @@ import BookingActions from "./BookingActions";
 import {bookingActionNotice} from "@/lib/bookedCalls";
 import {ScheduledCallRow} from "@/lib/crmAdmin";
 import InternalLeadActions from './InternalLeadActions';
-import {useLeadNoteSummaries} from '@/lib/leadNotes';
+import {nextActionRowStyle,useLeadNoteSummaries} from '@/lib/leadNotes';
 
 const londonDateTime=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"short"});
 const londonTime=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
@@ -33,7 +33,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
       <th scope="col">On WhatsApp Business</th><th scope="col">Solved on WhatsApp</th>
       <th scope="col">WhatsApp client in ziua programarii</th><th scope="col">WhatsApp noi in ziua programarii</th>
       <th scope="col">Actiuni programare</th>
-    </tr></thead><tbody>{rows.map(row=><tr key={row.intentId}>
+    </tr></thead><tbody>{rows.map(row=><tr key={row.intentId} style={nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate)}>
       <td><time dateTime={row.appointmentAtUtc}>{attention?dateTime(row.appointmentAtUtc):londonTime.format(new Date(row.appointmentAtUtc))}</time></td>
       <th scope="row">{row.phone?<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.name||"Client"}</Link>:row.name||"Client"}
         <small>{row.intentType==="MANUAL_BOOK"?"Manual booking":"Calendly"}{row.serviceName?` · ${row.serviceName}`:""}</small>

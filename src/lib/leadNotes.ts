@@ -3,6 +3,14 @@ import {API_BASE_URL} from './auth';
 export type NoteTarget={id:string;kind:'contact'|'customer'};
 export type LeadNoteSummary={nextActionDate:string|null;noteCount:number};
 export const noteTargetKey=(target:NoteTarget)=>target.kind+':'+target.id.toLowerCase();
+// Compare calendar dates in UK time, without converting the saved date to UTC.
+export function nextActionRowStyle(date?:string|null,now=new Date()){
+ if(!date||!/^\d{4}-\d{2}-\d{2}$/.test(date))return undefined;
+ const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);
+ const part=(name:string)=>parts.find(p=>p.type===name)?.value;
+ const today=part('year')+'-'+part('month')+'-'+part('day');
+ return {backgroundColor:date<today?'#fee2e2':date===today?'#dcfce7':'#dbeafe'};
+}
 export function useLeadNoteSummaries(token:string,targets:NoteTarget[]){
  const key=JSON.stringify([...new Map(targets.map(t=>[noteTargetKey(t),t])).values()]);
  const [summaries,setSummaries]=useState<Record<string,LeadNoteSummary>>({}),[revision,setRevision]=useState(0),[error,setError]=useState('');
