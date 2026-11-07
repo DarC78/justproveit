@@ -19,14 +19,17 @@ const time=(value:string|null)=>value&&Number.isFinite(Date.parse(value))?clock.
 
 export function CustomersSection({token,scope,title,description,kind="customers",refreshKey=0,onChanged,defaultFilters=initialFilters}:{token:string;scope:CustomerScope;title:string;description:string;kind?:RecordKind;refreshKey?:number;onChanged?:()=>void;defaultFilters?:CustomerFilters}) {
   const searchFirst=kind==="leads"&&scope==="all";
-  const pageSize=searchFirst?5:CUSTOMER_PAGE_SIZE;
+  const serviceFirst=kind==='customers'&&scope==='all';
+  const pageSize=searchFirst?5:serviceFirst?10:CUSTOMER_PAGE_SIZE;
+  const defaults=serviceFirst?{...defaultFilters,service:'',status:''}:kind==='customers'&&scope==='inbound'?{...defaultFilters,inboundDays:7}:defaultFilters;
   const noun=kind==="leads"?"leads":"customers";
-  const [filters,setFilters]=useState(defaultFilters),[applied,setApplied]=useState(defaultFilters);
+  const [filters,setFilters]=useState(defaults),[applied,setApplied]=useState(defaults);
   const [page,setPage]=useState(0),[revision,setRevision]=useState(0);
   const [report,setReport]=useState<CustomerPage|null>(null),[loading,setLoading]=useState(!searchFirst),[error,setError]=useState("");
   const [history,setHistory]=useState<ScheduledCallRow|null>(null),[notice,setNotice]=useState("");
   const noteContactId=(row:CustomerRow)=>row.actionContactId||(kind==='leads'?row.contactId:row.booking?.contactId);
   const notes=useLeadNoteSummaries(token,(report?.rows||[]).map(row=>({id:noteContactId(row)||row.contactId,kind:noteContactId(row)?'contact':'customer'})));
+  const [catalog,setCatalog]=useState<Array<{value:string;label:string}>>([]),[statuses,setStatuses]=useState<Array<{value:string;label:string}>>([]);
   const [serviceSummaries,setServiceSummaries]=useState<Record<string,PensionCaseSummary|null>>({}),[serviceError,setServiceError]=useState('');
   useEffect(()=>{
     if(kind!=='customers'||!report?.rows.length)return;
@@ -34,14 +37,14 @@ export function CustomersSection({token,scope,title,description,kind="customers"
     Promise.resolve().then(async()=>{if(controller.signal.aborted)return;setServiceSummaries({});setServiceError('');try{const result=await loadPensionCaseSummaries(token,report.rows.map(row=>row.contactId),controller.signal);if(!controller.signal.aborted)setServiceSummaries(result.summaries);}catch(cause){if(!controller.signal.aborted)setServiceError(cause instanceof Error?cause.message:'Starea dosarelor nu poate fi încărcată.');}});
     return()=>controller.abort();
   },[token,kind,report]);
-  const hasSearch=!searchFirst||Object.values(applied).some(value=>value.trim());
+  const hasSearch=!searchFirst||[applied.name,applied.phone,applied.email].some(value=>value.trim());
   useEffect(()=>{
     const controller=new AbortController();
     Promise.resolve().then(async()=>{
       if(controller.signal.aborted)return;
       if(!hasSearch){setReport(null);setLoading(false);setError("");setNotice("");return;}
       setLoading(true);setError("");setReport(null);
-      try{const data=await loadCustomerPage(token,scope,applied,page,controller.signal,kind,pageSize);if(!controller.signal.aborted)setReport(data);}
+      try{const data=await loadCustomerPage(token,scope,applied,page,controller.signal,kind,pageSize);if(!controller.signal.aborted){setReport(data);if(data.services)setCatalog(data.services);if(data.statuses)setStatuses(data.statuses);}}
       catch(cause){if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:"Unable to load CRM records.");}
       finally{if(!controller.signal.aborted)setLoading(false);}
     });return()=>controller.abort();
@@ -62,8 +65,9 @@ export function CustomersSection({token,scope,title,description,kind="customers"
   return <section className="customer-section" aria-labelledby={`${kind}-${scope}-title`}>
     <h2 id={`${kind}-${scope}-title`}>{title}</h2><p>{description}</p>
     <form onSubmit={apply} className="filters">
+      {serviceFirst&&<><label>Service<select value={applied.service||''} onChange={e=>{const next={...filters,service:e.target.value,status:''};setFilters(next);setApplied(next);setPage(0);setReport(null);setStatuses([]);}}><option value="">Select a service</option>{catalog.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label>Status<select disabled={!applied.service} value={applied.status||''} onChange={e=>{const next={...filters,status:e.target.value};setFilters(next);setApplied(next);setPage(0);setReport(null);}}><option value="">All statuses</option>{statuses.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label></>}
       {(["name","phone","email"] as const).map(field=><label key={field}>{field[0].toUpperCase()+field.slice(1)}<input type="search" value={filters[field]} onChange={e=>setFilters({...filters,[field]:e.target.value})}/></label>)}
-      <button type="submit">{searchFirst?"Search CRM leads":"Apply filters"}</button><button type="button" onClick={()=>{setFilters(initialFilters);setApplied({...initialFilters});setPage(0);setLoading(true);setReport(null);}}>Clear</button>
+      <button type="submit">{searchFirst?"Search CRM leads":"Apply filters"}</button><button type="button" onClick={()=>{setFilters(defaults);setApplied({...defaults});setPage(0);setLoading(true);setReport(null);}}>Clear</button>
       <button type="button" onClick={()=>setRevision(n=>n+1)} disabled={loading||!hasSearch}>Refresh</button>
     </form>
     {notes.error&&<p role="alert">{notes.error}</p>}
@@ -71,7 +75,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
     {draftError&&<p role="alert" className="error">{draftError}</p>}
     {kind==='customers'&&serviceError&&<p role="alert" className="error">{serviceError}</p>}
     <div aria-live="polite" aria-busy={loading}>
-      {!hasSearch?<p className="status">Search by name, phone or email to display CRM leads and their history.</p>:loading?<p className="status">Loading {noun}...</p>:error?<p className="error" role="alert">{error}</p>:report&&<>
+      {!hasSearch?<p className="status">Search by name, phone or email to display CRM leads and their history.</p>:loading?<p className="status">Loading {noun}...</p>:error?<p className="error" role="alert">{error}</p>:serviceFirst&&!applied.service?<p className="status">Select a service to display its customers.</p>:report&&<>
         {report.warnings?.map(warning=><p className="warning" key={warning}>{warning}</p>)}
         <p className="count">{report.total} {noun} · {report.rows.length?`${page*pageSize+1}–${page*pageSize+report.rows.length}`:"0"} shown</p>
         {!report.rows.length?<p className="status">No matching {noun}.</p>:<div className="table-scroll" tabIndex={0} role="region" aria-label={title}><table>
@@ -96,7 +100,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
     <style jsx>{`
       .customer-section{margin:24px 0 40px;color:#344054}h2{font-size:23px;color:#17376e;margin:0 0 8px}p{font-size:13px;line-height:1.5;margin:0}
       .filters{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:18px 0}label{display:grid;gap:6px;font-size:13px;font-weight:700}
-      input,button{border:1px solid #cbd5e1;border-radius:5px;padding:9px 12px;background:white;font:inherit}button{color:#143b92;cursor:pointer;font-size:13px;font-weight:700}button:disabled{opacity:.5;cursor:default}
+      input,select,button{border:1px solid #cbd5e1;border-radius:5px;padding:9px 12px;background:white;font:inherit}button{color:#143b92;cursor:pointer;font-size:13px;font-weight:700}button:disabled{opacity:.5;cursor:default}
       .lead-history-row td{padding:18px;background:#f1f5f9}.table-scroll{overflow-x:auto;border:1px solid #dce3ee;border-radius:7px}table{width:100%;min-width:1700px;border-collapse:collapse;font-size:12px;text-align:left}thead{background:#eef3fb;color:#17376e}
       th,td{padding:14px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top;min-width:110px}tbody th{min-width:160px}tbody tr:hover{background:#f8fafc}
       small{display:block;font-size:11px;color:#667085;margin:5px 0}.message{white-space:pre-wrap;overflow-wrap:anywhere;min-width:220px;max-height:150px;overflow:auto}
@@ -108,7 +112,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
 export default function AllCustomersView({token}:{token:string}) {
   const [revision,setRevision]=useState(0);
   return <section><h1 className="text-3xl font-bold mt-7">AllCustomersView</h1><p className="mt-2 text-sm text-slate-600">Customer records and inbound contact · All times are UK time</p>
-    <CustomersSection token={token} refreshKey={revision} onChanged={()=>setRevision(n=>n+1)} scope="inbound" title="Customers who contacted us" description="OZ clients with at least one received email, WhatsApp message or inbound call. CRM leads who are not clients are excluded."/>
-    <CustomersSection token={token} refreshKey={revision} onChanged={()=>setRevision(n=>n+1)} scope="all" title="All customers" description="All OZ clients, including clients without bookings or inbound contact. One row per email; phone is used when email is missing. 50 clients per page."/>
+    <CustomersSection token={token} refreshKey={revision} onChanged={()=>setRevision(n=>n+1)} scope="inbound" title="Customers who contacted us" description="Customers who sent an email or WhatsApp message, or called inbound, in the past 7 days."/>
+    <CustomersSection token={token} refreshKey={revision} onChanged={()=>setRevision(n=>n+1)} scope="all" title="All customers" description="Select a service, then optionally refine by status. 10 customers per page."/>
   </section>;
 }

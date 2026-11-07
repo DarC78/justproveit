@@ -2,7 +2,7 @@
 import { API_BASE_URL } from "./auth";
 export type RecordKind="customers"|"leads";
 export type CustomerScope="inbound"|"all";
-export type CustomerFilters={name:string;phone:string;email:string};
+export type CustomerFilters={name:string;phone:string;email:string;service?:string;status?:string;inboundDays?:number};
 export type CustomerRow={
   contactId:string;name:string;phone:string|null;email:string|null;createdAtUtc:string|null;
   lastInbound:{channel:"email"|"whatsapp"|"call";atUtc:string;source:string|null;text:string|null}|null;
@@ -12,11 +12,11 @@ export type CustomerRow={
   firstCallCode:string|number|null;lastCallCode:string|number|null;
   lastWhatsApp:{atUtc:string;direction:"inbound"|"outbound";source:string|null;text:string}|null;
 };
-export type CustomerPage={scope:CustomerScope;rows:CustomerRow[];total:number;limit:number;offset:number;warnings?:string[]};
+export type CustomerPage={scope:CustomerScope;rows:CustomerRow[];total:number;limit:number;offset:number;warnings?:string[];services?:Array<{value:string;label:string}>;statuses?:Array<{value:string;label:string}>};
 export const CUSTOMER_PAGE_SIZE=50;
 export function customerPageQuery(scope:CustomerScope,filters:CustomerFilters,page:number,pageSize=CUSTOMER_PAGE_SIZE) {
   if(!Number.isInteger(page)||page<0)throw new Error("Invalid customer page.");
-  return new URLSearchParams({scope,name:filters.name.trim(),phone:filters.phone.trim(),email:filters.email.trim(),limit:String(pageSize),offset:String(page*pageSize)});
+  return new URLSearchParams({...(filters.service!==undefined?{service:filters.service,status:filters.status||''}:{}),...(filters.inboundDays?{inboundDays:String(filters.inboundDays)}:{}),scope,name:filters.name.trim(),phone:filters.phone.trim(),email:filters.email.trim(),limit:String(pageSize),offset:String(page*pageSize)});
 }
 export async function loadCustomerPage(token:string,scope:CustomerScope,filters:CustomerFilters,page:number,signal:AbortSignal,kind:RecordKind="customers",pageSize=CUSTOMER_PAGE_SIZE):Promise<CustomerPage> {
   const base=process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||API_BASE_URL;
