@@ -1,5 +1,25 @@
 ﻿# AllCustomersView: required backend contract
 
+## Service workflow business specification
+
+Read the latest user-maintained [International pensions client workflow specification](https://docs.google.com/document/d/1TtiqQYsh5os8J_DDI916e5L9vSAeTlwP3eWhh-nm1r8/edit)
+before changing service stages, agent actions, client-triggered events or their
+resulting tasks, messages and automations in `/admin/crm/?tab=allCustomersView`.
+
+Created 7 November 2026, this is a **draft template** for existing-client service
+delivery, separate from the WhatsApp lead-qualification funnel. Examples and
+`[TO DEFINE]` fields are not approved requirements or implemented functionality.
+Fetch the live Google Doc rather than relying on an old copied version. A client
+may have multiple service files with independent progress. If the document cannot
+be accessed, report the gap rather than inferring its requirements.
+
+The contract below describes existing functionality; it does not establish that
+the proposed service workflow is live.
+
+Backend counterpart: `LaunchingStack/docs/systems/crm-all-customers-view.md`.
+
+## Existing frontend and API contract
+
 Frontend implementation: `src/components/AllCustomersView.tsx`, client `src/lib/allCustomers.ts`, tab `allCustomersView` in `/admin/crm`. The matching backend API is implemented in LaunchingStack (`crmCustomers.js`, `justProveItCrmCustomers.js`) with the contract below.
 
 ## Endpoint

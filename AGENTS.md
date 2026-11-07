@@ -31,3 +31,10 @@
 - Release through the repository's GitHub deployment workflow and verify the deployed feature before reporting completion. Keep delivery continuous with small, focused commits and minimal delay between validation and release.
 - For work spanning both repositories, synchronize and deliver each affected repository, coordinating backend/frontend releases so dependencies are available before the feature uses them.
 - This standing authorization covers source synchronization and code delivery only; it does not authorize sending emails, publishing social content, or other external messages.
+
+## Existing-client service workflow specifications
+
+- Before working on service stages, agent actions, client events or their resulting tasks/automations in CRM `allCustomersView`, read the latest user-maintained [International pensions client workflow specification](https://docs.google.com/document/d/1TtiqQYsh5os8J_DDI916e5L9vSAeTlwP3eWhh-nm1r8/edit).
+- This Google Doc is the working business specification for existing-client international pensions delivery, separate from the WhatsApp lead-qualification funnel. It is currently a draft template: examples and `[TO DEFINE]` fields are not approved requirements or implemented behavior. Use subsequent explicit user decisions to resolve them; do not silently implement example rules.
+- Fetch the current document when doing related work; do not rely on an old copied version. If access is unavailable, report the access gap rather than inventing the flow. Keep this locator current if the specification moves.
+- Frontend contract: `docs/crm-all-customers-backend-spec.md`. Backend counterpart: `C:\DevProjects\LaunchingStack\docs\systems\crm-all-customers-view.md`. Keep implemented behavior documented separately from proposed workflow changes.

@@ -1,5 +1,14 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
 
+## CRM workflow specifications
+
+For existing-client service workflows in `allCustomersView`, start with
+[the customer-view specification](docs/crm-all-customers-backend-spec.md).
+It links to the user-maintained international pensions workflow Google Doc,
+currently a draft template for stages, agent actions, client events and follow-up
+actions. Read the live document before implementing related changes. Repository
+agent guidance is in [AGENTS.md](AGENTS.md).
+
 ## Getting Started
 
 First, run the development server:
