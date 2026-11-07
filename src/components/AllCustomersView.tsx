@@ -9,6 +9,8 @@ import PhoneHistoryModal from "./PhoneHistoryModal";
 import BookingActions from "./BookingActions";
 import {ScheduledCallRow} from "@/lib/crmAdmin";
 import {bookingActionNotice} from "@/lib/bookedCalls";
+import InternationalPensionCase from './InternationalPensionCase';
+import {loadPensionCaseSummaries,PensionCaseSummary} from '@/lib/internationalPensionCases';
 const initialFilters:CustomerFilters={name:"",phone:"",email:""};
 const clock=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"short"});
 const time=(value:string|null)=>value&&Number.isFinite(Date.parse(value))?clock.format(new Date(value)):"—";
@@ -21,6 +23,13 @@ export function CustomersSection({token,scope,title,description,kind="customers"
   const [page,setPage]=useState(0),[revision,setRevision]=useState(0);
   const [report,setReport]=useState<CustomerPage|null>(null),[loading,setLoading]=useState(!searchFirst),[error,setError]=useState("");
   const [history,setHistory]=useState<ScheduledCallRow|null>(null),[notice,setNotice]=useState("");
+  const [serviceSummaries,setServiceSummaries]=useState<Record<string,PensionCaseSummary|null>>({}),[serviceError,setServiceError]=useState('');
+  useEffect(()=>{
+    if(kind!=='customers'||!report?.rows.length)return;
+    const controller=new AbortController();
+    Promise.resolve().then(async()=>{if(controller.signal.aborted)return;setServiceSummaries({});setServiceError('');try{const result=await loadPensionCaseSummaries(token,report.rows.map(row=>row.contactId),controller.signal);if(!controller.signal.aborted)setServiceSummaries(result.summaries);}catch(cause){if(!controller.signal.aborted)setServiceError(cause instanceof Error?cause.message:'Starea dosarelor nu poate fi încărcată.');}});
+    return()=>controller.abort();
+  },[token,kind,report]);
   const hasSearch=!searchFirst||Object.values(applied).some(value=>value.trim());
   useEffect(()=>{
     const controller=new AbortController();
@@ -55,16 +64,17 @@ export function CustomersSection({token,scope,title,description,kind="customers"
     </form>
     {notice&&<p role="status">{notice}</p>}
     {draftError&&<p role="alert" className="error">{draftError}</p>}
+    {kind==='customers'&&serviceError&&<p role="alert" className="error">{serviceError}</p>}
     <div aria-live="polite" aria-busy={loading}>
       {!hasSearch?<p className="status">Search by name, phone or email to display CRM leads and their history.</p>:loading?<p className="status">Loading {noun}...</p>:error?<p className="error" role="alert">{error}</p>:report&&<>
         {report.warnings?.map(warning=><p className="warning" key={warning}>{warning}</p>)}
         <p className="count">{report.total} {noun} · {report.rows.length?`${page*pageSize+1}–${page*pageSize+report.rows.length}`:"0"} shown</p>
         {!report.rows.length?<p className="status">No matching {noun}.</p>:<div className="table-scroll" tabIndex={0} role="region" aria-label={title}><table>
-          <thead><tr>{["Name","Phone number","Email",kind==="leads"?"Became a lead":"Became a customer","Latest inbound contact","Call booked for (UK)","First call (UK)","Last call (UK)","Number of calls","First callcode","Last callcode","Latest WhatsApp message","Booking actions"].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
+          <thead><tr>{["Name","Phone number","Email",...(kind==='customers'?['Servicii']:[]),kind==="leads"?"Became a lead":"Became a customer","Latest inbound contact","Call booked for (UK)","First call (UK)","Last call (UK)","Number of calls","First callcode","Last callcode","Latest WhatsApp message","Booking actions"].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
           <tbody>{report.rows.map(row=><Fragment key={row.contactId}><tr>
             <th scope="row">{row.phone?<Link href={{pathname:"/crmdispatch",query:{phone:row.phone}}}>{row.name||(kind==="leads"?"Lead":"Customer")}</Link>:row.name||(kind==="leads"?"Lead":"Customer")}</th>
             <td>{row.phone?row.booking?<button type="button" className="text-link" onClick={()=>setHistory(row.booking)}>{row.phone}</button>:<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.phone}</Link>:"—"}</td>
-            <td>{row.email||"—"}</td><td>{time(row.createdAtUtc)}</td>
+            <td>{row.email||"—"}</td>{kind==='customers'&&<td><InternationalPensionCase token={token} customerId={row.contactId} summary={serviceSummaries[row.contactId.toLowerCase()]} summaryError={serviceError} onSaved={summary=>setServiceSummaries(previous=>({...previous,[row.contactId.toLowerCase()]:summary}))}/></td>}<td>{time(row.createdAtUtc)}</td>
             <td>{row.lastInbound?<><strong>{row.lastInbound.channel}</strong><small>{time(row.lastInbound.atUtc)} · {row.lastInbound.source||"Source unavailable"}</small><p className="message">{row.lastInbound.text}</p></>:"No inbound contact recorded"}</td>
             <td>{row.booking?time(row.booking.appointmentAtUtc):"No booking"}</td><td>{time(row.firstCallAtUtc)}</td><td>{time(row.lastCallAtUtc)}</td>
             <td>{row.callCount??"Unavailable"}</td><td>{callcodeText(row.firstCallCode)}</td><td>{callcodeText(row.lastCallCode)}</td>

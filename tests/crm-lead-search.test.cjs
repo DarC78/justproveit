@@ -25,6 +25,8 @@ const crm={
  async sendScheduledWhatsAppReply(){assert.fail('A booking must not be required for lead replies');}
 };
 const mocks={
+ '@/lib/internationalPensionCases':{async loadPensionCaseSummaries(){return {summaries:{}};}},
+ './InternationalPensionCase':{default:()=>null},
  'next/router':{useRouter:()=>router},
  '@/lib/crmAdmin':crm,
  '@/lib/allCustomers':{CUSTOMER_PAGE_SIZE:50,callcodeText:()=>'',contactActionNotice:()=>'',async loadCustomerPage(token,scope,applied,page,signal,kind,size){calls.pages.push({applied,page,kind,size});return {scope,total:rows.length,limit:size,offset:page*size,rows:rows.slice(page*size,(page+1)*size)};}},

@@ -20,6 +20,34 @@ Backend counterpart: `LaunchingStack/docs/systems/crm-all-customers-view.md`.
 
 ## Existing frontend and API contract
 
+### Manual international pensions service cases
+
+The Services column in each customer list opens `InternationalPensionCase.tsx`.
+It shows the 21-stage user-defined UK–Romania workflow, supports additional work
+countries with years/months, initial CFN901 fields, document references, manual
+verification, tasks/due dates, notes and recent audit history. Stage changes are
+manual and require saving dirty form changes first. Existing booking and lead
+actions are preserved; the new controls are only rendered for customer lists.
+
+`src/lib/internationalPensionCases.ts` calls:
+
+- `GET/POST /justproveit/admin/crm/customers/{customerId}/international-pension`.
+- `POST /justproveit/admin/crm/international-pension/summaries` for at most 50 IDs.
+
+Writes use an unchanged UUID request ID for retries and optimistic `expectedVersion`.
+409 errors preserve the unsaved draft; the user explicitly reloads/reconciles.
+UK date inputs convert to UTC independently of the workstation time zone.
+
+Opening requires manual first-payment confirmation, associated sale and plan.
+The selling agent is read from that sale or manually confirmed if unknown;
+payment confirmation does not assign the confirming agent as owner. Backend
+gates require signed authority and postal evidence before marking CFN901 posted,
+ordered major stages, decision review/explanation and final client approval.
+No new automatic emails, WhatsApp messages or reminder timers are enabled.
+
+Backend implementation: `LaunchingStack/docs/engineering/systems/international-pension-client-workflow.md`.
+Tests: `node --test tests/international-pension-case.test.cjs tests/crm-lead-search.test.cjs`.
+
 Frontend implementation: `src/components/AllCustomersView.tsx`, client `src/lib/allCustomers.ts`, tab `allCustomersView` in `/admin/crm`. The matching backend API is implemented in LaunchingStack (`crmCustomers.js`, `justProveItCrmCustomers.js`) with the contract below.
 
 ## Endpoint
