@@ -1433,7 +1433,7 @@ export function sendContactWhatsAppReply(token:string,contactId:string,body:Comp
  return fetchCanonicalCrmReadJson<WhatsAppReplyResult>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/whatsapp/replies`,{method:"POST",headers:authHeaders(token),body:JSON.stringify(body)});
 }
 
-export type AttentionContact = {assignment?:LeadAssignment|null;contactId:string;name:string;phone:string|null;primaryPhone:string|null;channel:"whatsapp"|"call";atUtc:string;text:string|null;bookingId:string|null;appointmentAtUtc:string|null};
+export type AttentionContact = {chatbotHandoff?:{reason:string;requestedAtUtc:string|null;summary:string};assignment?:LeadAssignment|null;contactId:string;name:string;phone:string|null;primaryPhone:string|null;channel:"whatsapp"|"call";atUtc:string;text:string|null;bookingId:string|null;appointmentAtUtc:string|null};
 export type CrmAttentionResponse = {overdue:ScheduledCallRow[];returned:AttentionContact[];willBuy:AttentionContact[];other:AttentionContact[];lookbackDays:number;asOfUtc:string;timeZone:string;warnings:string[]};
 export function listCrmAttention(token:string,days:number,signal?:AbortSignal){
  return fetchCanonicalCrmReadJson<CrmAttentionResponse>(`${BASE_PATH}/attention${buildQuery({days})}`,{headers:{Authorization:`Bearer ${token}`},cache:'no-store',signal});
