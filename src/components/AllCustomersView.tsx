@@ -1,10 +1,12 @@
+import InternalLeadActions from './InternalLeadActions';
+import {useLeadNoteSummaries} from '@/lib/leadNotes';
 import LeadPhoneHistory from "./LeadPhoneHistory";
 import WhatsAppDraftRow from "./WhatsAppDraftRow";
 import {WhatsAppDraft,listWhatsAppDrafts} from "@/lib/whatsappDrafts";
 import ContactActions from "./ContactActions";
 import Link from "next/link";
 import {Fragment,FormEvent,useEffect,useState} from "react";
-import {CustomerFilters,CustomerPage,CustomerScope,CUSTOMER_PAGE_SIZE,loadCustomerPage,RecordKind,callcodeText,contactActionNotice} from "@/lib/allCustomers";
+import {CustomerFilters,CustomerPage,CustomerScope,CustomerRow,CUSTOMER_PAGE_SIZE,loadCustomerPage,RecordKind,callcodeText,contactActionNotice} from "@/lib/allCustomers";
 import PhoneHistoryModal from "./PhoneHistoryModal";
 import BookingActions from "./BookingActions";
 import {ScheduledCallRow} from "@/lib/crmAdmin";
@@ -23,6 +25,8 @@ export function CustomersSection({token,scope,title,description,kind="customers"
   const [page,setPage]=useState(0),[revision,setRevision]=useState(0);
   const [report,setReport]=useState<CustomerPage|null>(null),[loading,setLoading]=useState(!searchFirst),[error,setError]=useState("");
   const [history,setHistory]=useState<ScheduledCallRow|null>(null),[notice,setNotice]=useState("");
+  const noteContactId=(row:CustomerRow)=>row.actionContactId||(kind==='leads'?row.contactId:row.booking?.contactId);
+  const notes=useLeadNoteSummaries(token,(report?.rows||[]).map(row=>({id:noteContactId(row)||row.contactId,kind:noteContactId(row)?'contact':'customer'})));
   const [serviceSummaries,setServiceSummaries]=useState<Record<string,PensionCaseSummary|null>>({}),[serviceError,setServiceError]=useState('');
   useEffect(()=>{
     if(kind!=='customers'||!report?.rows.length)return;
@@ -62,6 +66,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
       <button type="submit">{searchFirst?"Search CRM leads":"Apply filters"}</button><button type="button" onClick={()=>{setFilters(initialFilters);setApplied({...initialFilters});setPage(0);setLoading(true);setReport(null);}}>Clear</button>
       <button type="button" onClick={()=>setRevision(n=>n+1)} disabled={loading||!hasSearch}>Refresh</button>
     </form>
+    {notes.error&&<p role="alert">{notes.error}</p>}
     {notice&&<p role="status">{notice}</p>}
     {draftError&&<p role="alert" className="error">{draftError}</p>}
     {kind==='customers'&&serviceError&&<p role="alert" className="error">{serviceError}</p>}
@@ -79,7 +84,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
             <td>{row.booking?time(row.booking.appointmentAtUtc):"No booking"}</td><td>{time(row.firstCallAtUtc)}</td><td>{time(row.lastCallAtUtc)}</td>
             <td>{row.callCount??"Unavailable"}</td><td>{callcodeText(row.firstCallCode)}</td><td>{callcodeText(row.lastCallCode)}</td>
             <td>{row.lastWhatsApp?<><strong>{row.lastWhatsApp.direction==="inbound"?"Customer":"Us"}</strong><small>{time(row.lastWhatsApp.atUtc)} · {row.lastWhatsApp.source||"Source unavailable"}</small><p className="message">{row.lastWhatsApp.text}</p></>:"No WhatsApp message recorded"}</td>
-            <td>{(row.actionContactId||(kind==="leads"?row.contactId:row.booking?.contactId))&&<ContactActions token={token} contactId={(row.actionContactId||(kind==="leads"?row.contactId:row.booking?.contactId))!} name={row.name} phone={row.phone} onChanged={result=>{setNotice(contactActionNotice(result));setRevision(n=>n+1);onChanged?.();}}/>}{row.booking?<BookingActions token={token} booking={row.booking} onChanged={result=>{setNotice(bookingActionNotice(result));setRevision(n=>n+1);}} onBusinessMarked={()=>setRevision(n=>n+1)} onSolved={()=>{setNotice("Booking marked solved on WhatsApp.");setRevision(n=>n+1);onChanged?.();}}/>:"—"}</td>
+            <td>{(row.actionContactId||(kind==="leads"?row.contactId:row.booking?.contactId))&&<ContactActions noteSummary={notes.summaries['contact:'+(noteContactId(row)||'').toLowerCase()]} onNoteSaved={notes.refresh} token={token} contactId={(row.actionContactId||(kind==="leads"?row.contactId:row.booking?.contactId))!} name={row.name} phone={row.phone} onChanged={result=>{setNotice(contactActionNotice(result));setRevision(n=>n+1);onChanged?.();}}/>}{!noteContactId(row)&&<InternalLeadActions token={token} contactId={row.contactId} recordKind="customer" name={row.name} allowEnd={false} onChanged={()=>{}} summary={notes.summaries['customer:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh}/>}{row.booking?<BookingActions token={token} booking={row.booking} onChanged={result=>{setNotice(bookingActionNotice(result));setRevision(n=>n+1);}} onBusinessMarked={()=>setRevision(n=>n+1)} onSolved={()=>{setNotice("Booking marked solved on WhatsApp.");setRevision(n=>n+1);onChanged?.();}}/>:"—"}</td>
           </tr>{searchFirst&&<tr className="lead-history-row"><td colSpan={13}><LeadPhoneHistory key={row.contactId} token={token} contactId={row.contactId} phone={row.phone} name={row.name}/></td></tr>}{kind==="leads"&&drafts.filter(draft=>draft.contactId.toLowerCase()===row.contactId.toLowerCase()).map(draft=><WhatsAppDraftRow key={draft.id} token={token} draft={draft} onSent={()=>{setRevision(n=>n+1);onChanged?.();}}/>)}</Fragment>)}</tbody>
         </table></div>}
         <nav aria-label={`${title} pagination`} className="pagination"><button type="button" disabled={page===0} onClick={()=>{setLoading(true);setReport(null);setPage(p=>p-1);}}>Previous</button>

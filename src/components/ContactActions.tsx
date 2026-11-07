@@ -2,8 +2,9 @@ import {FormEvent,useEffect,useRef,useState} from "react";
 import {ContactAction,ContactActionResult,runContactAction} from "@/lib/allCustomers";
 import ContactBookCall from './ContactBookCall';
 import InternalLeadActions from './InternalLeadActions';
+import type {LeadNoteSummary} from '@/lib/leadNotes';
 
-export default function ContactActions({token,contactId,name,phone,onChanged,internalLead=false}:{internalLead?:boolean;token:string;contactId:string;name:string;phone:string|null;onChanged:(result:ContactActionResult)=>void}) {
+export default function ContactActions({token,contactId,name,phone,onChanged,internalLead=false,noteSummary,onNoteSaved}:{internalLead?:boolean;token:string;contactId:string;name:string;phone:string|null;onChanged:(result:ContactActionResult)=>void;noteSummary?:LeadNoteSummary;onNoteSaved?:()=>void}) {
  const [reply,setReply]=useState(false),[text,setText]=useState("");
  const [saving,setSaving]=useState<ContactAction|null>(null),[error,setError]=useState("");
  const [request,setRequest]=useState<{action:ContactAction;id:string}|null>(null);
@@ -24,7 +25,8 @@ export default function ContactActions({token,contactId,name,phone,onChanged,int
  return <div className="contact-actions">
   <div className="buttons">
    <button type="button" disabled={!!saving||!phone} onClick={()=>{setReply(true);setError("");}}>Reply on WhatsApp</button>
-   {internalLead?<InternalLeadActions token={token} contactId={contactId} name={name} disabled={!!saving} onChanged={onChanged}/>:<button type="button" disabled={!!saving} onClick={()=>void act("solve")}>{saving==="solve"?"Solving":"Solve"}</button>}
+   {!internalLead&&<button type="button" disabled={!!saving} onClick={()=>void act("solve")}>{saving==="solve"?"Solving":"Solve"}</button>}
+   <InternalLeadActions token={token} contactId={contactId} name={name} disabled={!!saving} onChanged={onChanged} allowEnd={internalLead} summary={noteSummary} onNoteSaved={onNoteSaved}/>
    <button type="button" disabled={!!saving||!phone} onClick={()=>void act("asap")}>{saving==="asap"?"Scheduling":"New ASAP"}</button>
    <ContactBookCall token={token} contactId={contactId} name={name||phone||'Lead'} disabled={!!saving||!phone} onBooked={onChanged}/>
   </div>

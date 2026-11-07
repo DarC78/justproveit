@@ -6,6 +6,8 @@ import BookingCallHistory from "./BookingCallHistory";
 import BookingActions from "./BookingActions";
 import {bookingActionNotice} from "@/lib/bookedCalls";
 import {ScheduledCallRow} from "@/lib/crmAdmin";
+import InternalLeadActions from './InternalLeadActions';
+import {useLeadNoteSummaries} from '@/lib/leadNotes';
 
 const londonDateTime=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"short"});
 const londonTime=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
@@ -19,7 +21,8 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
   token:string;rows:ScheduledCallRow[];attention?:boolean;onChanged:(notice:string)=>void;
 }) {
   const [historyBooking,setHistoryBooking]=useState<ScheduledCallRow|null>(null);
-  return <><div className="table-scroll" tabIndex={0} role="region" aria-label={attention?"Attention calls table":"Scheduled calls table"}>
+  const notes=useLeadNoteSummaries(token,rows.map(row=>({id:row.contactId,kind:'contact'})));
+  return <>{notes.error&&<p role="alert">{notes.error}</p>}<div className="table-scroll" tabIndex={0} role="region" aria-label={attention?"Attention calls table":"Scheduled calls table"}>
     <table><thead><tr>
       <th scope="col">Call time (UK)</th><th scope="col">Name</th><th scope="col">Agent</th><th scope="col">Phone number</th>
       <th scope="col">Apeluri din ziua programarii si dupa / callcoduri</th>
@@ -52,7 +55,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
       <td className="history"><BookingActions token={token} booking={row}
         onChanged={result=>onChanged(bookingActionNotice(result))}
         onSolved={()=>onChanged("Rezolvarea pe WhatsApp a fost inregistrata.")}
-        onBusinessMarked={()=>onChanged("Continuarea conversatiei pe WhatsApp Business a fost inregistrata.")}/></td>
+        onBusinessMarked={()=>onChanged("Continuarea conversatiei pe WhatsApp Business a fost inregistrata.")}/><InternalLeadActions token={token} contactId={row.contactId} name={row.name||'Lead'} allowEnd={false} onChanged={()=>{}} summary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh}/></td>
     </tr>)}</tbody></table>
     <style jsx>{`
       .table-scroll{overflow-x:auto;border:1px solid #dce3ee;border-radius:7px}

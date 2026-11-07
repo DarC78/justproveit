@@ -1,3 +1,4 @@
+import InternalLeadActions from './InternalLeadActions';
 import LeadAgentAssignment from "./LeadAgentAssignment";
 import {Fragment,useEffect,useState} from "react";
 import ScheduledCallsTable from "./ScheduledCallsTable";
@@ -5,17 +6,19 @@ import ContactActions from "./ContactActions";
 import LeadPhoneHistory from "./LeadPhoneHistory";
 import {contactActionNotice} from "@/lib/allCustomers";
 import {AttentionContact,CrmAttentionResponse,listCrmAttention,prefetchAttentionPhoneHistories} from "@/lib/crmAdmin";
+import {useLeadNoteSummaries} from '@/lib/leadNotes';
 const phoneKey=(value:string|null)=>{let digits=(value||'').replace(/\D/g,"").replace(/^00/,"");if(digits.startsWith("0")&&[10,11].includes(digits.length))digits=(digits.length===11?"44":"40")+digits.slice(1);return digits;};
 const clock=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"short"});
 const time=(at:string|null)=>at?clock.format(new Date(at)):"—";
 function ContactTable({token,rows,onChanged,onReplied,willBuy=false}:{willBuy?:boolean;token:string;rows:AttentionContact[];onChanged:(notice:string)=>void;onReplied:(contactId:string)=>void}){
  const [historyId,setHistoryId]=useState<string|null>(null);
- return <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="bg-slate-100"><tr>{["Nume","Agent","Telefon","Programarea anterioară (UK)",willBuy?"Apel închis VA_CUMPARA":"Ultimul contact primit","Acțiuni"].map(label=><th key={label} className="p-3">{label}</th>)}</tr></thead>
+ const notes=useLeadNoteSummaries(token,rows.map(row=>({id:row.contactId,kind:'contact'})));
+ return <div className="overflow-x-auto">{notes.error&&<p role="alert">{notes.error}</p>}<table className="w-full text-left text-sm"><thead className="bg-slate-100"><tr>{["Nume","Agent","Telefon","Programarea anterioară (UK)",willBuy?"Apel închis VA_CUMPARA":"Ultimul contact primit","Acțiuni"].map(label=><th key={label} className="p-3">{label}</th>)}</tr></thead>
  <tbody>{rows.map(row=><Fragment key={row.contactId}><tr className={`border-b align-top${row.chatbotHandoff?" bg-red-50":""}`} data-chatbot-handoff={row.chatbotHandoff?"pending":undefined}><th scope="row" className="p-3">{row.name||"Client"}{row.chatbotHandoff&&<span className="block mt-2 text-xs font-semibold text-red-800">De preluat de la chatbot</span>}</th>
  <td className="p-3"><LeadAgentAssignment token={token} contactId={row.contactId} assignment={row.assignment} onChanged={onChanged}/></td>
  <td className="p-3"><button type="button" className="text-blue-800 underline" disabled={phoneKey(row.phone)!==phoneKey(row.primaryPhone)} title={phoneKey(row.phone)!==phoneKey(row.primaryPhone)?"Contact primit pe un număr secundar":"Deschide istoricul"} aria-expanded={historyId===row.contactId} onClick={()=>setHistoryId(historyId===row.contactId?null:row.contactId)}>{row.phone||"Istoric"}</button></td>
  <td className="p-3">{time(row.appointmentAtUtc)}</td><td className="p-3"><strong>{willBuy?"VA_CUMPARA":row.chatbotHandoff?"Escaladare chatbot":row.channel==="call"?"Apel primit":"WhatsApp primit"}</strong><p>{time(row.atUtc)}</p><p className="whitespace-pre-wrap break-words max-w-lg mt-2">{row.text||(row.channel==="whatsapp"?"Mesaj fără text / atașament":"")}</p>{row.chatbotHandoff&&<p className="whitespace-pre-wrap break-words max-w-lg mt-2 text-xs text-red-900">{row.chatbotHandoff.summary}</p>}</td>
- <td className="p-3">{(willBuy||phoneKey(row.phone)===phoneKey(row.primaryPhone))?<ContactActions internalLead={willBuy} token={token} contactId={row.contactId} name={row.name} phone={phoneKey(row.phone)===phoneKey(row.primaryPhone)?row.phone:null} onChanged={result=>onChanged(contactActionNotice(result))}/>:<a className="text-blue-800 underline" href={`/admin/crm/?tab=details&phone=${encodeURIComponent(row.phone||"")}`}>Deschide lead-ul — contact pe un număr secundar</a>}</td></tr>
+ <td className="p-3">{(willBuy||phoneKey(row.phone)===phoneKey(row.primaryPhone))?<ContactActions noteSummary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh} internalLead={willBuy} token={token} contactId={row.contactId} name={row.name} phone={phoneKey(row.phone)===phoneKey(row.primaryPhone)?row.phone:null} onChanged={result=>onChanged(contactActionNotice(result))}/>:<a className="text-blue-800 underline" href={`/admin/crm/?tab=details&phone=${encodeURIComponent(row.phone||"")}`}>Deschide lead-ul — contact pe un număr secundar</a>}{!willBuy&&phoneKey(row.phone)!==phoneKey(row.primaryPhone)&&<InternalLeadActions token={token} contactId={row.contactId} name={row.name} allowEnd={false} onChanged={()=>{}} summary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh}/>}</td></tr>
  {historyId===row.contactId&&<tr><td colSpan={6} className="p-4"><LeadPhoneHistory token={token} contactId={row.contactId} phone={row.phone} name={row.name} onReplied={()=>onReplied(row.contactId)} onCollapse={()=>setHistoryId(null)}/></td></tr>}
  </Fragment>)}</tbody></table></div>;
 }

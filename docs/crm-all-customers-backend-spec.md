@@ -1,5 +1,9 @@
 ﻿# AllCustomersView: required backend contract
 
+## Record comments
+
+Every row exposes Add comment with optional Next Action Date. This is a record-level note, separate from the international pensions service's notes, stage progression and deadlines. Linked customers use the same CRM contact history as the other tabs; unlinked customers use the authorized customer-notes route. See `crm-lead-comments.md` and LaunchingStack `docs/engineering/systems/crm-lead-comments.md`.
+
 ## Service workflow business specification
 
 Read the latest user-maintained [International pensions client workflow specification](https://docs.google.com/document/d/1TtiqQYsh5os8J_DDI916e5L9vSAeTlwP3eWhh-nm1r8/edit)
