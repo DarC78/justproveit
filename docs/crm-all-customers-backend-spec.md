@@ -159,3 +159,5 @@ it does not claim draft-list is read-only. Contact-note batch reads route to the
 service because that endpoint is absent from the older local test backend. Production
 builds keep their existing behavior. The preview explicitly labels its unsynchronized
 test dataset; the email-coverage notice remains informational.
+
+The read-only gateway preview does not poll disconnected email/payment history; it labels that coverage explicitly. Normal builds retain those existing history integrations.
