@@ -65,7 +65,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
   return <section className="customer-section" aria-labelledby={`${kind}-${scope}-title`}>
     <h2 id={`${kind}-${scope}-title`}>{title}</h2><p>{description}</p>
     <form onSubmit={apply} className="filters">
-      {serviceFirst&&<><label>Service<select value={applied.service||''} onChange={e=>{const next={...filters,service:e.target.value,status:''};setFilters(next);setApplied(next);setPage(0);setReport(null);setStatuses([]);}}><option value="">Select a service</option>{catalog.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label>Status<select disabled={!applied.service} value={applied.status||''} onChange={e=>{const next={...filters,status:e.target.value};setFilters(next);setApplied(next);setPage(0);setReport(null);}}><option value="">All statuses</option>{statuses.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label></>}
+      {serviceFirst&&<><label>Service<select value={applied.service||''} onChange={e=>{const next={...filters,service:e.target.value,status:''};setFilters(next);setApplied(next);setPage(0);setReport(null);setStatuses([]);}}><option value="">All services</option>{catalog.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label>Status<select disabled={!applied.service} value={applied.status||''} onChange={e=>{const next={...filters,status:e.target.value};setFilters(next);setApplied(next);setPage(0);setReport(null);}}><option value="">All statuses</option>{statuses.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label></>}
       {(["name","phone","email"] as const).map(field=><label key={field}>{field[0].toUpperCase()+field.slice(1)}<input type="search" value={filters[field]} onChange={e=>setFilters({...filters,[field]:e.target.value})}/></label>)}
       {kind==='customers'&&<fieldset><legend>Became a customer (UK dates)</legend><label>From<input type="date" value={filters.customerFrom||''} max={filters.customerTo||undefined} onChange={e=>setFilters({...filters,customerFrom:e.target.value})}/></label><label>To<input type="date" value={filters.customerTo||''} min={filters.customerFrom||undefined} onChange={e=>setFilters({...filters,customerTo:e.target.value})}/></label></fieldset>}
       <button type="submit">{searchFirst?"Search CRM leads":"Apply filters"}</button><button type="button" onClick={()=>{setFilters(defaults);setApplied({...defaults});setPage(0);setLoading(true);setReport(null);}}>Clear</button>
@@ -76,7 +76,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
     {draftError&&<p role="alert" className="error">{draftError}</p>}
     {kind==='customers'&&serviceError&&<p role="alert" className="error">{serviceError}</p>}
     <div aria-live="polite" aria-busy={loading}>
-      {!hasSearch?<p className="status">Search by name, phone or email to display CRM leads and their history.</p>:loading?<p className="status">Loading {noun}...</p>:error?<p className="error" role="alert">{error}</p>:serviceFirst&&!applied.service?<p className="status">Select a service to display its customers.</p>:report&&<>
+      {!hasSearch?<p className="status">Search by name, phone or email to display CRM leads and their history.</p>:loading?<p className="status">Loading {noun}...</p>:error?<p className="error" role="alert">{error}</p>:report&&<>
         {report.warnings?.map(warning=><p className="warning" key={warning}>{warning}</p>)}
         <p className="count">{report.total} {noun} · {report.rows.length?`${page*pageSize+1}–${page*pageSize+report.rows.length}`:"0"} shown</p>
         {!report.rows.length?<p className="status">No matching {noun}.</p>:<div className="table-scroll" tabIndex={0} role="region" aria-label={title}><table>
@@ -117,6 +117,6 @@ export default function AllCustomersView({token}:{token:string}) {
   const [revision,setRevision]=useState(0);
   return <section><h1 className="text-3xl font-bold mt-7">AllCustomersView</h1><p className="mt-2 text-sm text-slate-600">Customer records and inbound contact · All times are UK time</p>
     <CustomersSection token={token} refreshKey={revision} onChanged={()=>setRevision(n=>n+1)} scope="inbound" title="Customers who contacted us" description="Customers who sent an email or WhatsApp message, or called inbound, in the past 7 days."/>
-    <CustomersSection token={token} refreshKey={revision} onChanged={()=>setRevision(n=>n+1)} scope="all" title="All customers" description="Select a service, then optionally refine by status. 10 customers per page."/>
+    <CustomersSection token={token} refreshKey={revision} onChanged={()=>setRevision(n=>n+1)} scope="all" title="All customers" description="All services are shown by default. Select a service to refine by status. 10 customers per page."/>
   </section>;
 }

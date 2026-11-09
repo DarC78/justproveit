@@ -112,14 +112,15 @@ test('customer query helper sends five-lead offsets without changing the default
  assert.equal(actual.customerPageQuery('all',filters,2).get('limit'),'50');
 });
 
-test('customer services start blank and request ten-row service pages; inbound uses seven days',async()=>{
+test('customers default to all services and request ten-row pages; inbound uses seven days',async()=>{
  const {CustomersSection}=load('src/components/AllCustomersView.tsx');const original=mocks['@/lib/allCustomers'].loadCustomerPage;
  mocks['@/lib/allCustomers'].loadCustomerPage=async(...args)=>({...await original(...args),services:[{value:'international-pension-uk-ro',label:'International pensions'}],statuses:[{value:'S01',label:'S01'}]});
  const host=document.createElement('div');document.body.append(host);const root=createRoot(host);
  try{
-  await act(async()=>root.render(React.createElement(CustomersSection,{token:'test',scope:'all',title:'All customers',description:''})));await flush();assert.match(host.textContent,/Select a service to display/);assert.equal(host.querySelectorAll('tbody tr').length,0);
+  await act(async()=>root.render(React.createElement(CustomersSection,{token:'test',scope:'all',title:'All customers',description:''})));await flush();assert.match(host.textContent,/All services/);assert.ok(host.querySelectorAll('tbody tr').length>0);assert.equal(calls.pages.at(-1).applied.service,'');assert.equal(calls.pages.at(-1).size,10);
   const service=host.querySelector('select');await act(async()=>{service.value='international-pension-uk-ro';service.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await flush();assert.equal(calls.pages.at(-1).size,10);assert.equal(calls.pages.at(-1).applied.service,'international-pension-uk-ro');
   const status=host.querySelectorAll('select')[1];await act(async()=>{status.value='S01';status.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await flush();assert.equal(calls.pages.at(-1).applied.status,'S01');assert.equal(calls.pages.at(-1).page,0);
+  await act(async()=>{service.value='';service.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await flush();assert.equal(calls.pages.at(-1).applied.service,'');assert.equal(calls.pages.at(-1).applied.status,'');assert.equal(host.querySelectorAll('select')[1].disabled,true);assert.ok(host.querySelectorAll('tbody tr').length>0);
   await act(async()=>root.render(React.createElement(CustomersSection,{key:'inbound',token:'test',scope:'inbound',title:'Contacts',description:''})));await flush();assert.equal(calls.pages.at(-1).applied.inboundDays,7);
  }finally{await act(async()=>root.unmount());host.remove();mocks['@/lib/allCustomers'].loadCustomerPage=original;}
 });
