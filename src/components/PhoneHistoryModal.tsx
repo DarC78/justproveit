@@ -54,7 +54,7 @@ export function PhoneHistoryTimeline({events,imageTarget}:{events:PhoneHistoryEv
   const olderEmails=async()=>{if(!imageTarget||!emailCursor)return;setEmailLoading(true);try{const result=await getCrmEmailHistory(imageTarget.token,imageTarget.kind,imageTarget.id,emailCursor);setEmails(current=>[...new Map([...current,...result.items].map(e=>[e.id,e])).values()]);setEmailCursor(result.nextCursor);setEmailError("");}catch{setEmailError("Older emails could not be loaded. Please retry.");}finally{setEmailLoading(false);}};
   const ordered=[...events,...emails].sort((a,b)=>{const left=Date.parse(a.atUtc||''),right=Date.parse(b.atUtc||'');return (Number.isFinite(right)?right:-Infinity)-(Number.isFinite(left)?left:-Infinity)||a.id.localeCompare(b.id,undefined,{numeric:true});});
   return <>{emailPending&&<p role="status">Older system emails are being verified in the background and will appear here automatically.</p>}{emailError&&<p role="status">{emailError}</p>}<ol className="timeline" aria-label="Calls, WhatsApp messages and emails, newest first">
-    {ordered.map(event=><li key={event.id} className={event.kind==="call"?"call":event.direction}>
+    {ordered.map(event=><li key={event.id} className={event.kind==="email"?`email ${event.direction}`:event.kind==="call"?"call":event.direction}>
       <article>
         <div className="event-heading"><strong>{event.kind==="email"?"Email":event.kind==="call"?"Phone call":event.direction==="inbound"?"WhatsApp · Client":"WhatsApp · ProveIt"}</strong>
           <time dateTime={event.atUtc||undefined}>{dateTime(event.atUtc)}</time></div>
@@ -68,7 +68,7 @@ export function PhoneHistoryTimeline({events,imageTarget}:{events:PhoneHistoryEv
     </li>)}
     <style jsx>{`
       .timeline{list-style:none;margin:0;padding:0;display:grid;gap:16px}li{border:1px solid #dce3ee;border-radius:9px;padding:16px;min-width:0}
-      .inbound{background:white;margin-right:8%}.outbound{background:#e4f4ea;margin-left:8%}.call{background:#edf3ff;border-left:4px solid #315fba}
+      .inbound{background:white;margin-right:8%}.outbound{background:#e4f4ea;margin-left:8%}.call{background:#edf3ff;border-left:4px solid #315fba}.email{background:#fff9db;border-color:#eadb9a}
       .event-heading{display:flex;align-items:start;justify-content:space-between;gap:14px;font-size:14px}time{font-size:12px;white-space:nowrap;color:#526077}
       .author{font-size:11px;color:#667085;margin:6px 0}.body{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.65;margin:10px 0 0}
       .delivery{font-size:12px;font-weight:600;margin:12px 0 0}.failure{color:#b42318}.resolution{font-weight:700;color:#17376e;font-size:14px;margin:10px 0}dl{display:flex;flex-wrap:wrap;gap:12px 28px;margin:0;font-size:12px}dt{color:#667085}dd{margin:4px 0 0;font-weight:600}
