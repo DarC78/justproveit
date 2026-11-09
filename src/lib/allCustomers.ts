@@ -5,6 +5,7 @@ export type CustomerScope="inbound"|"all";
 export type CustomerFilters={name:string;phone:string;email:string;service?:string;status?:string;inboundDays?:number;customerFrom?:string;customerTo?:string};
 export type CustomerRow={
   contactId:string;name:string;phone:string|null;email:string|null;createdAtUtc:string|null;
+  agentHistory?:{lastBeforePurchase:{agentId:number;name:string;atUtc:string;endedAtUtc:string}|null;recentAgents:Array<{agentId:number;name:string;lastSpokeAtUtc:string}>};
   lastInbound:{channel:"email"|"whatsapp"|"call";atUtc:string;source:string|null;text:string|null}|null;
   booking:ScheduledCallRow|null;
   actionContactId?:string|null;intentStatus?:string|null;
