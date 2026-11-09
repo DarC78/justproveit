@@ -1,6 +1,6 @@
 import WhatsAppReplyComposer from "@/components/WhatsAppReplyComposer";
 import {useEffect,useRef,useState} from "react";
-import {getScheduledPhoneHistory,PhoneHistoryEvent,ScheduledCallRow,ScheduledPhoneHistory,CallTranscription} from "@/lib/crmAdmin";
+import {getPhoneHistoryImage,getCrmEmailHistory,getCrmEmailBody,CrmEmailBody,CrmEmailEvent,getScheduledPhoneHistory,PhoneHistoryEvent,ScheduledCallRow,ScheduledPhoneHistory,CallTranscription} from "@/lib/crmAdmin";
 
 const clock=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"medium"});
 function dateTime(value:string|null){const at=Date.parse(value||"");return Number.isFinite(at)?clock.format(at):"Time unavailable";}
@@ -15,21 +15,50 @@ export function CallTranscriptRow({item}:{item:CallTranscription}) {
   return <section aria-label="Call transcription" style={{borderTop:"1px solid #cbd5e1",marginTop:14,paddingTop:12}}>
     <strong>Call summary</strong>
     {item.summary?<p style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{item.summary}</p>:
-      <p>{waiting?"Waiting for a playable recording.":item.status==="processing"||item.status==="transcribed"?"Transcription and summary are being prepared.":item.status==="ineligible"?"This call is no longer eligible for automatic transcription.":"Transcription needs review. The recording has not been marked as transcribed."}</p>}
+      <p>{item.status==="budget_paused"?"Transcription paused by the USD 30 spending limit. Contact the administrator before resuming.":waiting?"Waiting for a playable recording.":item.status==="processing"||item.status==="transcribed"?"Transcription and summary are being prepared.":item.status==="ineligible"?"This call is no longer eligible for automatic transcription.":"Transcription needs review. The recording has not been marked as transcribed."}</p>}
     {item.transcript&&<><button type="button" aria-expanded={expanded} aria-controls={`transcript-${item.recordingId}`} onClick={()=>setExpanded(value=>!value)}
       style={{background:"white",border:"1px solid #94a3b8",borderRadius:5,padding:"7px 11px",cursor:"pointer",color:"#17376e"}}>{expanded?"Hide full transcript":"View full transcript"}</button>
       {expanded&&<div id={`transcript-${item.recordingId}`} style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",marginTop:12,lineHeight:1.65}}>{item.transcript}</div>}</>}
   </section>;
 }
 
-export function PhoneHistoryTimeline({events}:{events:PhoneHistoryEvent[]}) {
-  const ordered=[...events].sort((a,b)=>{const left=Date.parse(a.atUtc||''),right=Date.parse(b.atUtc||'');return (Number.isFinite(right)?right:-Infinity)-(Number.isFinite(left)?left:-Infinity)||a.id.localeCompare(b.id,undefined,{numeric:true});});
-  return <ol className="timeline" aria-label="WhatsApp messages and calls, newest first">
-    {ordered.map(event=><li key={event.id} className={event.kind==="call"?"call":event.direction}>
+type ImageTarget={token:string;kind:"contact"|"booking";id:string};
+export function WhatsAppHistoryImage({target,messageId,name}:{target:ImageTarget;messageId:string;name:string}){
+ const holder=useRef<HTMLDivElement>(null),[visible,setVisible]=useState(false),[url,setUrl]=useState(""),[error,setError]=useState(""),[expanded,setExpanded]=useState(false),[attempt,setAttempt]=useState(0);
+ useEffect(()=>{if(typeof IntersectionObserver==="undefined"){queueMicrotask(()=>setVisible(true));return;}const observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){setVisible(true);observer.disconnect();}},{rootMargin:"200px"});if(holder.current)observer.observe(holder.current);return()=>observer.disconnect();},[]);
+ useEffect(()=>{if(!visible)return;const controller=new AbortController();let objectUrl="";
+  Promise.resolve().then(()=>{if(controller.signal.aborted)return null;setError("");setUrl("");return getPhoneHistoryImage(target.token,target.kind,target.id,messageId,controller.signal);}).then(blob=>{if(controller.signal.aborted||!blob)return;objectUrl=URL.createObjectURL(blob);setUrl(objectUrl);}).catch(()=>{if(!controller.signal.aborted)setError("Fotografia nu poate fi încărcată. Este posibil să nu mai fie disponibilă în WhatsApp.");});
+  return()=>{controller.abort();if(objectUrl)URL.revokeObjectURL(objectUrl);};
+ },[visible,target.token,target.kind,target.id,messageId,attempt]);
+ return <div ref={holder} style={{marginTop:12,minHeight:70}}>{error?<p role="status">{error} <button type="button" onClick={()=>setAttempt(n=>n+1)}>Reîncearcă</button></p>:url?<><button type="button" aria-label="Mărește fotografia WhatsApp" onClick={()=>setExpanded(true)} style={{border:0,background:"transparent",cursor:"zoom-in",padding:0}}><img src={url} alt={name} style={{display:"block",maxWidth:"100%",maxHeight:260,borderRadius:8,objectFit:"contain"}}/></button>{expanded&&<dialog open aria-label="Fotografie WhatsApp" style={{position:"fixed",inset:0,zIndex:10000,maxWidth:"95vw",maxHeight:"95vh",overflow:"auto"}} onKeyDown={event=>{if(event.key==="Escape")setExpanded(false);}}><button type="button" autoFocus onClick={()=>setExpanded(false)}>Închide</button><img src={url} alt={name} style={{display:"block",maxWidth:"85vw",maxHeight:"80vh",objectFit:"contain"}}/></dialog>}</>:<p role="status">Se încarcă fotografia…</p>}</div>;
+}
+
+
+export function EmailHistoryRecord({item,target}:{item:CrmEmailEvent;target:ImageTarget}){
+ const [expanded,setExpanded]=useState(false),[body,setBody]=useState<CrmEmailBody|null>(null),[loading,setLoading]=useState(false),[error,setError]=useState("");
+ const loadBody=async()=>{if(loading)return;setLoading(true);setError("");try{setBody(await getCrmEmailBody(target.token,target.kind,target.id,item.id));}catch{setError("The original email is unavailable. Try again or open the source mailbox.");}finally{setLoading(false);}};
+ const open=()=>{setExpanded(current=>!current);if(!expanded&&!body&&!loading)void loadBody();};
+ const frame=body?.html?"<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; style-src 'unsafe-inline'; img-src data:; form-action 'none'; base-uri 'none';\">"+body.html:"";
+ return <section><button type="button" aria-expanded={expanded} onClick={()=>void open()} style={{border:0,background:"transparent",padding:"8px 0",color:"#17376e",fontWeight:700,textAlign:"left",cursor:"pointer",overflowWrap:"anywhere"}}>{expanded?"Hide:":"View:"} {item.subject}</button>
+ {expanded&&<div><p style={{fontSize:12}}>From: {item.from}<br/>Source: {item.mailbox==="system"?"ProveIt system email":item.mailbox}</p>{loading?<p role="status">Loading email...</p>:error?<p role="alert">{error} <button type="button" onClick={()=>void loadBody()}>Retry</button></p>:body&&<><p style={{fontSize:12}}>To: {body.to.join(", ")}</p>{body.html?<iframe title={item.subject} sandbox="" referrerPolicy="no-referrer" srcDoc={frame} style={{width:"100%",height:500,border:"1px solid #cbd5e1",background:"white"}}/>:<pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",fontFamily:"inherit",lineHeight:1.6}}>{body.text||"No message body was stored."}</pre>}</>}</div>}
+ </section>;
+}
+
+export function PhoneHistoryTimeline({events,imageTarget}:{events:PhoneHistoryEvent[];imageTarget?:ImageTarget}) {
+  const emailInitialized=useRef(false);const [emailPending,setEmailPending]=useState(false);
+  const [emails,setEmails]=useState<CrmEmailEvent[]>([]),[emailCursor,setEmailCursor]=useState<string|null>(null),[emailError,setEmailError]=useState(""),[emailLoading,setEmailLoading]=useState(false);
+  useEffect(()=>{emailInitialized.current=false;setEmails([]);setEmailPending(false);setEmailCursor(null);setEmailError("");if(!imageTarget)return;const controller=new AbortController();let loading=false;
+    const refresh=async()=>{if(loading)return;loading=true;try{const result=await getCrmEmailHistory(imageTarget.token,imageTarget.kind,imageTarget.id,null,controller.signal);if(!controller.signal.aborted){setEmails(current=>[...new Map([...current,...result.items].map(e=>[e.id,e])).values()]);if(!emailInitialized.current){setEmailCursor(result.nextCursor);emailInitialized.current=true;}setEmailError("");setEmailPending(Boolean(result.systemArchivePending));}}catch{if(!controller.signal.aborted)setEmailError("Email history is unavailable. Calls and WhatsApp history remain visible.");}finally{loading=false;}};
+    void refresh();const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh();},60000);return()=>{controller.abort();clearInterval(interval);};
+  },[imageTarget?.token,imageTarget?.kind,imageTarget?.id]);
+  const olderEmails=async()=>{if(!imageTarget||!emailCursor)return;setEmailLoading(true);try{const result=await getCrmEmailHistory(imageTarget.token,imageTarget.kind,imageTarget.id,emailCursor);setEmails(current=>[...new Map([...current,...result.items].map(e=>[e.id,e])).values()]);setEmailCursor(result.nextCursor);setEmailError("");}catch{setEmailError("Older emails could not be loaded. Please retry.");}finally{setEmailLoading(false);}};
+  const ordered=[...events,...emails].sort((a,b)=>{const left=Date.parse(a.atUtc||''),right=Date.parse(b.atUtc||'');return (Number.isFinite(right)?right:-Infinity)-(Number.isFinite(left)?left:-Infinity)||a.id.localeCompare(b.id,undefined,{numeric:true});});
+  return <>{emailPending&&<p role="status">Older system emails are being verified in the background and will appear here automatically.</p>}{emailError&&<p role="status">{emailError}</p>}<ol className="timeline" aria-label="Calls, WhatsApp messages and emails, newest first">
+    {ordered.map(event=><li key={event.id} className={event.kind==="email"?`email ${event.direction}`:event.kind==="call"?"call":event.direction}>
       <article>
-        <div className="event-heading"><strong>{event.kind==="call"?"Phone call":event.direction==="inbound"?"WhatsApp · Client":"WhatsApp · ProveIt"}</strong>
+        <div className="event-heading"><strong>{event.kind==="email"?"Email":event.kind==="call"?"Phone call":event.direction==="inbound"?"WhatsApp · Client":"WhatsApp · ProveIt"}</strong>
           <time dateTime={event.atUtc||undefined}>{dateTime(event.atUtc)}</time></div>
-        {event.kind==="whatsapp"?<><p className="author">{event.author}{event.source?` · ${event.source}`:""}{event.messageType!=="text"?` · ${event.messageType}`:""}</p><p className="body">{event.text}</p>{event.direction==="outbound"&&event.status!=="recorded"&&<p className={event.status==="failed"?"delivery failure":"delivery"} role={event.status==="failed"?"alert":undefined}>Status: {event.status==="accepted"?"Accepted by WhatsApp (delivery not confirmed)":event.status}{event.errorMessage?` ? ${event.errorMessage}`:""}</p>}</>
+        {event.kind==="email"?imageTarget?<EmailHistoryRecord key={imageTarget.id+event.id} item={event} target={imageTarget}/>:<p>{event.subject}</p>:event.kind==="whatsapp"?<><p className="author">{event.author}{event.source?` · ${event.source}`:""}{event.messageType!=="text"?` · ${event.messageType}`:""}</p>{(!event.image||!event.text.startsWith("[Mesaj "))&&<p className="body">{event.text}</p>}{event.image&&imageTarget&&<WhatsAppHistoryImage target={imageTarget} messageId={event.id} name={event.image.name}/>}{event.direction==="outbound"&&event.status!=="recorded"&&<p className={event.status==="failed"?"delivery failure":"delivery"} role={event.status==="failed"?"alert":undefined}>Status: {event.status==="accepted"?"Accepted by WhatsApp (delivery not confirmed)":event.status}{event.errorMessage?` ? ${event.errorMessage}`:""}</p>}</>
           : <><p className="resolution">{event.resolution}{event.callCode!=null?` · Callcode ${event.callCode}`:""}</p>
             <dl><div><dt>Agent</dt><dd>{event.agent}</dd></div><div><dt>Call type</dt><dd>{event.callType}</dd></div>
               <div><dt>Total duration</dt><dd>{duration(event.durationSeconds)}</dd></div><div><dt>Agent talk time</dt><dd>{duration(event.talkSeconds)}</dd></div>
@@ -39,13 +68,13 @@ export function PhoneHistoryTimeline({events}:{events:PhoneHistoryEvent[]}) {
     </li>)}
     <style jsx>{`
       .timeline{list-style:none;margin:0;padding:0;display:grid;gap:16px}li{border:1px solid #dce3ee;border-radius:9px;padding:16px;min-width:0}
-      .inbound{background:white;margin-right:8%}.outbound{background:#e4f4ea;margin-left:8%}.call{background:#edf3ff;border-left:4px solid #315fba}
+      .inbound{background:white;margin-right:8%}.outbound{background:#e4f4ea;margin-left:8%}.call{background:#edf3ff;border-left:4px solid #315fba}.email{background:#fff9db;border-color:#eadb9a}
       .event-heading{display:flex;align-items:start;justify-content:space-between;gap:14px;font-size:14px}time{font-size:12px;white-space:nowrap;color:#526077}
       .author{font-size:11px;color:#667085;margin:6px 0}.body{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.65;margin:10px 0 0}
       .delivery{font-size:12px;font-weight:600;margin:12px 0 0}.failure{color:#b42318}.resolution{font-weight:700;color:#17376e;font-size:14px;margin:10px 0}dl{display:flex;flex-wrap:wrap;gap:12px 28px;margin:0;font-size:12px}dt{color:#667085}dd{margin:4px 0 0;font-weight:600}
       @media(max-width:600px){.event-heading{display:grid;gap:6px}.inbound{margin-right:2%}.outbound{margin-left:2%}li{padding:12px}}
     `}</style>
-  </ol>;
+  </ol>{emailCursor&&<button type="button" disabled={emailLoading} onClick={()=>void olderEmails()}>{emailLoading?"Loading emails...":"Load older emails"}</button>}</>;
 }
 
 export default function PhoneHistoryModal({token,booking,onClose}:{token:string;booking:ScheduledCallRow;onClose:()=>void}) {
@@ -86,7 +115,7 @@ export default function PhoneHistoryModal({token,booking,onClose}:{token:string;
   return <dialog ref={dialog} aria-labelledby="phone-history-title" aria-describedby="phone-history-description"
     onCancel={event=>{event.preventDefault();onClose();}} onClick={event=>{if(event.target===event.currentTarget)onClose();}}>
     <div className="window">
-      <header><div><h2 id="phone-history-title">WhatsApp &amp; call history</h2><p>{booking.name||"Client"} · {booking.phone}</p></div>
+      <header><div><h2 id="phone-history-title">Calls, WhatsApp &amp; email history</h2><p>{booking.name||"Client"} · {booking.phone}</p></div>
         <div className="controls"><button type="button" disabled={loading} onClick={()=>setRefresh(value=>value+1)}>Refresh</button>
           <button type="button" onClick={onClose} aria-label="Close phone history">Close</button></div></header>
       <p id="phone-history-description" className="description">Full recorded history for this number · Newest first · All times UK. Queued WhatsApp messages are not shown as sent.</p>
@@ -94,7 +123,7 @@ export default function PhoneHistoryModal({token,booking,onClose}:{token:string;
         {booking.phone&&<WhatsAppReplyComposer key={booking.intentId+booking.phone} token={token} intentId={booking.intentId} phone={booking.phone} onSent={()=>setRefresh(value=>value+1)}/>}
         {loading&&!matched?<p className="status">Loading the full WhatsApp conversation and call history...</p>:!matched&&error?<p role="alert" className="error">{error}</p>:matched&&history&&<>
           {error&&<p role="alert" className="error">{error}</p>}<p className="totals">{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
-          {history.events.length?<PhoneHistoryTimeline events={history.events}/>:<p className="status">No recorded WhatsApp messages or calls were found for this number.</p>}
+          <PhoneHistoryTimeline events={history.events} imageTarget={{token,kind:"booking",id:booking.intentId}}/>
         </>}
       </div>
     </div>

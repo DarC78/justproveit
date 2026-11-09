@@ -1,4 +1,6 @@
 import WhatsAppGatewayInbox from "@/components/WhatsAppGatewayInbox";
+import CrmEmailConnections from "@/components/CrmEmailConnections";
+import {confirmEarlyManualBooking,isEarlyManualAppointment} from '@/lib/manualBookingConfirmation';
 import AllLeadsView from "@/components/AllLeadsView";
 import AllCustomersView from "@/components/AllCustomersView";
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
@@ -1279,6 +1281,7 @@ export default function AdminCrmPage() {
               ) : null}
 
               {activeTab === "privatePensions" && canUsePrivatePensions ? <PrivatePensionsPanel token={token} /> : null}
+              {["scheduledCalls","attention","allCustomersView","all"].includes(activeTab)&&<CrmEmailConnections token={token}/>}
               {activeTab === "scheduledCalls" ? <ScheduledCallsPanel token={token} /> : null}
               {activeTab === "attention" ? <AttentionPanel token={token} /> : null}
               {activeTab === "whatsappGateway" ? <WhatsAppGatewayInbox token={token} /> : null}
@@ -2447,6 +2450,7 @@ function NewLeadPanel({
       return;
     }
 
+    if (showAppointmentFields && !confirmEarlyManualBooking(appointmentDate,appointmentTime)) return;
     setSaving(true);
     try {
       const appointmentLocalDateTime =
@@ -2462,6 +2466,7 @@ function NewLeadPanel({
         appointmentTime: showAppointmentFields ? appointmentTime : undefined,
         appointmentTimeZone: showAppointmentFields ? "Europe/London" : undefined,
         appointmentLocalDateTime,
+        confirmEarlyAppointment: showAppointmentFields ? isEarlyManualAppointment(appointmentTime) : undefined,
         sendSms: showAppointmentFields ? false : undefined,
         agent: agentName,
       });
@@ -2559,7 +2564,7 @@ function NewLeadPanel({
             </label>
             <label>
               Ora UK *
-              <input type="time" min="10:00" value={appointmentTime} onChange={(event) => setAppointmentTime(event.target.value)} />
+              <input type="time" value={appointmentTime} onChange={(event) => setAppointmentTime(event.target.value)} />
             </label>
           </div>
         ) : null}

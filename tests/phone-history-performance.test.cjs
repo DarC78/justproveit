@@ -41,3 +41,19 @@ test('composer is visible before the history loads and the timeline is newest fi
   await React.act(async()=>onSent({status:'accepted'}));assert.equal(replied,1);
  }finally{await React.act(async()=>root.unmount());dom.window.close();}
 });
+
+test('WhatsApp photos load with authenticated context, enlarge, retry and release object URLs',async()=>{
+ const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ const oldCreate=URL.createObjectURL,oldRevoke=URL.revokeObjectURL;const revoked=[];let calls=0;
+ URL.createObjectURL=()=> 'blob:photo';URL.revokeObjectURL=url=>revoked.push(url);
+ const api={getPhoneHistoryImage:async(token,kind,id,messageId)=>{assert.deepEqual([token,kind,id,messageId],['agent','contact','contact-id','mcic:12']);calls++;if(calls===1)throw Error('unavailable');return new Blob(['image'],{type:'image/png'});}};
+ const component={exports:{}};new Function('require','module','exports',compile('src/components/PhoneHistoryModal.tsx'))(name=>name.includes('WhatsAppReplyComposer')?{__esModule:true,default:()=>null}:name==='@/lib/crmAdmin'?api:require(name),component,component.exports);
+ const root=createRoot(document.getElementById('root'));
+ try{await React.act(async()=>root.render(React.createElement(component.exports.WhatsAppHistoryImage,{target:{token:'agent',kind:'contact',id:'contact-id'},messageId:'mcic:12',name:'photo.png'})));
+  assert.match(document.body.textContent,/WhatsApp/);assert.equal(document.querySelector('img'),null);
+  await React.act(async()=>document.querySelector('button').click());assert.equal(document.querySelector('img').getAttribute('src'),'blob:photo');
+  await React.act(async()=>document.querySelector('button').click());assert.ok(document.querySelector('dialog[open]'));
+  await React.act(async()=>document.querySelector('dialog button').click());assert.equal(document.querySelector('dialog'),null);
+ }finally{await React.act(async()=>root.unmount());URL.createObjectURL=oldCreate;URL.revokeObjectURL=oldRevoke;dom.window.close();delete global.window;delete global.document;}
+ assert.deepEqual(revoked,['blob:photo']);
+});

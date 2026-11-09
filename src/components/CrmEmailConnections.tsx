@@ -1,0 +1,12 @@
+import {useEffect,useState} from "react";
+import {getCrmEmailConnections,connectCrmEmail} from "@/lib/crmAdmin";
+export default function CrmEmailConnections({token}:{token:string}){
+ const [data,setData]=useState<Awaited<ReturnType<typeof getCrmEmailConnections>>|null>(null),[error,setError]=useState(""),[busy,setBusy]=useState("");
+ useEffect(()=>{let active=true;if(new URLSearchParams(window.location.search).has("emailConnectError"))setError("Google authorization was not completed. Select the exact mailbox shown below and grant read-only access.");getCrmEmailConnections(token).then(x=>{if(active)setData(x);}).catch(()=>{if(active)setError("Email connections could not be checked.");});return()=>{active=false;};},[token]);
+ const connect=async(mailbox:string)=>{const popup=window.open("about:blank","crm-email-connect","popup,width=700,height=850");setBusy(mailbox);setError("");try{const result=await connectCrmEmail(token,mailbox),url=new URL(result.url);if(url.origin!=="https://accounts.google.com")throw Error("Unexpected connection URL.");if(popup)popup.location.href=url.href;else window.location.href=url.href;}catch(cause){popup?.close();setError(cause instanceof Error?cause.message:"Email connection failed.");}finally{setBusy("");}};
+ return <details style={{margin:"12px 0 20px",padding:14,border:"1px solid #dce3ee",borderRadius:8,background:"#f8fafc"}}><summary style={{cursor:"pointer",fontWeight:600}}>Email history connections</summary>
+ <p>Read-only access for the two mailboxes below. System emails from @justproveit.co.uk are included from delivery records. adrian@proveitweb.co.uk is excluded.</p>
+ {error&&<p role="alert">{error}</p>}{data?.mailboxes.map(box=><div key={box.mailbox} style={{marginTop:12}}><strong>{box.mailbox}</strong> - {box.Connected?"Connected":"Not connected"} <button type="button" disabled={Boolean(busy)} onClick={()=>void connect(box.mailbox)}>{busy===box.mailbox?"Connecting...":box.Connected?"Reconnect":"Connect read-only access"}</button>{box.LastSyncAtUtc&&<small> Last sync: {new Date(box.LastSyncAtUtc).toLocaleString("en-GB")}{box.BackfillComplete?"":" - Historical import in progress"}</small>}{box.LastError&&<p role="status">{box.LastError}</p>}</div>)}
+ {data&&<p style={{fontSize:12}}>If Google reports redirect_uri_mismatch, add this authorised redirect URI to the Google OAuth web application: <code style={{overflowWrap:"anywhere"}}>{data.redirectUri}</code></p>}
+ </details>;
+}

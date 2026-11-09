@@ -1,4 +1,4 @@
-﻿# AllCustomersView: required backend contract
+# AllCustomersView: required backend contract
 
 ## Record comments
 
@@ -115,6 +115,24 @@ Membership now comes exclusively from tenant-scoped `wix.ozClients`. Deduplicate
 
 ## Customer list filters (7 November 2026)
 Customers who contacted us requests `inboundDays=7`, filtering the latest inbound event before count/pagination. All customers requests an explicit `service` filter: empty selection returns only the service catalogue and zero customers. Service and optional status filters apply to the same sale/service entry before deduplication-aware pagination (10 rows). International pension status uses the current major case stage (or closed); other services use recorded sale status, with untracked fallback. Unknown legacy services are shown explicitly, without guessing. Lead lists retain their existing behavior.
+
+## Manual appointments before 10:00 UK (9 November 2026)
+
+New Lead MANUAL_BOOK, contact Book a Call and manual rescheduling ask for an extra confirmation before submitting a time earlier than 10:00 Europe/London. Cancel preserves the form and sends no request; OK submits confirmEarlyAppointment=true for the selected date/time. The backend validates the explicit boolean and records the override in booking/action history. Future-date, DST conversion, stale-booking and idempotency protections remain. Automatically offered appointment slots still begin at 10:00.
+
+### WhatsApp photo history (9 November 2026)
+Phone history WhatsApp events may include `image: {mediaId, mimeType, name}`. Both contact and booking histories display lazy-loaded photo previews and an enlarged view, fetched with the CRM bearer authorization from `contacts/{id}/history/media/{messageId}` or `scheduled-calls/{id}/history/media/{messageId}` on the canonical backend. Blob URLs are revoked on unmount or target changes; credentials are never placed in image URLs. Unavailable provider media shows a clear message and retry button. Existing conversations use their saved Mediatel media metadata without backfill.
+
+Call transcripts may return `status: budget_paused` under the shared USD 30 transcription spending guard (9 November 2026). The timeline explains that processing is paused and requires administrator review; it does not describe this as missing audio. Eligibility now includes all agents when a client's appointment date/time is in the inclusive 48 hours preceding call start; summaries and full transcripts retain their existing display.
+## Customer creation date filter (2026-11-09)
+
+Both customer sections expose "Became a customer (UK dates)" From/To date fields. Apply filters resets to page one; Clear removes the range. The API query uses optional `customerFrom`/`customerTo` (`YYYY-MM-DD`), inclusive Europe/London calendar dates, combined with all other filters. The backend filters the grouped customer creation timestamp before totals and pagination; either bound is optional. Invalid or reversed dates return 400. Rows without a creation date are excluded when a bound is active. Lead views are unchanged.
+## Agents spoken with (2026-11-09)
+
+Both customer sections show a single Agents spoken with column alongside Became a customer. `agentHistory.lastBeforePurchase` identifies the last positively recorded agent conversation before the displayed customer creation/purchase timestamp. `agentHistory.recentAgents` lists all distinct recorded participants in the rolling past 30 days up to now, with each agent's latest conversation date, including post-purchase calls. Dates display in UK time. The API supplies UTC timestamps and stable agent IDs; absent history is shown as No recorded conversation(s), or Purchase date unavailable for an unknown cutoff. Talk-time evidence excludes unanswered/test/voicemail records; transferred participants are included. On a shared last call, the positively recorded primary agent wins, otherwise the participant with highest talk time then smallest agent ID. The backend filters/enriches only the selected page and preserves current service ownership and lead lists.
+## All services by default (2026-11-09)
+
+The All customers list loads immediately with All services selected. Empty `service` means no service restriction, retaining all other filters and 10-row pagination. Selecting a service enables its status filter; returning to All services resets status and page. Clear restores All services. This supersedes the earlier requirement to select a service before displaying customers.
 
 ### Self-hosted WhatsApp inbox (test rollout)
 

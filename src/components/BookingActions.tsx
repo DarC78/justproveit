@@ -1,3 +1,4 @@
+import {confirmEarlyManualBooking,isEarlyManualAppointment} from '@/lib/manualBookingConfirmation';
 import { FormEvent, useState } from "react";
 import { BookingActionResult, changeScheduledBooking, markBookingWhatsAppBusiness, markBookingSolvedOnWhatsApp, ScheduledCallRow } from "@/lib/crmAdmin";
 
@@ -41,10 +42,11 @@ export default function BookingActions({ token, booking, onChanged, onBusinessMa
   function open(action: "reschedule" | "cancel") { setMode(action); setRequestId(crypto.randomUUID()); setError(""); }
   async function save(event: FormEvent) {
     event.preventDefault(); if (!mode || saving) return;
+    if (mode === "reschedule" && !confirmEarlyManualBooking(date,time)) return;
     setSaving(true); setError("");
     try {
       const result = await changeScheduledBooking(token, booking, mode, { requestId,
-        ...(mode === "reschedule" ? { appointmentDate: date, appointmentTime: time } : {}) });
+        ...(mode === "reschedule" ? { appointmentDate: date, appointmentTime: time, confirmEarlyAppointment:isEarlyManualAppointment(time) } : {}) });
       setMode(null); onChanged(result);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Modificarea nu a putut fi salvata. Reincarca lista inainte de a reincerca."); }
     finally { setSaving(false); }
