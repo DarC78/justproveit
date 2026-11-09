@@ -15,7 +15,7 @@ export function CallTranscriptRow({item}:{item:CallTranscription}) {
   return <section aria-label="Call transcription" style={{borderTop:"1px solid #cbd5e1",marginTop:14,paddingTop:12}}>
     <strong>Call summary</strong>
     {item.summary?<p style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{item.summary}</p>:
-      <p>{waiting?"Waiting for a playable recording.":item.status==="processing"||item.status==="transcribed"?"Transcription and summary are being prepared.":item.status==="ineligible"?"This call is no longer eligible for automatic transcription.":"Transcription needs review. The recording has not been marked as transcribed."}</p>}
+      <p>{item.status==="budget_paused"?"Transcription paused by the USD 30 spending limit. Contact the administrator before resuming.":waiting?"Waiting for a playable recording.":item.status==="processing"||item.status==="transcribed"?"Transcription and summary are being prepared.":item.status==="ineligible"?"This call is no longer eligible for automatic transcription.":"Transcription needs review. The recording has not been marked as transcribed."}</p>}
     {item.transcript&&<><button type="button" aria-expanded={expanded} aria-controls={`transcript-${item.recordingId}`} onClick={()=>setExpanded(value=>!value)}
       style={{background:"white",border:"1px solid #94a3b8",borderRadius:5,padding:"7px 11px",cursor:"pointer",color:"#17376e"}}>{expanded?"Hide full transcript":"View full transcript"}</button>
       {expanded&&<div id={`transcript-${item.recordingId}`} style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",marginTop:12,lineHeight:1.65}}>{item.transcript}</div>}</>}
