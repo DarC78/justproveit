@@ -119,3 +119,6 @@ Customers who contacted us requests `inboundDays=7`, filtering the latest inboun
 ## Manual appointments before 10:00 UK (9 November 2026)
 
 New Lead MANUAL_BOOK, contact Book a Call and manual rescheduling ask for an extra confirmation before submitting a time earlier than 10:00 Europe/London. Cancel preserves the form and sends no request; OK submits confirmEarlyAppointment=true for the selected date/time. The backend validates the explicit boolean and records the override in booking/action history. Future-date, DST conversion, stale-booking and idempotency protections remain. Automatically offered appointment slots still begin at 10:00.
+
+### WhatsApp photo history (9 November 2026)
+Phone history WhatsApp events may include `image: {mediaId, mimeType, name}`. Both contact and booking histories display lazy-loaded photo previews and an enlarged view, fetched with the CRM bearer authorization from `contacts/{id}/history/media/{messageId}` or `scheduled-calls/{id}/history/media/{messageId}` on the canonical backend. Blob URLs are revoked on unmount or target changes; credentials are never placed in image URLs. Unavailable provider media shows a clear message and retry button. Existing conversations use their saved Mediatel media metadata without backfill.

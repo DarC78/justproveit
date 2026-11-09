@@ -390,7 +390,7 @@ export type CallTranscription = {
 };
 export type PhoneHistoryEvent = {
   kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
-  author: string; text: string; messageType: string; status: string; errorCode?: string | null; errorMessage?: string | null;
+  image?: {mediaId:string;mimeType:string;name:string}|null; author: string; text: string; messageType: string; status: string; errorCode?: string | null; errorMessage?: string | null;
 } | {
   kind: "call"; id: string; atUtc: string | null; endedAtUtc: string | null;
   agentId: number | null; agent: string; callCode: number | null; resolution: string;
@@ -1447,3 +1447,12 @@ export function prefetchAttentionPhoneHistories(token:string,report:CrmAttention
 }
 
 export function assignCrmLead(token:string,contactId:string,agent:string){return fetchCanonicalCrmReadJson<{success:boolean;assignment:LeadAssignment}>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/assignment`,{method:"POST",headers:authHeaders(token),body:JSON.stringify({agent})});}
+
+export async function getPhoneHistoryImage(token:string,targetKind:"contact"|"booking",id:string,messageId:string,signal?:AbortSignal):Promise<Blob>{
+ const path=`${BASE_PATH}/${targetKind==="contact"?"contacts":"scheduled-calls"}/${encodeURIComponent(id)}/history/media/${encodeURIComponent(messageId)}`;
+ const response=await fetch(resolveUrl(CANONICAL_READ_API_BASE_URL,path),{headers:authHeaders(token),cache:"no-store",signal});
+ if(!response.ok)throw new Error("Fotografia nu mai este disponibilă în WhatsApp.");
+ const blob=await response.blob();
+ if(!["image/jpeg","image/png","image/webp","image/gif"].includes(blob.type))throw new Error("Formatul fotografiei nu este acceptat.");
+ return blob;
+}

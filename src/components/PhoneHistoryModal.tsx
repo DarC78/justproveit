@@ -1,6 +1,6 @@
 import WhatsAppReplyComposer from "@/components/WhatsAppReplyComposer";
 import {useEffect,useRef,useState} from "react";
-import {getScheduledPhoneHistory,PhoneHistoryEvent,ScheduledCallRow,ScheduledPhoneHistory,CallTranscription} from "@/lib/crmAdmin";
+import {getPhoneHistoryImage,getScheduledPhoneHistory,PhoneHistoryEvent,ScheduledCallRow,ScheduledPhoneHistory,CallTranscription} from "@/lib/crmAdmin";
 
 const clock=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"medium"});
 function dateTime(value:string|null){const at=Date.parse(value||"");return Number.isFinite(at)?clock.format(at):"Time unavailable";}
@@ -22,14 +22,25 @@ export function CallTranscriptRow({item}:{item:CallTranscription}) {
   </section>;
 }
 
-export function PhoneHistoryTimeline({events}:{events:PhoneHistoryEvent[]}) {
+type ImageTarget={token:string;kind:"contact"|"booking";id:string};
+export function WhatsAppHistoryImage({target,messageId,name}:{target:ImageTarget;messageId:string;name:string}){
+ const holder=useRef<HTMLDivElement>(null),[visible,setVisible]=useState(false),[url,setUrl]=useState(""),[error,setError]=useState(""),[expanded,setExpanded]=useState(false),[attempt,setAttempt]=useState(0);
+ useEffect(()=>{if(typeof IntersectionObserver==="undefined"){queueMicrotask(()=>setVisible(true));return;}const observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){setVisible(true);observer.disconnect();}},{rootMargin:"200px"});if(holder.current)observer.observe(holder.current);return()=>observer.disconnect();},[]);
+ useEffect(()=>{if(!visible)return;const controller=new AbortController();let objectUrl="";
+  Promise.resolve().then(()=>{if(controller.signal.aborted)return null;setError("");setUrl("");return getPhoneHistoryImage(target.token,target.kind,target.id,messageId,controller.signal);}).then(blob=>{if(controller.signal.aborted||!blob)return;objectUrl=URL.createObjectURL(blob);setUrl(objectUrl);}).catch(()=>{if(!controller.signal.aborted)setError("Fotografia nu poate fi încărcată. Este posibil să nu mai fie disponibilă în WhatsApp.");});
+  return()=>{controller.abort();if(objectUrl)URL.revokeObjectURL(objectUrl);};
+ },[visible,target.token,target.kind,target.id,messageId,attempt]);
+ return <div ref={holder} style={{marginTop:12,minHeight:70}}>{error?<p role="status">{error} <button type="button" onClick={()=>setAttempt(n=>n+1)}>Reîncearcă</button></p>:url?<><button type="button" aria-label="Mărește fotografia WhatsApp" onClick={()=>setExpanded(true)} style={{border:0,background:"transparent",cursor:"zoom-in",padding:0}}><img src={url} alt={name} style={{display:"block",maxWidth:"100%",maxHeight:260,borderRadius:8,objectFit:"contain"}}/></button>{expanded&&<dialog open aria-label="Fotografie WhatsApp" style={{position:"fixed",inset:0,zIndex:10000,maxWidth:"95vw",maxHeight:"95vh",overflow:"auto"}} onKeyDown={event=>{if(event.key==="Escape")setExpanded(false);}}><button type="button" autoFocus onClick={()=>setExpanded(false)}>Închide</button><img src={url} alt={name} style={{display:"block",maxWidth:"85vw",maxHeight:"80vh",objectFit:"contain"}}/></dialog>}</>:<p role="status">Se încarcă fotografia…</p>}</div>;
+}
+
+export function PhoneHistoryTimeline({events,imageTarget}:{events:PhoneHistoryEvent[];imageTarget?:ImageTarget}) {
   const ordered=[...events].sort((a,b)=>{const left=Date.parse(a.atUtc||''),right=Date.parse(b.atUtc||'');return (Number.isFinite(right)?right:-Infinity)-(Number.isFinite(left)?left:-Infinity)||a.id.localeCompare(b.id,undefined,{numeric:true});});
   return <ol className="timeline" aria-label="WhatsApp messages and calls, newest first">
     {ordered.map(event=><li key={event.id} className={event.kind==="call"?"call":event.direction}>
       <article>
         <div className="event-heading"><strong>{event.kind==="call"?"Phone call":event.direction==="inbound"?"WhatsApp · Client":"WhatsApp · ProveIt"}</strong>
           <time dateTime={event.atUtc||undefined}>{dateTime(event.atUtc)}</time></div>
-        {event.kind==="whatsapp"?<><p className="author">{event.author}{event.messageType!=="text"?` · ${event.messageType}`:""}</p><p className="body">{event.text}</p>{event.direction==="outbound"&&event.status!=="recorded"&&<p className={event.status==="failed"?"delivery failure":"delivery"} role={event.status==="failed"?"alert":undefined}>Status: {event.status==="accepted"?"Accepted by WhatsApp (delivery not confirmed)":event.status}{event.errorMessage?` ? ${event.errorMessage}`:""}</p>}</>
+        {event.kind==="whatsapp"?<><p className="author">{event.author}{event.messageType!=="text"?` · ${event.messageType}`:""}</p>{(!event.image||!event.text.startsWith("[Mesaj "))&&<p className="body">{event.text}</p>}{event.image&&imageTarget&&<WhatsAppHistoryImage target={imageTarget} messageId={event.id} name={event.image.name}/>}{event.direction==="outbound"&&event.status!=="recorded"&&<p className={event.status==="failed"?"delivery failure":"delivery"} role={event.status==="failed"?"alert":undefined}>Status: {event.status==="accepted"?"Accepted by WhatsApp (delivery not confirmed)":event.status}{event.errorMessage?` ? ${event.errorMessage}`:""}</p>}</>
           : <><p className="resolution">{event.resolution}{event.callCode!=null?` · Callcode ${event.callCode}`:""}</p>
             <dl><div><dt>Agent</dt><dd>{event.agent}</dd></div><div><dt>Call type</dt><dd>{event.callType}</dd></div>
               <div><dt>Total duration</dt><dd>{duration(event.durationSeconds)}</dd></div><div><dt>Agent talk time</dt><dd>{duration(event.talkSeconds)}</dd></div>
@@ -94,7 +105,7 @@ export default function PhoneHistoryModal({token,booking,onClose}:{token:string;
         {booking.phone&&<WhatsAppReplyComposer key={booking.intentId+booking.phone} token={token} intentId={booking.intentId} phone={booking.phone} onSent={()=>setRefresh(value=>value+1)}/>}
         {loading&&!matched?<p className="status">Loading the full WhatsApp conversation and call history...</p>:!matched&&error?<p role="alert" className="error">{error}</p>:matched&&history&&<>
           {error&&<p role="alert" className="error">{error}</p>}<p className="totals">{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
-          {history.events.length?<PhoneHistoryTimeline events={history.events}/>:<p className="status">No recorded WhatsApp messages or calls were found for this number.</p>}
+          {history.events.length?<PhoneHistoryTimeline events={history.events} imageTarget={{token,kind:"booking",id:booking.intentId}}/>:<p className="status">No recorded WhatsApp messages or calls were found for this number.</p>}
         </>}
       </div>
     </div>

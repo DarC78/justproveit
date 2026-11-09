@@ -35,7 +35,7 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
     {loading&&<p role="status">Loading history…</p>}
     {error&&<p role="alert">{error}</p>}
     {history&&history.contactId.toLowerCase()===contactId.toLowerCase()&&phoneKey(history.phone)===phoneKey(phone)&&<><p>{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
-     {history.events.length?<PhoneHistoryTimeline events={history.events}/>:<p>No recorded WhatsApp messages or calls for this number.</p>}</>}
+     {history.events.length?<PhoneHistoryTimeline events={history.events} imageTarget={{token,kind:"contact",id:contactId}}/>:<p>No recorded WhatsApp messages or calls for this number.</p>}</>}
    </div>
   </>}
   <style jsx>{`
