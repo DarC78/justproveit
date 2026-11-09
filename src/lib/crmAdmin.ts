@@ -416,7 +416,7 @@ export type BookingActionResult = {
 };
 
 export function changeScheduledBooking(token: string, booking: ScheduledCallRow, action: "reschedule" | "cancel" | "dialler", payload: {
-  requestId: string; appointmentDate?: string; appointmentTime?: string;
+  requestId: string; appointmentDate?: string; appointmentTime?: string; confirmEarlyAppointment?: boolean;
 }) {
   return fetchCanonicalCrmReadJson<BookingActionResult>(`${BASE_PATH}/scheduled-calls/${encodeURIComponent(booking.intentId)}${action === "reschedule" ? "/reschedule" : action === "dialler" ? "/dialler" : ""}`, {
     method: action === "cancel" ? "DELETE" : "POST",
@@ -847,6 +847,7 @@ export type ManualCrmLeadPayload = {
   appointmentTime?: string;
   appointmentTimeZone?: string;
   appointmentLocalDateTime?: string;
+  confirmEarlyAppointment?: boolean;
   sendSms?: boolean;
   agent?: string;
 };

@@ -32,7 +32,7 @@ export async function loadCustomerPage(token:string,scope:CustomerScope,filters:
 export type ContactAction="reply"|"solve"|"asap";
 export type ContactActionResult={success:boolean;action:ContactAction|'book'|'end';contactId:string;solved:boolean;whatsAppQueued?:boolean;messageId?:string|null;replayed?:boolean;intentId?:string|null;appointmentAtUtc?:string;mode?:'created'|'rescheduled';dialler?:{attempted:boolean;success:boolean;queued?:boolean;commandId?:string|null;error?:string|null}|null};
 export type ContactBookingContext={contactId:string;name:string;phone:string|null;serviceKey:string|null;bookings:Array<{id:string;appointmentAtUtc:string;serviceName:string}>};
-export type ContactBookingInput={requestId:string;appointmentDate:string;appointmentTime:string;expectedPhone:string;expectedBookingId:string|null;expectedAppointmentAtUtc:string|null};
+export type ContactBookingInput={requestId:string;appointmentDate:string;appointmentTime:string;confirmEarlyAppointment?:boolean;expectedPhone:string;expectedBookingId:string|null;expectedAppointmentAtUtc:string|null};
 async function bookingRequest<T>(token:string,contactId:string,payload?:ContactBookingInput):Promise<T>{
  const base=process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||API_BASE_URL;
  const response=await fetch(`${base.replace(/\/+$/,"")}/justproveit/admin/crm/contacts/${encodeURIComponent(contactId)}/book-call`,{method:payload?'POST':'GET',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},...(payload?{body:JSON.stringify(payload)}:{}),cache:'no-store'});

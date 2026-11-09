@@ -115,3 +115,7 @@ Membership now comes exclusively from tenant-scoped `wix.ozClients`. Deduplicate
 
 ## Customer list filters (7 November 2026)
 Customers who contacted us requests `inboundDays=7`, filtering the latest inbound event before count/pagination. All customers requests an explicit `service` filter: empty selection returns only the service catalogue and zero customers. Service and optional status filters apply to the same sale/service entry before deduplication-aware pagination (10 rows). International pension status uses the current major case stage (or closed); other services use recorded sale status, with untracked fallback. Unknown legacy services are shown explicitly, without guessing. Lead lists retain their existing behavior.
+
+## Manual appointments before 10:00 UK (9 November 2026)
+
+New Lead MANUAL_BOOK, contact Book a Call and manual rescheduling ask for an extra confirmation before submitting a time earlier than 10:00 Europe/London. Cancel preserves the form and sends no request; OK submits confirmEarlyAppointment=true for the selected date/time. The backend validates the explicit boolean and records the override in booking/action history. Future-date, DST conversion, stale-booking and idempotency protections remain. Automatically offered appointment slots still begin at 10:00.
