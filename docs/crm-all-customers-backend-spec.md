@@ -115,3 +115,17 @@ Membership now comes exclusively from tenant-scoped `wix.ozClients`. Deduplicate
 
 ## Customer list filters (7 November 2026)
 Customers who contacted us requests `inboundDays=7`, filtering the latest inbound event before count/pagination. All customers requests an explicit `service` filter: empty selection returns only the service catalogue and zero customers. Service and optional status filters apply to the same sale/service entry before deduplication-aware pagination (10 rows). International pension status uses the current major case stage (or closed); other services use recorded sale status, with untracked fallback. Unknown legacy services are shown explicitly, without guessing. Lead lists retain their existing behavior.
+
+### Self-hosted WhatsApp inbox (test rollout)
+
+Feature builds with `NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM=true` expose a received-message
+inbox and customer/contact WhatsApp history. `/justproveit/admin/crm/whatsapp-gateway`
+provides GET capabilities/inbox/targets/history/{kind}/{id} and POST inbox/{id}/link.
+Existing CRM authorization is required. Unresolved/shared identities stay in review;
+a human selects an existing record, checks it and supplies a verification note.
+Links use expectedVersion/requestId and remain per message, with an authenticated
+audit. No sender-to-client guess is persisted. Display uses escaped React text.
+There are no new send, automatic reply, client creation or workflow actions.
+The initial test preview retains existing provider history and inbound aggregates;
+self-hosted received history is available from the separate customer-row button.
+Test preview uses same-origin `/api`; normal production build flag remains absent.

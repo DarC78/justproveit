@@ -1,0 +1,35 @@
+name: WhatsApp CRM test preview
+on:
+  push:
+    branches: [feat/whatsapp-gateway-crm-history]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_BASE_URL: /api
+      NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL: /api
+      NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM: "true"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+      - run: npm ci --ignore-scripts
+      - run: node --test tests/whatsapp-gateway-crm.test.cjs tests/phone-history-performance.test.cjs tests/crm-lead-search.test.cjs
+      - run: npx tsc --noEmit
+      - run: npm run build
+      - run: |
+          tar -czf crm-preview.tar.gz -C out .
+          sha256sum crm-preview.tar.gz > crm-preview.tar.gz.sha256
+          printf '%s\n' "$GITHUB_SHA" > source-revision.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: whatsapp-crm-preview-${{ github.sha }}
+          path: |
+            crm-preview.tar.gz
+            crm-preview.tar.gz.sha256
+            source-revision.txt
+          retention-days: 14

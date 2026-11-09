@@ -1,3 +1,4 @@
+import WhatsAppGatewayInbox from "@/components/WhatsAppGatewayInbox";
 import AllLeadsView from "@/components/AllLeadsView";
 import AllCustomersView from "@/components/AllCustomersView";
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
@@ -65,6 +66,7 @@ type TabKey =
   | "all"
   | "intents"
   | "inboundSms"
+  | "whatsappGateway"
   | "whatsappStats"
   | "agentreport"
   | "manual"
@@ -103,6 +105,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "all", label: "All Leads CRM" },
   { key: "intents", label: "Lead Intents" },
   { key: "inboundSms", label: "InboundSMS" },
+  ...(process.env.NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM === "true" ? [{ key: "whatsappGateway" as TabKey, label: "WhatsApp inbox" }] : []),
   { key: "whatsappStats", label: "WhatsApp stats" },
   { key: "agentreport", label: "Agent Report" },
   { key: "manual", label: "Send Manual Email/SMS" },
@@ -1278,6 +1281,7 @@ export default function AdminCrmPage() {
               {activeTab === "privatePensions" && canUsePrivatePensions ? <PrivatePensionsPanel token={token} /> : null}
               {activeTab === "scheduledCalls" ? <ScheduledCallsPanel token={token} /> : null}
               {activeTab === "attention" ? <AttentionPanel token={token} /> : null}
+              {activeTab === "whatsappGateway" ? <WhatsAppGatewayInbox token={token} /> : null}
               {activeTab === "allCustomersView" ? <AllCustomersView token={token} /> : null}
 
               {activeTab === "sales" ? (

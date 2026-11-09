@@ -390,7 +390,7 @@ export type CallTranscription = {
 };
 export type PhoneHistoryEvent = {
   kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
-  author: string; text: string; messageType: string; status: string; errorCode?: string | null; errorMessage?: string | null;
+  author: string; text: string; messageType: string; status: string; source?: string; providerMessageId?: string; accountId?: string; errorCode?: string | null; errorMessage?: string | null;
 } | {
   kind: "call"; id: string; atUtc: string | null; endedAtUtc: string | null;
   agentId: number | null; agent: string; callCode: number | null; resolution: string;
