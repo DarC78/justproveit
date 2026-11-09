@@ -1,6 +1,6 @@
 import WhatsAppReplyComposer from "@/components/WhatsAppReplyComposer";
 import {useEffect,useRef,useState} from "react";
-import {getPhoneHistoryImage,getCrmEmailHistory,getCrmEmailBody,CrmEmailBody,CrmEmailEvent,getScheduledPhoneHistory,PhoneHistoryEvent,ScheduledCallRow,ScheduledPhoneHistory,CallTranscription} from "@/lib/crmAdmin";
+import {getPhoneHistoryImage,getCrmStripeHistory,CrmStripeEvent,getCrmEmailHistory,getCrmEmailBody,CrmEmailBody,CrmEmailEvent,getScheduledPhoneHistory,PhoneHistoryEvent,ScheduledCallRow,ScheduledPhoneHistory,CallTranscription} from "@/lib/crmAdmin";
 
 const clock=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"medium"});
 function dateTime(value:string|null){const at=Date.parse(value||"");return Number.isFinite(at)?clock.format(at):"Time unavailable";}
@@ -44,7 +44,20 @@ export function EmailHistoryRecord({item,target}:{item:CrmEmailEvent;target:Imag
  </section>;
 }
 
+export function StripeHistoryRecord({item}:{item:CrmStripeEvent}) {
+ let amount="";
+ if(item.amount!=null&&item.currency){try{const fmt=new Intl.NumberFormat("en-GB",{style:"currency",currency:item.currency});const digits=fmt.resolvedOptions().maximumFractionDigits??2;amount=fmt.format(item.amount/(10**digits));}catch{amount=String(item.amount)+" minor units "+item.currency;}}
+ return <section><p style={{fontWeight:700}}>{item.label}{amount?" - "+amount:""}</p>{item.status&&<p>Status: {item.status}</p>}<p style={{fontSize:12,overflowWrap:"anywhere"}}>Reference: {item.reference}</p></section>;
+}
+
 export function PhoneHistoryTimeline({events,imageTarget}:{events:PhoneHistoryEvent[];imageTarget?:ImageTarget}) {
+  const [stripeEvents,setStripeEvents]=useState<CrmStripeEvent[]>([]),[stripeCursor,setStripeCursor]=useState<string|null>(null),[stripeError,setStripeError]=useState(""),[stripeLoading,setStripeLoading]=useState(false);
+  const stripeTarget=useRef(imageTarget);stripeTarget.current=imageTarget;
+  useEffect(()=>{setStripeEvents([]);setStripeCursor(null);setStripeError("");if(!imageTarget)return;const controller=new AbortController();let loading=false,initialized=false;
+    const refresh=async()=>{if(loading)return;loading=true;try{const result=await getCrmStripeHistory(imageTarget.token,imageTarget.kind,imageTarget.id,null,controller.signal);if(!controller.signal.aborted){setStripeEvents(current=>[...new Map([...current,...result.items].map(e=>[e.id,e])).values()]);if(!initialized){setStripeCursor(result.nextCursor);initialized=true;}setStripeError("");}}catch{if(!controller.signal.aborted)setStripeError("Stripe history is unavailable. Other interactions remain visible.");}finally{loading=false;}};
+    void refresh();const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh();},60000);return()=>{controller.abort();clearInterval(interval);};
+  },[imageTarget?.token,imageTarget?.kind,imageTarget?.id]);
+  const olderStripe=async()=>{if(!imageTarget||!stripeCursor)return;const target=imageTarget;setStripeLoading(true);try{const result=await getCrmStripeHistory(target.token,target.kind,target.id,stripeCursor);if(stripeTarget.current?.id!==target.id||stripeTarget.current?.kind!==target.kind||stripeTarget.current?.token!==target.token)return;setStripeEvents(current=>[...new Map([...current,...result.items].map(e=>[e.id,e])).values()]);setStripeCursor(result.nextCursor);setStripeError("");}catch{setStripeError("Older Stripe events could not be loaded. Please retry.");}finally{setStripeLoading(false);}};
   const emailInitialized=useRef(false);const [emailPending,setEmailPending]=useState(false);
   const [emails,setEmails]=useState<CrmEmailEvent[]>([]),[emailCursor,setEmailCursor]=useState<string|null>(null),[emailError,setEmailError]=useState(""),[emailLoading,setEmailLoading]=useState(false);
   useEffect(()=>{emailInitialized.current=false;setEmails([]);setEmailPending(false);setEmailCursor(null);setEmailError("");if(!imageTarget)return;const controller=new AbortController();let loading=false;
@@ -52,13 +65,13 @@ export function PhoneHistoryTimeline({events,imageTarget}:{events:PhoneHistoryEv
     void refresh();const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh();},60000);return()=>{controller.abort();clearInterval(interval);};
   },[imageTarget?.token,imageTarget?.kind,imageTarget?.id]);
   const olderEmails=async()=>{if(!imageTarget||!emailCursor)return;setEmailLoading(true);try{const result=await getCrmEmailHistory(imageTarget.token,imageTarget.kind,imageTarget.id,emailCursor);setEmails(current=>[...new Map([...current,...result.items].map(e=>[e.id,e])).values()]);setEmailCursor(result.nextCursor);setEmailError("");}catch{setEmailError("Older emails could not be loaded. Please retry.");}finally{setEmailLoading(false);}};
-  const ordered=[...events,...emails].sort((a,b)=>{const left=Date.parse(a.atUtc||''),right=Date.parse(b.atUtc||'');return (Number.isFinite(right)?right:-Infinity)-(Number.isFinite(left)?left:-Infinity)||a.id.localeCompare(b.id,undefined,{numeric:true});});
-  return <>{emailPending&&<p role="status">Older system emails are being verified in the background and will appear here automatically.</p>}{emailError&&<p role="status">{emailError}</p>}<ol className="timeline" aria-label="Calls, WhatsApp messages and emails, newest first">
-    {ordered.map(event=><li key={event.id} className={event.kind==="email"?`email ${event.direction}`:event.kind==="call"?"call":event.direction}>
+  const ordered=[...events,...emails,...stripeEvents].sort((a,b)=>{const left=Date.parse(a.atUtc||''),right=Date.parse(b.atUtc||'');return (Number.isFinite(right)?right:-Infinity)-(Number.isFinite(left)?left:-Infinity)||a.id.localeCompare(b.id,undefined,{numeric:true});});
+  return <>{stripeError&&<p role="status">{stripeError}</p>}{emailPending&&<p role="status">Older system emails are being verified in the background and will appear here automatically.</p>}{emailError&&<p role="status">{emailError}</p>}<ol className="timeline" aria-label="Calls, WhatsApp messages and emails, newest first">
+    {ordered.map(event=><li key={event.id} className={event.kind==="stripe"?"stripe":event.kind==="email"?`email ${event.direction}`:event.kind==="call"?"call":event.direction}>
       <article>
-        <div className="event-heading"><strong>{event.kind==="email"?"Email":event.kind==="call"?"Phone call":event.direction==="inbound"?"WhatsApp · Client":"WhatsApp · ProveIt"}</strong>
+        <div className="event-heading"><strong>{event.kind==="stripe"?`Stripe - ${event.source==="proveit"?"ProveIt":"JustProveIt"}`:event.kind==="email"?"Email":event.kind==="call"?"Phone call":event.direction==="inbound"?"WhatsApp · Client":"WhatsApp · ProveIt"}</strong>
           <time dateTime={event.atUtc||undefined}>{dateTime(event.atUtc)}</time></div>
-        {event.kind==="email"?imageTarget?<EmailHistoryRecord key={imageTarget.id+event.id} item={event} target={imageTarget}/>:<p>{event.subject}</p>:event.kind==="whatsapp"?<><p className="author">{event.author}{event.messageType!=="text"?` · ${event.messageType}`:""}</p>{(!event.image||!event.text.startsWith("[Mesaj "))&&<p className="body">{event.text}</p>}{event.image&&imageTarget&&<WhatsAppHistoryImage target={imageTarget} messageId={event.id} name={event.image.name}/>}{event.direction==="outbound"&&event.status!=="recorded"&&<p className={event.status==="failed"?"delivery failure":"delivery"} role={event.status==="failed"?"alert":undefined}>Status: {event.status==="accepted"?"Accepted by WhatsApp (delivery not confirmed)":event.status}{event.errorMessage?` ? ${event.errorMessage}`:""}</p>}</>
+        {event.kind==="stripe"?<StripeHistoryRecord item={event}/>:event.kind==="email"?imageTarget?<EmailHistoryRecord key={imageTarget.id+event.id} item={event} target={imageTarget}/>:<p>{event.subject}</p>:event.kind==="whatsapp"?<><p className="author">{event.author}{event.messageType!=="text"?` · ${event.messageType}`:""}</p>{(!event.image||!event.text.startsWith("[Mesaj "))&&<p className="body">{event.text}</p>}{event.image&&imageTarget&&<WhatsAppHistoryImage target={imageTarget} messageId={event.id} name={event.image.name}/>}{event.direction==="outbound"&&event.status!=="recorded"&&<p className={event.status==="failed"?"delivery failure":"delivery"} role={event.status==="failed"?"alert":undefined}>Status: {event.status==="accepted"?"Accepted by WhatsApp (delivery not confirmed)":event.status}{event.errorMessage?` ? ${event.errorMessage}`:""}</p>}</>
           : <><p className="resolution">{event.resolution}{event.callCode!=null?` · Callcode ${event.callCode}`:""}</p>
             <dl><div><dt>Agent</dt><dd>{event.agent}</dd></div><div><dt>Call type</dt><dd>{event.callType}</dd></div>
               <div><dt>Total duration</dt><dd>{duration(event.durationSeconds)}</dd></div><div><dt>Agent talk time</dt><dd>{duration(event.talkSeconds)}</dd></div>
@@ -68,13 +81,13 @@ export function PhoneHistoryTimeline({events,imageTarget}:{events:PhoneHistoryEv
     </li>)}
     <style jsx>{`
       .timeline{list-style:none;margin:0;padding:0;display:grid;gap:16px}li{border:1px solid #dce3ee;border-radius:9px;padding:16px;min-width:0}
-      .inbound{background:white;margin-right:8%}.outbound{background:#e4f4ea;margin-left:8%}.call{background:#edf3ff;border-left:4px solid #315fba}.email{background:#fff9db;border-color:#eadb9a}
+      .inbound{background:white;margin-right:8%}.outbound{background:#e4f4ea;margin-left:8%}.call{background:#edf3ff;border-left:4px solid #315fba}.email{background:#fff9db;border-color:#eadb9a}.stripe{background:#f3efff;border-left:4px solid #7861bd}
       .event-heading{display:flex;align-items:start;justify-content:space-between;gap:14px;font-size:14px}time{font-size:12px;white-space:nowrap;color:#526077}
       .author{font-size:11px;color:#667085;margin:6px 0}.body{white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.65;margin:10px 0 0}
       .delivery{font-size:12px;font-weight:600;margin:12px 0 0}.failure{color:#b42318}.resolution{font-weight:700;color:#17376e;font-size:14px;margin:10px 0}dl{display:flex;flex-wrap:wrap;gap:12px 28px;margin:0;font-size:12px}dt{color:#667085}dd{margin:4px 0 0;font-weight:600}
       @media(max-width:600px){.event-heading{display:grid;gap:6px}.inbound{margin-right:2%}.outbound{margin-left:2%}li{padding:12px}}
     `}</style>
-  </ol>{emailCursor&&<button type="button" disabled={emailLoading} onClick={()=>void olderEmails()}>{emailLoading?"Loading emails...":"Load older emails"}</button>}</>;
+  </ol>{stripeCursor&&<button type="button" disabled={stripeLoading} onClick={()=>void olderStripe()}>{stripeLoading?"Loading Stripe events...":"Load older Stripe events"}</button>}{emailCursor&&<button type="button" disabled={emailLoading} onClick={()=>void olderEmails()}>{emailLoading?"Loading emails...":"Load older emails"}</button>}</>;
 }
 
 export default function PhoneHistoryModal({token,booking,onClose}:{token:string;booking:ScheduledCallRow;onClose:()=>void}) {

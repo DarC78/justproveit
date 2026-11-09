@@ -73,3 +73,5 @@ checkpoint replay, temporary-table SQL, lazy expansion and sandboxed rendering.
 
 References: [Google Gmail scopes](https://developers.google.com/workspace/gmail/api/auth/scopes),
 [Gmail synchronization](https://developers.google.com/workspace/gmail/api/guides/sync).
+
+Stripe activity is also merged into the shared lead timeline (pale purple, with ProveIt/JustProveIt account labels). It loads independently through the authenticated /contacts/{id}/stripe-events or /scheduled-calls/{id}/stripe-events routes, 50 events per page. Account connection and backend contract: docs/engineering/systems/crm-stripe-events.md in LaunchingStack. Historical Stripe backfill is not automatic.
