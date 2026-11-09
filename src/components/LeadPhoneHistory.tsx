@@ -24,18 +24,18 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
   return()=>controller.abort();
  },[token,contactId,phone,revision]);
  return <section aria-label={`History for ${name||phone||"lead"}`}>
-  <header><div><h3>WhatsApp &amp; call history</h3><p>{name||"Lead"} · {phone||"No phone number recorded"} · Newest first · UK time</p></div>
+  <header><div><h3>Calls, WhatsApp &amp; email history</h3><p>{name||"Lead"} · {phone||"No phone number recorded"} · Newest first · UK time</p></div>
    <div className="history-controls">
     {phone&&<button type="button" disabled={loading} onClick={()=>setRevision(n=>n+1)}>Refresh history</button>}
     {onCollapse&&<button type="button" onClick={onCollapse}>Restrânge istoricul</button>}
    </div></header>
-  {!phone?<p>Add a phone number to this lead to view phone history and send WhatsApp messages.</p>:<>
+  {!phone?<><p>Add a phone number to view calls and WhatsApp messages.</p><PhoneHistoryTimeline events={[]} imageTarget={{token,kind:"contact",id:contactId}}/></>:<>
    <WhatsAppReplyComposer key={contactId+phone} token={token} contactId={contactId} phone={phone} onSent={result=>{setRevision(n=>n+1);if(['accepted','sent','delivered','read'].includes(result.status))onReplied?.();}}/>
    <div aria-live="polite" aria-busy={loading}>
     {loading&&<p role="status">Loading history…</p>}
     {error&&<p role="alert">{error}</p>}
     {history&&history.contactId.toLowerCase()===contactId.toLowerCase()&&phoneKey(history.phone)===phoneKey(phone)&&<><p>{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
-     {history.events.length?<PhoneHistoryTimeline events={history.events} imageTarget={{token,kind:"contact",id:contactId}}/>:<p>No recorded WhatsApp messages or calls for this number.</p>}</>}
+     <PhoneHistoryTimeline events={history.events} imageTarget={{token,kind:"contact",id:contactId}}/></>}
    </div>
   </>}
   <style jsx>{`

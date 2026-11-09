@@ -388,7 +388,9 @@ export type CallTranscription = {
   recordingId: number; status: string; summary: string | null; transcript: string | null;
   errorCode?: string | null; updatedAtUtc?: string | null;
 };
-export type PhoneHistoryEvent = {
+export type CrmEmailEvent = {kind:"email";id:string;atUtc:string|null;direction:"inbound"|"outbound";subject:string;from:string;mailbox:string};
+export type CrmEmailBody = {subject:string;from:string;to:string[];text:string;html:string};
+export type PhoneHistoryEvent = CrmEmailEvent | {
   kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
   image?: {mediaId:string;mimeType:string;name:string}|null; author: string; text: string; messageType: string; status: string; errorCode?: string | null; errorMessage?: string | null;
 } | {
@@ -1456,3 +1458,11 @@ export async function getPhoneHistoryImage(token:string,targetKind:"contact"|"bo
  if(!["image/jpeg","image/png","image/webp","image/gif"].includes(blob.type))throw new Error("Formatul fotografiei nu este acceptat.");
  return blob;
 }
+export function getCrmEmailHistory(token:string,kind:"contact"|"booking",id:string,cursor:string|null=null,signal?:AbortSignal){
+ return fetchCanonicalCrmReadJson<{items:CrmEmailEvent[];nextCursor:string|null;systemArchivePending?:boolean}>(BASE_PATH+"/"+(kind==="contact"?"contacts":"scheduled-calls")+"/"+encodeURIComponent(id)+"/emails"+(cursor?"?cursor="+encodeURIComponent(cursor):""),{headers:authHeaders(token),cache:"no-store",signal});
+}
+export function getCrmEmailBody(token:string,kind:"contact"|"booking",id:string,messageId:string){
+ return fetchCanonicalCrmReadJson<CrmEmailBody>(BASE_PATH+"/"+(kind==="contact"?"contacts":"scheduled-calls")+"/"+encodeURIComponent(id)+"/emails/"+encodeURIComponent(messageId.replace(/^email:/,"")),{headers:authHeaders(token),cache:"no-store"});
+}
+export function getCrmEmailConnections(token:string){return fetchCanonicalCrmReadJson<{mailboxes:{mailbox:string;Connected?:number;LastSyncAtUtc?:string|null;LastError?:string|null;BackfillComplete?:boolean}[];redirectUri:string}>(BASE_PATH+"/email-connections",{headers:authHeaders(token),cache:"no-store"});}
+export function connectCrmEmail(token:string,mailbox:string){return fetchCanonicalCrmReadJson<{url:string}>(BASE_PATH+"/email-connections/connect",{method:"POST",headers:authHeaders(token),body:JSON.stringify({mailbox})});}
