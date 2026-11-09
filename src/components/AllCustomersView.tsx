@@ -52,7 +52,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
   },[token,scope,applied,page,revision,kind,refreshKey,hasSearch,pageSize]);
   const [drafts,setDrafts]=useState<WhatsAppDraft[]>([]),[draftError,setDraftError]=useState("");
   useEffect(()=>{
-    if(kind!=="leads"||!report?.rows.length){setDrafts([]);return;}
+    if(process.env.NEXT_PUBLIC_CRM_READ_ONLY_PREVIEW==='true'||kind!=="leads"||!report?.rows.length){setDrafts([]);return;}
     const controller=new AbortController();let running=false;
     async function refreshDrafts(){if(running||controller.signal.aborted)return;running=true;
       try{const result=await listWhatsAppDrafts(token,report!.rows.map(row=>row.contactId),controller.signal);if(!controller.signal.aborted){setDrafts(result.drafts);setDraftError("");}}
@@ -64,7 +64,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
   },[token,kind,report]);
   function apply(event:FormEvent){event.preventDefault();if(filters.customerFrom&&filters.customerTo&&filters.customerFrom>filters.customerTo){setError('Customer date From must be on or before To.');return;}setLoading(true);setError("");setReport(null);setPage(0);setApplied({...filters});}
   return <section className="customer-section" aria-labelledby={`${kind}-${scope}-title`}>
-    <h2 id={`${kind}-${scope}-title`}>{title}</h2><p>{description}</p>
+    <h2 id={`${kind}-${scope}-title`}>{title}</h2><p>{description}</p>{process.env.NEXT_PUBLIC_CRM_READ_ONLY_PREVIEW==='true'&&<p>Test CRM: live lead and email data is not synchronized. Linked gateway messages are shown; sending and business changes are disabled.</p>}
     <form onSubmit={apply} className="filters">
       {serviceFirst&&<><label>Service<select value={applied.service||''} onChange={e=>{const next={...filters,service:e.target.value,status:''};setFilters(next);setApplied(next);setPage(0);setReport(null);setStatuses([]);}}><option value="">All services</option>{catalog.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label>Status<select disabled={!applied.service} value={applied.status||''} onChange={e=>{const next={...filters,status:e.target.value};setFilters(next);setApplied(next);setPage(0);setReport(null);}}><option value="">All statuses</option>{statuses.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label></>}
       {(["name","phone","email"] as const).map(field=><label key={field}>{field[0].toUpperCase()+field.slice(1)}<input type="search" value={filters[field]} onChange={e=>setFilters({...filters,[field]:e.target.value})}/></label>)}

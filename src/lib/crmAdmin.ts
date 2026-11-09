@@ -1,3 +1,5 @@
+import {gatewayHistory} from "./whatsappGateway";
+import {mergeGatewayHistory} from "./whatsappGatewayMerge";
 import { API_BASE_URL, fetchJson } from "@/lib/auth";
 import {readPhoneHistoryCached,warmPhoneHistories} from './phoneHistoryCache';
 
@@ -1431,7 +1433,7 @@ export function getComposerTemplates(token:string){return fetchCanonicalCrmReadJ
 export type ContactPhoneHistory = Omit<ScheduledPhoneHistory,"intentId"> & {contactId:string};
 export function getContactPhoneHistory(token:string,contactId:string,signal?:AbortSignal,fresh=false) {
  if(signal?.aborted)return Promise.reject(new DOMException('Aborted','AbortError'));
- return readPhoneHistoryCached(token,`contact:${contactId}`,()=>fetchCanonicalCrmReadJson<ContactPhoneHistory>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/history`,{headers:authHeaders(token),cache:'no-store'}),fresh);
+ return readPhoneHistoryCached(token,`contact:${contactId}`,async()=>{const history=await fetchCanonicalCrmReadJson<ContactPhoneHistory>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/history`,{headers:authHeaders(token),cache:'no-store'});if(process.env.NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM!=='true')return history;const received=await gatewayHistory(token,'contact',contactId);return mergeGatewayHistory(history,received.events);},fresh);
 }
 export function sendContactWhatsAppReply(token:string,contactId:string,body:ComposerRequest & {expectedPhone:string}) {
  return fetchCanonicalCrmReadJson<WhatsAppReplyResult>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/whatsapp/replies`,{method:"POST",headers:authHeaders(token),body:JSON.stringify(body)});

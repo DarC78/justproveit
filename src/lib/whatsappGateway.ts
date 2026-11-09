@@ -9,3 +9,5 @@ export const gatewayInbox=(token:string,state:string,offset=0)=>request<{rows:Ga
 export const gatewayTargets=(token:string,query:string)=>request<{rows:GatewayTarget[]}>(token,`/targets?q=${encodeURIComponent(query)}`);
 export const gatewayHistory=(token:string,kind:'contact'|'customer',id:string)=>request<{events:PhoneHistoryEvent[]}>(token,`/history/${kind}/${encodeURIComponent(id)}`);
 export const gatewayLink=(token:string,id:string,body:{requestId:string;expectedVersion:number;targetKind:'contact'|'customer'|null;targetId:string|null;reason:string})=>request<GatewayMessage>(token,`/inbox/${encodeURIComponent(id)}/link`,{method:'POST',body:JSON.stringify(body)});
+
+export const gatewaySummaries=(token:string,items:Array<{kind:'contact'|'customer';id:string}>,signal?:AbortSignal)=>request<{summaries:Record<string,Extract<PhoneHistoryEvent,{kind:'whatsapp'}>|null>}>(token,'/summaries',{method:'POST',body:JSON.stringify({items}),signal});

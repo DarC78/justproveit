@@ -1,4 +1,6 @@
 ﻿import type { ScheduledCallRow } from "./crmAdmin";
+import {gatewaySummaries} from "./whatsappGateway";
+import {mergeGatewaySummary} from "./whatsappGatewayMerge";
 import { API_BASE_URL } from "./auth";
 export type RecordKind="customers"|"leads";
 export type CustomerScope="inbound"|"all";
@@ -30,6 +32,11 @@ export async function loadCustomerPage(token:string,scope:CustomerScope,filters:
   if(!response.ok)throw new Error(data.error?.message||"Unable to load CRM records.");
   if(data.scope!==scope||data.limit!==pageSize||data.offset!==page*pageSize||!Array.isArray(data.rows)||data.rows.length>pageSize||!Number.isInteger(data.total)||data.total<0)
     throw new Error("The CRM response could not be verified. Please refresh.");
+  if(process.env.NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM==='true'&&data.rows.length){
+    const targetKind=kind==='leads'?'contact':'customer';
+    const result=await gatewaySummaries(token,data.rows.map((row:CustomerRow)=>({kind:targetKind,id:row.contactId})),signal);
+    data.rows=data.rows.map((row:CustomerRow)=>mergeGatewaySummary(row,result.summaries[targetKind+':'+row.contactId.toLowerCase()]));
+  }
   return data;
 }
 

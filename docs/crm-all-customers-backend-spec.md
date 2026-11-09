@@ -147,3 +147,15 @@ There are no new send, automatic reply, client creation or workflow actions.
 The initial test preview retains existing provider history and inbound aggregates;
 self-hosted received history is available from the separate customer-row button.
 Test preview uses same-origin `/api`; normal production build flag remains absent.
+
+### Gateway preview display correction
+
+Feature builds merge explicit, authenticated gateway link summaries into each
+returned row's Latest inbound contact and Latest WhatsApp cells, preserving newer
+existing activity. Contact inline history includes the same linked messages,
+deduplicated by event ID. This row enrichment does not change existing inbound-scope
+membership/counts. The read-only test build disables draft polling and composers;
+it does not claim draft-list is read-only. Contact-note batch reads route to the new
+service because that endpoint is absent from the older local test backend. Production
+builds keep their existing behavior. The preview explicitly labels its unsynchronized
+test dataset; the email-coverage notice remains informational.

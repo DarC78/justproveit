@@ -15,7 +15,7 @@ Object.defineProperty(global,'crypto',{value:require('node:crypto').webcrypto,co
 global.HTMLElement=dom.window.HTMLElement;global.HTMLInputElement=dom.window.HTMLInputElement;
 global.IS_REACT_ACT_ENVIRONMENT=true;
 const {createRoot}=require('react-dom/client');
-const calls={pages:[],histories:[],sends:[]};
+const calls={pages:[],histories:[],sends:[],draftReads:0};
 const filters={name:'',phone:'',email:''};
 const rows=Array.from({length:7},(_,n)=>({contactId:`contact-${n}`,name:`Matching lead ${n+1}`,phone:`44770090000${n}`,email:`lead${n}@example.invalid`,booking:null,createdAtUtc:null,callCount:0,lastInbound:null,lastWhatsApp:null,firstCallAtUtc:null,lastCallAtUtc:null,firstCallCode:null,lastCallCode:null}));
 const crm={
@@ -30,7 +30,7 @@ const mocks={'@/lib/leadNotes':{nextActionRowStyle:()=>undefined,useLeadNoteSumm
  'next/router':{useRouter:()=>router},
  '@/lib/crmAdmin':crm,
  '@/lib/allCustomers':{CUSTOMER_PAGE_SIZE:50,callcodeText:()=>'',contactActionNotice:()=>'',async loadCustomerPage(token,scope,applied,page,signal,kind,size){calls.pages.push({applied,page,kind,size});return {scope,total:rows.length,limit:size,offset:page*size,rows:rows.slice(page*size,(page+1)*size),...(kind==='customers'?{services:[{value:'international-pension-uk-ro',label:'International pensions'}],statuses:[{value:'S01',label:'S01'}]}:{})};}},
- '@/lib/whatsappDrafts':{async listWhatsAppDrafts(){return {drafts:[]};}},
+ '@/lib/whatsappDrafts':{async listWhatsAppDrafts(){calls.draftReads++;return {drafts:[]};}},
  '@/lib/bookedCalls':{bookingActionNotice:()=>''},
  'next/link':{default:({children})=>React.createElement('span',null,children)},
  './PensionQualificationProfiles':{default:()=>null},'./ContactActions':{default:()=>null},'./BookingActions':{default:()=>null},'./WhatsAppDraftRow':{default:()=>null}
@@ -123,4 +123,9 @@ test('customers default to all services and request ten-row pages; inbound uses 
   await act(async()=>{service.value='';service.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await flush();assert.equal(calls.pages.at(-1).applied.service,'');assert.equal(calls.pages.at(-1).applied.status,'');assert.equal(host.querySelectorAll('select')[1].disabled,true);assert.ok(host.querySelectorAll('tbody tr').length>0);
   await act(async()=>root.render(React.createElement(CustomersSection,{key:'inbound',token:'test',scope:'inbound',title:'Contacts',description:''})));await flush();assert.equal(calls.pages.at(-1).applied.inboundDays,7);
  }finally{await act(async()=>root.unmount());host.remove();mocks['@/lib/allCustomers'].loadCustomerPage=original;}
+});
+
+test('read-only test preview shows history without polling drafts or rendering send composers',async()=>{
+ const previous=process.env.NEXT_PUBLIC_CRM_READ_ONLY_PREVIEW;process.env.NEXT_PUBLIC_CRM_READ_ONLY_PREVIEW='true';const before=calls.draftReads;const host=document.createElement('div');document.body.append(host);const root=createRoot(host);const CustomersSection=load('src/components/AllCustomersView.tsx').CustomersSection;
+ try{await act(async()=>root.render(React.createElement(CustomersSection,{token:'fixture-token',scope:'all',kind:'leads',title:'Test leads',description:'Test',defaultFilters:{name:'Matching',phone:'',email:''}})));await flush();await flush();assert.equal(calls.draftReads,before);assert.equal(host.querySelectorAll('form[aria-label="Reply on WhatsApp"]').length,0);assert.ok(host.querySelector('ol'));assert.match(host.textContent,/sending and business changes are disabled/);}finally{await act(async()=>root.unmount());host.remove();if(previous===undefined)delete process.env.NEXT_PUBLIC_CRM_READ_ONLY_PREVIEW;else process.env.NEXT_PUBLIC_CRM_READ_ONLY_PREVIEW=previous;}
 });

@@ -133,7 +133,7 @@ export default function PhoneHistoryModal({token,booking,onClose}:{token:string;
           <button type="button" onClick={onClose} aria-label="Close phone history">Close</button></div></header>
       <p id="phone-history-description" className="description">Full recorded history for this number · Newest first · All times UK. Queued WhatsApp messages are not shown as sent.</p>
       <div className="content" aria-busy={loading} aria-live="polite">
-        {booking.phone&&<WhatsAppReplyComposer key={booking.intentId+booking.phone} token={token} intentId={booking.intentId} phone={booking.phone} onSent={()=>setRefresh(value=>value+1)}/>}
+        {process.env.NEXT_PUBLIC_CRM_READ_ONLY_PREVIEW!=='true'&&booking.phone&&<WhatsAppReplyComposer key={booking.intentId+booking.phone} token={token} intentId={booking.intentId} phone={booking.phone} onSent={()=>setRefresh(value=>value+1)}/>}
         {loading&&!matched?<p className="status">Loading the full WhatsApp conversation and call history...</p>:!matched&&error?<p role="alert" className="error">{error}</p>:matched&&history&&<>
           {error&&<p role="alert" className="error">{error}</p>}<p className="totals">{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
           <PhoneHistoryTimeline events={history.events} imageTarget={{token,kind:"booking",id:booking.intentId}}/>

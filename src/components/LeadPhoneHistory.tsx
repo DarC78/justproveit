@@ -30,7 +30,7 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
     {onCollapse&&<button type="button" onClick={onCollapse}>Restrânge istoricul</button>}
    </div></header>
   {!phone?<><p>Add a phone number to view calls and WhatsApp messages.</p><PhoneHistoryTimeline events={[]} imageTarget={{token,kind:"contact",id:contactId}}/></>:<>
-   <WhatsAppReplyComposer key={contactId+phone} token={token} contactId={contactId} phone={phone} onSent={result=>{setRevision(n=>n+1);if(['accepted','sent','delivered','read'].includes(result.status))onReplied?.();}}/>
+   {process.env.NEXT_PUBLIC_CRM_READ_ONLY_PREVIEW!=='true'&&<WhatsAppReplyComposer key={contactId+phone} token={token} contactId={contactId} phone={phone} onSent={result=>{setRevision(n=>n+1);if(['accepted','sent','delivered','read'].includes(result.status))onReplied?.();}}/>}
    <div aria-live="polite" aria-busy={loading}>
     {loading&&<p role="status">Loading history…</p>}
     {error&&<p role="alert">{error}</p>}

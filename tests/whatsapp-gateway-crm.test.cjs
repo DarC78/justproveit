@@ -21,3 +21,15 @@ test('manual review requires a selected record and reason; rapid clicks and unce
  results.push({state:'matched'});await button('Confirm link to selected record').props.onClick();render();assert.equal(calls.length,2);assert.equal(calls[0][2].requestId,calls[1][2].requestId);assert.equal(calls[0][2].expectedVersion,1);assert.equal(saved,1);
  assert.ok(!nodes('textarea').length);assert.ok(!button('Send'));assert.ok(text(tree).includes('<script>untrusted</script>'));
 });
+
+test('linked gateway messages fill empty lead summaries and preserve newer existing activity',()=>{
+ const exports={};vm.runInNewContext(compile('src/lib/whatsappGatewayMerge.ts'),{exports});const row={contactId:'CONTACT',lastInbound:null,lastWhatsApp:null,booking:null,callCount:3};const event={kind:'whatsapp',id:'gateway:one',atUtc:'2026-11-09T21:05:35Z',direction:'inbound',text:'Fixture inbound',source:'Self-hosted WhatsApp'};
+ const merged=exports.mergeGatewaySummary(row,event);assert.equal(merged.lastInbound.channel,'whatsapp');assert.equal(merged.lastWhatsApp.text,event.text);assert.equal(merged.callCount,3);assert.equal(row.lastInbound,null);
+ const newer={...row,lastInbound:{atUtc:'2026-11-09T22:00:00Z',channel:'email'},lastWhatsApp:{atUtc:'2026-11-09T22:00:00Z',direction:'outbound',text:'Existing'}};assert.equal(exports.mergeGatewaySummary(newer,event).lastWhatsApp.text,'Existing');assert.equal(exports.mergeGatewaySummary(row,null),row);
+ const history=exports.mergeGatewayHistory({events:[event],whatsAppMessages:1},[event,{...event,id:'gateway:two'}]);assert.equal(history.events.length,2);assert.equal(history.whatsAppMessages,2);
+});
+test('feature lead reads request explicit contact summaries before showing a row',async()=>{
+ const exports={},calls=[];const row={contactId:'ABC',lastInbound:null,lastWhatsApp:null};const merged={...row,lastInbound:{channel:'whatsapp'}};
+ vm.runInNewContext(compile('src/lib/allCustomers.ts'),{exports,URLSearchParams,process:{env:{NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM:'true'}},fetch:async()=>({ok:true,status:200,json:async()=>({scope:'all',limit:5,offset:0,total:1,rows:[row]})}),require:name=>name==='./auth'?{API_BASE_URL:'/api'}:name==='./whatsappGateway'?{gatewaySummaries:async(...args)=>{calls.push(args);return{summaries:{'contact:abc':{kind:'whatsapp'}}};}}:{mergeGatewaySummary:(actual,event)=>{assert.equal(actual,row);assert.equal(event.kind,'whatsapp');return merged;}}});
+ const result=await exports.loadCustomerPage('token','all',{name:'Fixture',phone:'',email:''},0,new AbortController().signal,'leads',5);assert.equal(result.rows[0],merged);assert.equal(calls[0][1][0].kind,'contact');assert.equal(calls[0][1][0].id,'ABC');
+});
