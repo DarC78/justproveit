@@ -61,12 +61,13 @@ export function CustomersSection({token,scope,title,description,kind="customers"
     setDrafts([]);void refreshDrafts();const interval=setInterval(()=>{if(document.visibilityState==="visible")void refreshDrafts();},30000);
     return()=>{controller.abort();clearInterval(interval);};
   },[token,kind,report]);
-  function apply(event:FormEvent){event.preventDefault();setLoading(true);setError("");setReport(null);setPage(0);setApplied({...filters});}
+  function apply(event:FormEvent){event.preventDefault();if(filters.customerFrom&&filters.customerTo&&filters.customerFrom>filters.customerTo){setError('Customer date From must be on or before To.');return;}setLoading(true);setError("");setReport(null);setPage(0);setApplied({...filters});}
   return <section className="customer-section" aria-labelledby={`${kind}-${scope}-title`}>
     <h2 id={`${kind}-${scope}-title`}>{title}</h2><p>{description}</p>
     <form onSubmit={apply} className="filters">
       {serviceFirst&&<><label>Service<select value={applied.service||''} onChange={e=>{const next={...filters,service:e.target.value,status:''};setFilters(next);setApplied(next);setPage(0);setReport(null);setStatuses([]);}}><option value="">Select a service</option>{catalog.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label>Status<select disabled={!applied.service} value={applied.status||''} onChange={e=>{const next={...filters,status:e.target.value};setFilters(next);setApplied(next);setPage(0);setReport(null);}}><option value="">All statuses</option>{statuses.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label></>}
       {(["name","phone","email"] as const).map(field=><label key={field}>{field[0].toUpperCase()+field.slice(1)}<input type="search" value={filters[field]} onChange={e=>setFilters({...filters,[field]:e.target.value})}/></label>)}
+      {kind==='customers'&&<fieldset><legend>Became a customer (UK dates)</legend><label>From<input type="date" value={filters.customerFrom||''} max={filters.customerTo||undefined} onChange={e=>setFilters({...filters,customerFrom:e.target.value})}/></label><label>To<input type="date" value={filters.customerTo||''} min={filters.customerFrom||undefined} onChange={e=>setFilters({...filters,customerTo:e.target.value})}/></label></fieldset>}
       <button type="submit">{searchFirst?"Search CRM leads":"Apply filters"}</button><button type="button" onClick={()=>{setFilters(defaults);setApplied({...defaults});setPage(0);setLoading(true);setReport(null);}}>Clear</button>
       <button type="button" onClick={()=>setRevision(n=>n+1)} disabled={loading||!hasSearch}>Refresh</button>
     </form>
@@ -100,6 +101,7 @@ export function CustomersSection({token,scope,title,description,kind="customers"
     <style jsx>{`
       .customer-section{margin:24px 0 40px;color:#344054}h2{font-size:23px;color:#17376e;margin:0 0 8px}p{font-size:13px;line-height:1.5;margin:0}
       .filters{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:18px 0}label{display:grid;gap:6px;font-size:13px;font-weight:700}
+      fieldset{display:flex;gap:12px;border:1px solid #cbd5e1;border-radius:5px;padding:8px 12px;margin:0}legend{font-size:13px;font-weight:700;padding:0 4px}
       input,select,button{border:1px solid #cbd5e1;border-radius:5px;padding:9px 12px;background:white;font:inherit}button{color:#143b92;cursor:pointer;font-size:13px;font-weight:700}button:disabled{opacity:.5;cursor:default}
       .lead-history-row td{padding:18px;background:#f1f5f9}.table-scroll{overflow-x:auto;border:1px solid #dce3ee;border-radius:7px}table{width:100%;min-width:1700px;border-collapse:collapse;font-size:12px;text-align:left}thead{background:#eef3fb;color:#17376e}
       th,td{padding:14px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top;min-width:110px}tbody th{min-width:160px}tbody tr:hover{background:#f8fafc}

@@ -2,7 +2,7 @@
 import { API_BASE_URL } from "./auth";
 export type RecordKind="customers"|"leads";
 export type CustomerScope="inbound"|"all";
-export type CustomerFilters={name:string;phone:string;email:string;service?:string;status?:string;inboundDays?:number};
+export type CustomerFilters={name:string;phone:string;email:string;service?:string;status?:string;inboundDays?:number;customerFrom?:string;customerTo?:string};
 export type CustomerRow={
   contactId:string;name:string;phone:string|null;email:string|null;createdAtUtc:string|null;
   lastInbound:{channel:"email"|"whatsapp"|"call";atUtc:string;source:string|null;text:string|null}|null;
@@ -16,7 +16,10 @@ export type CustomerPage={scope:CustomerScope;rows:CustomerRow[];total:number;li
 export const CUSTOMER_PAGE_SIZE=50;
 export function customerPageQuery(scope:CustomerScope,filters:CustomerFilters,page:number,pageSize=CUSTOMER_PAGE_SIZE) {
   if(!Number.isInteger(page)||page<0)throw new Error("Invalid customer page.");
-  return new URLSearchParams({...(filters.service!==undefined?{service:filters.service,status:filters.status||''}:{}),...(filters.inboundDays?{inboundDays:String(filters.inboundDays)}:{}),scope,name:filters.name.trim(),phone:filters.phone.trim(),email:filters.email.trim(),limit:String(pageSize),offset:String(page*pageSize)});
+  const dates:Record<string,string>={};
+  for(const field of ['customerFrom','customerTo'] as const)if(filters[field])dates[field]=filters[field]!;
+  if(filters.customerFrom&&filters.customerTo&&filters.customerFrom>filters.customerTo)throw new Error('Customer date From must be on or before To.');
+  return new URLSearchParams({...dates,...(filters.service!==undefined?{service:filters.service,status:filters.status||''}:{}),...(filters.inboundDays?{inboundDays:String(filters.inboundDays)}:{}),scope,name:filters.name.trim(),phone:filters.phone.trim(),email:filters.email.trim(),limit:String(pageSize),offset:String(page*pageSize)});
 }
 export async function loadCustomerPage(token:string,scope:CustomerScope,filters:CustomerFilters,page:number,signal:AbortSignal,kind:RecordKind="customers",pageSize=CUSTOMER_PAGE_SIZE):Promise<CustomerPage> {
   const base=process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||API_BASE_URL;

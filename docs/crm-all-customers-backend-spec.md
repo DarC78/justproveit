@@ -1,4 +1,4 @@
-﻿# AllCustomersView: required backend contract
+# AllCustomersView: required backend contract
 
 ## Record comments
 
@@ -124,3 +124,6 @@ New Lead MANUAL_BOOK, contact Book a Call and manual rescheduling ask for an ext
 Phone history WhatsApp events may include `image: {mediaId, mimeType, name}`. Both contact and booking histories display lazy-loaded photo previews and an enlarged view, fetched with the CRM bearer authorization from `contacts/{id}/history/media/{messageId}` or `scheduled-calls/{id}/history/media/{messageId}` on the canonical backend. Blob URLs are revoked on unmount or target changes; credentials are never placed in image URLs. Unavailable provider media shows a clear message and retry button. Existing conversations use their saved Mediatel media metadata without backfill.
 
 Call transcripts may return `status: budget_paused` under the shared USD 30 transcription spending guard (9 November 2026). The timeline explains that processing is paused and requires administrator review; it does not describe this as missing audio. Eligibility now includes all agents when a client's appointment date/time is in the inclusive 48 hours preceding call start; summaries and full transcripts retain their existing display.
+## Customer creation date filter (2026-11-09)
+
+Both customer sections expose "Became a customer (UK dates)" From/To date fields. Apply filters resets to page one; Clear removes the range. The API query uses optional `customerFrom`/`customerTo` (`YYYY-MM-DD`), inclusive Europe/London calendar dates, combined with all other filters. The backend filters the grouped customer creation timestamp before totals and pagination; either bound is optional. Invalid or reversed dates return 400. Rows without a creation date are excluded when a bound is active. Lead views are unchanged.

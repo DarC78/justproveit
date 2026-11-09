@@ -3,6 +3,14 @@ function fixture(response){const exports={};const calls=[];const source=ts.trans
  vm.runInNewContext(source,{exports,URLSearchParams,process:{env:{}},require:()=>({API_BASE_URL:'https://api.example.test/api'}),fetch:async(url,options)=>{calls.push({url,options});return response;}});return {...exports,calls};}
 const page=(overrides={})=>({scope:'all',rows:[],total:0,limit:50,offset:0,...overrides});
 const response=data=>({ok:true,status:200,json:async()=>data});
+
+test('customer date bounds persist in server pagination and reject reversed ranges',()=>{
+ const f=fixture();const filters={name:'',phone:'',email:'',customerFrom:'2026-07-01',customerTo:'2026-07-31'};
+ const q=f.customerPageQuery('all',filters,2,10);
+ assert.equal(q.get('customerFrom'),'2026-07-01');assert.equal(q.get('customerTo'),'2026-07-31');assert.equal(q.get('offset'),'20');
+ assert.throws(()=>f.customerPageQuery('all',{...filters,customerTo:'2026-06-30'},0),/From/);
+ assert.equal(f.customerPageQuery('all',{name:'',phone:'',email:''},0).has('customerFrom'),false);
+});
 test('customer pagination fixes 50 rows and combines URL-encoded filters without broadening scope',()=>{
  const f=fixture();const q=f.customerPageQuery('inbound',{name:' Dan & Ana ',phone:'+447440526630',email:'dan+test@example.com'},2);
  assert.equal(q.get('scope'),'inbound');assert.equal(q.get('name'),'Dan & Ana');assert.equal(q.get('phone'),'+447440526630');assert.equal(q.get('email'),'dan+test@example.com');assert.equal(q.get('limit'),'50');assert.equal(q.get('offset'),'100');assert.throws(()=>f.customerPageQuery('all',{},-1));
