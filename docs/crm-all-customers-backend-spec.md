@@ -144,3 +144,19 @@ filtering/paging; timelines preserve other providers and calls. Unknown/ambiguou
 senders require review/linking to an existing record. Gateway sending/automatic
 replies remain disabled; existing Meta routes and composers are unchanged. No
 Postgres test records/history are migrated into production.
+
+## Observed calls, backups and gateway alerts
+
+The WhatsApp inbox loads authenticated operations and recent call endpoints.
+Contact/appointment timelines label these as WhatsApp Agenti calls, separately
+from dialler calls/messages, with unknown shared-account agent and null duration
+unless acceptance/termination were observed. Only observed events are displayed;
+other linked-device outgoing calls may be absent. Calls create no service tasks
+or workflow transitions and no audio is recorded.
+
+The operations panel polls while visible and reports stale/disconnected workers,
+eligible callback failures, uncertain sends and failed/overdue backup restore
+checks. API failures never display an all-clear state. These are CRM dashboard
+alerts only. Daily archives are local to the same host, retain seven verified
+copies and need separate protected recovery configuration/key for restoration;
+o off-host backup or external notification delivery is configured.
