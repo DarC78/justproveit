@@ -161,3 +161,12 @@ builds keep their existing behavior. The preview explicitly labels its unsynchro
 test dataset; the email-coverage notice remains informational.
 
 The read-only gateway preview does not poll disconnected email/payment history; it labels that coverage explicitly. Normal builds retain those existing history integrations.
+
+In the read-only gateway preview, inline contact history reads the existing
+record-authorized gateway endpoint directly, using the phone from the already
+loaded CRM row for display validation. It does not call the unavailable legacy
+phone-history backend or infer identity from that phone. The UI explicitly states
+gateway-only coverage and unavailable call history; it does not claim zero real
+calls. The disconnected email-account panel is omitted in this preview only.
+`tools/deploy-local-crm-preview.sh` can update the test preview from a successful
+GitHub workflow artifact without restarting Docker or changing backend configuration.

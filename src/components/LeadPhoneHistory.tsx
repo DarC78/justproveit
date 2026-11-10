@@ -14,7 +14,7 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
   Promise.resolve().then(()=>{
    if(controller.signal.aborted)return null;
    setLoading(true);setError("");
-   return getContactPhoneHistory(token,contactId,controller.signal,revision>0);
+   return getContactPhoneHistory(token,contactId,controller.signal,revision>0,phone);
   }).then(result=>{
    if(!result||controller.signal.aborted)return;
    if(result.contactId.toLowerCase()!==contactId.toLowerCase()||phoneKey(result.phone)!==phoneKey(phone)||!Array.isArray(result.events))throw new Error("The history does not match this lead. Refresh the search results.");
@@ -34,7 +34,7 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
    <div aria-live="polite" aria-busy={loading}>
     {loading&&<p role="status">Loading history…</p>}
     {error&&<p role="alert">{error}</p>}
-    {history&&history.contactId.toLowerCase()===contactId.toLowerCase()&&phoneKey(history.phone)===phoneKey(phone)&&<><p>{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
+    {history&&history.contactId.toLowerCase()===contactId.toLowerCase()&&phoneKey(history.phone)===phoneKey(phone)&&<><p>{history.whatsAppMessages} WhatsApp messages{history.coverage==='gateway_only'?' · Gateway history only; call history is unavailable in this preview.':` · ${history.calls} calls`}</p>
      <PhoneHistoryTimeline events={history.events} imageTarget={{token,kind:"contact",id:contactId}}/></>}
    </div>
   </>}

@@ -1281,7 +1281,7 @@ export default function AdminCrmPage() {
               ) : null}
 
               {activeTab === "privatePensions" && canUsePrivatePensions ? <PrivatePensionsPanel token={token} /> : null}
-              {["scheduledCalls","attention","allCustomersView","all"].includes(activeTab)&&<CrmEmailConnections token={token}/>}
+              {process.env.NEXT_PUBLIC_CRM_READ_ONLY_PREVIEW!=='true'&&["scheduledCalls","attention","allCustomersView","all"].includes(activeTab)&&<CrmEmailConnections token={token}/>}
               {activeTab === "scheduledCalls" ? <ScheduledCallsPanel token={token} /> : null}
               {activeTab === "attention" ? <AttentionPanel token={token} /> : null}
               {activeTab === "whatsappGateway" ? <WhatsAppGatewayInbox token={token} /> : null}

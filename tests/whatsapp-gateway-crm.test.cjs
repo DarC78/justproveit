@@ -33,3 +33,10 @@ test('feature lead reads request explicit contact summaries before showing a row
  vm.runInNewContext(compile('src/lib/allCustomers.ts'),{exports,URLSearchParams,process:{env:{NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM:'true'}},fetch:async()=>({ok:true,status:200,json:async()=>({scope:'all',limit:5,offset:0,total:1,rows:[row]})}),require:name=>name==='./auth'?{API_BASE_URL:'/api'}:name==='./whatsappGateway'?{gatewaySummaries:async(...args)=>{calls.push(args);return{summaries:{'contact:abc':{kind:'whatsapp'}}};}}:{mergeGatewaySummary:(actual,event)=>{assert.equal(actual,row);assert.equal(event.kind,'whatsapp');return merged;}}});
  const result=await exports.loadCustomerPage('token','all',{name:'Fixture',phone:'',email:''},0,new AbortController().signal,'leads',5);assert.equal(result.rows[0],merged);assert.equal(calls[0][1][0].kind,'contact');assert.equal(calls[0][1][0].id,'ABC');
 });
+
+test('read-only contact history uses the authenticated gateway directly when the legacy backend is unavailable',async()=>{
+ const exports={};let targetId='fixture-contact';const event={kind:'whatsapp',id:'gateway:fixture',direction:'inbound',text:'Fixture'};
+ vm.runInNewContext(compile('src/lib/crmAdmin.ts'),{exports,URLSearchParams,process:{env:{NEXT_PUBLIC_CRM_READ_ONLY_PREVIEW:'true'}},require:name=>name==='./whatsappGateway'?{gatewayHistory:async(token,kind,id)=>{assert.equal(token,'token');assert.equal(kind,'contact');assert.equal(id,'fixture-contact');return{targetId,events:[event]};}}:name==='./phoneHistoryCache'?{readPhoneHistoryCached:(_token,_key,load)=>load()}:name==='@/lib/auth'?{API_BASE_URL:'/api',fetchJson:()=>assert.fail('The broken legacy history endpoint must not be requested in this preview')}:{} });
+ const history=await exports.getContactPhoneHistory('token','fixture-contact',undefined,false,'+447700900001');assert.equal(history.coverage,'gateway_only');assert.equal(history.whatsAppMessages,1);assert.equal(history.phone,'+447700900001');assert.equal(history.events[0],event);
+ targetId='another-record';await assert.rejects(exports.getContactPhoneHistory('token','fixture-contact',undefined,false,'+447700900001'),/could not be verified/);
+});

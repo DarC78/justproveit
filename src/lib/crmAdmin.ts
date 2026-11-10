@@ -1430,10 +1430,10 @@ export type ComposerTemplate = {name:string;language:string;components:Array<{ty
 export type ComposerRequest = {requestId:string;text?:string;templateName?:string;templateLanguage?:string;parameters?:Record<string,string>;headerUrl?:string};
 export function getComposerTemplates(token:string){return fetchCanonicalCrmReadJson<{templates:ComposerTemplate[]}>(`${BASE_PATH}/whatsapp-composer/templates`,{headers:authHeaders(token)});}
 
-export type ContactPhoneHistory = Omit<ScheduledPhoneHistory,"intentId"> & {contactId:string};
-export function getContactPhoneHistory(token:string,contactId:string,signal?:AbortSignal,fresh=false) {
+export type ContactPhoneHistory = Omit<ScheduledPhoneHistory,"intentId"> & {contactId:string;coverage?:"gateway_only"};
+export function getContactPhoneHistory(token:string,contactId:string,signal?:AbortSignal,fresh=false,knownPhone?:string|null) {
  if(signal?.aborted)return Promise.reject(new DOMException('Aborted','AbortError'));
- return readPhoneHistoryCached(token,`contact:${contactId}`,async()=>{const history=await fetchCanonicalCrmReadJson<ContactPhoneHistory>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/history`,{headers:authHeaders(token),cache:'no-store'});if(process.env.NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM!=='true')return history;const received=await gatewayHistory(token,'contact',contactId);return mergeGatewayHistory(history,received.events);},fresh);
+ return readPhoneHistoryCached(token,`contact:${contactId}`,async()=>{if(process.env.NEXT_PUBLIC_CRM_READ_ONLY_PREVIEW==='true'){const received=await gatewayHistory(token,'contact',contactId);const phone=received.phone||knownPhone;if(received.targetId.toLowerCase()!==contactId.toLowerCase()||!phone)throw Error('The gateway history record could not be verified.');return {contactId:received.targetId,phone,timeZone:'Europe/London',events:received.events,whatsAppMessages:received.events.filter(e=>e.kind==='whatsapp').length,calls:0,coverage:'gateway_only' as const};}const history=await fetchCanonicalCrmReadJson<ContactPhoneHistory>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/history`,{headers:authHeaders(token),cache:'no-store'});if(process.env.NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM!=='true')return history;const received=await gatewayHistory(token,'contact',contactId);return mergeGatewayHistory(history,received.events);},fresh);
 }
 export function sendContactWhatsAppReply(token:string,contactId:string,body:ComposerRequest & {expectedPhone:string}) {
  return fetchCanonicalCrmReadJson<WhatsAppReplyResult>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/whatsapp/replies`,{method:"POST",headers:authHeaders(token),body:JSON.stringify(body)});
