@@ -133,3 +133,14 @@ Both customer sections show a single Agents spoken with column alongside Became 
 ## All services by default (2026-11-09)
 
 The All customers list loads immediately with All services selected. Empty `service` means no service restriction, retaining all other filters and 10-row pagination. Selecting a service enables its status filter; returning to All services resets status and page. Clear restores All services. This supersedes the earlier requirement to select a service before displaying customers.
+
+## Production self-hosted WhatsApp inbound history
+
+NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM=true exposes the authenticated gateway review
+inbox and record history. Production uses the normal MSSQL backend and existing
+full CRM lists/timelines, without the test preview read-only overrides. Server-side
+latest inbound and WhatsApp summaries include matched live gateway messages before
+filtering/paging; timelines preserve other providers and calls. Unknown/ambiguous
+senders require review/linking to an existing record. Gateway sending/automatic
+replies remain disabled; existing Meta routes and composers are unchanged. No
+Postgres test records/history are migrated into production.
