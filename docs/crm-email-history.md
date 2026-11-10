@@ -75,3 +75,5 @@ References: [Google Gmail scopes](https://developers.google.com/workspace/gmail/
 [Gmail synchronization](https://developers.google.com/workspace/gmail/api/guides/sync).
 
 Stripe activity is also merged into the shared lead timeline (pale purple, with ProveIt/JustProveIt account labels). It loads independently through the authenticated /contacts/{id}/stripe-events or /scheduled-calls/{id}/stripe-events routes, 50 events per page. Account connection and backend contract: docs/engineering/systems/crm-stripe-events.md in LaunchingStack. Historical Stripe backfill is not automatic.
+
+Details tab: main, normalized-only and additional phone numbers now open the shared lead conversation history in a collapsible modal. Legacy rows resolve their canonical contact through an exact normalized phone match; legacy record IDs and fuzzy suffix matches are not used as contact IDs. The existing contact-history cache is reused. Navigation/unmount invalidates pending lookups.
