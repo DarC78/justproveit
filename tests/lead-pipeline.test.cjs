@@ -18,6 +18,7 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'agent-token'})));
   assert.equal(calls[0].options.headers.Authorization,'Bearer agent-token');assert.match(document.body.textContent,/31 leads matching/);
   assert.equal(document.querySelector('input[type="checkbox"]').checked,false);assert.equal(new URL(calls[0].url).searchParams.get('showFutureScheduled'),'false');
+  assert.ok(button('447700900123').classList.contains('pipeline-phone-link'));assert.equal(document.querySelector('[aria-label="Show leads with a call booked"]'),null);
   await React.act(async()=>button('447700900123').click());assert.equal(history.contactId,'correct-contact');
   await React.act(async()=>button('Collapse history').click());assert.equal(button('Collapse history'),undefined);
   await React.act(async()=>button('Next').click());assert.equal(new URL(calls.at(-1).url).searchParams.get('offset'),'30');
@@ -42,5 +43,10 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'another-token',userId:'another-user'})));
   assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'');assert.equal(new URL(calls.at(-1).url).searchParams.get('inboundDays'),'0');
   assert.equal(document.querySelector('input[type="checkbox"]').checked,false);
+  await React.act(async()=>{const select=document.querySelector('[aria-label="Pipeline status"]');select.value='SimulationDone';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});
+  const booked=document.querySelector('[aria-label="Show leads with a call booked"]');assert.equal(booked.checked,false);assert.equal(new URL(calls.at(-1).url).searchParams.get('showBookedCalls'),'false');
+  await React.act(async()=>booked.click());assert.equal(new URL(calls.at(-1).url).searchParams.get('showBookedCalls'),'true');assert.equal(new URL(calls.at(-1).url).searchParams.get('offset'),'0');assert.equal(new URL(calls.at(-1).url).searchParams.get('showFutureScheduled'),'false');
+  await React.act(async()=>root.unmount());root=createRoot(document.getElementById('root'));await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'another-token',userId:'another-user'})));assert.equal(document.querySelector('[aria-label="Show leads with a call booked"]').checked,true);
+  await React.act(async()=>button('Clear').click());assert.equal(new URL(calls.at(-1).url).searchParams.get('showBookedCalls'),'false');assert.equal(document.querySelector('[aria-label="Show leads with a call booked"]'),null);
  }finally{await React.act(async()=>root.unmount());global.fetch=previous;dom.window.close();delete global.window;delete global.document;}
 });
