@@ -1471,3 +1471,7 @@ export function connectCrmEmail(token:string,mailbox:string){return fetchCanonic
 export function getCrmStripeHistory(token:string,kind:"contact"|"booking",id:string,cursor:string|null=null,signal?:AbortSignal){
  return fetchCanonicalCrmReadJson<{items:CrmStripeEvent[];nextCursor:string|null}>(BASE_PATH+"/"+(kind==="contact"?"contacts":"scheduled-calls")+"/"+encodeURIComponent(id)+"/stripe-events"+(cursor?"?cursor="+encodeURIComponent(cursor):""),{headers:authHeaders(token),cache:"no-store",signal});
 }
+
+export function getCrmHistoryContactByPhone(token:string,phone:string){
+ return fetchCanonicalCrmReadJson<{found:boolean;contact:{id:string}|null;phones:CrmContactPhone[]}>(`${BASE_PATH}/canonical/contact${buildQuery({phone})}`,{headers:authHeaders(token),cache:"no-store"});
+}

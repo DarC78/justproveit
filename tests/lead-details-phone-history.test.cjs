@@ -12,10 +12,10 @@ test('details phone links include normalized-only and additional numbers; histor
  }finally{await h.close();}
 });
 test('legacy record ID is never treated as a canonical contact; an exact phone lookup resolves the history',async()=>{
- const h=setup({findCrmLeadByPhone:async(token,phone)=>{assert.equal(phone,'07700 900001');return{lead:{contactId:canonical,normalizedPhone:'447700900001'}};},getContactPhoneHistory:async(_token,id)=>{assert.equal(id,canonical);return{contactId:id,phone:'447700900001'};}});
+ const h=setup({getCrmHistoryContactByPhone:async(token,phone)=>{assert.equal(phone,'07700 900001');return{contact:{id:canonical},phones:[{normalizedPhone:'447700900001'}]};},getContactPhoneHistory:async(_token,id)=>{assert.equal(id,canonical);return{contactId:id,phone:'447700900001'};}});
  try{await React.act(async()=>h.root.render(React.createElement(h.Component,{token:'agent',lead:{id:'22222222-2222-4222-8222-222222222222',phoneNumber:'07700 900001'}})));await React.act(async()=>document.querySelector('button').click());assert.ok(document.querySelector('dialog[open]'));assert.equal(h.viewed().contactId,canonical);}finally{await h.close();}
 });
 test('a fuzzy phone match cannot open another contact history and retains a retryable phone link',async()=>{
- let reads=0;const h=setup({findCrmLeadByPhone:async()=>({lead:{contactId:canonical,phoneNumber:'407700900001'}}),getContactPhoneHistory:async()=>{reads++;}});
+ let reads=0;const h=setup({getCrmHistoryContactByPhone:async()=>({contact:{id:canonical},phones:[{phone:'407700900001'}]}),getContactPhoneHistory:async()=>{reads++;}});
  try{await React.act(async()=>h.root.render(React.createElement(h.Component,{token:'agent',lead:{phoneNumber:'447700900001'}})));await React.act(async()=>document.querySelector('button').click());assert.equal(reads,0);assert.equal(document.querySelector('dialog'),null);assert.match(document.querySelector('[role=alert]').textContent,/exact CRM contact/);assert.equal(document.querySelector('button').disabled,false);}finally{await h.close();}
 });

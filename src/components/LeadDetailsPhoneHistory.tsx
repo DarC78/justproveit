@@ -1,5 +1,5 @@
 ﻿import {useEffect,useRef,useState} from "react";
-import {CrmLead,findCrmLeadByPhone,getContactPhoneHistory} from "@/lib/crmAdmin";
+import {CrmLead,getCrmHistoryContactByPhone,getContactPhoneHistory} from "@/lib/crmAdmin";
 import LeadPhoneHistory from "./LeadPhoneHistory";
 const uuid=/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 export function canonicalHistoryContact(lead:CrmLead|null){return [lead?.contactId,lead?.canonicalContactId,lead?.canonical?.contactId].find(x=>typeof x==="string"&&uuid.test(x))||null;}
@@ -12,8 +12,8 @@ export default function LeadDetailsPhoneHistory({token,lead}:{token:string;lead:
  useEffect(()=>{if(!target)return;const element=dialog.current;if(!element)return;const previous=document.body.style.overflow;document.body.style.overflow='hidden';element.showModal();return()=>{element.close();document.body.style.overflow=previous;};},[target]);
  async function open(phone:string){const request=++generation.current;setBusy(true);setError("");setTarget(null);
   try{let id=canonicalHistoryContact(lead);
-   if(!id){const found=(await findCrmLeadByPhone(token,phone)).lead;const numbers=[found?.phoneNumber,found?.normalizedPhone,...(found?.phones||[]).flatMap(p=>[p.phone,p.normalizedPhone])];
-    if(!numbers.some(n=>typeof n==="string"&&phoneKey(n)===phoneKey(phone)))throw Error("No exact CRM contact match was found for this phone number.");id=canonicalHistoryContact(found);
+   if(!id){const found=await getCrmHistoryContactByPhone(token,phone);const numbers=(found.phones||[]).flatMap(p=>[p.phone,p.normalizedPhone]);
+    if(!numbers.some(n=>typeof n==="string"&&phoneKey(n)===phoneKey(phone)))throw Error("No exact CRM contact match was found for this phone number.");id=found.contact?.id&&uuid.test(found.contact.id)?found.contact.id:null;
    }
    if(!id)throw Error("This lead has no linked CRM contact for conversation history.");
    const history=await getContactPhoneHistory(token,id);if(history.contactId.toLowerCase()!==id.toLowerCase())throw Error("The history does not match this lead.");
