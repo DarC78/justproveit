@@ -1286,7 +1286,7 @@ export default function AdminCrmPage() {
               {activeTab === "scheduledCalls" ? <ScheduledCallsPanel token={token} /> : null}
               {activeTab === "attention" ? <AttentionPanel token={token} /> : null}
               {activeTab === "allCustomersView" ? <AllCustomersView token={token} /> : null}
-              {activeTab === "leadPipeline" ? <LeadPipelinePanel token={token} /> : null}
+              {activeTab === "leadPipeline" ? <LeadPipelinePanel key={user?.id} token={token} userId={user?.id} /> : null}
 
               {activeTab === "sales" ? (
                 <SalesPanel token={token} onError={setErrorMessage} />
