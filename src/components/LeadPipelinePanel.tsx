@@ -1,9 +1,15 @@
 import {Fragment,useEffect,useState} from 'react';
 import {API_BASE_URL} from '@/lib/auth';
 import LeadPhoneHistory from './LeadPhoneHistory';
+import ContactActions from './ContactActions';
+import BookingActions from './BookingActions';
+import {contactActionNotice} from '@/lib/allCustomers';
+import {bookingActionNotice} from '@/lib/bookedCalls';
+import {nextActionRowStyle,useLeadNoteSummaries} from '@/lib/leadNotes';
+import type {ScheduledCallRow} from '@/lib/crmAdmin';
 const statuses=['newLead','SimulationInProgress','SimulationDone','AgreedToBuy'] as const;
 type Status=typeof statuses[number];
-type Row={contactId:string;name:string;phone:string|null;email:string|null;source:string;service:string;createdAtUtc:string;pipelineStatus:Status;operationalStatus:string|null;meaningfulCallAtUtc:string|null;agreedAtUtc:string|null;simulationStartedAtUtc:string|null;simulationDeliveredAtUtc:string|null;lastInboundAtUtc?:string|null};
+type Row={contactId:string;name:string;phone:string|null;email:string|null;source:string;service:string;createdAtUtc:string;pipelineStatus:Status;operationalStatus:string|null;meaningfulCallAtUtc:string|null;agreedAtUtc:string|null;simulationStartedAtUtc:string|null;simulationDeliveredAtUtc:string|null;lastInboundAtUtc?:string|null;booking?:ScheduledCallRow|null};
 type Report={counts:Record<Status,number>;cohortTotal:number;filteredCohortTotal?:number;sources?:string[];total:number;limit:number;offset:number;asOfUtc:string;cohortStartUtc:string;rows:Row[]};
 const clock=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'});
 const at=(value:string|null)=>value?clock.format(new Date(value)):'—';
@@ -13,6 +19,8 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
  const [source,setSource]=useState(''),[inboundDays,setInboundDays]=useState(0),[restoredKey,setRestoredKey]=useState('');
  const storageKey=`proveit.crm.leadPipeline.filters.v1:${userId}`;
  const [report,setReport]=useState<Report|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[history,setHistory]=useState<string|null>(null);
+ const [notice,setNotice]=useState('');
+ const notes=useLeadNoteSummaries(token,(report?.rows||[]).map(row=>({id:row.contactId,kind:'contact'})));
  useEffect(()=>{let active=true;Promise.resolve().then(()=>{if(!active)return;let saved:{status?:unknown;source?:unknown;inboundDays?:unknown}={};try{saved=JSON.parse(window.localStorage.getItem(storageKey)||'{}')||{};}catch{/* Storage is optional. */}
   setStatus(statuses.includes(saved.status as Status)?saved.status as Status:'');setSource(typeof saved.source==='string'&&saved.source.length<=120?saved.source:'');setInboundDays(typeof saved.inboundDays==='number'&&Number.isInteger(saved.inboundDays)&&saved.inboundDays>=0&&saved.inboundDays<=365?saved.inboundDays:0);setPage(0);setRestoredKey(storageKey);
  });return()=>{active=false;};},[storageKey]);
@@ -48,16 +56,20 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
   </form>
   <p><small>Filters are saved for your account in this browser. N/A applies no inbound filter. A number includes inbound calls (including missed calls) or incoming WhatsApp messages; SMS, email and outbound messages do not qualify.</small></p>
   <details><summary>Classification rules</summary><ul>{statuses.map(s=><li key={s}><strong>{s}</strong>: {descriptions[s]}</li>)}</ul><p>Priority: AgreedToBuy → SimulationDone → SimulationInProgress → newLead. Unanswered calls, voicemail, no audio, default/invalid callcodes and calls without a connected agent do not count as meaningful. WhatsApp results must have a delivery/read confirmation for the final result message.</p></details>
+  {notice&&<p role="status">{notice}</p>}{notes.error&&<p role="alert">{notes.error}</p>}
   {error?<p role="alert">{error}</p>:loading?<p role="status">Loading lead pipeline…</p>:report&&<>
    <p>{report.total} leads matching these filters · Updated {at(report.asOfUtc)} UK time</p>
-   <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr>{['Lead','Phone','Email','Service / source','Pipeline status','Evidence'].map(h=><th key={h} style={{padding:10,textAlign:'left',background:'#edf3fc'}}>{h}</th>)}</tr></thead><tbody>
-    {report.rows.map(row=><Fragment key={row.contactId}><tr style={{borderBottom:'1px solid #dae2ee'}}>
+   <div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr>{['Lead','Phone','Email','Service / source','Pipeline status','Evidence','Actions'].map(h=><th key={h} style={{padding:10,textAlign:'left',background:'#edf3fc'}}>{h}</th>)}</tr></thead><tbody>
+    {report.rows.map(row=><Fragment key={row.contactId}><tr style={{borderBottom:'1px solid #dae2ee',...nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate)}}>
      <td style={{padding:10}}><strong>{row.name||'Unnamed lead'}</strong><br/><small>Received: {at(row.createdAtUtc)}</small></td>
      <td><button type="button" onClick={()=>setHistory(history===row.contactId?null:row.contactId)} aria-expanded={history===row.contactId}>{row.phone||'Open history'}</button></td><td>{row.email||'—'}</td>
      <td>{row.service}<br/><small>{row.source}</small></td><td><strong>{row.pipelineStatus}</strong><br/><small>Operational: {row.operationalStatus||'—'}</small></td>
      <td>{row.lastInboundAtUtc&&<div>Last inbound: {at(row.lastInboundAtUtc)}</div>}{row.agreedAtUtc&&<div>Agreed: {at(row.agreedAtUtc)}</div>}{row.meaningfulCallAtUtc&&<div>Meaningful call: {at(row.meaningfulCallAtUtc)}</div>}{row.simulationDeliveredAtUtc&&<div>Results delivered: {at(row.simulationDeliveredAtUtc)}</div>}{row.simulationStartedAtUtc&&<div>Simulation started: {at(row.simulationStartedAtUtc)}</div>}</td>
-    </tr>{history===row.contactId&&<tr><td colSpan={6}><LeadPhoneHistory token={token} contactId={row.contactId} phone={row.phone} name={row.name} onCollapse={()=>setHistory(null)}/></td></tr>}</Fragment>)}
-    {!report.rows.length&&<tr><td colSpan={6}>No leads match these filters.</td></tr>}
+     <td style={{padding:10,minWidth:300}}><ContactActions token={token} contactId={row.contactId} name={row.name} phone={row.phone} noteSummary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh} onChanged={result=>{setNotice(contactActionNotice(result));setRevision(n=>n+1);}}/>
+      {row.booking&&<BookingActions key={row.booking.intentId+':'+row.booking.appointmentAtUtc} token={token} booking={row.booking} onChanged={result=>{setNotice(bookingActionNotice(result));setRevision(n=>n+1);}} onBusinessMarked={()=>setRevision(n=>n+1)} onSolved={()=>{setNotice('Booking marked solved on WhatsApp.');setRevision(n=>n+1);}}/>}
+     </td>
+    </tr>{history===row.contactId&&<tr><td colSpan={7}><LeadPhoneHistory token={token} contactId={row.contactId} phone={row.phone} name={row.name} onCollapse={()=>setHistory(null)}/></td></tr>}</Fragment>)}
+    {!report.rows.length&&<tr><td colSpan={7}>No leads match these filters.</td></tr>}
    </tbody></table></div>
    <div style={{display:'flex',gap:16,alignItems:'center',marginTop:16}}><button type="button" disabled={!page} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page+1} of {Math.max(1,Math.ceil(report.total/30))}</span><button type="button" disabled={(page+1)*30>=report.total} onClick={()=>setPage(p=>p+1)}>Next</button></div>
   </>}

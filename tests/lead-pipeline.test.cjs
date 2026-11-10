@@ -2,8 +2,17 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 test('pipeline filters and paginates server-side and opens the correct contact history',async()=>{
  const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
  const previous=global.fetch,calls=[];global.fetch=async(url,options)=>{calls.push({url,options});return{ok:true,json:async()=>({sources:['FB','TikTok'],counts:{newLead:31,SimulationInProgress:0,SimulationDone:0,AgreedToBuy:0},cohortTotal:31,total:31,asOfUtc:'2026-11-10T12:00Z',rows:[{contactId:'correct-contact',name:'Fixture',phone:'447700900123',pipelineStatus:'newLead',source:'FB',service:'Simulator',createdAtUtc:'2026-11-01'}]})};};
- const code=ts.transpileModule(fs.readFileSync('src/components/LeadPipelinePanel.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,mod={exports:{}};let history;
- new Function('require','module','exports',code)(name=>name==='@/lib/auth'?{API_BASE_URL:'https://api.example.test'}:name==='./LeadPhoneHistory'?{__esModule:true,default:props=>{history=props;return React.createElement('button',{onClick:props.onCollapse},'Collapse history');}}:require(name),mod,mod.exports);
+ const code=ts.transpileModule(fs.readFileSync('src/components/LeadPipelinePanel.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,mod={exports:{}};let history,actions;
+ const mocks={
+  '@/lib/auth':{API_BASE_URL:'https://api.example.test'},
+  '@/lib/allCustomers':{contactActionNotice:()=> 'Action saved'},
+  '@/lib/bookedCalls':{bookingActionNotice:()=> 'Booking saved'},
+  '@/lib/leadNotes':{useLeadNoteSummaries:()=>({summaries:{},refresh(){},error:''}),nextActionRowStyle:()=>undefined},
+  './ContactActions':{__esModule:true,default:props=>{actions=props;return React.createElement('button',{onClick:()=>props.onChanged({action:'solve',success:true})},'Fixture Solve');}},
+  './BookingActions':{__esModule:true,default:()=>null},
+  './LeadPhoneHistory':{__esModule:true,default:props=>{history=props;return React.createElement('button',{onClick:props.onCollapse},'Collapse history');}}
+ };
+ new Function('require','module','exports',code)(name=>mocks[name]||require(name),mod,mod.exports);
  let root=createRoot(document.getElementById('root'));const button=text=>[...document.querySelectorAll('button')].find(b=>b.textContent===text);
  try {
   await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'agent-token'})));
@@ -23,6 +32,8 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   assert.equal(calls.length,before+1);const restored=new URL(calls.at(-1).url).searchParams;assert.equal(restored.get('status'),'AgreedToBuy');assert.equal(restored.get('source'),'TikTok');assert.equal(restored.get('inboundDays'),'7');
   assert.equal(document.querySelector('[aria-label="Pipeline status"]').value,'AgreedToBuy');assert.equal(document.querySelector('[aria-label="Inbound contact in the last X days"]').value,'7');
   await React.act(async()=>button('Refresh').click());assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'AgreedToBuy');
+  assert.equal(actions.contactId,'correct-contact');assert.equal(actions.phone,'447700900123');assert.equal(actions.token,'agent-token');assert.equal(actions.internalLead,undefined);
+  const beforeAction=calls.length;await React.act(async()=>button('Fixture Solve').click());assert.equal(calls.length,beforeAction+1);assert.match(document.body.textContent,/Action saved/);assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'AgreedToBuy');assert.equal(new URL(calls.at(-1).url).searchParams.get('source'),'TikTok');
   await React.act(async()=>root.unmount());root=createRoot(document.getElementById('root'));
   await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'another-token',userId:'another-user'})));
   assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'');assert.equal(new URL(calls.at(-1).url).searchParams.get('inboundDays'),'0');
