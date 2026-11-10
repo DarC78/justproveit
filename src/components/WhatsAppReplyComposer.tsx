@@ -1,5 +1,5 @@
 import {FormEvent, useEffect, useId, useRef, useState} from "react";
-import {sendContactWhatsAppReply,sendScheduledWhatsAppReply, WhatsAppReplyResult, ComposerRequest, ComposerTemplate, getComposerTemplates} from "@/lib/crmAdmin";
+import {sendContactWhatsAppReply,sendScheduledWhatsAppReply, WhatsAppReplyResult, ComposerRequest, ComposerTemplate, getComposerTemplates,getWhatsAppReplyRouting,WhatsAppReplyRouting} from "@/lib/crmAdmin";
 
 export default function WhatsAppReplyComposer({token,intentId,contactId,phone,onSent}:{token:string;intentId?:string;contactId?:string;phone:string;onSent:(result:WhatsAppReplyResult)=>void}) {
   const fieldId=useId();
@@ -7,6 +7,8 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
   const [sending,setSending]=useState(false);
   const [result,setResult]=useState<WhatsAppReplyResult|null>(null);
   const [error,setError]=useState("");
+  const [routing,setRouting]=useState<WhatsAppReplyRouting|null>(null),[routingError,setRoutingError]=useState(''),[routingRevision,setRoutingRevision]=useState(0);
+  useEffect(()=>{let active=true;setRouting(null);setRoutingError('');getWhatsAppReplyRouting(token,contactId?'contact':'booking',contactId||intentId!).then(value=>{if(active)setRouting(value);}).catch(()=>{if(active)setRoutingError('Unable to check the latest WhatsApp channel. Refresh the reply channel before sending.');});return()=>{active=false;};},[token,contactId,intentId,routingRevision]);
   const attempt=useRef<ComposerRequest|null>(null);
   const busy=useRef(false);
   const mounted=useRef(true);
@@ -24,7 +26,7 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
   const media=template?.components.find(c=>c.type==="HEADER"&&["IMAGE","VIDEO","DOCUMENT"].includes(c.format||""));
   const valid=template?fields.every(field=>!!values[field.key]?.trim())&&(!media||/^https:\/\//i.test(headerUrl)):!!text.trim();
   const preview=template?.components.filter(c=>c.text).map(c=>(c.text||"").replace(/\{\{(\w+)\}\}/g,(match,name)=>values[c.type.toLowerCase()+":"+name]||match)).join("\n\n");
-  const unresolved=!!attempt.current&&(!!error||result?.status==="processing");
+  const unresolved=!!attempt.current&&(!!error||result?.status==="processing"||result?.status==='queued');
   async function submit(event:FormEvent) {
     event.preventDefault();if(busy.current||(!attempt.current&&!valid))return;
     busy.current=true;setSending(true);setError("");
@@ -47,20 +49,23 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
   return <form onSubmit={submit} aria-label="Reply on WhatsApp">
     <label htmlFor={fieldId+"-template"}>Meta template</label>
     <select id={fieldId+"-template"} value={selected} disabled={sending||unresolved} onChange={event=>{setSelected(event.target.value);setValues({});setHeaderUrl("");setResult(null);setError("");}}>
-      <option value="">Free text message</option>{templates.map(item=><option key={item.name+":"+item.language} value={item.name+":"+item.language}>{item.name} ({item.language})</option>)}
+      <option value="">Free text message</option>{templates.map(item=><option disabled={routing?.channel==='agents'} key={item.name+":"+item.language} value={item.name+":"+item.language}>{item.name} ({item.language})</option>)}
     </select>
     {templateError&&<p role="alert" className="failure">{templateError}</p>}
     {fields.map(field=><label key={field.key}>{field.label}<input maxLength={1024} disabled={sending||unresolved} value={values[field.key]||""} onChange={event=>setValues({...values,[field.key]:event.target.value})}/></label>)}
     {media&&<label>{media.format} attachment URL<input type="url" disabled={sending||unresolved} value={headerUrl} placeholder="https://..." onChange={event=>setHeaderUrl(event.target.value)}/></label>}
     <label htmlFor={fieldId+"-reply"}>Reply on WhatsApp</label>
-    <p className="help">Send to {phone}. WhatsApp may reject replies outside the 24-hour window after the client’s last message.</p>
+    <p className="help">Send to {phone}. {routing?<>Reply channel: <strong>{routing.channelLabel}</strong>. {routing.reason==='mediatel_window_closed'||routing.reason==='no_open_mediatel_window'?'The Mediatel 24-hour window is closed. The first reply from WhatsApp Agenti includes your introduction.':'Uses the channel of the latest incoming WhatsApp message.'} {!routing.available&&'WhatsApp Agenti is not available yet. Please contact an administrator.'}</>:'Checking the latest reply channel...'} The channel is checked again when you send.</p>
+    {routingError&&<p role="alert" className="failure">{routingError}</p>}
+
     <textarea id={fieldId+"-reply"} rows={template?12:4} maxLength={4096} value={template?preview:text} disabled={sending||unresolved||!!template}
       onChange={event=>{setText(event.target.value);setResult(null);setError("");}} placeholder="Type your WhatsApp reply…" />
-    <div className="actions"><small>{template?"Approved template preview":text.length+"/4096"}</small><button type="submit" disabled={sending||(!unresolved&&!valid)}>
+    <div className="actions"><small>{template?"Approved template preview":text.length+"/4096"}</small><button type="submit" disabled={sending||(!unresolved&&(!valid||!routing?.available||Boolean(template&&routing.channel==='agents')))}>
       {sending?"Sending…":unresolved?"Check send status":"Send WhatsApp"}</button></div>
+    <button type="button" disabled={sending} onClick={()=>setRoutingRevision(n=>n+1)}>Refresh reply channel</button>
     {error?<p role="alert" className="failure">{error}</p>:result&&<p role={result.status==="failed"?"alert":"status"} className={result.status==="failed"?"failure":"feedback"}>
       {result.status==="failed"?result.errorMessage||"WhatsApp could not deliver the reply. Your text has been kept.":
-        result.status==="processing"?result.errorMessage||"The send is still being confirmed. Check its status before sending again.":
+        result.status==='queued'?"Queued for WhatsApp Agenti. It has not been confirmed sent yet. Check send status to follow the same request.":result.status==="processing"?result.errorMessage||"The send is still being confirmed. Check its status before sending again.":
         result.status==="accepted"?"WhatsApp accepted the reply. Delivery is not yet confirmed; the history updates automatically.":`WhatsApp reply: ${result.status}.`}
     </p>}
     <style jsx>{`

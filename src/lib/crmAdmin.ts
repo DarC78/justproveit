@@ -393,7 +393,7 @@ export type CrmEmailBody = {subject:string;from:string;to:string[];text:string;h
 export type CrmStripeEvent = {kind:"stripe";id:string;atUtc:string;source:"proveit"|"justproveit";label:string;eventType:string;amount:number|null;currency:string|null;status:string|null;reference:string};
 export type PhoneHistoryEvent = CrmStripeEvent | CrmEmailEvent | {
   kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
-  image?: {mediaId:string;mimeType:string;name:string}|null; author: string; text: string; messageType: string; status: string; source?: string; providerMessageId?: string; accountId?: string; errorCode?: string | null; errorMessage?: string | null;
+  image?: {mediaId:string;mimeType:string;name:string}|null; author: string; text: string; messageType: string; status: string; source?: string; channel?:'mediatel'|'agents'; providerMessageId?: string; accountId?: string; errorCode?: string | null; errorMessage?: string | null;
 } | {
   kind: "call"; id: string; atUtc: string | null; endedAtUtc: string | null;
   agentId: number | null; agent: string; callCode: number | null; resolution: string;
@@ -1418,7 +1418,9 @@ export function queueManualCrmSms(token: string, payload: ManualCrmSmsPayload) {
   });
 }
 
-export type WhatsAppReplyResult = { id: string; status: string; providerMessageId: string | null; errorCode: string | null; errorMessage: string | null };
+export type WhatsAppReplyResult = { id: string; status: string; providerMessageId: string | null; errorCode: string | null; errorMessage: string | null; channel?:'mediatel'|'agents';channelLabel?:string };
+export type WhatsAppReplyRouting={channel:'mediatel'|'agents';channelLabel:string;reason:string;available:boolean};
+export function getWhatsAppReplyRouting(token:string,kind:'contact'|'booking',id:string){return fetchCanonicalCrmReadJson<WhatsAppReplyRouting>(`${BASE_PATH}/${kind==='contact'?'contacts':'scheduled-calls'}/${encodeURIComponent(id)}/whatsapp/reply-routing`,{headers:authHeaders(token),cache:'no-store'});}
 export function sendScheduledWhatsAppReply(token: string, intentId: string, body: ComposerRequest & {expectedPhone: string}) {
   return fetchCanonicalCrmReadJson<WhatsAppReplyResult>(    `${BASE_PATH}/scheduled-calls/${encodeURIComponent(intentId)}/whatsapp/replies`, {
       method: 'POST', headers: authHeaders(token), body: JSON.stringify(body),
