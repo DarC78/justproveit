@@ -36,6 +36,7 @@ jobs:
           npm run test:crm-lead-search
           node --test tests/whatsapp-gateway-crm.test.cjs
           node --test tests/international-pension-case.test.cjs
+          node --test tests/lead-pipeline.test.cjs
           node --test tests/crm-attention.test.cjs tests/auth-session.test.cjs tests/phone-history-performance.test.cjs tests/lead-details-phone-history.test.cjs tests/crm-email-history.test.cjs tests/whatsapp-reply-composer.test.cjs tests/contact-actions.test.cjs tests/contact-book-call.test.cjs tests/internal-lead-actions.test.cjs tests/call-transcription.test.cjs
 
       - name: Build And Deploy
