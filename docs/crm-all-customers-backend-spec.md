@@ -144,3 +144,15 @@ filtering/paging; timelines preserve other providers and calls. Unknown/ambiguou
 senders require review/linking to an existing record. Gateway sending/automatic
 replies remain disabled; existing Meta routes and composers are unchanged. No
 Postgres test records/history are migrated into production.
+
+## Manual gateway replies
+
+The gateway inbox offers a text reply composer for matched inbound messages.
+The source message ID is the only target sent by the browser; recipient, account,
+tenant and actor are resolved/validated server-side. Per-message availability and
+backend/gateway independent allowlists keep unapproved recipients disabled. Rapid
+clicks and uncertain retries retain the same request ID and exact text. Status
+displays queued (not sent), submitted (delivery not confirmed), delivered, read,
+failed or uncertain. There is no automatic resend or automatic reply. Existing
+Meta composers/routes remain unchanged. Gateway replies also appear with their
+status in record history; only confirmed submissions enter latest WhatsApp fields.
