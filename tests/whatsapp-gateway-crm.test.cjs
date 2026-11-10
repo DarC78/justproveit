@@ -22,3 +22,6 @@ test('manual review requires a selected record and reason; rapid clicks and unce
  assert.ok(!nodes('textarea').length);assert.ok(!button('Send'));assert.ok(text(tree).includes('<script>untrusted</script>'));
 });
 
+test('call and monitoring APIs stay authenticated and use no outbound operation',async()=>{
+ const calls=[],exports={};vm.runInNewContext(compile('src/lib/whatsappGateway.ts'),{exports,require:()=>({fetchJson:async(...args)=>{calls.push(args);return{};}})});await exports.gatewayOperations('fixture');await exports.gatewayCalls('fixture');assert.equal(calls[0][0],'/justproveit/admin/crm/whatsapp-gateway/operations');assert.equal(calls[1][0],'/justproveit/admin/crm/whatsapp-gateway/calls');assert.ok(calls.every(c=>c[1].headers.Authorization==='Bearer fixture'&&!c[1].method));
+});

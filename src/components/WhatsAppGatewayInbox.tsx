@@ -1,3 +1,4 @@
+import WhatsAppGatewayOperations from './WhatsAppGatewayOperations';
 import {useEffect,useRef,useState} from 'react';
 import {gatewayCapabilities,gatewayHistory,gatewayInbox,gatewayLink,gatewayTargets,GatewayMessage,GatewayTarget} from '@/lib/whatsappGateway';
 import type {PhoneHistoryEvent} from '@/lib/crmAdmin';
@@ -38,6 +39,7 @@ export default function WhatsAppGatewayInbox({token}:{token:string}){
  useEffect(()=>{let active=true;gatewayCapabilities(token).then(result=>{if(active){setEnabled(result.enabled);setScope(result.environment||'');if(!result.enabled)setLoading(false);}}).catch(e=>{if(active){setError(message(e));setLoading(false);}});return()=>{active=false;};},[token]);
  useEffect(()=>{if(!enabled)return;let active=true;Promise.resolve().then(()=>{if(!active)return null;setLoading(true);setError('');return gatewayInbox(token,state,offset);}).then(result=>{if(active&&result){setRows(result.rows);setTotal(result.total);}}).catch(e=>{if(active)setError(message(e));}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[token,enabled,state,offset,revision]);
  return <section style={{maxWidth:1100,margin:'24px auto'}}><h1>WhatsApp inbox{scope==='test'?' · Test CRM':''}</h1><p>Received messages from the paired gateway account. Gateway sending and automatic replies are disabled. Receiving or linking a message does not advance service stages or trigger tasks.</p>
+  {enabled&&<WhatsAppGatewayOperations token={token}/>}
   {enabled===false&&<p>This CRM has not enabled the self-hosted WhatsApp inbox.</p>}{enabled&&<><label>Show <select value={state} onChange={e=>{setState(e.target.value);setOffset(0);setRows([]);}}><option value="review">Needs review</option><option value="matched">Linked to CRM</option></select></label> <button type="button" onClick={()=>setRevision(n=>n+1)} disabled={loading}>Refresh inbox</button></>}
   {loading&&<p role="status">Loading…</p>}{error&&<p role="alert">{error}</p>}{enabled&&!loading&&!error&&<><p>{total} messages · UK time</p>{rows.map(row=><ReviewMessage key={row.id+':'+row.version} token={token} row={row} onSaved={()=>setRevision(n=>n+1)}/>)}{!rows.length&&<p>No messages in this view.</p>}<button type="button" disabled={offset===0} onClick={()=>setOffset(n=>Math.max(0,n-50))}>Previous</button><button type="button" disabled={offset+50>=total} onClick={()=>setOffset(n=>n+50)}>Next</button></>}
  </section>;

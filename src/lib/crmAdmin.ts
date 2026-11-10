@@ -398,6 +398,7 @@ export type PhoneHistoryEvent = CrmStripeEvent | CrmEmailEvent | {
   kind: "call"; id: string; atUtc: string | null; endedAtUtc: string | null;
   agentId: number | null; agent: string; callCode: number | null; resolution: string;
   callType: string; queueId: number | null; durationSeconds: number | null; talkSeconds: number | null;
+  source?:string;direction?:'inbound'|'outbound'|'unknown';observedStatus?:string;phone?:string|null;coverage?:string;matchState?:string;
   transcriptions?: CallTranscription[];
 };
 export type ScheduledPhoneHistory = {
