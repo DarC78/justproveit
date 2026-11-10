@@ -1,0 +1,26 @@
+name: WhatsApp production CRM UI contracts
+on:
+  push:
+    branches: [feat/whatsapp-production-inbound]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_API_BASE_URL: https://launchingstack-func-dev.azurewebsites.net/api
+      NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL: https://launchingstack-func-dev.azurewebsites.net/api
+      NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM: 'true'
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.23.4'
+      - run: npm ci --ignore-scripts
+      - run: node --test tests/whatsapp-gateway-crm.test.cjs tests/crm-lead-search.test.cjs tests/phone-history-performance.test.cjs tests/lead-details-phone-history.test.cjs
+        env:
+          NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM: 'false'
+      - run: npx tsc --noEmit
+      - run: npm run build

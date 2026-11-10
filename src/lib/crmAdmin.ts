@@ -393,7 +393,7 @@ export type CrmEmailBody = {subject:string;from:string;to:string[];text:string;h
 export type CrmStripeEvent = {kind:"stripe";id:string;atUtc:string;source:"proveit"|"justproveit";label:string;eventType:string;amount:number|null;currency:string|null;status:string|null;reference:string};
 export type PhoneHistoryEvent = CrmStripeEvent | CrmEmailEvent | {
   kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
-  image?: {mediaId:string;mimeType:string;name:string}|null; author: string; text: string; messageType: string; status: string; errorCode?: string | null; errorMessage?: string | null;
+  image?: {mediaId:string;mimeType:string;name:string}|null; author: string; text: string; messageType: string; status: string; source?: string; providerMessageId?: string; accountId?: string; errorCode?: string | null; errorMessage?: string | null;
 } | {
   kind: "call"; id: string; atUtc: string | null; endedAtUtc: string | null;
   agentId: number | null; agent: string; callCode: number | null; resolution: string;
