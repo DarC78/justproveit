@@ -11,3 +11,6 @@ export const gatewayHistory=(token:string,kind:'contact'|'customer',id:string)=>
 export const gatewayLink=(token:string,id:string,body:{requestId:string;expectedVersion:number;targetKind:'contact'|'customer'|null;targetId:string|null;reason:string})=>request<GatewayMessage>(token,`/inbox/${encodeURIComponent(id)}/link`,{method:'POST',body:JSON.stringify(body)});
 
 export const gatewaySummaries=(token:string,items:Array<{kind:'contact'|'customer';id:string}>,signal?:AbortSignal)=>request<{summaries:Record<string,Extract<PhoneHistoryEvent,{kind:'whatsapp'}>|null>}>(token,'/summaries',{method:'POST',body:JSON.stringify({items}),signal});
+export type GatewayReply={id:string;requestId:string;sourceMessageId:string;text:string;to:string;state:'queued'|'sending'|'submitted'|'delivered'|'read'|'failed'|'unknown';gatewayJobId:string|null;providerMessageId:string|null;errorCode:string|null;createdAtUtc:string;updatedAtUtc:string};
+export const gatewayReplies=(token:string,id:string)=>request<{rows:GatewayReply[]}>(token,`/inbox/${encodeURIComponent(id)}/replies`);
+export const gatewayReply=(token:string,id:string,body:{requestId:string;text:string})=>request<GatewayReply>(token,`/inbox/${encodeURIComponent(id)}/replies`,{method:'POST',body:JSON.stringify(body)});

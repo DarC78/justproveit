@@ -1,7 +1,7 @@
 name: WhatsApp production CRM UI contracts
 on:
   push:
-    branches: [feat/whatsapp-production-inbound]
+    branches: [feat/whatsapp-production-inbound, feat/whatsapp-gateway-replies]
   workflow_dispatch:
 permissions:
   contents: read
