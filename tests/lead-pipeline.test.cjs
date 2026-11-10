@@ -17,6 +17,7 @@ test('pipeline filters and paginates server-side and opens the correct contact h
  try {
   await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'agent-token'})));
   assert.equal(calls[0].options.headers.Authorization,'Bearer agent-token');assert.match(document.body.textContent,/31 leads matching/);
+  assert.equal(document.querySelector('input[type="checkbox"]').checked,false);assert.equal(new URL(calls[0].url).searchParams.get('showFutureScheduled'),'false');
   await React.act(async()=>button('447700900123').click());assert.equal(history.contactId,'correct-contact');
   await React.act(async()=>button('Collapse history').click());assert.equal(button('Collapse history'),undefined);
   await React.act(async()=>button('Next').click());assert.equal(new URL(calls.at(-1).url).searchParams.get('offset'),'30');
@@ -34,8 +35,12 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   await React.act(async()=>button('Refresh').click());assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'AgreedToBuy');
   assert.equal(actions.contactId,'correct-contact');assert.equal(actions.phone,'447700900123');assert.equal(actions.token,'agent-token');assert.equal(actions.internalLead,undefined);
   const beforeAction=calls.length;await React.act(async()=>button('Fixture Solve').click());assert.equal(calls.length,beforeAction+1);assert.match(document.body.textContent,/Action saved/);assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'AgreedToBuy');assert.equal(new URL(calls.at(-1).url).searchParams.get('source'),'TikTok');
+  const beforeNote=calls.length;await React.act(async()=>actions.onNoteSaved());assert.equal(calls.length,beforeNote+1);assert.equal(new URL(calls.at(-1).url).searchParams.get('showFutureScheduled'),'false');
+  await React.act(async()=>document.querySelector('input[type="checkbox"]').click());assert.equal(new URL(calls.at(-1).url).searchParams.get('showFutureScheduled'),'true');assert.equal(new URL(calls.at(-1).url).searchParams.get('offset'),'0');assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'AgreedToBuy');assert.equal(JSON.parse(window.localStorage.getItem(key)).showFutureScheduled,true);
+  await React.act(async()=>root.unmount());root=createRoot(document.getElementById('root'));await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'agent-token'})));assert.equal(document.querySelector('input[type="checkbox"]').checked,true);assert.equal(new URL(calls.at(-1).url).searchParams.get('showFutureScheduled'),'true');
   await React.act(async()=>root.unmount());root=createRoot(document.getElementById('root'));
   await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'another-token',userId:'another-user'})));
   assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'');assert.equal(new URL(calls.at(-1).url).searchParams.get('inboundDays'),'0');
+  assert.equal(document.querySelector('input[type="checkbox"]').checked,false);
  }finally{await React.act(async()=>root.unmount());global.fetch=previous;dom.window.close();delete global.window;delete global.document;}
 });
