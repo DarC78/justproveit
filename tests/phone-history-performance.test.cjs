@@ -58,3 +58,8 @@ test('WhatsApp photos load with authenticated context, enlarge, retry and releas
  }finally{await React.act(async()=>root.unmount());URL.createObjectURL=oldCreate;URL.revokeObjectURL=oldRevoke;dom.window.close();delete global.window;delete global.document;}
  assert.deepEqual(revoked,['blob:photo']);
 });
+test('WhatsApp call timeline distinguishes the source and leaves agent and duration explicitly unknown',()=>{
+ const component={exports:{}};new Function('require','module','exports',compile('src/components/PhoneHistoryModal.tsx'))(name=>name.includes('WhatsAppReplyComposer')?{__esModule:true,default:()=>null}:name==='@/lib/crmAdmin'?{}:require(name),component,component.exports);
+ const html=require('react-dom/server').renderToStaticMarkup(React.createElement(component.exports.PhoneHistoryTimeline,{events:[{kind:'call',id:'gateway-call:fixture',atUtc:'2026-11-11T01:00:00Z',endedAtUtc:null,agentId:null,agent:'Unknown — shared WhatsApp account',callCode:null,resolution:'Ringing',callType:'WhatsApp voice',queueId:null,durationSeconds:null,talkSeconds:null,source:'WhatsApp Agenti',direction:'outbound',phone:'+447700900001',coverage:'Observed gateway events only.'}]}));
+ assert.match(html,/WhatsApp Agenti call/);assert.match(html,/Unknown — shared WhatsApp account/);assert.match(html,/Observed connected duration/);assert.match(html,/Unavailable/);assert.match(html,/Observed gateway events only/);assert.ok(!html.includes('<audio'));
+});
