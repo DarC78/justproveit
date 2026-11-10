@@ -3,6 +3,7 @@ import CrmEmailConnections from "@/components/CrmEmailConnections";
 import {confirmEarlyManualBooking,isEarlyManualAppointment} from '@/lib/manualBookingConfirmation';
 import AllLeadsView from "@/components/AllLeadsView";
 import AllCustomersView from "@/components/AllCustomersView";
+import LeadPipelinePanel from "@/components/LeadPipelinePanel";
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
 import BookedCallsDayPanel from "@/components/BookedCallsDayPanel";
@@ -64,6 +65,7 @@ type TabKey =
   | "scheduledCalls"
   | "attention"
   | "allCustomersView"
+  | "leadPipeline"
   | "sales"
   | "all"
   | "intents"
@@ -102,6 +104,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "scheduledCalls", label: "Scheduled calls" },
   { key: "attention", label: "Attention" },
   { key: "allCustomersView", label: "AllCustomersView" },
+  { key: "leadPipeline", label: "Lead Pipeline" },
   { key: "sales", label: "Arata Vanzarile" },
   { key: "all", label: "All Leads CRM" },
   { key: "intents", label: "Lead Intents" },
@@ -1283,6 +1286,7 @@ export default function AdminCrmPage() {
               {activeTab === "scheduledCalls" ? <ScheduledCallsPanel token={token} /> : null}
               {activeTab === "attention" ? <AttentionPanel token={token} /> : null}
               {activeTab === "allCustomersView" ? <AllCustomersView token={token} /> : null}
+              {activeTab === "leadPipeline" ? <LeadPipelinePanel token={token} /> : null}
 
               {activeTab === "sales" ? (
                 <SalesPanel token={token} onError={setErrorMessage} />
