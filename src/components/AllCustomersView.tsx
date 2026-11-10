@@ -61,12 +61,13 @@ export function CustomersSection({token,scope,title,description,kind="customers"
     setDrafts([]);void refreshDrafts();const interval=setInterval(()=>{if(document.visibilityState==="visible")void refreshDrafts();},30000);
     return()=>{controller.abort();clearInterval(interval);};
   },[token,kind,report]);
-  function apply(event:FormEvent){event.preventDefault();setLoading(true);setError("");setReport(null);setPage(0);setApplied({...filters});}
+  function apply(event:FormEvent){event.preventDefault();if(filters.customerFrom&&filters.customerTo&&filters.customerFrom>filters.customerTo){setError('Customer date From must be on or before To.');return;}setLoading(true);setError("");setReport(null);setPage(0);setApplied({...filters});}
   return <section className="customer-section" aria-labelledby={`${kind}-${scope}-title`}>
     <h2 id={`${kind}-${scope}-title`}>{title}</h2><p>{description}</p>
     <form onSubmit={apply} className="filters">
-      {serviceFirst&&<><label>Service<select value={applied.service||''} onChange={e=>{const next={...filters,service:e.target.value,status:''};setFilters(next);setApplied(next);setPage(0);setReport(null);setStatuses([]);}}><option value="">Select a service</option>{catalog.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label>Status<select disabled={!applied.service} value={applied.status||''} onChange={e=>{const next={...filters,status:e.target.value};setFilters(next);setApplied(next);setPage(0);setReport(null);}}><option value="">All statuses</option>{statuses.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label></>}
+      {serviceFirst&&<><label>Service<select value={applied.service||''} onChange={e=>{const next={...filters,service:e.target.value,status:''};setFilters(next);setApplied(next);setPage(0);setReport(null);setStatuses([]);}}><option value="">All services</option>{catalog.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label><label>Status<select disabled={!applied.service} value={applied.status||''} onChange={e=>{const next={...filters,status:e.target.value};setFilters(next);setApplied(next);setPage(0);setReport(null);}}><option value="">All statuses</option>{statuses.map(option=><option key={option.value} value={option.value}>{option.label}</option>)}</select></label></>}
       {(["name","phone","email"] as const).map(field=><label key={field}>{field[0].toUpperCase()+field.slice(1)}<input type="search" value={filters[field]} onChange={e=>setFilters({...filters,[field]:e.target.value})}/></label>)}
+      {kind==='customers'&&<fieldset><legend>Became a customer (UK dates)</legend><label>From<input type="date" value={filters.customerFrom||''} max={filters.customerTo||undefined} onChange={e=>setFilters({...filters,customerFrom:e.target.value})}/></label><label>To<input type="date" value={filters.customerTo||''} min={filters.customerFrom||undefined} onChange={e=>setFilters({...filters,customerTo:e.target.value})}/></label></fieldset>}
       <button type="submit">{searchFirst?"Search CRM leads":"Apply filters"}</button><button type="button" onClick={()=>{setFilters(defaults);setApplied({...defaults});setPage(0);setLoading(true);setReport(null);}}>Clear</button>
       <button type="button" onClick={()=>setRevision(n=>n+1)} disabled={loading||!hasSearch}>Refresh</button>
     </form>
@@ -75,15 +76,16 @@ export function CustomersSection({token,scope,title,description,kind="customers"
     {draftError&&<p role="alert" className="error">{draftError}</p>}
     {kind==='customers'&&serviceError&&<p role="alert" className="error">{serviceError}</p>}
     <div aria-live="polite" aria-busy={loading}>
-      {!hasSearch?<p className="status">Search by name, phone or email to display CRM leads and their history.</p>:loading?<p className="status">Loading {noun}...</p>:error?<p className="error" role="alert">{error}</p>:serviceFirst&&!applied.service?<p className="status">Select a service to display its customers.</p>:report&&<>
+      {!hasSearch?<p className="status">Search by name, phone or email to display CRM leads and their history.</p>:loading?<p className="status">Loading {noun}...</p>:error?<p className="error" role="alert">{error}</p>:report&&<>
         {report.warnings?.map(warning=><p className="warning" key={warning}>{warning}</p>)}
         <p className="count">{report.total} {noun} · {report.rows.length?`${page*pageSize+1}–${page*pageSize+report.rows.length}`:"0"} shown</p>
         {!report.rows.length?<p className="status">No matching {noun}.</p>:<div className="table-scroll" tabIndex={0} role="region" aria-label={title}><table>
-          <thead><tr>{["Name","Phone number","Email",...(kind==='customers'?['Servicii']:[]),kind==="leads"?"Became a lead":"Became a customer","Latest inbound contact","Call booked for (UK)","First call (UK)","Last call (UK)","Number of calls","First callcode","Last callcode","Latest WhatsApp message","Booking actions"].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
+          <thead><tr>{["Name","Phone number","Email",...(kind==='customers'?['Servicii']:[]),kind==="leads"?"Became a lead":"Became a customer",...(kind==='customers'?['Agents spoken with']:[]),"Latest inbound contact","Call booked for (UK)","First call (UK)","Last call (UK)","Number of calls","First callcode","Last callcode","Latest WhatsApp message","Booking actions"].map(label=><th scope="col" key={label}>{label}</th>)}</tr></thead>
           <tbody>{report.rows.map(row=><Fragment key={row.contactId}><tr style={nextActionRowStyle(notes.summaries[(noteContactId(row)?'contact:'+noteContactId(row)!.toLowerCase():'customer:'+row.contactId.toLowerCase())]?.nextActionDate)}>
             <th scope="row">{row.phone?<Link href={{pathname:"/crmdispatch",query:{phone:row.phone}}}>{row.name||(kind==="leads"?"Lead":"Customer")}</Link>:row.name||(kind==="leads"?"Lead":"Customer")}</th>
             <td>{row.phone?row.booking?<button type="button" className="text-link" onClick={()=>setHistory(row.booking)}>{row.phone}</button>:<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.phone}</Link>:"—"}</td>
             <td>{row.email||"—"}</td>{kind==='customers'&&<td><InternationalPensionCase token={token} customerId={row.contactId} summary={serviceSummaries[row.contactId.toLowerCase()]} summaryError={serviceError} onSaved={summary=>setServiceSummaries(previous=>({...previous,[row.contactId.toLowerCase()]:summary}))}/></td>}<td>{time(row.createdAtUtc)}</td>
+            {kind==='customers'&&<td className="agent-history"><strong>Last before purchase</strong>{row.agentHistory?.lastBeforePurchase?<><p>{row.agentHistory.lastBeforePurchase.name}</p><small>{time(row.agentHistory.lastBeforePurchase.endedAtUtc)}</small></>:<p>{row.createdAtUtc?'No recorded conversation':'Purchase date unavailable'}</p>}<strong>Past 30 days</strong>{row.agentHistory?.recentAgents.length?row.agentHistory.recentAgents.map(agent=><div key={agent.agentId}><p>{agent.name}</p><small>Last spoke: {time(agent.lastSpokeAtUtc)}</small></div>):<p>No recorded conversations</p>}</td>}
             <td>{row.lastInbound?<><strong>{row.lastInbound.channel}</strong><small>{time(row.lastInbound.atUtc)} · {row.lastInbound.source||"Source unavailable"}</small><p className="message">{row.lastInbound.text}</p></>:"No inbound contact recorded"}</td>
             <td>{row.booking?time(row.booking.appointmentAtUtc):"No booking"}</td><td>{time(row.firstCallAtUtc)}</td><td>{time(row.lastCallAtUtc)}</td>
             <td>{row.callCount??"Unavailable"}</td><td>{callcodeText(row.firstCallCode)}</td><td>{callcodeText(row.lastCallCode)}</td>
@@ -100,10 +102,12 @@ export function CustomersSection({token,scope,title,description,kind="customers"
     <style jsx>{`
       .customer-section{margin:24px 0 40px;color:#344054}h2{font-size:23px;color:#17376e;margin:0 0 8px}p{font-size:13px;line-height:1.5;margin:0}
       .filters{display:flex;gap:12px;align-items:end;flex-wrap:wrap;margin:18px 0}label{display:grid;gap:6px;font-size:13px;font-weight:700}
+      fieldset{display:flex;gap:12px;border:1px solid #cbd5e1;border-radius:5px;padding:8px 12px;margin:0}legend{font-size:13px;font-weight:700;padding:0 4px}
       input,select,button{border:1px solid #cbd5e1;border-radius:5px;padding:9px 12px;background:white;font:inherit}button{color:#143b92;cursor:pointer;font-size:13px;font-weight:700}button:disabled{opacity:.5;cursor:default}
       .lead-history-row td{padding:18px;background:#f1f5f9}.table-scroll{overflow-x:auto;border:1px solid #dce3ee;border-radius:7px}table{width:100%;min-width:1700px;border-collapse:collapse;font-size:12px;text-align:left}thead{background:#eef3fb;color:#17376e}
       th,td{padding:14px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top;min-width:110px}tbody th{min-width:160px}tbody tr:hover{background:#f8fafc}
       small{display:block;font-size:11px;color:#667085;margin:5px 0}.message{white-space:pre-wrap;overflow-wrap:anywhere;min-width:220px;max-height:150px;overflow:auto}
+      .agent-history{min-width:220px}.agent-history>strong{display:block;margin-bottom:5px}.agent-history>strong:not(:first-child){margin-top:14px}
       .status,.error{padding:20px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px}.error{color:#b42318}.warning{padding:12px;background:#fff7e4}.count{margin:12px 0;font-weight:700}
       .pagination{display:flex;align-items:center;gap:16px;margin-top:16px;font-size:13px}.text-link{border:0;padding:0;background:none;text-decoration:underline}
     `}</style>
@@ -113,6 +117,6 @@ export default function AllCustomersView({token}:{token:string}) {
   const [revision,setRevision]=useState(0);
   return <section><h1 className="text-3xl font-bold mt-7">AllCustomersView</h1><p className="mt-2 text-sm text-slate-600">Customer records and inbound contact · All times are UK time</p>
     <CustomersSection token={token} refreshKey={revision} onChanged={()=>setRevision(n=>n+1)} scope="inbound" title="Customers who contacted us" description="Customers who sent an email or WhatsApp message, or called inbound, in the past 7 days."/>
-    <CustomersSection token={token} refreshKey={revision} onChanged={()=>setRevision(n=>n+1)} scope="all" title="All customers" description="Select a service, then optionally refine by status. 10 customers per page."/>
+    <CustomersSection token={token} refreshKey={revision} onChanged={()=>setRevision(n=>n+1)} scope="all" title="All customers" description="All services are shown by default. Select a service to refine by status. 10 customers per page."/>
   </section>;
 }

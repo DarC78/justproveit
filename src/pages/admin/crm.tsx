@@ -1,6 +1,9 @@
+import LeadDetailsPhoneHistory from "@/components/LeadDetailsPhoneHistory";
+import CrmEmailConnections from "@/components/CrmEmailConnections";
 import {confirmEarlyManualBooking,isEarlyManualAppointment} from '@/lib/manualBookingConfirmation';
 import AllLeadsView from "@/components/AllLeadsView";
 import AllCustomersView from "@/components/AllCustomersView";
+import LeadPipelinePanel from "@/components/LeadPipelinePanel";
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
 import BookedCallsDayPanel from "@/components/BookedCallsDayPanel";
@@ -62,6 +65,7 @@ type TabKey =
   | "scheduledCalls"
   | "attention"
   | "allCustomersView"
+  | "leadPipeline"
   | "sales"
   | "all"
   | "intents"
@@ -100,6 +104,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "scheduledCalls", label: "Scheduled calls" },
   { key: "attention", label: "Attention" },
   { key: "allCustomersView", label: "AllCustomersView" },
+  { key: "leadPipeline", label: "Lead Pipeline" },
   { key: "sales", label: "Arata Vanzarile" },
   { key: "all", label: "All Leads CRM" },
   { key: "intents", label: "Lead Intents" },
@@ -1277,9 +1282,11 @@ export default function AdminCrmPage() {
               ) : null}
 
               {activeTab === "privatePensions" && canUsePrivatePensions ? <PrivatePensionsPanel token={token} /> : null}
+              {["scheduledCalls","attention","allCustomersView","all"].includes(activeTab)&&<CrmEmailConnections token={token}/>}
               {activeTab === "scheduledCalls" ? <ScheduledCallsPanel token={token} /> : null}
               {activeTab === "attention" ? <AttentionPanel token={token} /> : null}
               {activeTab === "allCustomersView" ? <AllCustomersView token={token} /> : null}
+              {activeTab === "leadPipeline" ? <LeadPipelinePanel token={token} /> : null}
 
               {activeTab === "sales" ? (
                 <SalesPanel token={token} onError={setErrorMessage} />
@@ -1906,7 +1913,6 @@ function LeadDetailsPanel({
   const financeOptions = mergeCurrentOption(FINANCE_COMPANIES, draft.financeCompany);
   const statusOptions = mergeCurrentOption(STATUS_OPTIONS, draft.statusOriginal);
   const languageOptions = mergeCurrentOption(LANGUAGE_OPTIONS, draft.language);
-  const contactPhones = getDisplayPhones(draft);
 
   return (
     <CrmCard title="Detalii client" className="details-card">
@@ -1927,17 +1933,7 @@ function LeadDetailsPanel({
         <div className="phone-detail">
           <span>Telefon:</span>
           <div className="phone-detail-body">
-            <strong>{draft.phoneNumber || ""}</strong>
-            {contactPhones.length > 1 ? (
-              <ul className="phone-list">
-                {contactPhones.map((phone, index) => (
-                  <li key={phone.id || phone.normalizedPhone || phone.phone || index}>
-                    {phone.phone || phone.normalizedPhone}
-                    {phone.isPrimary ? " (principal)" : ""}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            <LeadDetailsPhoneHistory key={[draft.contactId,draft.canonicalContactId,draft.canonical?.contactId,draft.id,draft.phoneNumber,draft.normalizedPhone].join(":")} token={token} lead={draft}/>
             <div className="add-phone-row">
               <input
                 value={newPhone}
@@ -4883,21 +4879,6 @@ function mergeContactPhones(existing: CrmContactPhone[], incoming: CrmContactPho
   });
 
   return merged;
-}
-
-function getDisplayPhones(lead: CrmLead) {
-  const apiPhones = Array.isArray(lead.phones) ? lead.phones : [];
-  if (!lead.phoneNumber) {
-    return apiPhones;
-  }
-
-  const primaryPhone: CrmContactPhone = {
-    phone: lead.phoneNumber,
-    normalizedPhone: lead.normalizedPhone || lead.phoneNumber,
-    isPrimary: true,
-  };
-
-  return mergeContactPhones([primaryPhone], apiPhones);
 }
 
 function mergePhoneResultIntoLead(
