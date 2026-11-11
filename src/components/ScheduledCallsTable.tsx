@@ -1,6 +1,6 @@
 import LeadAgentAssignment from "./LeadAgentAssignment";
 import Link from "next/link";
-import {useState,type ReactNode} from "react";
+import {useState,useEffect,type ReactNode} from "react";
 import PhoneHistoryModal from "./PhoneHistoryModal";
 import BookingCallHistory from "./BookingCallHistory";
 import BookingActions from "./BookingActions";
@@ -8,6 +8,7 @@ import {bookingActionNotice} from "@/lib/bookedCalls";
 import {ScheduledCallRow} from "@/lib/crmAdmin";
 import InternalLeadActions from './InternalLeadActions';
 import {nextActionRowStyle,useLeadNoteSummaries} from '@/lib/leadNotes';
+import {scheduledCallDisplay} from '@/lib/scheduledCallDisplay';
 
 const londonDateTime=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"short"});
 const londonTime=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",hour:"2-digit",minute:"2-digit",hourCycle:"h23"});
@@ -21,6 +22,8 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
   token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;showCallDate?:boolean;onChanged:(notice:string)=>void;renderExtraActions?:(row:ScheduledCallRow)=>ReactNode;
 }) {
   const [historyBooking,setHistoryBooking]=useState<ScheduledCallRow|null>(null);
+  const [now,setNow]=useState(()=>new Date());
+  useEffect(()=>{const timer=window.setInterval(()=>setNow(new Date()),30000);return()=>window.clearInterval(timer);},[]);
   const notes=useLeadNoteSummaries(token,rows.map(row=>({id:row.contactId,kind:'contact'})));
   return <>{notes.error&&<p role="alert">{notes.error}</p>}<div className="table-scroll" tabIndex={0} role="region" aria-label={attention?"Attention calls table":"Scheduled calls table"}>
     <table><thead><tr>
@@ -34,8 +37,8 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
       <th scope="col">WhatsApp client in ziua programarii</th><th scope="col">WhatsApp noi in ziua programarii</th></>}
       {pipeline&&<th scope="col">WhatsApp messages in ziua programarii</th>}
       <th scope="col">Actiuni programare</th>
-    </tr></thead><tbody>{rows.map(row=><tr key={row.intentId} style={nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate)}>
-      <td><time dateTime={row.appointmentAtUtc}>{(attention||showCallDate)?dateTime(row.appointmentAtUtc):londonTime.format(new Date(row.appointmentAtUtc))}</time></td>
+    </tr></thead><tbody>{rows.map(row=><tr key={row.intentId} style={pipeline?{backgroundColor:scheduledCallDisplay(row.appointmentAtUtc,now).backgroundColor}:nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate)}>
+      <td><time dateTime={row.appointmentAtUtc}>{(attention||showCallDate||pipeline)?dateTime(row.appointmentAtUtc):londonTime.format(new Date(row.appointmentAtUtc))}</time>{pipeline&&<small>{scheduledCallDisplay(row.appointmentAtUtc,now).label}</small>}</td>
       <th scope="row">{row.phone?<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.name||"Client"}</Link>:row.name||"Client"}
         <small>{pipeline?row.leadSource:(row.intentType==="MANUAL_BOOK"?"Manual booking":"Calendly")}{!pipeline&&row.serviceName?` · ${row.serviceName}`:""}</small>
         {attention&&row.attentionReasons?.map(reason=><small className="reason" key={reason}>{reason}</small>)}
