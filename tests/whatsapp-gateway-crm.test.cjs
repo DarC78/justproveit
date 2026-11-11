@@ -45,7 +45,7 @@ test('call linking selects a lead with a note; locks uncertain edits and retries
  assert.equal(calls.length,2);assert.equal(calls[0][2].requestId,calls[1][2].requestId);assert.equal(calls[1][2].expectedSnapshot,'snapshot-1');assert.equal(calls[1][2].contactId,'contact-id');assert.equal(saved,1);
  assert.ok(text(tree).includes('Call linked to Fixture lead.'));
  // Conflict preserves the note and requires a refresh, and unlink is explicit.
- call={...call,contactId:'contact-id',leadName:'Fixture lead'};render();button('Change linked lead').props.onClick();render();
+ call={...call,contactId:'contact-id',leadName:'Fixture lead',linkedLeads:[{id:'contact-id',name:'Fixture lead'},{id:'another',name:'Another lead'}]};render();assert.ok(text(tree).includes('Linked leads: Fixture lead · Another lead'));assert.ok(text(tree).includes('Call linked to Fixture lead.'));button('Change linked lead').props.onClick();render();
  nodes('input').find(n=>n.props.maxLength===500).props.onChange({target:{value:'Wrong participant verified'}});render();
  call={...call,linkSnapshot:'snapshot-3'};render();
  results.push(Object.assign(new Error('version_conflict'),{status:409}));button('Unlink call and return to review').props.onClick();await new Promise(r=>setImmediate(r));render();

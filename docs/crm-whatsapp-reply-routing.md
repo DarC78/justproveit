@@ -35,3 +35,10 @@ and offer **Retry same action**, preserving the original request ID and payload
 while polling continues; exact retries return the audited result. Existing lead
 call history includes manually linked calls without creating duplicate call rows.
 No transport or outbound operation is exposed by this control.
+
+New observed calls on shared numbers appear on every matching lead up to three.
+Larger groups select the three with the latest prior inbound WhatsApp/call activity;
+tied/absent activity uses newest lead creation date and stable ID. The panel shows
+all selected lead names. Automatic selection is fixed across that call's updates.
+A manual lead selection replaces all automatic associations, and unlink removes
+all of them. Existing legacy call links and message/reply routing are preserved.

@@ -49,11 +49,11 @@ export default function WhatsAppGatewayCallLink({token, call, onSaved, onRefresh
     } finally { locked.current = false; setBusy(false); }
   }
   return <div style={{padding: 12, background: '#f8fafc'}}>
-    <p>{call.contactId ? <>Linked lead: <strong>{call.leadName || call.contactId}</strong></> : 'No lead linked — needs review.'}{call.customerId && !call.contactId ? ' An existing customer association is present.' : ''}</p>
+    <p>{(call.linkedLeads?.length ?? 0) > 1 ? <>Linked leads: <strong>{call.linkedLeads!.map(lead => lead.name).join(' · ')}</strong></> : call.contactId ? <>Linked lead: <strong>{call.leadName || call.contactId}</strong></> : 'No lead linked — needs review.'}{call.customerId && !call.contactId ? ' An existing customer association is present.' : ''}</p>
     {status && <p role="status">{status}</p>}
     <button type="button" disabled={blocked} onClick={() => {if (!open) baseline.current = call.linkSnapshot; setOpen(v => !v);}}>{open ? 'Close lead linking' : call.contactId ? 'Change linked lead' : 'Link to lead'}</button>
     {open && <div>
-      <p>Choose the lead you verified for this call. This changes only this call’s CRM association; later observed updates follow your choice. It does not identify which agent placed the call.</p>
+      <p>Choose the lead you verified for this call. A manual choice replaces all automatic lead associations for this call. This changes only this call’s CRM association; later observed updates follow your choice. It does not identify which agent placed the call.</p>
       <label>Find a CRM lead <input value={query} disabled={blocked} maxLength={100} onChange={e => {searchVersion.current++; setSearching(false); setQuery(e.target.value); setSelected(''); setTargets([]);}} /></label>{' '}
       <button type="button" disabled={blocked || searching || query.trim().length < 2} onClick={() => void search()}>{searching ? 'Searching…' : 'Find leads'}</button>
       <ul>{targets.map(target => <li key={target.id}><label><input type="radio" name={`call-lead-${call.linkKey}`} disabled={blocked} checked={selected === target.id} onChange={() => setSelected(target.id)} />{target.name} · {target.phone || 'No phone'} · {target.email || 'No email'} <small>({target.id})</small></label></li>)}</ul>

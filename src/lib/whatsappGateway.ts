@@ -15,7 +15,7 @@ export type GatewayOperations={status:null|{connection:string;unknown_outcomes:n
 export const gatewayOperations=(token:string)=>request<GatewayOperations>(token,'/operations');
 export const gatewayCalls=(token:string)=>request<{rows:GatewayCall[];coverage:string}>(token,'/calls');
 
-export type GatewayCall = Extract<PhoneHistoryEvent, {kind:'call'}> & {contactId:string|null;customerId:string|null;leadName:string|null;matchState:string;linkKey:string;callToken:string;linkSnapshot:string;linkVersion:number};
+export type GatewayCall = Extract<PhoneHistoryEvent, {kind:'call'}> & {contactId:string|null;customerId:string|null;leadName:string|null;contactIds?:string[];linkedLeads?:Array<{id:string;name:string}>;matchState:string;linkKey:string;callToken:string;linkSnapshot:string;linkVersion:number};
 export type GatewayCallLinkBody = {requestId:string;callToken:string;expectedSnapshot:string;contactId:string|null;reason:string};
 export const gatewayCallTargets=(token:string,query:string)=>request<{rows:GatewayTarget[]}>(token,`/calls/targets?q=${encodeURIComponent(query)}`);
 export const gatewayCallLink=(token:string,key:string,body:GatewayCallLinkBody)=>request<{contactId:string|null;leadName:string|null;version:number}>(token,`/calls/${encodeURIComponent(key)}/link`,{method:'POST',body:JSON.stringify(body)});
