@@ -145,7 +145,7 @@ export default function PhoneHistoryModal({token,booking,onClose}:{token:string;
       <div className="content" aria-busy={loading} aria-live="polite">
         {booking.phone&&<WhatsAppReplyComposer key={booking.intentId+booking.phone} token={token} intentId={booking.intentId} phone={booking.phone} onSent={()=>setRefresh(value=>value+1)}/>}
         {loading&&!matched?<p className="status">Loading the full WhatsApp conversation and call history...</p>:!matched&&error?<p role="alert" className="error">{error}</p>:matched&&history&&<>
-          {error&&<p role="alert" className="error">{error}</p>}<p className="totals">{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
+          {error&&<p role="alert" className="error">{error}</p>}<p className="totals">On this page: {history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
           <HistoryPagination page={page} hasMore={Boolean(history.hasMore)} loading={loading} onPage={setPage}/>
           {history.warnings?.map(w=><p role="status" key={w}>{w}</p>)}
           <PhoneHistoryTimeline events={history.events} paged={history.pageSize===25} imageTarget={{token,kind:"booking",id:booking.intentId}}/>
