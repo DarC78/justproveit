@@ -47,3 +47,5 @@ ScheduledCall rows show the full UK booking date/time plus Today, Tomorrow, Day 
 
 ### End Lead
 Every pipeline row offers End Lead with a required reason. This sets a separate flag and preserves the displayed stage, appointments, reminders and operational status. Ended leads are hidden by default. Show ended leads includes them in every stage (existing filters still apply); the selection is saved with the user's other pipeline filters and Clear resets it off. Ended rows show the reason and actor plus Reopen Lead. Reopening clears the flag and resumes automatic/manual classification. End and reopen refresh the list immediately and send no messages.
+
+Pipeline tables omit Service / source, Pipeline status and Evidence columns. Stage selectors and classification behavior remain available. The P0 action is labelled Mark event as handled. Next Action Date in Actions is 16px bold.

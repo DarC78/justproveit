@@ -10,6 +10,6 @@ test('AgreedToBuy renders UK date/time first, date-only actions honestly, and P0
   assert.equal(document.querySelector('thead th').textContent,'Date / time (UK)');const rows=[...document.querySelectorAll('tbody>tr')];assert.equal(rows.length,6);
   assert.equal(rows[0].querySelector('td time').textContent,'4 Jun 2026, 10:15');assert.match(rows[0].textContent,/P0/);assert.match(rows[2].querySelector('td time').textContent,/04\/06\/2026.*No time set/);
   assert.deepEqual(rows.map(r=>r.style.backgroundColor),['rgb(255, 241, 242)','rgb(254, 202, 202)','rgb(254, 202, 202)','rgb(220, 252, 231)','rgb(220, 252, 231)','']);
-  await React.act(async()=>rows[0].querySelector('button.pipeline-phone-link').click());assert.equal(document.querySelector('td[colspan]').colSpan,8);
+  await React.act(async()=>rows[0].querySelector('button.pipeline-phone-link').click());assert.equal(document.querySelector('td[colspan]').colSpan,5);
  }finally{await React.act(async()=>root.unmount());global.fetch=old;dom.window.close();delete global.window;delete global.document;}
 });

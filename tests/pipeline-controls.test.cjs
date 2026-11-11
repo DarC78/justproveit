@@ -8,10 +8,10 @@ test('mark handled retries the same request and snapshot; any stage can be assig
  const root=createRoot(document.getElementById('root'));let row={contactId:'lead',pipelineVersion:0,priority:0,lastInboundAtUtc:'2026-11-11T10:00:00Z',manualStage:null};
  const render=()=>root.render(React.createElement(mod.exports.default,{token:'token',row,onChanged:message=>changes.push(message)}));const button=label=>[...document.querySelectorAll('button')].find(b=>b.textContent===label);
  try{
-  await React.act(async()=>render());await React.act(async()=>button('Mark as handled').click());assert.match(document.body.textContent,/Retry same request/);
-  row={...row,lastInboundAtUtc:'2026-11-11T10:01:00Z'};await React.act(async()=>render());await React.act(async()=>button('Mark as handled').click());
+  await React.act(async()=>render());await React.act(async()=>button('Mark event as handled').click());assert.match(document.body.textContent,/Retry same request/);
+  row={...row,lastInboundAtUtc:'2026-11-11T10:01:00Z'};await React.act(async()=>render());await React.act(async()=>button('Mark event as handled').click());
   assert.equal(calls[0].input.requestId,calls[1].input.requestId);assert.equal(calls[1].input.inboundThroughAtUtc,'2026-11-11T10:00:00Z');assert.equal(calls[1].input.action,'handle');assert.match(changes[0],/Bookings and stage are preserved/);
-  row={...row,pipelineVersion:1,priority:undefined};await React.act(async()=>render());assert.equal(button('Mark as handled'),undefined);
+  row={...row,pipelineVersion:1,priority:undefined};await React.act(async()=>render());assert.equal(button('Mark event as handled'),undefined);
   await React.act(async()=>{const select=document.querySelector('select');select.value='ToAdrian';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await React.act(async()=>button('Assign stage').click());assert.equal(calls.at(-1).input.stage,'ToAdrian');assert.equal(calls.at(-1).input.expectedVersion,1);assert.match(changes.at(-1),/ToAdrian/);
   row={...row,pipelineVersion:2,manualStage:{stage:'ToAdrian',actor:'Agent'}};await React.act(async()=>render());assert.equal(button('Assign stage').disabled,false); // explicit reassign can re-pin P0
   await React.act(async()=>{const select=document.querySelector('select');select.value='';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await React.act(async()=>button('Assign stage').click());assert.equal(calls.at(-1).input.stage,null);assert.match(changes.at(-1),/Automatic/);
