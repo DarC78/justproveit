@@ -1,5 +1,11 @@
 # Lead Pipeline
 
+## Activity eligibility and clients (11 November 2026 — current rules)
+
+The old first-received-in-60-days rule is replaced by actual calls (any outcome/direction) or incoming/outgoing WhatsApp activity in the past 60 elapsed days. Old active contacts qualify; a new contact or appointment alone does not. Car-finance-only clients are excluded. Other and mixed-service clients appear exclusively in `clients`, displayed after AgreedToBuy, while classification prioritizes clients above all lead stages. Unidentified purchases remain explicitly unidentified.
+
+Clients adds Purchased service (All purchased services by default), saved in the existing per-user browser preferences. Purchase services and individual purchase dates are displayed in an additional column; contact history/actions and other ordinary columns remain. Dates use UK time and the CRM's existing recorded sale date. Last qualifying call/WhatsApp activity is also displayed. Older scope/exclusion statements below are superseded by this section. No client service workflow, messages or operational status changes are performed by this view.
+
 ## ScheduledCall daily view (11 November 2026)
 
 Selecting ScheduledCall displays ScheduledDate, defaulting to today in Europe/London on each page load (not persisted). The server filters appointments by that date before pagination. This stage reuses ScheduledCallsTable in pipeline mode with nine columns: UK call time, name and lead source, agent assignment, linked phone/history, shared coloured call/callcode history, became a lead, booking creation, combined inbound/outbound WhatsApp messages on the booking date, and the identical booking actions plus internal comments. Other pipeline filters remain applicable. The existing Scheduled calls tab keeps its full original columns.
