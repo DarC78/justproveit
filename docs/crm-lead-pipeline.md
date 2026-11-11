@@ -44,3 +44,6 @@ ScheduledCall (11 November 2026): fifth pipeline status, with priority AgreedToB
 With Show Leads Scheduled in the future unchecked, only ScheduledDate is shown. Checked includes the selected UK date and every later booking, with date/time shown in the first column. Existing stage eligibility and other filters remain in force.
 
 ScheduledCall rows show the full UK booking date/time plus Today, Tomorrow, Day after tomorrow, In the future (or In the past). Today's appointments strictly over 30 minutes overdue are pale red; dates from tomorrow onward are pale blue; remaining rows have no booking background. These booking colours replace note-date colours in this pipeline view and refresh every 30 seconds. The separate Scheduled calls and Attention tables retain their existing styling.
+
+### End Lead
+Every pipeline row offers End Lead with a required reason. This sets a separate flag and preserves the displayed stage, appointments, reminders and operational status. Ended leads are hidden by default. Show ended leads includes them in every stage (existing filters still apply); the selection is saved with the user's other pipeline filters and Clear resets it off. Ended rows show the reason and actor plus Reopen Lead. Reopening clears the flag and resumes automatic/manual classification. End and reopen refresh the list immediately and send no messages.

@@ -18,6 +18,12 @@ test('pipeline filters and paginates server-side and opens the correct contact h
  try {
   await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'agent-token'})));
   assert.equal(calls[0].options.headers.Authorization,'Bearer agent-token');assert.match(document.body.textContent,/31 leads matching/);
+  assert.equal(document.querySelector('[aria-label="Show ended leads"]').checked,false);
+  assert.equal(new URL(calls.at(-1).url).searchParams.get('showEnded'),'false');
+  await React.act(async()=>document.querySelector('[aria-label="Show ended leads"]').click());
+  assert.equal(new URL(calls.at(-1).url).searchParams.get('showEnded'),'true');
+  assert.equal(JSON.parse(window.localStorage.getItem('proveit.crm.leadPipeline.filters.v1:default')).showEnded,true);
+  await React.act(async()=>document.querySelector('[aria-label="Show ended leads"]').click());
   assert.equal(document.querySelector('input[type="checkbox"]').checked,false);assert.equal(new URL(calls[0].url).searchParams.get('showFutureScheduled'),'false');
   assert.ok(button('447700900123').classList.contains('pipeline-phone-link'));assert.equal(document.querySelector('[aria-label="Show leads with a call booked"]'),null);
   await React.act(async()=>button('447700900123').click());assert.equal(history.contactId,'correct-contact');

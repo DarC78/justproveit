@@ -15,6 +15,11 @@ test('mark handled retries the same request and snapshot; any stage can be assig
   await React.act(async()=>{const select=document.querySelector('select');select.value='ToAdrian';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await React.act(async()=>button('Assign stage').click());assert.equal(calls.at(-1).input.stage,'ToAdrian');assert.equal(calls.at(-1).input.expectedVersion,1);assert.match(changes.at(-1),/ToAdrian/);
   row={...row,pipelineVersion:2,manualStage:{stage:'ToAdrian',actor:'Agent'}};await React.act(async()=>render());assert.equal(button('Assign stage').disabled,false); // explicit reassign can re-pin P0
   await React.act(async()=>{const select=document.querySelector('select');select.value='';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await React.act(async()=>button('Assign stage').click());assert.equal(calls.at(-1).input.stage,null);assert.match(changes.at(-1),/Automatic/);
+  await React.act(async()=>button('End Lead').click());assert.equal(document.querySelector('textarea').required,true);assert.equal(button('Confirm End Lead').disabled,true);
+  await React.act(async()=>button('Cancel').click());assert.equal(document.querySelector('textarea'),null);
+  row={...row,pipelineVersion:3,pipelineStatus:'ToAdrian',ended:{pipelineStatus:'ToAdrian',reason:'Not interested',actor:'Agent',atUtc:'2026-11-11T10:00Z'}};await React.act(async()=>render());
+  assert.match(document.body.textContent,/Not interested/);assert.equal(button('End Lead'),undefined);assert.equal(document.querySelector('select'),null);
+  await React.act(async()=>button('Reopen Lead').click());assert.equal(calls.at(-1).input.action,'reopen');assert.equal(calls.at(-1).input.expectedVersion,3);assert.match(changes.at(-1),/reopened/);
  }finally{await React.act(async()=>root.unmount());dom.window.close();delete global.window;delete global.document;}
 });
 test('pipeline writes use authenticated POST and validate returned identity, stage and acknowledgement',async()=>{
@@ -25,5 +30,8 @@ test('pipeline writes use authenticated POST and validate returned identity, sta
   assert.equal(calls[0].url,'https://api.test/api/justproveit/admin/crm/contacts/lead/pipeline-control');assert.equal(calls[0].options.method,'POST');assert.equal(calls[0].options.headers.Authorization,'Bearer token');assert.deepEqual(JSON.parse(calls[0].options.body),body);
   reply={...reply,manualStage:{stage:'AgreedToBuy'}};await assert.rejects(mod.exports.savePipelineControl('token','lead',body),/could not be verified/);
   reply={success:true,action:'handle',contactId:'lead',pipelineVersion:2};await assert.rejects(mod.exports.savePipelineControl('token','lead',{action:'handle',expectedVersion:1,requestId:'handle',inboundThroughAtUtc:null}),/could not be verified/);
+  const end={action:'end',expectedVersion:2,requestId:'end',pipelineStatus:'SimulationDone',reason:'Not interested'};
+  reply={success:true,action:'end',contactId:'lead',pipelineVersion:3,ended:{pipelineStatus:'SimulationDone',reason:'Not interested'}};await mod.exports.savePipelineControl('token','lead',end);
+  reply.ended.pipelineStatus='newLead';await assert.rejects(mod.exports.savePipelineControl('token','lead',end),/could not be verified/);
  }finally{global.fetch=old;}
 });
