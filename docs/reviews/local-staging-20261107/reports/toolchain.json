@@ -1,0 +1,8 @@
+{
+  "node": "v22.23.4",
+  "dependencyLockfiles": {
+    "LaunchingStack/backend/functions/package-lock.json": "25cf9b46d6b8811dda2eb8dfb9db1542af98dbc2314e1ad1d249796097bef589",
+    "LaunchingStack/webapp/internal-agents/package-lock.json": "65563c15c03f22e94482cb58b3ab8770a1751bfc668fd2989cc7fd28aafd1c15",
+    "JustProveit/package-lock.json": "732476489239e2328153c5191efe994a093f13c666282e6b37d731515fd8a990"
+  }
+}

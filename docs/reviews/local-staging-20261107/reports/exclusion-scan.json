@@ -1,0 +1,6 @@
+{
+  "privateCredentialAndPrivateKeyScan": "passed",
+  "filesScanned": 29,
+  "runtimeCustomerRecordsAndRawLogsExcluded": true,
+  "syntheticFixtureGeneratorSourceAndUnitVectorsIncluded": true
+}

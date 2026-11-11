@@ -1,0 +1,12 @@
+{
+  "contactsCountPreserved": true,
+  "intentsCountPreserved": true,
+  "ContactsStableRowsPresent": true,
+  "LeadIntentsStableRowsPresent": true,
+  "disposableBootstrapDatabasesRemaining": 0,
+  "applicationRolesNotElevated": true,
+  "mssqlDisposableFixtureSchemasRemaining": 0,
+  "migrationLedgerUnchanged": true,
+  "ContactsIdentityAndStateUnchanged": true,
+  "LeadIntentsIdentityAndStateUnchanged": true
+}

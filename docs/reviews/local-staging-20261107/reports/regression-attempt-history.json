@@ -1,0 +1,71 @@
+[
+  {
+    "attempt": "frontend-initial-result.json",
+    "tests": 130,
+    "passed": 119,
+    "failed": 11,
+    "skipped": 0,
+    "note": "Test harness module mocks/VM globals/configuration/delegated component assertions were repaired; runtime source unchanged."
+  },
+  {
+    "attempt": "webapp-simulators-initial-result.json",
+    "tests": 32,
+    "passed": 29,
+    "failed": 3,
+    "skipped": 0,
+    "note": "Three internal-admin test modules could not load the declared linkedom dev dependency. npm ci from existing lockfile resolved it. Recorded from the first run output."
+  },
+  {
+    "attempt": "database-initial-result.json",
+    "tests": 723,
+    "passed": 699,
+    "failed": 0,
+    "skipped": 24,
+    "note": "24 legacy SQL flags were not enabled in initial selection; superseded by full flags-on runs."
+  },
+  {
+    "attempt": "database-all-flags-before-fixture-fix-result.json",
+    "tests": 723,
+    "passed": 720,
+    "failed": 3,
+    "skipped": 0,
+    "note": "Three legacy SQL fixture failures, including a shared ApplicationErrors dependency."
+  },
+  {
+    "attempt": "database-fixture-width-attempt-result.json",
+    "tests": 723,
+    "passed": 720,
+    "failed": 3,
+    "skipped": 0,
+    "note": "Isolated throttle fixture initially had an undersized ErrorMessage column; corrected to nvarchar(4000). Two pension prerequisite gaps remain."
+  },
+  {
+    "attempt": "prior-review-database-final",
+    "tests": 723,
+    "passed": 721,
+    "failed": 2,
+    "skipped": 0,
+    "excludedFiles": 1,
+    "note": "Historical review gate: two MSSQL pension fixture prerequisites and bootstrap exclusion. Superseded by the explicitly authorized fixture/bootstrap follow-up."
+  },
+  {
+    "attempt": "fixture-bootstrap-follow-up-investigation",
+    "note": "After prerequisites were isolated, hybrid execution exposed historical test phones now classified as staff, then missing inferred GB context for reserved phones, then the booking LeadIntents prerequisite. Corrected fixture inputs/setup only; original state assertion retained. Affected final run: three passed, zero failures/skips/exclusions."
+  },
+  {
+    "attempt": "production-build-followup-before-dispatch-fix",
+    "status": "FAIL",
+    "error": "JustProveit/src/pages/crmdispatch.tsx:13 react-hooks/set-state-in-effect; synchronous mount-effect state setter. Historical, now resolved."
+  },
+  {
+    "attempt": "dispatch-hydration-fix",
+    "status": "PASS",
+    "frontendTests": 133,
+    "frontendFailed": 0,
+    "frontendSkipped": 0,
+    "productionBuild": "PASS with lint/type checks enabled",
+    "typeCheck": "PASS",
+    "browserChecks": 9,
+    "note": "No lint suppression or disabled build checks. Source-only hydration correction, real local-backend routing preserved."
+  }
+]

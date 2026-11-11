@@ -1,0 +1,35 @@
+{
+  "runtimeApplicationSourcesMatchAcceptedSnapshot": false,
+  "runtimeMismatches": [
+    "JustProveit/src/pages/crmdispatch.tsx"
+  ],
+  "backendTestFixtureRepair": [
+    "LaunchingStack/backend/functions/src/errorLogging.sql.test.js"
+  ],
+  "frontendHarnessRepairs": [
+    "tests/backend-url.test.cjs",
+    "tests/bani-uk-ai.test.cjs",
+    "tests/contact-actions.test.cjs",
+    "tests/google-advertising-handoff.test.cjs",
+    "tests/pension-result-modal.test.cjs",
+    "tests/private-pensions.test.cjs",
+    "tests/random-uuid.test.cjs",
+    "tests/whatsapp-reply-composer.test.cjs"
+  ],
+  "credentialsAndCustomerDataIncluded": false,
+  "followUpTestSetupChanges": [
+    "backend/functions/src/pensionFunnelEnrollment.sql.test.js",
+    "backend/functions/src/pensionHybridProfiles.sql.test.js",
+    "backend/functions/src/postgresBaseline.database.test.js",
+    "backend/functions/test/legacyPensionSqlFixture.mjs"
+  ],
+  "stagingConfigurationOrSimulatorChangesInFollowUp": [],
+  "intentionalRuntimeChangesSinceManualAcceptance": [
+    {
+      "path": "JustProveit/src/pages/crmdispatch.tsx",
+      "reason": "Replace synchronous mounted effect with useSyncExternalStore server/client snapshots; preserve dispatch logic",
+      "verified": "133 frontend tests, TypeScript, lint-enabled production build and nine local-backend browser checks"
+    }
+  ],
+  "otherRuntimeApplicationSourcesUnchanged": true
+}

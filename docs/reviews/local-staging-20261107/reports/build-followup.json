@@ -1,0 +1,17 @@
+{
+  "atUtc": "2026-11-07T14:46:13.649705+00:00",
+  "command": "node node_modules/next/dist/bin/next build",
+  "scope": "Isolated complete-source copy; active staging dev build not overwritten",
+  "exitCode": 0,
+  "lintEnabled": true,
+  "typeChecksEnabled": true,
+  "lintRulesOrBuildChecksDisabled": false,
+  "sourceFilesComparedToWorkingTree": 154,
+  "applicationFile": "src/pages/crmdispatch.tsx",
+  "applicationFileSha256": "594ceba8f2d9bc2ca38dc32d44168f0678647b13031422e287a9978f918a98e1",
+  "typeCheck": {
+    "command": "node node_modules/typescript/bin/tsc --noEmit",
+    "exitCode": 0
+  },
+  "warnings": "Existing nonfatal unused imports/directives remain; no lint errors."
+}

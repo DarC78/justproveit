@@ -1,0 +1,159 @@
+{
+  "atUtc": "2026-11-07T14:46:13.650192+00:00",
+  "releaseRegressionGate": "GREEN for applicable local tests, type-checking and production build; external/security/operational release acceptance remains separate",
+  "groups": [
+    {
+      "group": "backend-unit",
+      "startedAt": "2026-11-07T13:58:33.728Z",
+      "excluded": [],
+      "finishedAt": "2026-11-07T13:59:07.972Z",
+      "exitCode": 0,
+      "tests": 968,
+      "passed": 968,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "group": "frontend",
+      "startedAt": "2026-11-07T14:43:10.019Z",
+      "excluded": [],
+      "finishedAt": "2026-11-07T14:43:17.493Z",
+      "exitCode": 0,
+      "tests": 133,
+      "passed": 133,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "group": "webapp-simulators",
+      "startedAt": "2026-11-07T13:58:33.737Z",
+      "excluded": [],
+      "finishedAt": "2026-11-07T13:58:34.822Z",
+      "exitCode": 0,
+      "tests": 42,
+      "passed": 42,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0
+    },
+    {
+      "group": "database",
+      "startedAt": "2026-11-07T13:58:33.731Z",
+      "excluded": [],
+      "finishedAt": "2026-11-07T14:02:07.654Z",
+      "exitCode": 0,
+      "tests": 724,
+      "passed": 724,
+      "failed": 0,
+      "skipped": 0,
+      "cancelled": 0
+    }
+  ],
+  "totals": {
+    "tests": 1867,
+    "passed": 1867,
+    "failed": 0,
+    "skipped": 0,
+    "cancelled": 0
+  },
+  "deliberatelyExcluded": [],
+  "remainingFailures": [],
+  "frontendTypeScript": "PASS, rerun after dispatch hydration fix",
+  "isolatedStaticBuild": "PASS, rerun with lint and type checks enabled after dispatch hydration fix",
+  "pensionMessageCatalogue": "PASS, rerun",
+  "officialPostgresMigrationCheck": {
+    "applied": 15,
+    "checksumsMatch": true,
+    "ledgerResetOrEdited": false
+  },
+  "permissions": {
+    "passed": true,
+    "assertions": [
+      "PASS: Object grants reconciled; migration ledger is read-only for application login",
+      "PASS: All 275 application tables are owned by launchingstack_migrator",
+      "PASS: Application SELECT works on every table; DML and sequence grants cover all runtime objects",
+      "PASS: Application INSERT/SELECT/UPDATE/DELETE passed on migrated platform.Tenants; transaction rolled back",
+      "PASS: Application denied: create table",
+      "PASS: Application denied: drop application table",
+      "PASS: Application denied: alter application table",
+      "PASS: Application denied: create schema",
+      "PASS: Application denied: create role",
+      "PASS: Application denied: grant role membership",
+      "PASS: Application denied: assume migration role",
+      "PASS: Application denied: assume superuser role",
+      "PASS: Application denied: gain superuser",
+      "PASS: Application denied: gain role administration",
+      "PASS: Application denied: write migration ledger",
+      "PASS: Application denied: truncate migration ledger",
+      "PASS: No administrative attributes, inherited roles, or executable application SECURITY DEFINER functions"
+    ]
+  },
+  "browserReadSweep": {
+    "pages": 72,
+    "apiFailures": 0,
+    "exceptions": 0
+  },
+  "browserCrm": {
+    "loginCreateSearchEditReloadPassed": true,
+    "realQueueUsed": true,
+    "apiFailures": 0,
+    "externalRequests": 0
+  },
+  "browserVendor": {
+    "checksPassed": 9,
+    "historyAndReportReadChecksPassed": true
+  },
+  "databaseIsolation": [
+    {
+      "host": "127.0.0.1",
+      "port": 55432,
+      "reachable": true,
+      "passed": true
+    },
+    {
+      "host": "127.0.0.1",
+      "port": 51433,
+      "reachable": true,
+      "passed": true
+    },
+    {
+      "host": "192.168.87.187",
+      "port": 55432,
+      "reachable": false,
+      "passed": true
+    },
+    {
+      "host": "192.168.87.187",
+      "port": 51433,
+      "reachable": false,
+      "passed": true
+    }
+  ],
+  "manualAcceptance": "Four historical explicit user sign-offs retained; dispatch hydration changed subsequently and was verified automatically. No new user sign-off inferred.",
+  "providerAcceptance": "Separate; no real provider credentials required for core PostgreSQL acceptance",
+  "noCommitPushDeploymentOrProductionAccess": true,
+  "bootstrap": "PASS in disposable empty same-instance database; created/dropped by separate private administrator, assertions run as migrator",
+  "preservation": {
+    "contactsCountPreserved": true,
+    "intentsCountPreserved": true,
+    "ContactsStableRowsPresent": true,
+    "LeadIntentsStableRowsPresent": true,
+    "disposableBootstrapDatabasesRemaining": 0,
+    "applicationRolesNotElevated": true,
+    "mssqlDisposableFixtureSchemasRemaining": 0,
+    "migrationLedgerUnchanged": true,
+    "ContactsIdentityAndStateUnchanged": true,
+    "LeadIntentsIdentityAndStateUnchanged": true
+  },
+  "browserEvidenceScope": "Dispatch page rerun in this follow-up; earlier core CRM/appointments/report/history evidence retained as historical.",
+  "currentFollowUpScope": "Frontend-only runtime change: src/pages/crmdispatch.tsx hydration flag; all133 frontend tests, TypeScript, official production build and nine real-backend staging browser checks rerun. Backend968/database724/webapp42 evidence carried forward from preceding successful follow-up; their runtime/fixture/simulator source is unchanged.",
+  "browserDispatch": {
+    "passed": true,
+    "checks": 9,
+    "externalRequests": 0,
+    "pageErrors": 0,
+    "realLocalBackend": true
+  }
+}

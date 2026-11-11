@@ -1,0 +1,17 @@
+{
+  "group": "affected",
+  "startedAt": "2026-11-07T13:58:19.534Z",
+  "files": [
+    "src/pensionFunnelEnrollment.sql.test.js",
+    "src/pensionHybridProfiles.sql.test.js",
+    "src/postgresBaseline.database.test.js"
+  ],
+  "excluded": [],
+  "finishedAt": "2026-11-07T13:58:27.267Z",
+  "exitCode": 0,
+  "tests": 3,
+  "passed": 3,
+  "failed": 0,
+  "skipped": 0,
+  "cancelled": 0
+}

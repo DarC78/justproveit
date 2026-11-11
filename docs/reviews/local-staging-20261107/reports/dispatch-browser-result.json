@@ -1,0 +1,46 @@
+{
+  "passed": true,
+  "atUtc": "2026-11-07T14:44:23.033Z",
+  "page": "http://192.168.87.187:3000/crmdispatch/",
+  "checks": [
+    {
+      "name": "Unauthenticated dispatch preserves login return URL",
+      "passed": true
+    },
+    {
+      "name": "Invalid phone shows validation after hydration without contact/routing reads",
+      "passed": true
+    },
+    {
+      "name": "Unknown contact uses real backend and presents manual calculator choice",
+      "passed": true
+    },
+    {
+      "name": "Manual choice persists after reload",
+      "passed": true
+    },
+    {
+      "name": "Explicit pension queue redirects locally with real contact prefill, queue and agent",
+      "passed": true
+    },
+    {
+      "name": "History-based automatic route matches real backend decision",
+      "passed": true
+    },
+    {
+      "name": "Controlled lookup failure shows error and does not select a destination",
+      "passed": true
+    },
+    {
+      "name": "Retry recovers through actual local backend lookup",
+      "passed": true
+    },
+    {
+      "name": "No browser exceptions, hydration errors or external requests",
+      "passed": true
+    }
+  ],
+  "providerResults": "None; dispatch lookups/routing used real local backend. Failure test aborted only its own lookup requests. No outbound deliveries or record writes.",
+  "inboundExternalRoute": "URL selection covered by existing unit tests; external destination not opened",
+  "manualAcceptance": "Automated verification only; no new user acceptance inferred"
+}

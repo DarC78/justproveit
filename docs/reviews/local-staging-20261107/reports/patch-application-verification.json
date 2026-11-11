@@ -1,0 +1,16 @@
+[
+  {
+    "repository": "LaunchingStack",
+    "cleanBaseApplyCheck": true,
+    "sourceBlobComparisonPassed": true,
+    "changedSourceFilesVerified": 160,
+    "optionalConfigurationApplyCheck": true
+  },
+  {
+    "repository": "JustProveit",
+    "cleanBaseApplyCheck": true,
+    "sourceBlobComparisonPassed": true,
+    "changedSourceFilesVerified": 41,
+    "optionalConfigurationApplyCheck": null
+  }
+]

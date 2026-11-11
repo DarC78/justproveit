@@ -1,0 +1,65 @@
+{
+  "mode": "check",
+  "migrations": [
+    {
+      "migration": "000_application_baseline.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "154_tiktok_oauth_sessions.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "155_agent_whatsapp_alerts.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "156_agent_adrian_fallback.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "157_callcode_followup_sequences.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "158_callcode_followup_text_only.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "159_mediatel_commands.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "160_pension_message_claims.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "161_source_constraint_reconciliation.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "162_source_index_order.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "163_source_check_constraints.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "164_postiz_scheduled_at_index.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "165_source_timestamp_precision.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "166_source_decimal_precision.sql",
+      "state": "applied"
+    },
+    {
+      "migration": "167_manual_dialler_stop_commands.sql",
+      "state": "applied"
+    }
+  ]
+}

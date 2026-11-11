@@ -1,0 +1,1472 @@
+{
+  "capturedAtUtc": "2026-11-07T14:45:07.141178+00:00",
+  "repositories": {
+    "LaunchingStack": {
+      "baseCommit": "a8277af6cfad2c65d18b0a4bf21fdde51b5001e9",
+      "reviewCodeTree": "1c4286d6852d1976f7c469465959fbffc0a77e66",
+      "localModifications": [
+        {
+          "path": "backend/functions/src/adsData.js",
+          "sha256": "aae9263175e250f73a2d4788fe3e7a78ab835259d16b91793412f3752e54e6a4",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/adsInsights.database.test.js",
+          "sha256": "a5cafb1f779d8f2fe4f51bab92ce80da944f6f6f28af00db47444fe4635dbce3",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/agentAlertPolicy.js",
+          "sha256": "6b8402dcdab1b1e3d94ff82118404c91a1d82e46682acc8108434ed2f9b3b456",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/baniCampaignSchedule.js",
+          "sha256": "4c078b648b7f417e93485dd3c824b44989aac71812fab875570ad8d76fc15451",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/baniEmail02Schedule.js",
+          "sha256": "4cb5f7885483e1a89f1bfa16c14806f867220624f2877727ceceb2152b1424df",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/baniEmail03Schedule.js",
+          "sha256": "900187303f89319cb9d4a297212ba747c06d051daf46163da21cb1720fa5bffd",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/baniEmail04Schedule.js",
+          "sha256": "f1197b7220916574c499dcd381c417ff36c8b53688a857475df7ac74647ec29b",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/baniEmail05Schedule.js",
+          "sha256": "187f2ee1b3f8027ac1904440803d9d9402a2ec317bbb5fc3cfac4c0d423c0aea",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/callcodeFollowupPolicy.js",
+          "sha256": "4922a108a19bd86cea2c53b03ccd7a12018d9120c525ed7a6b15670304d4527d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/callcodeFollowups.js",
+          "sha256": "cc9dee358cae8019cac053d52f2566fad551cae7e5dd00e10bad40538a1f0599",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/campaignIdentity.js",
+          "sha256": "c53ccc71eab7f870a374c8f24ea4a52faa6f375d96ae7b35647f225b07c980a7",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/emailCampaignVisitService.js",
+          "sha256": "89c153627bce36bf36a610963dd861a0ccf60012b45744e73340cf4156a8f0f2",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/emailCampaignVisits.js",
+          "sha256": "cd36d486ebe822c09dded7e3a05e29059a6d383bcaa1f228381bc75fccb39bfb",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/emailClickTracking.js",
+          "sha256": "acf1fb658632a04c1a220e4599deb51c06f50357b670be323a013ce53657acc1",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/emailClickTracking.test.js",
+          "sha256": "e5d225611464b3a7ae52562b8d4e643eae7833f2492e0eb225cfee8d21b941a1",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/emailDelivery.js",
+          "sha256": "08ec33929e5cd4e484829f7e168f7ace477285d0b61ea7862a86e54bcbc268f1",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/emailOutboxPayloadCleanup.js",
+          "sha256": "0ccfda3bb64c112b11002cff5dec8bb6417c4c43a1a609481e88515c5d65bc24",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/emailTemplateFunnel.js",
+          "sha256": "7cb2d5934786b317adb532bfc54db33e6e6a66da4df9fee9821a530fa9b1df59",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/emailTemplateFunnel.test.js",
+          "sha256": "05152cb80919f461805885e7a128c5282c4d1374d3f3a48b59d8cd2195644ee2",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/emailVisitLocalConfig.test.js",
+          "sha256": "22b7d7956ba0801935d8b9aa146e89938e934447e51f0daa688053d8138aacb6",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/errorLogging.sql.test.js",
+          "sha256": "4e51f8a2d096cdac169e06507eb206d737d5c25329c6f8df50422ea1c694ebb8",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/facebookCommentPhoneIntake.js",
+          "sha256": "01e36641ec92b06a92766b746ec980e436f43ed6c9dd0052cbd874ad1ac8d74d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/facebookIntakePostgres.js",
+          "sha256": "b05a7990bbf7532cd1cf54c28cf7783aa731788ad0b6389370e26c566f8c780f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/frontendUrls.js",
+          "sha256": "0e15edc07b809b1ecd2a4451fd1f2e77bc3c339d4d9e9e49c080ad4c451846d3",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/bookCall.js",
+          "sha256": "4de46151496cf253d10177eacdca1eb152392eadddfb36ea97a72757da7f7971",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/createLeadAdVoucherClaim.js",
+          "sha256": "a42c35839785488c5dec7cb23837916af441c4434d81d278b1d3a4376a6f8f49",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/fetchNews.js",
+          "sha256": "de73c809ad21c142153faf65bdd8b7479065c5685a120de149e8cbe511932756",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/genericReports.js",
+          "sha256": "0a509d44f6b0bce4ea9b1ba0a4289039c81985d447b4205ae55beaa44b5355f2",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/justProveItCrm.js",
+          "sha256": "572def69e46e60780e7edc06031a57f276680b83ae7c05cffd833cbb6d4d959c",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/justProveItLeadIntake.js",
+          "sha256": "90c33527f3978b58a951fccd67d4be65907848908e3ff6f6f5614845ad5222dc",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/justProveItWhatsAppReplyMcic.js",
+          "sha256": "4ca5207a38a38b03bf1df9b034b216f491fef99d605f5e384c6a8cd14e157a41",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/login.js",
+          "sha256": "0087201314e09de26856a3b95ac1b349bd7857b45c7d54e69efa414f90b1a532",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/requestPasswordReset.js",
+          "sha256": "46817be8bb8fa10fc89c8b6d5e74ab2787da7606e98fa04b7c3e9323015c59df",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/sendDailyCallFailureReport.js",
+          "sha256": "ba3b6c181aed1e305341bcb2c8292d9430a33df64e8d5e316d44986bbe314338",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/sendDailyEmailTemplateReport.js",
+          "sha256": "67e641d4e028c424237d7a861d61a4c9e7985f4beed6ef99ed80b57195644617",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/sendDailyErrorReports.js",
+          "sha256": "1262dfd1e69baad4548b38b050ece8a15b5da9f92d244186b662765b08800e72",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/sendDailySmsActivityReport.js",
+          "sha256": "92c6d915ae19156930f2ad0025a984d77f93a9dc90efc0b81842c8fd0c507a6f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/sendDailySocialPostingReport.js",
+          "sha256": "de5bb2afabd07c4332d4dddb8748b50f3ca6dce769f74d8b8a92f13bfdc30247",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/sendDailyWhatsAppActivityReport.js",
+          "sha256": "d79a2c330a79d2fda120021904d5b84ad1b3eda5cfe16b3086e7598e71d7741a",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/socialPipelinePosts.js",
+          "sha256": "d26185a15b145261097a2ce8a43eed5e141d5a5ee48028eb757428a4d8d552b9",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/trackInitiateCheckout.js",
+          "sha256": "a18455438f7e48c5a76356aa80500c91b976e15af05d78a29d9af5404554fa96",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/functions/trackViewContent.js",
+          "sha256": "64eb2cb99e49df9e0c20b6b2a797002e5cf1ae36fb13091dd11446a882490b81",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/genericReportsGmail.js",
+          "sha256": "278755513a45a690f6dd12c4ffedd2a1273d3585c79497fc456cc990afcad4c3",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/genericReportsGmail.test.js",
+          "sha256": "7c17017366b3b5f41606f00041aeae4f25e3fdf474c3341a6be04f5101cf3c1f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/googleAdvertising.js",
+          "sha256": "85541af60989c3cd4061fc2d4ad2dc3751c02bd1168c6466d35dac45a35a78e0",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/googleAdvertisingData.js",
+          "sha256": "18d962c7dfa009d5738f3083a51ba3205e882467a1d1c364d97fd6fbf56957f9",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/googleAdvertisingPostgres.js",
+          "sha256": "e1369dedd0df2f89311db5f190ef789587169efab996f70a2765bfa914ef2180",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/justProveItInstance.js",
+          "sha256": "d8b6ff2caed11c9a71a5e9251ae7ad8ac2e479bd5e674e8a141e191c66014716",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/justProveItInstance.test.js",
+          "sha256": "b11c178003d3a9cfaec59c194ff6c47c8ca00bcd614c9babb8fbeb627164a304",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/leadAdVoucherStore.js",
+          "sha256": "e588fcc3f646eefaaa8747f91508d67922fe9f334f9717452825fd941f435d1b",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/mediatelCommandVendor.js",
+          "sha256": "6205f172c25dd2b040fbf0d552855285650a64d126d0bdd464ea9cab47e0bae7",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/mediatelSimulationReceipt.test.js",
+          "sha256": "c05541b139f1d7eef029d960b11b447423ef15e909a01cef5bdc4f250bdd6791",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/metaTrackingPayload.test.js",
+          "sha256": "8448f811e14ebb4e4e5994b62da2ad5ee919e3a95bc38983e3251a089e565f03",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/moneyCheckClubCheckout.js",
+          "sha256": "4ebcbe9bb7e75933631440c29560edd0e473a476cc7f20291f49c8f20b08468f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/paidAdsNurtureSequenceData.js",
+          "sha256": "0f2f1b63676a579e70d04bf9b9739e5d81c6043787732ade8884fe4f8c395708",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/passwordResetPages.js",
+          "sha256": "9c50acc317813c0207a5b5d4ddc6c69ba03afd5218eb750f411e761128bc9ba7",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/passwordResetPages.test.js",
+          "sha256": "e47d843918b0636ae9e2f9d2dbc769cee2af32a5d54cf1cf767854e91cee6902",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/pensionFunnelEnrollment.js",
+          "sha256": "153ee299209f9788b4d25cca31e201dea72a874b4411b43346bba01ca2964ba9",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/pensionFunnelEnrollment.sql.test.js",
+          "sha256": "085db3b51fa483f48074b48125f03f3652ba4cb60a6a3b14013ec7a69fcc2abb",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/pensionHybridProfiles.sql.test.js",
+          "sha256": "8b1b6ebeb1072c97ee9c50655364bec86f21db3054149ea80c72a8f5f1ccff14",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/pensionHybridScheduled.js",
+          "sha256": "dcef460d6190cc20f50db41e872e2bec998731230b6ee6102f02ff870f0a40be",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/pensionMessageDedup.js",
+          "sha256": "9cf9d17b740f74f28d1ab5f808f036aae40f1b658e9df498bf122e6250b60e8d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/pensionQualificationPolicy.js",
+          "sha256": "8f0087a4572aaef10635199fb570dff7253ca36d5bd99aa036b5a74eb6fbdc86",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/pensionQualificationTest.js",
+          "sha256": "aafb9a72b7599ec32a6c32378ed3eb0bd624824f3f9737e70cb9cfadf874c3ce",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/pensionQuestionReminders.js",
+          "sha256": "5a30585f40645f2cf8572b075f8bf7d5c87b30ceee46ceed35a65adb20d867f4",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/pensionReminders.database.test.js",
+          "sha256": "429ba86f3cdc88895514d4d527487488fe887c65453826cf3fa8111bd67fb787",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/pensionRemindersPostgres.js",
+          "sha256": "6a02f8c03dbadec76bf731690985c9cd21fb998aae6713710a1856ebd73d3863",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/pensionResultLinks.js",
+          "sha256": "add10bfea5b55cc9c6573e5f8724290083374b76b0306f111d7a669e46a2167b",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/postgresBaseline.database.test.js",
+          "sha256": "f13cbd682f88439f638ca3c21077fd25a54fa2fdc054e220bc6d4ab5cbc5e82b",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/postizPipelineData.js",
+          "sha256": "1d261332f1640ed654c90750ec57779d48af06c6ed00419cfbfaaa08ea5ed241",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/postizPipelineSchema.test.js",
+          "sha256": "75a065ca4144a718e9b8bc670308c3b18204e2acc5b2077530c897779af2e25f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/postizRecordingPostgres.js",
+          "sha256": "4d221d82e89445482a3da0a56eed41857fae44131972cfdcbec56c91e7b6491f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/privatePensions.js",
+          "sha256": "e60586dfa68dc978b8fc48f446b7e28c48d9590550724999d40ec9bd45702694",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/privatePensions.test.js",
+          "sha256": "accc5aeece1ee65978629b659b4a34fe6f69bcdc26f86ffbafc1d444277d2d77",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/quickReportFaza0.js",
+          "sha256": "7e88d0bd43178f6e1fc52b2b9cc8152627181cf980172eb423f560eaeb91c6c9",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/reportDeliveryConfig.js",
+          "sha256": "5ac5f02ee67d87003bd065e48bdbe6c6389a55563516a0317e7d86dfb3f406ff",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/reportDeliveryConfig.test.js",
+          "sha256": "dab4a08002e07f0ea1cf38fde25dfaba2c065e78108cf64d29d224b3eeb372f9",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/resendReceipt.js",
+          "sha256": "39de25734d9eb58f1fdc67745b98698f1c99cc87b7ef721c4bbc18276018cee0",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/resendReceipt.test.js",
+          "sha256": "a5a43dd71e800d6e6fce136d92f05ddd03348ce29831729e0c43f239152e553a",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/rolePlayFeedbackEmail.js",
+          "sha256": "5ede129b9984b46c0bcc61fec1f127a0a803638ce49fda9ab6aeb2294841e318",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/socialReportData.database.test.js",
+          "sha256": "a2c1dfd2efe9d898d664dffad3e64ade1b4932a8328d08b7f8b42b6889571210",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/socialReportData.js",
+          "sha256": "568d4601aa55b70c791e0a09bfaa8c4c19bb212ed97aa4605ee9375fbef7f97e",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/tiktokAdsClient.js",
+          "sha256": "2fd7d24af01b193c78da6d99aad76c891f21f4952702b542de8886905e82cf17",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/tiktokOAuth.js",
+          "sha256": "48955c4bfc146e95c1c0fd8df79d10e2f8fa39d23e50c050924126def9848546",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/trackingData.js",
+          "sha256": "b74ae38aefff3e12ad3bb6a9702abd94d64fb188ab0384465f5229a3d8b62278",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/whatsappPostgres.js",
+          "sha256": "5b6c776f0daa33c460d150d29fe594c3c03fd5412eeaecbb84c7d052184d6b33",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/src/whatsappReplyDrafts.js",
+          "sha256": "b331059ef1d5ef8017bd7e58c3b81cfd201c66757585ef253d9e87349dcf7dd7",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "backend/functions/test/legacyPensionSqlFixture.mjs",
+          "sha256": "c1e0d565511b4becfd24a66bc7657521e58a1ca835c8e70f5c28837af9a93075",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "docs/generated/local-staging-agent-alerts.json",
+          "sha256": "e181bcc8e800d2971cc31ed194f5e07f1ba9260e9ccc9fd275ea1715a578410d",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-browser-crm-verification.json",
+          "sha256": "d389d6c0c117a8a492c7e05821cfd882c0071b912fc2b00ff1d70af7ec1d5884",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-browser-vendor.json",
+          "sha256": "ac4c51131705c9d0798001198fa666ecd28a16eb4d5459d878c45a1916d3a4ec",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-call-sync.json",
+          "sha256": "2b1379cbc1a925406ccd73d1c0143c50a5c21ba38dacfa19444ca7857928fd15",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-callcode-followups.json",
+          "sha256": "bcc0f6ad7b2880c8d8a73a0f1d08760276478414c0ae65516abdcc907021b402",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-campaigns.json",
+          "sha256": "d8f9974696fd961c507a9eee4fcc255b73e9605fb277b54f3383f6549b1097bf",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-checkout-services.json",
+          "sha256": "259d8ed9b5441098ac57fc78b2a1e8af0253a37fecd1f682c0742b1db3c5354a",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-commerce-inbox.json",
+          "sha256": "ee35254bf123f5469573805078095bdb0be8b554e8bd9a13e51bd25d12d4dec9",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-configuration-diagnostic.json",
+          "sha256": "b5a8c040e24095476279a47f07f8eac77d186f3d6016c5c8c9bec5a48046d6a4",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-conversions.json",
+          "sha256": "6b7e0e598419b2d89b6ceebfda088695e1a960be6dbd93e6568bc6a8f1e36210",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-crm-current-fixture-check.json",
+          "sha256": "2412e151d5b195e31d28d0a52ef9d096bd64bf37048ed86950c9ff2160da0429",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-crm-search-debug.json",
+          "sha256": "55fb81d3d7c039417c9bae545547eb07e8886b9f9aea391ca7552322ad12adde",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-crm-ui-diagnostic.json",
+          "sha256": "9d32f36caeefa4ffc88776081f4a388a528f725cd1b7709156a81e28be039ca2",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-daily-reports.json",
+          "sha256": "4cc32f071bb7c52e266c969ea3830d2b97fa89de540f6906793e632633b1a4e6",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-database-isolation.json",
+          "sha256": "29ea3f98f7358e0412d619f6d78d8933425ea695bcf264246ccb69cc90774e7e",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-delivery-errors.json",
+          "sha256": "2d0e4f28e5f9da70ab6d22d0a8c11c6cad993bc4a89a0f0a679e37a85e2a85a6",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-dialler-policy.json",
+          "sha256": "421f7cf1f2e3ba3abf6dc416e4395dc52c5102b09d40d2c0895861a4e9b18b20",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-dialler-tag.json",
+          "sha256": "dd69408c53e17b4434ce87d73ecda809c962a09891f03ad02a483ef028bf1909",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-email-visits.json",
+          "sha256": "c67017aae91273f5bdaa1380ff4dad108b3e53a038329986a32e9e1c2ad18ec5",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-enrichment.json",
+          "sha256": "729e789fc2a82d3072c9509b46b3e02197170487b5e3f2f63acde4ed1aa7f9f7",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-expanded-contracts.json",
+          "sha256": "110f3bddb19ed3b7eba8d8fdd3053fe456f9f482c47df1b81caab50d67985aff",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-external-domains.json",
+          "sha256": "dab6fa86122334ea469fb09398b5896508e3e49e0965bb2ae37eb4ae2d7179c5",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-facebook-verification.json",
+          "sha256": "75e7e0c16e011c66f077cadf40aef350ba7a191478ff3e497e3f01044eee7b60",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-facebook-workers.json",
+          "sha256": "d0a0c837ff80e692ee6b09ba96164c299da589ecd2e12271f7cbf63f4ec2f561",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-failure-diagnostic.json",
+          "sha256": "bba7135918dcc75ea08b4d32166df368707c941ad2f09c5b5a97d7cf58226dc1",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-feature-verification.json",
+          "sha256": "00ca4a97d48d1662802c2ab4eb77f04ed8aa9faca9a2f8801b8923eae83073bd",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-final-acceptance.json",
+          "sha256": "c43fa6d56c147afcf2069a1ca43debce85c214dbeffa72a6d1825c03b14ada03",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-fixture-table-catalogue.json",
+          "sha256": "5150c216e83e602ebdda9f34fe3a0b9aa0c68b14ddfe9914b7a8e4e309e87e0a",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-forms.json",
+          "sha256": "f5687018dd8bab745d750ddb9105478da24ac9e96e86cd7d82d9772085fec170",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-funnel-verification.json",
+          "sha256": "75e077efaefc8f52ea0db79aac35192216eb4521e3dc256f80abb0708acadacd",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-google-advertising.json",
+          "sha256": "87bb66d996d6325741b425a69c32922335cc33b9b287d0ece98f205fb2ef4f7f",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-intake-autoreply.json",
+          "sha256": "937b033625916d7629f5790c7376d37f3587d0f4891f56b701110d1bffee3ce8",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-intake-debug.json",
+          "sha256": "4a56f784ac18b77bfb9f00478bc5988039db1efad5f47aaa11266fc263285db9",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-inventory.json",
+          "sha256": "457a856962e1f3f2e129a9c09b510fa32427fd9fea0cecb26a37c027509a8866",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-job-sheet.json",
+          "sha256": "3f23a3d4b6f1e4917a918c4d71214ff75afe778f37e86f3e797aca8078445bb1",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-manual-queue-persistence.json",
+          "sha256": "e3835bec672fe7756e3cc8d4395940be1e0c0749f7b2f44869a85dad0ff864a4",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-marketing-forms.json",
+          "sha256": "05f24fb71172e9832c5161a861a9e5e4d907fcbef69d814c71dd9bb2b15c2d8d",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-mediatel-flow.json",
+          "sha256": "9ee125d654263a6f02cc5d38d78beff012b1e032bf32af6f6db7839a87e71eda",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-mssql-verification.json",
+          "sha256": "1b7b4a005c061cdc06931726e912d4b0889b3d88ca3b23f42da8e94e3e4eda79",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-page-audit.json",
+          "sha256": "fbfda1f4ff58e83600bd063372308382bd735dd3ce2fbc170a8c9caf4e25337b",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-password-reset-verification.json",
+          "sha256": "c5e394134f1ba268170f9dc87fd34fbd3f0db9b8b676dbb5dbaf3d9e78159ecb",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-pension-worker.json",
+          "sha256": "00d0931a6acf5c2cfebf747a28cb8344b7a626bc81a108faec9e14fe8998a2dc",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-portal-media.json",
+          "sha256": "04398e791a4910ec79eb01f5349c1f358c2440e926f0dcd6abf3ca5c61398f73",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-portal-scheduler-diagnostic.json",
+          "sha256": "413b9d1a6416deb8a734ca0f99fe3d2fc0b8673f047e0f3b9a920b41e2e8eafd",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-postgres-contracts.json",
+          "sha256": "7f4565b0de9eb6f0d0732f8b37d175d0553ee0078212d180b6bfbecc99d5115a",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-postiz-diagnostic.json",
+          "sha256": "4aa67ed639cd97d2cbf71c236b30dd715c115c8b396bcb341344ccdf0b2dc501",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-postiz.json",
+          "sha256": "5136cc9d48d1f883fc659e26691a7cf297f0faf28af1867e0ee60ea68c133c9c",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-queue-diagnostic.json",
+          "sha256": "5db5995c354ea950f5939cc7dc3bd8f80d3210d750b55a961dfc340d03ae7472",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-remaining-diagnostic.json",
+          "sha256": "d37f138386c1fd0497abb3ef99c034f61664289174ffa3025967ad830d8a883a",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-remaining-workers.json",
+          "sha256": "7876d89839ae8133f6c5f4ab4c44145acdffb4308a3f3554d255188366e97915",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-reminder-diagnostic.json",
+          "sha256": "7597b52768b2bc069b9cc6ebe3b193ab583954782576eb731973bb3e0efb5902",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-reminder-state.json",
+          "sha256": "04f08a6736c51a333151c27f34832463849f77c956f5d29a47d0564c1ee62b8a",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-report-services.json",
+          "sha256": "232ecc2e269bbdb712386795c95dd35cd0a0fb955cc9edef847ad804ac4ea7b5",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-retention-onboarding.json",
+          "sha256": "4fb41af89f19fa963d17177e2289fffe7c079fa047cd8dd39bcda901fd0a7a6e",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-roleplay.json",
+          "sha256": "4c6ce738b44a3be0be9fc6518ca4098866e0d7b01ed2c31df7db64e95e8282bf",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-runtime-functions.json",
+          "sha256": "f6330229ea3a84b3dc5ebd94ed4aed1e65e11e2e4576a6698c21f042c18735be",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-social-publishing.json",
+          "sha256": "73c35746099b0bc2f5c79dbb84edbb3c42aa87ba24fdf731bb854f88e2eae6f9",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-static-server-verification.json",
+          "sha256": "f2c71604625cba76975656146e8d7dbbc09beee8f6c4477591af1529ce42bb2e",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-storage-kids.json",
+          "sha256": "82e25548bcfb518323aec470a90bb0d423730afc87679e533b79fd77a25489af",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-subscription-diagnostic.json",
+          "sha256": "50221c1788bed4319cbbf89dc696636cce5ee1d185e7bb2d317038d108af7f11",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-tiktok-oauth.json",
+          "sha256": "5be1837fea40465afd846db8ae35ddec5d81234cd0351c5503a5114d82fde45e",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-tiktok.json",
+          "sha256": "2f8cc7c21f9279b5b3cd38e25a2dc3c51ea7dc8eb364f8c47673fcf6ed6d5a47",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-tracking-nurture.json",
+          "sha256": "4d1c8efaac101e1d63062b7c4b77546369d94df89832b10552a722f838435352",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-vendor-contracts.json",
+          "sha256": "6549ad41c02a0b02e78efb121d3059495d093828562c2199407ae16b3e3ea274",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-vendor-dependencies.json",
+          "sha256": "dd3aad59b859e3c76296ecf2f64b3d657a8aedf60f3ed2ed553a14448d36667e",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-vendor-schema.json",
+          "sha256": "b9d851e28527a00fada4e1f5fdec0652e95a436f3aafe1e82a20da55d8210eb8",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-vendor-workers.json",
+          "sha256": "98d9f0d51a1bf50a477808a82874815dcc7535e60419e08da18e2054afd31a1b",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-verification-debug.json",
+          "sha256": "df3f8ddba9c975ebe819edbfd62d613ee717fdb5e0a847583bdb5ac7ed812fee",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-visit-debug.json",
+          "sha256": "8fe74b607305bd3ba450d58ccf29984c4ede8f115bdc4b15871b5a85e6440334",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-visit-error.json",
+          "sha256": "9d268f1adf559d25c06e285e47dc15771fa30dc8ec9e72c56b3170edca50f02a",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-visit-state.json",
+          "sha256": "94aadea81f20acb1ed15446a1892df0cb6d621db8830a02860316936633b6c30",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-voucher-diagnostic.json",
+          "sha256": "9bebac006a417493ffb3cafa2223a6109fe13f5c476a6b8a333e8a257fa40e6a",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-wa-debug.json",
+          "sha256": "fb52459d838359d0bda5009760da8a325e39aaf47b0533bc7bda6c774defcde2",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-wa-participant.json",
+          "sha256": "92d2ab301d6f9f0ad72ab9005ad55078ecb3f290857a0c9b9e287f14d46f7c14",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-wa-vendor-debug.json",
+          "sha256": "55e936c4d6f2a9841c60e242219535e626ee9dcea131cb04c49b82d3ab76c549",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-worker-state.json",
+          "sha256": "9c4bf9d0336073d155366ff70c383d0e9e4cfd35e618b42d133569a0e7751abf",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/generated/local-staging-worker-verification.json",
+          "sha256": "a93e88753be35d4f8062380637ffdeac4f07a64360dc4697ced6bef1739c3d75",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/local-staging-feature-checklist.md",
+          "sha256": "637693daf11fc0e71cf1e494cbb83607737d8751c4efc6f8549e1c66ff0db0a9",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/local-staging-manual-acceptance.md",
+          "sha256": "7f6339c11afa771a0a725ce2354cb1c20e66f14c0927204ecba6898e5eed1c82",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/local-staging-remaining-dependencies.md",
+          "sha256": "cac85901a7bea8b430be590e259b94062a22741aa2789b3ef6fbe76c92a8996d",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/local-staging-source-changes.md",
+          "sha256": "5545b81daae9a21f005ede6e73eebcb4f7a4418aa08de2f90b1dc08fb7faf4a8",
+          "includedInCodePatches": false
+        },
+        {
+          "path": "docs/pension-qualification-test.md",
+          "sha256": "1c77237150d6f0c33da2cb45bb213fe1826c3a1a5184301e42b395822e41c8fb",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/README.md",
+          "sha256": "23016195ebf3b41256808237794ce6525822ca0a344d366c3b99bba0504548a0",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/audit-network-contracts.cjs",
+          "sha256": "0fca2475ce1ce56c52ef04b20fbeb84db9e0b58ed9a32cf55b43d67b60fc007f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/audit-pages.cjs",
+          "sha256": "c7e910d81c3865125678d2dcd0a81720d14bf7ff4e19bbe1c28ec70336163467",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/browser-boundary.js",
+          "sha256": "1cbdd2b8e5d5c8fdaca6e276658f58e83a054d8864db18be969642a02438182e",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/content-contracts.cjs",
+          "sha256": "fe9b3a9676cb044675869a0598fa3fa142684b855c5c0da0d747f9a0605338dc",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/extended-contracts.cjs",
+          "sha256": "42b4c1fbaa34964af531af0320f52a9ef55677c8ff5054b11bc24fb7233b2fcb",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/extended-contracts.test.cjs",
+          "sha256": "811c1d22f3f183bb921e2ee06c59cfeac729f3d5c624929aa018c0b3a250791f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/fixture-runtime.mjs",
+          "sha256": "4ecb5f164cd8da253db279d6b86c7b876ee200bfd3f255c6c4e2c42a68d9936d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/inventory.mjs",
+          "sha256": "859a8982ab739d27f21ad74c1d2911c3b73ed2e4f86805fba390e1b84477912e",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/mssql.compose.yaml",
+          "sha256": "2d613bbbfa3fe32205ca885cea4b78be5e2761e0316d72c119d973885135effc",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/network-guard.cjs",
+          "sha256": "dbe1ca1b3c114783605edf14ff131af57cf91bb5527878ee29d071d71e638d66",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/prepare-storage.mjs",
+          "sha256": "0c064a41092074ded8da5d6331d690bd95f3944b6176711822213c49fc1bfa03",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/provider-simulator.cjs",
+          "sha256": "6da42e09f0faeb22258c3787e02a8c94004464fac04c22629d56d958b23ef728",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/provider-simulator.test.cjs",
+          "sha256": "8bb3edec28b33174b12a3298bd13b76737cc8392c15b667096117d87d381953f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/run-local-contracts.mjs",
+          "sha256": "547dbc2f8f03aaa067142caba823e814adf34ff760ef1d51f878c681f4b0efab",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/seed-platform.mjs",
+          "sha256": "adfe72a0278a698def61f11e410859dafc49a7ecb4ae3ccfd31e072fe60c96b5",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/setup-mssql.mjs",
+          "sha256": "8aacebd159bcf943f3de8c922b50373dec4bf560926ac84434149435e5a7d8e7",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/social-contracts.cjs",
+          "sha256": "33c8859ad3cd2cc04e66ac83e5b7043da0a4fa985ad851635e6b16a42f3a3772",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/vendor-schema.mjs",
+          "sha256": "2757c46ecee7dbd28c79e30292ad8c8274f782e5088f2fb394673437aad4ef6d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-agent-alerts.mjs",
+          "sha256": "51a95b296010506fced30478e6d6ed45767306d2fd8dbcfa46adeb89bb11e59c",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-browser-crm.cjs",
+          "sha256": "350df843d967611fa123efe5c7625b1197de326a525ea35ed81edaf8750d9109",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-browser-vendor.cjs",
+          "sha256": "00055e21515b000769090f4bc975dd12a7ec2d3b27aadc81b0d6293470fe2638",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-call-sync.mjs",
+          "sha256": "f1b0686362ae0fd1a95ef1eaef4fda74813b976ba396e90c123bf8ad296e2b97",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-callcode-followups.mjs",
+          "sha256": "30a1f774b3eb43d2af8b1a4739bf68bf818632f69dfd376c5cd4c81d8a94ed94",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-campaigns.mjs",
+          "sha256": "29a9a3d65dc8683af5af7fcb1e0a60cd83569bc49c5ca1079c02c7159855772e",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-checkout-services.mjs",
+          "sha256": "610b2e6edd30d030879691828a23c6881a2d2b28683d904d6195f117a8d28d4d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-commerce-inbox.cjs",
+          "sha256": "ee414afb36608c2e8df0953b25b532013827ba10c371d09ccddf9c5ec12aba5a",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-conversions.mjs",
+          "sha256": "55d404ac34d1a45ee6b1210b883bd4167eb96d8ab390f6c4ad0863ff17490893",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-daily-reports.mjs",
+          "sha256": "b63e61ef7e4cd0141b2ee9b64ad3e3516fac3c2450cd7ff4545e7a194a752c93",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-dialler-policy.mjs",
+          "sha256": "b7a9cb755862b34ef092f569570db54d09ac102d606e88fc4cd9297cfb7b2f0e",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-dialler-tag.mjs",
+          "sha256": "df9380f7c1f790c388be9bc2209b20e4df8903e82742a8808b44fa28c53ad30b",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-email-visits.mjs",
+          "sha256": "65b2c446e34b6b7af2bc39c947a5f4de8d4a3145911d7b94f042b44c081580dd",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-enrichment.mjs",
+          "sha256": "34c61d94b85238ee6aff63a9df5c4275449b56f69231f64d7126618a6086f7bc",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-facebook-simulation.mjs",
+          "sha256": "0db9e568370f1aa7f2afff67b2de1121a2822fdac51e72a2c8b677f1784d289e",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-facebook-workers.cjs",
+          "sha256": "39964b2b628de029a457586742715e93b5440d4f72d072eefa353cbb35bc2fd1",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-forms.mjs",
+          "sha256": "1d024e35fdc905c90d7bfadbe81ff030a24e5bcb00562a306f82faabe72c872e",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-funnel.cjs",
+          "sha256": "95062675f866c0f390717dbae5f12136bb1e907d71b4e1a4d25d668d44270b6f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-google-advertising.mjs",
+          "sha256": "3747a650dcf939f11f05831d09c465ec5a5417bf8b5d2eec53d3736c7469f5ae",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-intake-autoreply.mjs",
+          "sha256": "1ebf508f66589d70ea83c69df36749fe7a739c24d43f775157fe92164734407d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-job-sheet.cjs",
+          "sha256": "0516260476d13ac3693a80eab9f9438b69e173c7005e37f69090a165b3ceac31",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-local-features.mjs",
+          "sha256": "f1d09325d9e1e505a7e371a8923fc4e1193ac5498b4c678ebb7246422fc1332b",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-marketing-forms.cjs",
+          "sha256": "2caf1ade42490d8022fbfc212c1f038e2a297970bec46a151fa9a2d239cf84e4",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-mediatel-flow.mjs",
+          "sha256": "24902e06d7fdfdd04d466bd55240df59bb159b982e614a1c4e7add482a1223a0",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-mssql.mjs",
+          "sha256": "4f112a306f010eb28d880acdc60da4348ddefe7e3b9bd2739f50cf987053ff57",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-password-reset.cjs",
+          "sha256": "a602f670928d8e96b210fa4714a42607af9fba57a8e2e3078655f9cf9938784f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-pension-worker.mjs",
+          "sha256": "25661065496d2f771e210d606e452303eb15ff9932887c3cbf4d5d77248978ac",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-portal-media.cjs",
+          "sha256": "4493922e10d6add0dfcd84d937319401d1c0c3643d05922b1a5018f0723caafd",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-postiz.cjs",
+          "sha256": "31ac808914f653ea86cfa2775ac5c9276d4e1bce8715220fbebe7dc41a59593d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-remaining-workers.mjs",
+          "sha256": "0b5176c7732bd7e967fac7ccbec5d6dc6ea0ad679dd4d3be6b0637779869f666",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-report-services.mjs",
+          "sha256": "9900c95ebe2ed6b05c9e5d63648b18091bd777993e863179233aea06ac235c31",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-retention-onboarding.mjs",
+          "sha256": "b20e76430907d67b439f70639892e8cb1007f486ab85fda0b26e3ebec052ff9c",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-roleplay.cjs",
+          "sha256": "ca52a8aa28bfa6f77d24beb9d5d1914aff8a88b8551c8450f66c307475a8d32f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-social-publishing.mjs",
+          "sha256": "c392edad474f58922c90d040b88e2445e14611de9299bf5428579b1db78cef3d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-storage-kids.mjs",
+          "sha256": "ff3ad11778f04dec2464fa2fb33e40970546ee5d79f80d8929eee6c9fe04b27e",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-tiktok-oauth.cjs",
+          "sha256": "5eda81919a408b16465916204ab849a28a44ba1ad43e6c33a6d6c7e8d121673a",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-tiktok.cjs",
+          "sha256": "4bdfa07d9f62a221acdf67ff50db1ce605507e3979cefb0980ce65b6ff152994",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-tracking-nurture.mjs",
+          "sha256": "ddf4f80efd752c896fbdc30f3ff2ba4cf99ee26d0290a594798e823c118a7be6",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-vendor-workers.mjs",
+          "sha256": "3f38af205d3c3f8b31195f53a5099785db77a6459ed3d69b492b0baed8eb2ad4",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tools/local-staging/verify-workers.mjs",
+          "sha256": "2748cde3e918411b3e7924a97c3cad5c7a9957e078c36e5f93fd877fa3524781",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/internal-agents/server.js",
+          "sha256": "190059020f323b5631154347c1c86bf18240bfdb4657ce651c83ab8c50e6d4a9",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/internal-agents/site/facebook-comments-api.js",
+          "sha256": "4ad18ee888fb6041e7e917927da715fcd8b91c406283a7fac75a5284ae4d6c40",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/internal-agents/site/facebook-comments.js",
+          "sha256": "35d842b18a9973f9def09d8ed827bda960d6622f4aa470991303d7e260d521bd",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/internal-agents/site/index.html",
+          "sha256": "d8d588ec57120c89a5c9b66b2e3eca70d6eeaa60510feea2ac4387fe955a5e0c",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/internal-agents/site/kids-activity.js",
+          "sha256": "9a68ff8aaaca07cf8c004a82c2b11009840b93843c950ba3d2abc81f970563c3",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/internal-agents/site/social-pipeline.js",
+          "sha256": "6691588428920b89fea28a99a51a8c496a896fa22395e1321359489016dfb3ee",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/internal-agents/site/tiktok-comments.js",
+          "sha256": "5c0a93466978e0eb61ff7596d2c05529454042aa4893fc0bf1f96988e77bc32d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/marketing-site/server.js",
+          "sha256": "f29001492ab69b641d2bc83a4d47c28970baeef4f5d72a5c04680bbfa8dcac83",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/marketing-site/site/browser-uuid.js",
+          "sha256": "deee0ae5ef64e7b9cef675d4f5f75f2aa3fdf46cef71fafe8ad2fce4646ba452",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/marketing-site/site/browser-uuid.test.js",
+          "sha256": "33d889d44da17d9959b6685c42e477d1449c23cdf51be30cb62146baac3a0d08",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/marketing-site/site/main.js",
+          "sha256": "ed7efe03fa62e6a87d7013dd7bbbc137df71cfa3439892cf176f02392c8df177",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/marketing-site/site/portal.js",
+          "sha256": "375924ac9f3028b0b6f83316f59784ec4ab88e34849b759b441b07765880888a",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "webapp/marketing-site/site/set-password.js",
+          "sha256": "9e9e925cf830715b03effdbfd4a948b27628f188fe8b04333c24a70cdd739cb0",
+          "includedInCodePatches": true
+        }
+      ],
+      "codePatchReconstructsCurrentSource": true
+    },
+    "JustProveit": {
+      "baseCommit": "778f49c12cf5d847c27d26344d037c8dcc038093",
+      "reviewCodeTree": "1286fad072ee64add4847669dd59c5ff4cc3582e",
+      "localModifications": [
+        {
+          "path": "api/bani-uk-ai-funnel/index.js",
+          "sha256": "084a59bd380bb45a95349e404c1768d339a9808aaad991c94093f726a8a24822",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "api/bani-uk-ai-google-purchases/index.js",
+          "sha256": "e9aecac8e34a20acdd458dfe49296d0270f1ca00d76ef88705708ab9166ed9e2",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "api/bani-uk-ai-unsubscribe/index.js",
+          "sha256": "47e7d6b091a12e26650d9d45d1a0d7b2614d781dbf8bed6e857a0b151602f138",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "api/email-link/index.js",
+          "sha256": "8efe347f5c46564642979825a535cc6ffd07928d2644661ed12b87056176bce9",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "api/shared/backendUrl.js",
+          "sha256": "c2224fb286f36731f19cfab22d91d00c9501c6da8712388b64e64d8e9abb727f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "api/shared/baniUkAiEmail.js",
+          "sha256": "fb5be7a57cdd64e6e5763c582b811ec49204e9d1e980874a7e5203d0b423c253",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "api/shared/baniUkAiStripe.js",
+          "sha256": "bf1ce84a9c3ebea4e1ea8a12dd676aea88493405f20d952ed050d28a30cdb7b9",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "api/shared/emailLinks.js",
+          "sha256": "68316775df3570935061a2f564b3c6dd211c4ecee92c666e12616dd57f16ae5d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "api/shared/saleConsultationStripe.js",
+          "sha256": "49d06475d2ebbb9c36d0550cabdd5e4bf50e267cb39861c4b2da4af0538edbbe",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "api/shared/stripeInstallmentsProxy.js",
+          "sha256": "95c7cfc6ab773c24fc9b71115311fe523b5e528e15e089e8e8406fa97ad533ce",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/components/BookingActions.tsx",
+          "sha256": "1baceace71a771faf6ecb8fa4df94f1227a1bc10794e25962827164260959619",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/components/ContactActions.tsx",
+          "sha256": "7f4eab40033d27af954010bed36b6424aeb36eff92c5d9d7bf9ad48a95e29789",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/components/LocalStagingNotice.tsx",
+          "sha256": "1fe6824a7b0f9abb0f43dc946e6db2669f52df67bcd115336cb430aa0fa13ee1",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/components/WhatsAppReplyComposer.tsx",
+          "sha256": "571fd421a8b35f3aeafaea8194f4635f9614ea4faca84a255b9710d160f93171",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/components/WhatsAppStatsPanel.tsx",
+          "sha256": "41b5928a27fd2df54fff61e8841044a68f0aac1798e102366ce581d002d5c4c2",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/config/email-attribution.json",
+          "sha256": "08454d354de9b5bf9bf56b4d8493a17c11db9d43a8a4bc7d2bfb7c0a4ffaa38e",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/config/google-advertising.json",
+          "sha256": "144630505ca747ab5578bf0365632cc6b228ab60857f90bae0f4f33b621f8041",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/lib/auth.ts",
+          "sha256": "192b67770a740a0af44a87132cd0135f999a78874b9f0eab8d545f2012274543",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/lib/baniUkAi.ts",
+          "sha256": "c59847105d12f28bc2ad9d5046ba03a13de4dea1b876f3691de60d6fec745513",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/lib/crmAdmin.ts",
+          "sha256": "8a13d716174ecec884353589416d5328f16b028274f0cfb654b60cd240b9547a",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/lib/emailTemplateFunnel.ts",
+          "sha256": "90d29e2a08855b8aa61309a9211ce1566016ebea10b64d05a347ac7a60fc656c",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/lib/genericReports.ts",
+          "sha256": "6c9b5c659e2e15eb60b268fa2d24abd70474849820dd2be3027a2f7b83cf06b2",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/lib/quickReport.ts",
+          "sha256": "c516a8af03b716538d5fe73d08944579b86d1e4b6afcdfd26703c947e59ad01c",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/lib/randomUuid.ts",
+          "sha256": "18e3f3c859cb13f0314e24d2b34cda847df2a0e82d42f57536dc02d454565e78",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/lib/server/stripeInstallmentsProxy.ts",
+          "sha256": "f61a31d66a5c7c94f0f0508c792237bb85327133f53cf7c28980fc70b20be9d3",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/pages/_app.tsx",
+          "sha256": "de3a03fc028abcbbae2c2ea6706094b727a796e87be324d9fb894f3dd9f23f9d",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/pages/admin/crm.tsx",
+          "sha256": "c832894a2017114a336c1ebf7aeac76a7e94a259eb62d96eb3a9cae910e0b33f",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/pages/admin/support-inbox.tsx",
+          "sha256": "200385e5cb5afa781b3b8e4cb0f6f7ee4e8a59960460c5c5ad4ade595ce101df",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/pages/crmdispatch.tsx",
+          "sha256": "594ceba8f2d9bc2ca38dc32d44168f0678647b13031422e287a9978f918a98e1",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/pages/login.tsx",
+          "sha256": "ba5cf504ddd44f27966bedec684df9685a8c38ef72f8afd0abbf56b82157c64b",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/pages/reset-password.tsx",
+          "sha256": "efe0d0b471ff92331d76c92fd3c7cf6f6edb1853917c055f99f1e0ef76a2ce04",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "src/pages/ro/hai-in-club.tsx",
+          "sha256": "06c63f20af5df360a68dc11e6ab93129e3e6498ba8f547db2ced56da132e3e6c",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tests/backend-url.test.cjs",
+          "sha256": "848959aa8e565d86fc8807ce45d83982930318681dd90b359f385d32e8553f18",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tests/bani-uk-ai.test.cjs",
+          "sha256": "9a36fc6d90608b9ab755b7e94ecc1db2784cda24e11ee56a788741dce91a5753",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tests/contact-actions.test.cjs",
+          "sha256": "56b89ef3a45fa853f7dd639768606cc084d938ad5e697a012fabb473b2f1fa44",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tests/crm-dispatch.test.cjs",
+          "sha256": "44e2a1e8d63005c1b9d575c021fba2620e43f0b3dcb2a4da0e75c008a1b19228",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tests/google-advertising-handoff.test.cjs",
+          "sha256": "ba5ab9599c810fdbcdfb8778b2b0909620df1247672bcccab89ad26df8b34d45",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tests/pension-result-modal.test.cjs",
+          "sha256": "b83bcc268c31546ab069d379d453bb9b84a002c3b2f4361a0077b7aef9504448",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tests/private-pensions.test.cjs",
+          "sha256": "506a324d828c650f0a61245b2a9ee0efba9415c4722933cd159620df909953fa",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tests/random-uuid.test.cjs",
+          "sha256": "00da7b23e91c749a0cc92763a3cb3808e40794d84edd53159fdcb759856da86c",
+          "includedInCodePatches": true
+        },
+        {
+          "path": "tests/whatsapp-reply-composer.test.cjs",
+          "sha256": "079e48c5e4e54161b19de59b2f995114ee4720421876d16f68913b41896b9104",
+          "includedInCodePatches": true
+        }
+      ],
+      "codePatchReconstructsCurrentSource": true
+    }
+  },
+  "patches": [
+    {
+      "repository": "LaunchingStack",
+      "file": "patches/01-launchingstack-application.patch",
+      "purpose": "Application fixes/configuration bindings, regression tests and maintained pension specification",
+      "sha256": "2f6cffce78b30d4871499601b5a237e0a0efe4470f91d5efc0466ac9a533611e",
+      "bytes": 209818
+    },
+    {
+      "repository": "LaunchingStack",
+      "file": "patches/02-launchingstack-staging-tools.patch",
+      "purpose": "Local simulator contracts and synthetic fixture GENERATOR SOURCE; no exported customer records",
+      "sha256": "255ea9aaae3c4cab8c3acbd5d9e7cb15e9a7623d9d7cf28f679d96686119cd46",
+      "bytes": 324821
+    },
+    {
+      "repository": "JustProveit",
+      "file": "patches/01-justproveit-application.patch",
+      "purpose": "Frontend/API fixes and updated regression harnesses",
+      "sha256": "8878854f2338133ce1769c35d855b2a7ab443e83f3455e9c2516506dd92ff48f",
+      "bytes": 55866
+    },
+    {
+      "repository": "JustProveit",
+      "file": "patches/02-justproveit-staging.patch",
+      "purpose": "Local UI notice/wiring and attribution activation configuration",
+      "sha256": "51019648833488830abc7878030f4a9018845c6494ca9443962864b5507da92b",
+      "bytes": 3523
+    },
+    {
+      "repository": "LaunchingStack",
+      "file": "patches/03-launchingstack-staging-configuration.patch",
+      "purpose": "Optional credential-free runtime templates; review before adapting Linux paths. Not applied to the running repository.",
+      "sha256": "2d6d9662d24316099faed1cee62206de8ad8528669b53ad3da98d44bfa4d2142",
+      "bytes": 15480
+    }
+  ],
+  "note": "reviewCodeTree is the base plus exported application/staging source patches; data-bearing generated reports are intentionally excluded. Optional configuration templates are a separate patch."
+}

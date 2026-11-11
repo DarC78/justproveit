@@ -1,0 +1,27 @@
+{
+  "group": "webapp-simulators",
+  "startedAt": "2026-11-07T13:58:33.737Z",
+  "files": [
+    "webapp/internal-agents/site/facebook-auto-replies.test.js",
+    "webapp/internal-agents/site/facebook-comments-api.test.js",
+    "webapp/internal-agents/site/facebook-comments-bulk.test.js",
+    "webapp/internal-agents/site/facebook-comments-view.test.js",
+    "webapp/internal-agents/site/tiktok-comments.test.js",
+    "webapp/marketing-site/site/browser-uuid.test.js",
+    "webapp/marketing-site/site/grants-finding/logic.test.js",
+    "webapp/marketing-site/site/journey.test.js",
+    "webapp/marketing-site/site/posting-capacity.test.js",
+    "webapp/marketing-site/site/posting-rules.test.js",
+    "tools/local-staging/extended-contracts.test.cjs",
+    "tools/local-staging/provider-simulator.test.cjs"
+  ],
+  "excluded": [],
+  "finishedAt": "2026-11-07T13:58:34.822Z",
+  "exitCode": 0,
+  "tests": 42,
+  "passed": 42,
+  "failed": 0,
+  "skipped": 0,
+  "cancelled": 0,
+  "failures": []
+}

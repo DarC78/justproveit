@@ -1,0 +1,33 @@
+{
+  "scope": "Historical explicit user sign-offs retained. Dispatch hydration changed subsequently and passed automated staging checks; no new manual acceptance inferred.",
+  "acceptedWorkflows": [
+    {
+      "workflow": "CRM create/search/edit/history/reload",
+      "status": "PASS",
+      "feedback": "CRM PASS—all six steps passed"
+    },
+    {
+      "workflow": "Appointments",
+      "status": "PASS",
+      "feedback": "Appointments PASS—all five steps passed"
+    },
+    {
+      "workflow": "Reporting",
+      "status": "PASS",
+      "feedback": "Reporting PASS—all four steps passed"
+    },
+    {
+      "workflow": "Queue persistence",
+      "status": "PASS",
+      "feedback": "Queue persistence PASS—contactul apare și rămâne după reload"
+    }
+  ],
+  "queueEvidence": {
+    "sameMessageIdAndPayloadAfterLocalStorageRestart": true,
+    "contactsCreated": 1,
+    "intentsCreated": 1,
+    "acknowledged": true,
+    "consumerRestored": true
+  },
+  "excluded": "No account passwords, emails, phone numbers, customer names, payloads or database rows are included."
+}

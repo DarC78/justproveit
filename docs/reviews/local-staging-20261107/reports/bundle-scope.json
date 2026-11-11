@@ -1,0 +1,21 @@
+{
+  "included": [
+    "Application fixes and tests",
+    "Staging-only source/configuration templates",
+    "Synthetic fixture generator SOURCE and unit-test vectors",
+    "Sanitized aggregate regression/manual acceptance reports",
+    "Exact code identities and patch apply verification"
+  ],
+  "excluded": [
+    "All private credential/settings files and encryption keys",
+    "Test administrator credentials",
+    "Runtime customer/contact/lead records, identifiers and database dumps",
+    "Queued messages and provider delivery payloads",
+    "Azurite/MSSQL/PostgreSQL volumes",
+    "Screenshots, browser storage/session state and raw logs",
+    "Data-bearing docs/generated reports and manual fixture instructions"
+  ],
+  "configurationPlaceholdersRequirePrivateProvisioning": true,
+  "neverSendMailThroughConnectedMailbox": true,
+  "realEmailProviderOnlyIfLaterExplicitlyAuthorized": "Resend"
+}

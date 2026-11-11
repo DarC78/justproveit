@@ -1,0 +1,224 @@
+[
+  {
+    "reportFile": "local-staging-agent-alerts.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-browser-vendor.json",
+    "passedAssertions": 9,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-call-sync.json",
+    "passedAssertions": 2,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-callcode-followups.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-campaigns.json",
+    "passedAssertions": 8,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-checkout-services.json",
+    "passedAssertions": 2,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-commerce-inbox.json",
+    "passedAssertions": 3,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-conversions.json",
+    "passedAssertions": 3,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-daily-reports.json",
+    "passedAssertions": 2,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-database-isolation.json",
+    "passedAssertions": 4,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-dialler-policy.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-dialler-tag.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-email-visits.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-enrichment.json",
+    "passedAssertions": 4,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-facebook-workers.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-forms.json",
+    "passedAssertions": 3,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-google-advertising.json",
+    "passedAssertions": 2,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-intake-autoreply.json",
+    "passedAssertions": 3,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-job-sheet.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-marketing-forms.json",
+    "passedAssertions": 3,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-mediatel-flow.json",
+    "passedAssertions": 10,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-mssql-verification.json",
+    "passedAssertions": 5,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-pension-worker.json",
+    "passedAssertions": 2,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-portal-media.json",
+    "passedAssertions": 3,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-postiz.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-remaining-workers.json",
+    "passedAssertions": 5,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-report-services.json",
+    "passedAssertions": 2,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-retention-onboarding.json",
+    "passedAssertions": 2,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-roleplay.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-social-publishing.json",
+    "passedAssertions": 3,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-static-server-verification.json",
+    "passedAssertions": 2,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-storage-kids.json",
+    "passedAssertions": 3,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-tiktok-oauth.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-tiktok.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-tracking-nurture.json",
+    "passedAssertions": 1,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-vendor-workers.json",
+    "passedAssertions": 3,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  },
+  {
+    "reportFile": "local-staging-worker-verification.json",
+    "passedAssertions": 8,
+    "failedAssertions": 0,
+    "scope": "Historical automated evidence; not necessarily rerun in this review regression. Runtime fixture records omitted."
+  }
+]
