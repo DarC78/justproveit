@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),ts=require('typescript'),React=require('react'),{JSDOM}=require('jsdom'),{createRoot}=require('react-dom/client');
 test('pipeline filters and paginates server-side and opens the correct contact history',async()=>{
  const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
- const previous=global.fetch,calls=[];global.fetch=async(url,options)=>{calls.push({url,options});return{ok:true,json:async()=>({sources:['FB','TikTok'],counts:{newLead:31,SimulationInProgress:0,SimulationDone:0,ScheduledCall:0,AgreedToBuy:0},cohortTotal:31,total:31,asOfUtc:'2026-11-10T12:00Z',rows:[{contactId:'correct-contact',name:'Fixture',phone:'447700900123',pipelineStatus:'newLead',source:'FB',service:'Simulator',createdAtUtc:'2026-11-01'}]})};};
+ const previous=global.fetch,calls=[];global.fetch=async(url,options)=>{calls.push({url,options});return{ok:true,json:async()=>({sources:['FB','TikTok'],counts:{newLead:31,SimulationInProgress:0,SimulationDone:0,ScheduledCall:0,AgreedToBuy:0,clients:1},purchasedServices:[{value:'pension',label:'International pension'}],cohortTotal:31,total:31,asOfUtc:'2026-11-10T12:00Z',rows:[{contactId:'correct-contact',name:'Fixture',phone:'447700900123',pipelineStatus:'newLead',source:'FB',service:'Simulator',createdAtUtc:'2026-11-01',purchases:[{saleId:'sale',service:'pension',label:'International pension',purchasedAtUtc:'2026-11-02T10:00:00Z'}]}]})};};
  const code=ts.transpileModule(fs.readFileSync('src/components/LeadPipelinePanel.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,mod={exports:{}};let history,actions;
  const mocks={
   '@/lib/auth':{API_BASE_URL:'https://api.example.test'},
@@ -53,5 +53,11 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   await React.act(async()=>root.unmount());root=createRoot(document.getElementById('root'));await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'another-token',userId:'another-user'})));
   assert.equal(document.querySelector('[aria-label="Pipeline status"]').value,'ScheduledCall');assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'ScheduledCall');
   await React.act(async()=>button('Clear').click());assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'');
+  await React.act(async()=>{const select=document.querySelector('[aria-label="Pipeline status"]');select.value='clients';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});
+  assert.ok(document.body.textContent.includes('Purchased services / purchase date'));assert.ok(document.body.textContent.includes('International pension'));assert.ok(document.body.textContent.includes('2 Nov 2026'));
+  await React.act(async()=>{const select=document.querySelector('[aria-label="Purchased service"]');select.value='pension';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});
+  assert.equal(new URL(calls.at(-1).url).searchParams.get('purchasedService'),'pension');assert.equal(JSON.parse(window.localStorage.getItem('proveit.crm.leadPipeline.filters.v1:another-user')).purchasedService,'pension');
+  await React.act(async()=>root.unmount());root=createRoot(document.getElementById('root'));await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'another-token',userId:'another-user'})));
+  assert.equal(document.querySelector('[aria-label="Purchased service"]').value,'pension');assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'clients');
  }finally{await React.act(async()=>root.unmount());global.fetch=previous;dom.window.close();delete global.window;delete global.document;}
 });
