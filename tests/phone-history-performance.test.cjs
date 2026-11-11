@@ -42,6 +42,19 @@ test('composer is visible before the history loads and the timeline is newest fi
   await React.act(async()=>onSent({status:'accepted'}));assert.equal(replied,1);
  }finally{await React.act(async()=>root.unmount());dom.window.close();}
 });
+test('history Next requests the next backend page and replaces events without fetching separate email or Stripe lists',async()=>{
+ const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ const pages=[];const api={getContactPhoneHistory:async(_token,_id,_signal,_fresh,page)=>{pages.push(page);return {contactId:'contact',phone:'447700900001',page,pageSize:25,hasMore:page===0,events:[{kind:'whatsapp',id:'p'+page,atUtc:'2026-11-11T10:00Z',direction:'inbound',author:'Client',messageType:'text',text:'Backend page '+page}],calls:0,whatsAppMessages:1};},getCrmEmailHistory:()=>assert.fail('paged timeline must not load emails separately'),getCrmStripeHistory:()=>assert.fail('paged timeline must not load Stripe separately')};
+ const composer={__esModule:true,default:()=>React.createElement('textarea')};
+ const timeline={exports:{}};new Function('require','module','exports',compile('src/components/PhoneHistoryModal.tsx'))(name=>name.includes('WhatsAppReplyComposer')?composer:name==='@/lib/crmAdmin'?api:require(name),timeline,timeline.exports);
+ const component={exports:{}};new Function('require','module','exports',compile('src/components/LeadPhoneHistory.tsx'))(name=>name==='@/lib/crmAdmin'?api:name==='./PhoneHistoryModal'?timeline.exports:name==='./WhatsAppReplyComposer'?composer:require(name),component,component.exports);
+ const root=createRoot(document.getElementById('root'));try{
+  await React.act(async()=>root.render(React.createElement(component.exports.default,{token:'agent',contactId:'contact',phone:'447700900001',name:'Lead'})));
+  assert.ok(document.body.textContent.includes('Backend page 0'));
+  await React.act(async()=>[...document.querySelectorAll('nav button')].find(b=>b.textContent==='Next').click());
+  assert.deepEqual(pages,[0,1]);assert.ok(document.body.textContent.includes('Backend page 1'));assert.ok(!document.body.textContent.includes('Backend page 0'));
+ }finally{await React.act(async()=>root.unmount());dom.window.close();}
+});
 
 test('WhatsApp photos load with authenticated context, enlarge, retry and release object URLs',async()=>{
  const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;

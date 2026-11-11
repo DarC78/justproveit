@@ -23,6 +23,13 @@ export function CallTranscriptRow({item}:{item:CallTranscription}) {
 }
 
 type ImageTarget={token:string;kind:"contact"|"booking";id:string};
+export function HistoryPagination({page,hasMore,loading,onPage}:{page:number;hasMore:boolean;loading:boolean;onPage:(page:number)=>void}){
+ return <nav aria-label="History pagination" style={{display:"flex",alignItems:"center",gap:12,margin:"14px 0"}}>
+ <button type="button" disabled={loading||page===0} onClick={()=>onPage(page-1)}>Previous</button>
+ <strong>Page {page+1} · 25 events per page</strong>
+ <button type="button" disabled={loading||!hasMore} onClick={()=>onPage(page+1)}>Next</button>
+ </nav>;
+}
 export function WhatsAppHistoryImage({target,messageId,name}:{target:ImageTarget;messageId:string;name:string}){
  const holder=useRef<HTMLDivElement>(null),[visible,setVisible]=useState(false),[url,setUrl]=useState(""),[error,setError]=useState(""),[expanded,setExpanded]=useState(false),[attempt,setAttempt]=useState(0);
  useEffect(()=>{if(typeof IntersectionObserver==="undefined"){queueMicrotask(()=>setVisible(true));return;}const observer=new IntersectionObserver(entries=>{if(entries.some(entry=>entry.isIntersecting)){setVisible(true);observer.disconnect();}},{rootMargin:"200px"});if(holder.current)observer.observe(holder.current);return()=>observer.disconnect();},[]);
@@ -50,20 +57,20 @@ export function StripeHistoryRecord({item}:{item:CrmStripeEvent}) {
  return <section><p style={{fontWeight:700}}>{item.label}{amount?" - "+amount:""}</p>{item.status&&<p>Status: {item.status}</p>}<p style={{fontSize:12,overflowWrap:"anywhere"}}>Reference: {item.reference}</p></section>;
 }
 
-export function PhoneHistoryTimeline({events,imageTarget}:{events:PhoneHistoryEvent[];imageTarget?:ImageTarget}) {
+export function PhoneHistoryTimeline({events,imageTarget,paged=false}:{events:PhoneHistoryEvent[];imageTarget?:ImageTarget;paged?:boolean}) {
   const [stripeEvents,setStripeEvents]=useState<CrmStripeEvent[]>([]),[stripeCursor,setStripeCursor]=useState<string|null>(null),[stripeError,setStripeError]=useState(""),[stripeLoading,setStripeLoading]=useState(false);
   const stripeTarget=useRef(imageTarget);stripeTarget.current=imageTarget;
-  useEffect(()=>{setStripeEvents([]);setStripeCursor(null);setStripeError("");if(!imageTarget)return;const controller=new AbortController();let loading=false,initialized=false;
+  useEffect(()=>{setStripeEvents([]);setStripeCursor(null);setStripeError("");if(!imageTarget||paged)return;const controller=new AbortController();let loading=false,initialized=false;
     const refresh=async()=>{if(loading)return;loading=true;try{const result=await getCrmStripeHistory(imageTarget.token,imageTarget.kind,imageTarget.id,null,controller.signal);if(!controller.signal.aborted){setStripeEvents(current=>[...new Map([...current,...result.items].map(e=>[e.id,e])).values()]);if(!initialized){setStripeCursor(result.nextCursor);initialized=true;}setStripeError("");}}catch{if(!controller.signal.aborted)setStripeError("Stripe history is unavailable. Other interactions remain visible.");}finally{loading=false;}};
     void refresh();const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh();},60000);return()=>{controller.abort();clearInterval(interval);};
-  },[imageTarget?.token,imageTarget?.kind,imageTarget?.id]);
+  },[imageTarget?.token,imageTarget?.kind,imageTarget?.id,paged]);
   const olderStripe=async()=>{if(!imageTarget||!stripeCursor)return;const target=imageTarget;setStripeLoading(true);try{const result=await getCrmStripeHistory(target.token,target.kind,target.id,stripeCursor);if(stripeTarget.current?.id!==target.id||stripeTarget.current?.kind!==target.kind||stripeTarget.current?.token!==target.token)return;setStripeEvents(current=>[...new Map([...current,...result.items].map(e=>[e.id,e])).values()]);setStripeCursor(result.nextCursor);setStripeError("");}catch{setStripeError("Older Stripe events could not be loaded. Please retry.");}finally{setStripeLoading(false);}};
   const emailInitialized=useRef(false);const [emailPending,setEmailPending]=useState(false);
   const [emails,setEmails]=useState<CrmEmailEvent[]>([]),[emailCursor,setEmailCursor]=useState<string|null>(null),[emailError,setEmailError]=useState(""),[emailLoading,setEmailLoading]=useState(false);
-  useEffect(()=>{emailInitialized.current=false;setEmails([]);setEmailPending(false);setEmailCursor(null);setEmailError("");if(!imageTarget)return;const controller=new AbortController();let loading=false;
+  useEffect(()=>{emailInitialized.current=false;setEmails([]);setEmailPending(false);setEmailCursor(null);setEmailError("");if(!imageTarget||paged)return;const controller=new AbortController();let loading=false;
     const refresh=async()=>{if(loading)return;loading=true;try{const result=await getCrmEmailHistory(imageTarget.token,imageTarget.kind,imageTarget.id,null,controller.signal);if(!controller.signal.aborted){setEmails(current=>[...new Map([...current,...result.items].map(e=>[e.id,e])).values()]);if(!emailInitialized.current){setEmailCursor(result.nextCursor);emailInitialized.current=true;}setEmailError("");setEmailPending(Boolean(result.systemArchivePending));}}catch{if(!controller.signal.aborted)setEmailError("Email history is unavailable. Calls and WhatsApp history remain visible.");}finally{loading=false;}};
     void refresh();const interval=setInterval(()=>{if(document.visibilityState==="visible")void refresh();},60000);return()=>{controller.abort();clearInterval(interval);};
-  },[imageTarget?.token,imageTarget?.kind,imageTarget?.id]);
+  },[imageTarget?.token,imageTarget?.kind,imageTarget?.id,paged]);
   const olderEmails=async()=>{if(!imageTarget||!emailCursor)return;setEmailLoading(true);try{const result=await getCrmEmailHistory(imageTarget.token,imageTarget.kind,imageTarget.id,emailCursor);setEmails(current=>[...new Map([...current,...result.items].map(e=>[e.id,e])).values()]);setEmailCursor(result.nextCursor);setEmailError("");}catch{setEmailError("Older emails could not be loaded. Please retry.");}finally{setEmailLoading(false);}};
   const ordered=[...events,...emails,...stripeEvents].sort((a,b)=>{const left=Date.parse(a.atUtc||''),right=Date.parse(b.atUtc||'');return (Number.isFinite(right)?right:-Infinity)-(Number.isFinite(left)?left:-Infinity)||a.id.localeCompare(b.id,undefined,{numeric:true});});
   return <>{stripeError&&<p role="status">{stripeError}</p>}{emailPending&&<p role="status">Older system emails are being verified in the background and will appear here automatically.</p>}{emailError&&<p role="status">{emailError}</p>}<ol className="timeline" aria-label="Calls, WhatsApp messages and emails, newest first">
@@ -94,6 +101,8 @@ export function PhoneHistoryTimeline({events,imageTarget}:{events:PhoneHistoryEv
 export default function PhoneHistoryModal({token,booking,onClose}:{token:string;booking:ScheduledCallRow;onClose:()=>void}) {
   const dialog=useRef<HTMLDialogElement>(null);
   const [history,setHistory]=useState<ScheduledPhoneHistory|null>(null);
+  const [page,setPage]=useState(0);
+  useEffect(()=>{let active=true;queueMicrotask(()=>{if(active)setPage(0);});return()=>{active=false;};},[booking.intentId,booking.phone]);
   const [loading,setLoading]=useState(true);const [error,setError]=useState("");const [refresh,setRefresh]=useState(0);
   useEffect(()=>{
     const element=dialog.current;if(!element)return;
@@ -106,25 +115,25 @@ export default function PhoneHistoryModal({token,booking,onClose}:{token:string;
     const controller=new AbortController();
     Promise.resolve().then(async()=>{
       if(controller.signal.aborted)return;setLoading(true);setError("");
-      try{const result=await getScheduledPhoneHistory(token,booking.intentId,controller.signal,refresh>0);
+      try{const result=await getScheduledPhoneHistory(token,booking.intentId,controller.signal,refresh>0,page);
         if(result.intentId.toLowerCase()!==booking.intentId.toLowerCase()||phoneKey(result.phone)!==phoneKey(booking.phone||"")||!Array.isArray(result.events))
           throw new Error("The history does not match this phone number. Reload the schedule.");
         if(!controller.signal.aborted)setHistory(result);
       }catch(cause){if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:"Unable to load the phone history.");}
       finally{if(!controller.signal.aborted)setLoading(false);}
     });return()=>controller.abort();
-  },[token,booking.intentId,booking.phone,refresh]);
+  },[token,booking.intentId,booking.phone,refresh,page]);
   useEffect(()=>{
     const controller=new AbortController();let active=false;
     const interval=setInterval(async()=>{
       if(document.visibilityState!=="visible"||active)return;active=true;
-      try{const value=await getScheduledPhoneHistory(token,booking.intentId,controller.signal,true);
+      try{const value=await getScheduledPhoneHistory(token,booking.intentId,controller.signal,true,page);
         if(!controller.signal.aborted&&value.intentId.toLowerCase()===booking.intentId.toLowerCase()&&phoneKey(value.phone)===phoneKey(booking.phone||""))setHistory(value);
       }catch{/* Keep the existing timeline and draft; manual Refresh exposes read errors. */}
       finally{active=false;}
     },15000);
     return()=>{controller.abort();clearInterval(interval);};
-  },[token,booking.intentId,booking.phone]);
+  },[token,booking.intentId,booking.phone,page]);
   const matched=history&&history.intentId.toLowerCase()===booking.intentId.toLowerCase()&&phoneKey(history.phone)===phoneKey(booking.phone||"");
   return <dialog ref={dialog} aria-labelledby="phone-history-title" aria-describedby="phone-history-description"
     onCancel={event=>{event.preventDefault();onClose();}} onClick={event=>{if(event.target===event.currentTarget)onClose();}}>
@@ -137,7 +146,10 @@ export default function PhoneHistoryModal({token,booking,onClose}:{token:string;
         {booking.phone&&<WhatsAppReplyComposer key={booking.intentId+booking.phone} token={token} intentId={booking.intentId} phone={booking.phone} onSent={()=>setRefresh(value=>value+1)}/>}
         {loading&&!matched?<p className="status">Loading the full WhatsApp conversation and call history...</p>:!matched&&error?<p role="alert" className="error">{error}</p>:matched&&history&&<>
           {error&&<p role="alert" className="error">{error}</p>}<p className="totals">{history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
-          <PhoneHistoryTimeline events={history.events} imageTarget={{token,kind:"booking",id:booking.intentId}}/>
+          <HistoryPagination page={page} hasMore={Boolean(history.hasMore)} loading={loading} onPage={setPage}/>
+          {history.warnings?.map(w=><p role="status" key={w}>{w}</p>)}
+          <PhoneHistoryTimeline events={history.events} paged={history.pageSize===25} imageTarget={{token,kind:"booking",id:booking.intentId}}/>
+          <HistoryPagination page={page} hasMore={Boolean(history.hasMore)} loading={loading} onPage={setPage}/>
         </>}
       </div>
     </div>

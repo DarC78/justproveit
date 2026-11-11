@@ -403,11 +403,12 @@ export type PhoneHistoryEvent = CrmStripeEvent | CrmEmailEvent | {
 };
 export type ScheduledPhoneHistory = {
   intentId: string; phone: string; timeZone: string; whatsAppMessages: number; calls: number; events: PhoneHistoryEvent[];
+  page?:number;pageSize?:number;hasMore?:boolean;warnings?:string[];
 };
 
-export function getScheduledPhoneHistory(token: string, intentId: string, signal?: AbortSignal,fresh=false) {
+export function getScheduledPhoneHistory(token: string, intentId: string, signal?: AbortSignal,fresh=false,page=0) {
   if(signal?.aborted)return Promise.reject(new DOMException('Aborted','AbortError'));
-  return readPhoneHistoryCached(token,`booking:${intentId}`,()=>fetchCanonicalCrmReadJson<ScheduledPhoneHistory>(`${BASE_PATH}/scheduled-calls/${encodeURIComponent(intentId)}/history`, {
+  return readPhoneHistoryCached(token,`booking:${intentId}:page:${page}`,()=>fetchCanonicalCrmReadJson<ScheduledPhoneHistory>(`${BASE_PATH}/scheduled-calls/${encodeURIComponent(intentId)}/history?page=${page}`, {
     headers: authHeaders(token),cache:'no-store',
   }),fresh);
 }
@@ -1432,9 +1433,9 @@ export type ComposerRequest = {requestId:string;text?:string;templateName?:strin
 export function getComposerTemplates(token:string){return fetchCanonicalCrmReadJson<{templates:ComposerTemplate[]}>(`${BASE_PATH}/whatsapp-composer/templates`,{headers:authHeaders(token)});}
 
 export type ContactPhoneHistory = Omit<ScheduledPhoneHistory,"intentId"> & {contactId:string};
-export function getContactPhoneHistory(token:string,contactId:string,signal?:AbortSignal,fresh=false) {
+export function getContactPhoneHistory(token:string,contactId:string,signal?:AbortSignal,fresh=false,page=0) {
  if(signal?.aborted)return Promise.reject(new DOMException('Aborted','AbortError'));
- return readPhoneHistoryCached(token,`contact:${contactId}`,()=>fetchCanonicalCrmReadJson<ContactPhoneHistory>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/history`,{headers:authHeaders(token),cache:'no-store'}),fresh);
+ return readPhoneHistoryCached(token,`contact:${contactId}:page:${page}`,()=>fetchCanonicalCrmReadJson<ContactPhoneHistory>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/history?page=${page}`,{headers:authHeaders(token),cache:'no-store'}),fresh);
 }
 export function sendContactWhatsAppReply(token:string,contactId:string,body:ComposerRequest & {expectedPhone:string}) {
  return fetchCanonicalCrmReadJson<WhatsAppReplyResult>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/whatsapp/replies`,{method:"POST",headers:authHeaders(token),body:JSON.stringify(body)});
