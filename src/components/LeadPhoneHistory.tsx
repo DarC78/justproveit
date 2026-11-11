@@ -37,10 +37,10 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
     {loading&&<p role="status">Loading history…</p>}
     {error&&<p role="alert">{error}</p>}
     {history&&history.contactId.toLowerCase()===contactId.toLowerCase()&&phoneKey(history.phone)===phoneKey(phone)&&<><p>On this page: {history.whatsAppMessages} WhatsApp messages · {history.calls} calls</p>
-     <HistoryPagination page={page} hasMore={Boolean(history.hasMore)} loading={loading} onPage={setPage}/>
+     {history.pageSize===25&&<HistoryPagination page={page} hasMore={Boolean(history.hasMore)} loading={loading} onPage={setPage}/>}
      {history.warnings?.map(w=><p role="status" key={w}>{w}</p>)}
      <PhoneHistoryTimeline events={history.events} paged={history.pageSize===25} imageTarget={{token,kind:"contact",id:contactId}}/>
-     <HistoryPagination page={page} hasMore={Boolean(history.hasMore)} loading={loading} onPage={setPage}/></>}
+     {history.pageSize===25&&<HistoryPagination page={page} hasMore={Boolean(history.hasMore)} loading={loading} onPage={setPage}/>}</>}
    </div>
   </>}
   <style jsx>{`
