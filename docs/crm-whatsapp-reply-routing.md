@@ -16,3 +16,22 @@ exception. Meta qualification protection remains in force. Existing failed reque
 IDs remain pinned to Mediatel and never automatically move to Agenti; only a new
 explicit Send creates another request. Refresh routing context to show the current
 channel before submitting that new reply.
+
+## Observed WhatsApp calls: manual lead association (2026-11-11)
+
+In the WhatsApp gateway tab, expand **Show observed WhatsApp calls**. Each call
+shows its linked lead (or review state), with **Link to lead** / **Change linked
+lead** controls. Search existing leads by name, phone or email, select the verified
+record and enter a verification note. Confirming links every observed status for
+that call and makes future status updates inherit the decision. **Unlink call and
+return to review** requires a note and prevents automatic rematching of that call.
+This does not change reply routing, lead details, customer records or agent identity.
+
+The dedicated authenticated `/calls/targets` endpoint searches CRM contacts only.
+`/calls/{linkKey}/link` accepts requestId, callToken, expectedSnapshot, contactId
+(or null), and reason. Tenant/account/actor come from the backend. A 409 requires
+refresh before another confirmation. Uncertain network/server failures lock edits
+and offer **Retry same action**, preserving the original request ID and payload
+while polling continues; exact retries return the audited result. Existing lead
+call history includes manually linked calls without creating duplicate call rows.
+No transport or outbound operation is exposed by this control.

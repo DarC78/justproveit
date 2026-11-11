@@ -25,3 +25,35 @@ test('manual review requires a selected record and reason; rapid clicks and unce
 test('call and monitoring APIs stay authenticated and use no outbound operation',async()=>{
  const calls=[],exports={};vm.runInNewContext(compile('src/lib/whatsappGateway.ts'),{exports,require:()=>({fetchJson:async(...args)=>{calls.push(args);return{};}})});await exports.gatewayOperations('fixture');await exports.gatewayCalls('fixture');assert.equal(calls[0][0],'/justproveit/admin/crm/whatsapp-gateway/operations');assert.equal(calls[1][0],'/justproveit/admin/crm/whatsapp-gateway/calls');assert.ok(calls.every(c=>c[1].headers.Authorization==='Bearer fixture'&&!c[1].method));
 });
+
+test('call linking selects a lead with a note; locks uncertain edits and retries one audited request',async()=>{
+ const slots=[],calls=[],results=[],exports={};let cursor=0,tree,saved=0,ids=0;
+ const react={useState(value){const i=cursor++;if(!(i in slots))slots[i]=value;return[slots[i],v=>slots[i]=typeof v==='function'?v(slots[i]):v];},useRef(value){const i=cursor++;return slots[i]??={current:value};}};
+ const api={gatewayCallTargets:async(_token,query)=>{assert.equal(query,'Fixture');return{rows:[{kind:'contact',id:'contact-id',name:'Fixture lead',phone:'447700900001'}]};},gatewayCallLink:async(...args)=>{calls.push(args);const result=results.shift();if(result instanceof Error)throw result;return result;}};
+ vm.runInNewContext(compile('src/components/WhatsAppGatewayCallLink.tsx'),{exports,crypto:{randomUUID:()=>`request-${++ids}`},require:name=>name==='react'?react:name==='react/jsx-runtime'?{jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})}:api});
+ const walk=n=>!n?[]:Array.isArray(n)?n.flatMap(walk):typeof n==='object'?[n,...walk(n.props?.children)]:[],text=n=>!n?'':Array.isArray(n)?n.map(text).join(''):typeof n==='object'?text(n.props?.children):String(n);
+ const nodes=type=>walk(tree).filter(n=>n.type===type),button=label=>nodes('button').find(n=>text(n)===label);
+ let call={id:'call',contactId:null,customerId:null,linkKey:'key',callToken:'opaque',linkSnapshot:'snapshot-1'};
+ const render=()=>{cursor=0;tree=exports.default({token:'token',call,onSaved:()=>saved++});};
+ render();button('Link to lead').props.onClick();render();assert.equal(button('Confirm link to selected lead').props.disabled,true);
+ nodes('input')[0].props.onChange({target:{value:'Fixture'}});render();await button('Find leads').props.onClick();await new Promise(r=>setImmediate(r));render();
+ nodes('input').find(n=>n.props.type==='radio').props.onChange();render();assert.equal(button('Confirm link to selected lead').props.disabled,true);
+ nodes('input').find(n=>n.props.maxLength===500).props.onChange({target:{value:'Verified call participant'}});render();
+ results.push(new Error('Timeout'));const click=button('Confirm link to selected lead').props.onClick;click();click();await new Promise(r=>setImmediate(r));render();
+ assert.equal(calls.length,1);assert.equal(saved,0);assert.ok(nodes('input').every(n=>n.props.disabled));
+ call={...call,linkSnapshot:'snapshot-2'};render();results.push({contactId:'contact-id',leadName:'Fixture lead'});button('Retry same action').props.onClick();await new Promise(r=>setImmediate(r));render();
+ assert.equal(calls.length,2);assert.equal(calls[0][2].requestId,calls[1][2].requestId);assert.equal(calls[1][2].expectedSnapshot,'snapshot-1');assert.equal(calls[1][2].contactId,'contact-id');assert.equal(saved,1);
+ assert.ok(text(tree).includes('Call linked to Fixture lead.'));
+ // Conflict preserves the note and requires a refresh, and unlink is explicit.
+ call={...call,contactId:'contact-id',leadName:'Fixture lead'};render();button('Change linked lead').props.onClick();render();
+ nodes('input').find(n=>n.props.maxLength===500).props.onChange({target:{value:'Wrong participant verified'}});render();
+ results.push(Object.assign(new Error('version_conflict'),{status:409}));button('Unlink call and return to review').props.onClick();await new Promise(r=>setImmediate(r));render();
+ assert.equal(calls[2][2].contactId,null);assert.equal(nodes('input').find(n=>n.props.maxLength===500).props.value,'Wrong participant verified');assert.equal(button('Unlink call and return to review').props.disabled,true);
+ button('Refresh call').props.onClick();render();assert.equal(saved,2);assert.equal(button('Unlink call and return to review').props.disabled,false);
+});
+
+test('call lead search and audited link API use dedicated authenticated routes',async()=>{
+ const calls=[],exports={};vm.runInNewContext(compile('src/lib/whatsappGateway.ts'),{exports,require:()=>({fetchJson:async(...args)=>{calls.push(args);return{};}})});
+ await exports.gatewayCallTargets('token','A+B');await exports.gatewayCallLink('token','key',{requestId:'id',callToken:'opaque',expectedSnapshot:'hash',contactId:null,reason:'Reviewed'});
+ assert.equal(calls[0][0],'/justproveit/admin/crm/whatsapp-gateway/calls/targets?q=A%2BB');assert.equal(calls[1][0],'/justproveit/admin/crm/whatsapp-gateway/calls/key/link');assert.equal(calls[1][1].headers.Authorization,'Bearer token');assert.equal(JSON.parse(calls[1][1].body).contactId,null);
+});

@@ -13,4 +13,9 @@ export const gatewayLink=(token:string,id:string,body:{requestId:string;expected
 export const gatewaySummaries=(token:string,items:Array<{kind:'contact'|'customer';id:string}>,signal?:AbortSignal)=>request<{summaries:Record<string,Extract<PhoneHistoryEvent,{kind:'whatsapp'}>|null>}>(token,'/summaries',{method:'POST',body:JSON.stringify({items}),signal});
 export type GatewayOperations={status:null|{connection:string;unknown_outcomes:number;callback_pending:number;callback_failures:number;observed_at:string;backup:{state:'ok'|'failed'|'never';last_verified_at:string|null}};receivedAtUtc:string|null;alerts:Array<{code:string;severity:'warning'|'critical';message:string}>};
 export const gatewayOperations=(token:string)=>request<GatewayOperations>(token,'/operations');
-export const gatewayCalls=(token:string)=>request<{rows:PhoneHistoryEvent[];coverage:string}>(token,'/calls');
+export const gatewayCalls=(token:string)=>request<{rows:GatewayCall[];coverage:string}>(token,'/calls');
+
+export type GatewayCall = Extract<PhoneHistoryEvent, {kind:'call'}> & {contactId:string|null;customerId:string|null;leadName:string|null;matchState:string;linkKey:string;callToken:string;linkSnapshot:string;linkVersion:number};
+export type GatewayCallLinkBody = {requestId:string;callToken:string;expectedSnapshot:string;contactId:string|null;reason:string};
+export const gatewayCallTargets=(token:string,query:string)=>request<{rows:GatewayTarget[]}>(token,`/calls/targets?q=${encodeURIComponent(query)}`);
+export const gatewayCallLink=(token:string,key:string,body:GatewayCallLinkBody)=>request<{contactId:string|null;leadName:string|null;version:number}>(token,`/calls/${encodeURIComponent(key)}/link`,{method:'POST',body:JSON.stringify(body)});
