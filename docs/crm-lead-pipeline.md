@@ -61,3 +61,6 @@ WhatsApp Agenti shared-number messages can be associated with up to three CRM le
 # Paginated lead history
 
 Lead and scheduled-call history uses backend pages of 25 combined events (calls, WhatsApp, email subjects and Stripe). Previous/Next requests the selected `page` from the history API; changing pages replaces the timeline, while the WhatsApp composer remains available. Page-specific cache keys prevent one page replacing another. Paged timelines do not independently fetch email/Stripe lists, so the page remains capped at 25. Email bodies and photos still load only when needed.
+## Fast list loading
+
+The pipeline endpoint returns a precomputed cohort, still filtered/sorted/paged on the backend. Source reconciliation refreshes in the background; the visible page checks for a newer model every 30 seconds. The actual snapshot time stays visible, with an explicit warning if background refresh is delayed. Current stage, handled/end and Next Action Date metadata is checked live. Background reloads keep the existing rows and open history; changing filters/pages shows a loading state until the matching result arrives. History is still fetched only when opened.

@@ -1,4 +1,4 @@
-import {Fragment,useEffect,useState} from 'react';
+import {Fragment,useEffect,useState,useRef} from 'react';
 import {API_BASE_URL} from '@/lib/auth';
 import LeadPhoneHistory from './LeadPhoneHistory';
 import ContactActions from './ContactActions';
@@ -13,7 +13,7 @@ import type {ScheduledCallRow} from '@/lib/crmAdmin';
 const statuses=['newLead','SimulationInProgress','SimulationDone','ScheduledCall','AgreedToBuy','ToAdrian','clients'] as const;
 type Status=typeof statuses[number];
 type Row=PipelineControlView&{manualPriority?:boolean;contactId:string;name:string;phone:string|null;email:string|null;source:string;service:string;createdAtUtc:string;pipelineStatus:Status;operationalStatus:string|null;meaningfulCallAtUtc:string|null;agreedAtUtc:string|null;documentReceivedAtUtc?:string|null;scheduledCallAtUtc?:string|null;scheduledCallStatus?:string|null;simulationStartedAtUtc:string|null;simulationDeliveredAtUtc:string|null;lastInboundAtUtc?:string|null;lastActivityAtUtc?:string|null;purchases?:{saleId:string|null;service:string;label:string;purchasedAtUtc:string|null}[];nextActionDate?:string|null;priority?:number;priorityLabel?:string;priorityAtUtc?:string|null;priorityDate?:string|null;nextContactDate?:string|null;booking?:ScheduledCallRow|null};
-type Report={counts:Record<Status,number>;purchasedServices?:{value:string;label:string}[];scheduledDate?:string;warnings?:string[];cohortTotal:number;filteredCohortTotal?:number;sources?:string[];total:number;limit:number;offset:number;asOfUtc:string;cohortStartUtc:string;rows:Row[]};
+type Report={refreshIntervalSeconds?:number;stale?:boolean;counts:Record<Status,number>;purchasedServices?:{value:string;label:string}[];scheduledDate?:string;warnings?:string[];cohortTotal:number;filteredCohortTotal?:number;sources?:string[];total:number;limit:number;offset:number;asOfUtc:string;cohortStartUtc:string;rows:Row[]};
 const clock=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'});
 const at=(value:string|null)=>value?clock.format(new Date(value)):'—';
 const priorityColors:Record<number,string|undefined>={0:'#fff1f2',1:'#fecaca',2:'#fecaca',3:'#dcfce7',4:'#dcfce7',5:undefined};
@@ -26,9 +26,12 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
  const [showFutureScheduled,setShowFutureScheduled]=useState(false),[showBookedCalls,setShowBookedCalls]=useState(false);
  const storageKey=`proveit.crm.leadPipeline.filters.v1:${userId}`;
  const [report,setReport]=useState<Report|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[history,setHistory]=useState<string|null>(null);
+ const [reportQuery,setReportQuery]=useState('');const previousQuery=useRef('');
  const [notice,setNotice]=useState('');
  const [purchasedService,setPurchasedService]=useState('');
  const [scheduledDate,setScheduledDate]=useState(()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
+ const activeQuery=JSON.stringify([userId,status,scheduledDate,purchasedService,source,inboundDays,showFutureScheduled,showBookedCalls,showEnded,applied,page]);
+ useEffect(()=>{const timer=setInterval(()=>{if(document.visibilityState==='visible')setRevision(n=>n+1);},30000);return()=>clearInterval(timer);},[]);
  const notes=useLeadNoteSummaries(token,(report?.rows||[]).map(row=>({id:row.contactId,kind:'contact'})));
  useEffect(()=>{let active=true;Promise.resolve().then(()=>{if(!active)return;let saved:{status?:unknown;purchasedService?:unknown;source?:unknown;inboundDays?:unknown;showFutureScheduled?:unknown;showEnded?:unknown;showBookedCalls?:unknown}={};try{saved=JSON.parse(window.localStorage.getItem(storageKey)||'{}')||{};}catch{/* Storage is optional. */}
   setStatus(statuses.includes(saved.status as Status)?saved.status as Status:'');setPurchasedService(typeof saved.purchasedService==='string'&&saved.purchasedService.length<=150?saved.purchasedService:'');setSource(typeof saved.source==='string'&&saved.source.length<=120?saved.source:'');setInboundDays(typeof saved.inboundDays==='number'&&Number.isInteger(saved.inboundDays)&&saved.inboundDays>=0&&saved.inboundDays<=365?saved.inboundDays:0);setShowFutureScheduled(saved.showFutureScheduled===true);setShowBookedCalls(saved.showBookedCalls===true);setShowEnded(saved.showEnded===true);setPage(0);setRestoredKey(storageKey);
@@ -40,11 +43,11 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
   const query=new URLSearchParams({status,source,inboundDays:String(inboundDays),showFutureScheduled:String(showFutureScheduled),showEnded:String(showEnded),showBookedCalls:String(showBookedCalls),search:applied,offset:String(page*30)});
   if(status==='ScheduledCall')query.set('scheduledDate',scheduledDate);
   if(status==='clients')query.set('purchasedService',purchasedService);
-  Promise.resolve().then(()=>{if(controller.signal.aborted)return null;setLoading(true);setError('');setHistory(null);return fetch(`${base.replace(/\/+$/,'')}/justproveit/admin/crm/lead-pipeline?${query}`,{headers:{Authorization:`Bearer ${token}`},signal:controller.signal,cache:'no-store'});})
+  Promise.resolve().then(()=>{if(controller.signal.aborted)return null;setLoading(true);setError('');if(previousQuery.current!==activeQuery){setHistory(null);previousQuery.current=activeQuery;}return fetch(`${base.replace(/\/+$/,'')}/justproveit/admin/crm/lead-pipeline?${query}`,{headers:{Authorization:`Bearer ${token}`},signal:controller.signal,cache:'no-store'});})
    .then(async response=>{if(!response)return null;const body=await response.json();if(!response.ok)throw Error(body.error?.message||'Unable to load lead pipeline.');return body as Report;})
-   .then(data=>{if(!controller.signal.aborted&&data)setReport(data);}).catch(cause=>{if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:'Unable to load lead pipeline.');}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
+   .then(data=>{if(!controller.signal.aborted&&data){setReport(data);setReportQuery(activeQuery);}}).catch(cause=>{if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:'Unable to load lead pipeline.');}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
   return()=>controller.abort();
- },[token,status,scheduledDate,purchasedService,source,inboundDays,showFutureScheduled,showBookedCalls,showEnded,applied,page,revision,restoredKey,storageKey]);
+ },[token,status,scheduledDate,purchasedService,source,inboundDays,showFutureScheduled,showBookedCalls,showEnded,applied,page,revision,restoredKey,storageKey,activeQuery]);
  const choose=(value:Status|'')=>{setStatus(value);setPage(0);persist({status:value,source,inboundDays});};
  const changeSource=(value:string)=>{setSource(value);setPage(0);persist({status,source:value,inboundDays});};
  const changeDays=(value:string)=>{const days=value===''?0:Number(value);if(!Number.isInteger(days)||days<0||days>365)return;setInboundDays(days);setPage(0);persist({status,source,inboundDays:days});};
@@ -75,12 +78,13 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
   <details className="pipeline-rules"><summary>Classification rules</summary><ul>{statuses.map(s=><li key={s}><strong>{s}</strong>: {descriptions[s]}</li>)}</ul><p>Priority: manual assignments, then clients (purchased), ToAdrian, AgreedToBuy → ScheduledCall → SimulationDone → SimulationInProgress → newLead. Unanswered calls, voicemail, no audio, default/invalid callcodes and calls without a connected agent do not count as meaningful. WhatsApp results must have a delivery/read confirmation for the final result message.</p></details>
   {status==='clients'&&<p className="pipeline-filter-help">P0: incoming contact awaiting response (red). P1: Next Action Date today or overdue (red). P2: no Next Action Date (yellow). P3: future Next Action Date (blue). Mark event as handled acknowledges the current incoming event.</p>}
   {notice&&<p role="status">{notice}</p>}{notes.error&&<p role="alert">{notes.error}</p>}
-  {error?<p role="alert">{error}</p>:loading?<p role="status">Loading lead pipeline…</p>:report&&<>
+  {error?<p role="alert">{error}</p>:!report||reportQuery!==activeQuery?<p role="status">Loading lead pipeline…</p>:report&&<>
+   {report.refreshIntervalSeconds&&<p className="pipeline-filter-help">Call and message data refreshes in the background about once a minute. Stage, handled, ended and Next Action Date changes are checked live.{loading?' Checking for updates…':''}</p>}
    <p>{report.total} {status==='ScheduledCall'?'scheduled calls':status==='clients'?'clients':'leads'} matching these filters · Updated {at(report.asOfUtc)} UK time</p>
    {status==='ScheduledCall'&&!report.rows.length&&<p>No calls match the selected date range and filters.</p>}
    {report.warnings?.map(w=><p key={w}>{w}</p>)}
    {status==='ScheduledCall'?<ScheduledCallsTable token={token} pipeline showCallDate={showFutureScheduled} renderExtraActions={booking=>{const row=report.rows.find(r=>r.contactId===booking.contactId);return row?<PipelineLeadControls token={token} row={row} onChanged={pipelineChanged}/>:null;}} rows={report.rows.flatMap(row=>row.booking?[{...row.booking,leadSource:row.source}]:[])} onChanged={message=>{setNotice(message);setRevision(n=>n+1);}}/>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr>{[...(priorityView?['Date / time (UK)']:[]),'Lead','Phone','Email',...(status==='clients'?['Purchased services / purchase date']:[]),'Actions'].map(h=><th key={h} style={{padding:10,textAlign:'left',background:'#edf3fc'}}>{h}</th>)}</tr></thead><tbody>
-    {report.rows.map(row=>{const key='contact:'+row.contactId.toLowerCase(),date=notes.summaries[key]?notes.summaries[key].nextActionDate:row.nextActionDate,noteStyle=nextActionRowStyle(date),futureStyle=date&&noteStyle?.backgroundColor==='#dbeafe'?noteStyle:undefined;return <Fragment key={row.contactId}><tr style={{borderBottom:'1px solid #dae2ee',...(status==='clients'?{backgroundColor:clientPriorityColors[row.priority??2]}:futureStyle||((priorityView||row.manualPriority)?{backgroundColor:priorityColors[row.priority??5]}:noteStyle))}}>
+    {report.rows.map(row=>{const key='contact:'+row.contactId.toLowerCase(),date=report.refreshIntervalSeconds?row.nextActionDate:notes.summaries[key]?notes.summaries[key].nextActionDate:row.nextActionDate,noteStyle=nextActionRowStyle(date),futureStyle=date&&noteStyle?.backgroundColor==='#dbeafe'?noteStyle:undefined;return <Fragment key={row.contactId}><tr style={{borderBottom:'1px solid #dae2ee',...(status==='clients'?{backgroundColor:clientPriorityColors[row.priority??2]}:futureStyle||((priorityView||row.manualPriority)?{backgroundColor:priorityColors[row.priority??5]}:noteStyle))}}>
      {priorityView&&<td className="pipeline-priority-date"><time dateTime={row.priorityAtUtc||row.priorityDate||undefined}>{row.priorityAtUtc?at(row.priorityAtUtc):row.priorityDate?row.priorityDate.split('-').reverse().join('/')+' \u00b7 No time set':at(null)}</time><br/><strong>P{row.priority??5}</strong><br/><small>{row.priorityLabel||'No higher-priority condition'}</small></td>}
      <td style={{padding:10}}><strong>{row.name||'Unnamed lead'}</strong><br/><small>Received: {at(row.createdAtUtc)}</small></td>
      <td><button className="pipeline-phone-link" type="button" title="Open lead history" onClick={()=>setHistory(history===row.contactId?null:row.contactId)} aria-expanded={history===row.contactId}>{row.phone||'Open history'}</button></td><td>{row.email||'—'}</td>
