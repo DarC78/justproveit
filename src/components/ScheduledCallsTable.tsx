@@ -17,8 +17,8 @@ function YesNo({value}:{value:boolean|null|undefined}) {
     <style jsx>{`span{display:inline-block;border-radius:20px;padding:3px 9px;font-weight:700;font-size:12px}.yes{background:#e5f4e9;color:#196a35}.no{background:#fff2d6;color:#855a0b}.unknown{color:#667085}`}</style></span>;
 }
 
-export default function ScheduledCallsTable({token,rows,attention=false,pipeline=false,onChanged,renderExtraActions}:{
-  token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;onChanged:(notice:string)=>void;renderExtraActions?:(row:ScheduledCallRow)=>ReactNode;
+export default function ScheduledCallsTable({token,rows,attention=false,pipeline=false,showCallDate=false,onChanged,renderExtraActions}:{
+  token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;showCallDate?:boolean;onChanged:(notice:string)=>void;renderExtraActions?:(row:ScheduledCallRow)=>ReactNode;
 }) {
   const [historyBooking,setHistoryBooking]=useState<ScheduledCallRow|null>(null);
   const notes=useLeadNoteSummaries(token,rows.map(row=>({id:row.contactId,kind:'contact'})));
@@ -35,7 +35,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
       {pipeline&&<th scope="col">WhatsApp messages in ziua programarii</th>}
       <th scope="col">Actiuni programare</th>
     </tr></thead><tbody>{rows.map(row=><tr key={row.intentId} style={nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate)}>
-      <td><time dateTime={row.appointmentAtUtc}>{attention?dateTime(row.appointmentAtUtc):londonTime.format(new Date(row.appointmentAtUtc))}</time></td>
+      <td><time dateTime={row.appointmentAtUtc}>{(attention||showCallDate)?dateTime(row.appointmentAtUtc):londonTime.format(new Date(row.appointmentAtUtc))}</time></td>
       <th scope="row">{row.phone?<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.name||"Client"}</Link>:row.name||"Client"}
         <small>{pipeline?row.leadSource:(row.intentType==="MANUAL_BOOK"?"Manual booking":"Calendly")}{!pipeline&&row.serviceName?` · ${row.serviceName}`:""}</small>
         {attention&&row.attentionReasons?.map(reason=><small className="reason" key={reason}>{reason}</small>)}
