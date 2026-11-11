@@ -14,3 +14,9 @@ test('relative dates follow UK midnight and DST rather than elapsed 24-hour peri
  assert.equal(display('2026-03-30T09:00Z',new Date('2026-03-28T23:30Z')).label,'Day after tomorrow');
  assert.equal(display('2026-10-26T09:00Z',new Date('2026-10-24T23:30Z')).label,'Tomorrow');
 });
+test('a handled appointment does not remain overdue red, while future bookings stay blue',()=>{
+ const now=new Date('2026-11-11T10:48:00Z');
+ assert.equal(display('2026-11-11T10:15:00Z',now,false).backgroundColor,'#fecaca');
+ assert.deepEqual(display('2026-11-11T10:15:00Z',now,true),{label:'Today',backgroundColor:undefined});
+ assert.equal(display('2026-11-12T10:15:00Z',now,true).backgroundColor,'#dbeafe');
+});
