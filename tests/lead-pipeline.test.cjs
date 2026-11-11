@@ -10,6 +10,7 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   '@/lib/leadNotes':{useLeadNoteSummaries:()=>({summaries:{},refresh(){},error:''}),nextActionRowStyle:()=>undefined},
   './ContactActions':{__esModule:true,default:props=>{actions=props;return React.createElement('button',{onClick:()=>props.onChanged({action:'solve',success:true})},'Fixture Solve');}},
   './BookingActions':{__esModule:true,default:()=>null},
+  './ScheduledCallsTable':{__esModule:true,default:props=>React.createElement('div',{'data-testid':'scheduled-table'},props.pipeline?'Scheduled pipeline table':'Other table')},
   './LeadPhoneHistory':{__esModule:true,default:props=>{history=props;return React.createElement('button',{onClick:props.onCollapse},'Collapse history');}}
  };
  new Function('require','module','exports',code)(name=>mocks[name]||require(name),mod,mod.exports);
@@ -45,6 +46,8 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   assert.equal(document.querySelector('input[type="checkbox"]').checked,false);
   await React.act(async()=>{const select=document.querySelector('[aria-label="Pipeline status"]');select.value='ScheduledCall';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});
   assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'ScheduledCall');assert.equal(new URL(calls.at(-1).url).searchParams.get('offset'),'0');
+  const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  assert.equal(document.querySelector('[aria-label="ScheduledDate"]').value,today);assert.equal(new URL(calls.at(-1).url).searchParams.get('scheduledDate'),today);assert.ok(document.querySelector('[data-testid="scheduled-table"]'));
   assert.ok(document.body.textContent.includes('Has a recorded past or future call booking'));
   assert.equal(document.querySelector('[aria-label="Show leads with a call booked"]'),null);
   await React.act(async()=>root.unmount());root=createRoot(document.getElementById('root'));await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'another-token',userId:'another-user'})));
