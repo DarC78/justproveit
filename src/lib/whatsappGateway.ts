@@ -1,6 +1,6 @@
 import {fetchJson} from './auth';
 import type {PhoneHistoryEvent} from './crmAdmin';
-export type GatewayMessage={id:string;accountId:string;atUtc:string;text:string;messageType:string;state:'review'|'matched'|'ignored';reason:string;phone:string|null;contactId:string|null;customerId:string|null;version:number};
+export type GatewayMessage={id:string;accountId:string;atUtc:string;text:string;messageType:string;state:'review'|'matched'|'ignored';reason:string;phone:string|null;contactId:string|null;contactIds?:string[];customerId:string|null;version:number};
 export type GatewayTarget={kind:'contact'|'customer';id:string;name:string;email?:string|null;phone?:string|null};
 const base='/justproveit/admin/crm/whatsapp-gateway';
 function request<T>(token:string,path:string,init:RequestInit={}){return fetchJson<T>(`${base}${path}`,{...init,headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},cache:'no-store'});}

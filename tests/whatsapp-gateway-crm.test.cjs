@@ -13,13 +13,17 @@ test('manual review requires a selected record and reason; rapid clicks and unce
  const walk=node=>!node?[]:Array.isArray(node)?node.flatMap(walk):typeof node==='object'?[node,...walk(node.props?.children)]:[];
  const text=node=>!node?'':Array.isArray(node)?node.map(text).join(''):typeof node==='object'?text(node.props?.children):String(node);
  const nodes=type=>walk(tree).filter(n=>n.type===type),button=label=>nodes('button').find(n=>text(n)===label);
- const render=()=>{cursor=0;tree=exports.ReviewMessage({token:'token',row:{id:'message',version:1,state:'review',reason:'unresolved_provider_identity',atUtc:'2026-01-01',text:'<script>untrusted</script>'},onSaved:()=>saved++});};
+ let row={id:'message',version:1,state:'review',reason:'unresolved_provider_identity',atUtc:'2026-01-01',text:'<script>untrusted</script>'};
+ const render=()=>{cursor=0;tree=exports.ReviewMessage({token:'token',row,onSaved:()=>saved++});};
  render();assert.equal(button('Confirm link to selected record').props.disabled,true);
  nodes('input')[0].props.onChange({target:{value:'Fixture'}});render();await button('Find records').props.onClick();render();nodes('input').find(n=>n.props.type==='radio').props.onChange();render();
  assert.equal(button('Confirm link to selected record').props.disabled,true);nodes('input').find(n=>n.props.maxLength===500).props.onChange({target:{value:'Verified existing record'}});render();
  results.push(new Error('Temporary unavailable'));const send=button('Confirm link to selected record').props.onClick;await Promise.all([send(),send()]);render();assert.equal(calls.length,1);assert.equal(saved,0);
  results.push({state:'matched'});await button('Confirm link to selected record').props.onClick();render();assert.equal(calls.length,2);assert.equal(calls[0][2].requestId,calls[1][2].requestId);assert.equal(calls[0][2].expectedVersion,1);assert.equal(saved,1);
  assert.ok(!nodes('textarea').length);assert.ok(!button('Send'));assert.ok(text(tree).includes('<script>untrusted</script>'));
+ row={...row,state:'matched',reason:'verified_shared_phone',contactId:'one',contactIds:['one','two']};render();
+ assert.ok(text(tree).includes('Linked to 2 CRM leads'));assert.ok(text(tree).includes('replaces all current lead associations'));
+ assert.deepEqual(walk(tree).filter(n=>typeof n.type==='function'&&n.type.name==='GatewayHistory').map(n=>n.props.id),['one','two']);
 });
 
 test('call and monitoring APIs stay authenticated and use no outbound operation',async()=>{

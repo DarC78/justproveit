@@ -56,3 +56,5 @@ ScheduledCall overdue red is cleared when the report confirms at least one meani
 
 ### Clients priority display
 Clients has a first Date / time (UK) column with priority and reason, alongside purchased services/dates. Order is P0 incoming contact awaiting response/handling (red), P1 Next Action Date due today or earlier (red), P2 no valid Next Action Date (yellow), P3 future Next Action Date (blue). For clients the priority colour wins over the generic future-date colour, so a pending P0 remains red. Mark event as handled clears the current event; a later incoming event can make it P0 again. The existing future-schedule checkbox and other saved filters continue to apply.
+
+WhatsApp Agenti shared-number messages can be associated with up to three CRM leads. Every selected lead sees the same message and receives its incoming/document evidence; the gateway inbox displays the selected histories. More than three matches are ranked by latest prior incoming WhatsApp/call activity. Manual message correction replaces the complete shared selection.
