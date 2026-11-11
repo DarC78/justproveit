@@ -1,0 +1,15 @@
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),ts=require('typescript'),React=require('react'),{JSDOM}=require('jsdom'),{createRoot}=require('react-dom/client');
+test('AgreedToBuy renders UK date/time first, date-only actions honestly, and P0-P5 colours instead of note colours',async()=>{
+ const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ window.localStorage.setItem('proveit.crm.leadPipeline.filters.v1:default',JSON.stringify({status:'AgreedToBuy'}));
+ const old=global.fetch;global.fetch=async()=>({ok:true,json:async()=>({counts:{AgreedToBuy:6},cohortTotal:6,total:6,asOfUtc:'2026-06-04T12:00Z',rows:Array.from({length:6},(_,priority)=>({contactId:'p'+priority,name:'Lead '+priority,phone:'44770090000'+priority,createdAtUtc:'2026-06-01',pipelineStatus:'AgreedToBuy',priority,priorityLabel:'Reason '+priority,...([2,4].includes(priority)?{priorityDate:'2026-06-04'}:{priorityAtUtc:'2026-06-04T09:15Z'})}))})});
+ const code=ts.transpileModule(fs.readFileSync('src/components/LeadPipelinePanel.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,mod={exports:{}};
+ const empty={__esModule:true,default:()=>null};const mocks={'@/lib/auth':{API_BASE_URL:'https://api.test'},'@/lib/allCustomers':{contactActionNotice:()=>''},'@/lib/bookedCalls':{bookingActionNotice:()=>''},'@/lib/leadNotes':{useLeadNoteSummaries:()=>({summaries:{},refresh(){}}),nextActionRowStyle:()=>({backgroundColor:'blue'})},'./ContactActions':empty,'./BookingActions':empty,'./ScheduledCallsTable':empty,'./LeadPhoneHistory':{__esModule:true,default:()=>React.createElement('p',null,'History fixture')}};
+ new Function('require','module','exports',code)(name=>mocks[name]||require(name),mod,mod.exports);const root=createRoot(document.getElementById('root'));
+ try{await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'token'})));
+  assert.equal(document.querySelector('thead th').textContent,'Date / time (UK)');const rows=[...document.querySelectorAll('tbody>tr')];assert.equal(rows.length,6);
+  assert.equal(rows[0].querySelector('td time').textContent,'4 Jun 2026, 10:15');assert.match(rows[0].textContent,/P0/);assert.match(rows[2].querySelector('td time').textContent,/04\/06\/2026.*No time set/);
+  assert.deepEqual(rows.map(r=>r.style.backgroundColor),['rgb(255, 241, 242)','rgb(254, 202, 202)','rgb(254, 202, 202)','rgb(220, 252, 231)','rgb(220, 252, 231)','']);
+  await React.act(async()=>rows[0].querySelector('button.pipeline-phone-link').click());assert.equal(document.querySelector('td[colspan]').colSpan,8);
+ }finally{await React.act(async()=>root.unmount());global.fetch=old;dom.window.close();delete global.window;delete global.document;}
+});

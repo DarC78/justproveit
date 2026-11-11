@@ -1,5 +1,11 @@
 # Lead Pipeline
 
+## AgreedToBuy priorities (11 November 2026)
+
+AgreedToBuy adds Date / time (UK) as its first column, showing the backend-selected priority timestamp plus P0–P5 and a reason. Next Action Dates are date-only and display “No time set”. Backend priority order is applied before pagination: P0 client reply after our latest contact (light red, newest first); P1 today's appointment over 30 minutes overdue without call/WhatsApp follow-up (red, oldest first); P2 overdue Next Action Date (red, oldest first); P3 appointment within 30 minutes or upcoming, including future days (green, soonest first); P4 today/future Next Action Date (green, soonest first); P5 remainder (no background, latest activity first). First matching priority wins. The 30-minute threshold uses the scheduled appointment time, not booking creation.
+
+AgreedToBuy includes future appointments/action dates even with the general future-date checkbox off so P3/P4 are usable. Source/inbound/search filters, saved selections, linked history and contact/booking actions remain. Priority colours override ordinary Next Action Date colours in this stage only; other stages are unchanged. Load/Refresh and successful actions reload priorities, with source data in the backend rather than browser-only page sorting.
+
 ## Activity eligibility and clients (11 November 2026 — current rules)
 
 The old first-received-in-60-days rule is replaced by actual calls (any outcome/direction) or incoming/outgoing WhatsApp activity in the past 60 elapsed days. Old active contacts qualify; a new contact or appointment alone does not. Car-finance-only clients are excluded. Other and mixed-service clients appear exclusively in `clients`, displayed after AgreedToBuy, while classification prioritizes clients above all lead stages. Unidentified purchases remain explicitly unidentified.
