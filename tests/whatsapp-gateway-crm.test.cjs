@@ -34,7 +34,7 @@ test('call linking selects a lead with a note; locks uncertain edits and retries
  const walk=n=>!n?[]:Array.isArray(n)?n.flatMap(walk):typeof n==='object'?[n,...walk(n.props?.children)]:[],text=n=>!n?'':Array.isArray(n)?n.map(text).join(''):typeof n==='object'?text(n.props?.children):String(n);
  const nodes=type=>walk(tree).filter(n=>n.type===type),button=label=>nodes('button').find(n=>text(n)===label);
  let call={id:'call',contactId:null,customerId:null,linkKey:'key',callToken:'opaque',linkSnapshot:'snapshot-1'};
- const render=()=>{cursor=0;tree=exports.default({token:'token',call,onSaved:()=>saved++});};
+ const render=()=>{cursor=0;tree=exports.default({token:'token',call,onSaved:()=>saved++,onRefresh:async()=>{saved++;return call;}});};
  render();button('Link to lead').props.onClick();render();assert.equal(button('Confirm link to selected lead').props.disabled,true);
  nodes('input')[0].props.onChange({target:{value:'Fixture'}});render();await button('Find leads').props.onClick();await new Promise(r=>setImmediate(r));render();
  nodes('input').find(n=>n.props.type==='radio').props.onChange();render();assert.equal(button('Confirm link to selected lead').props.disabled,true);
@@ -47,9 +47,10 @@ test('call linking selects a lead with a note; locks uncertain edits and retries
  // Conflict preserves the note and requires a refresh, and unlink is explicit.
  call={...call,contactId:'contact-id',leadName:'Fixture lead'};render();button('Change linked lead').props.onClick();render();
  nodes('input').find(n=>n.props.maxLength===500).props.onChange({target:{value:'Wrong participant verified'}});render();
+ call={...call,linkSnapshot:'snapshot-3'};render();
  results.push(Object.assign(new Error('version_conflict'),{status:409}));button('Unlink call and return to review').props.onClick();await new Promise(r=>setImmediate(r));render();
- assert.equal(calls[2][2].contactId,null);assert.equal(nodes('input').find(n=>n.props.maxLength===500).props.value,'Wrong participant verified');assert.equal(button('Unlink call and return to review').props.disabled,true);
- button('Refresh call').props.onClick();render();assert.equal(saved,2);assert.equal(button('Unlink call and return to review').props.disabled,false);
+ assert.equal(calls[2][2].contactId,null);assert.equal(calls[2][2].expectedSnapshot,'snapshot-2');assert.equal(nodes('input').find(n=>n.props.maxLength===500).props.value,'Wrong participant verified');assert.equal(button('Unlink call and return to review').props.disabled,true);
+ await button('Refresh call').props.onClick();render();assert.equal(saved,2);assert.equal(button('Unlink call and return to review').props.disabled,false);
 });
 
 test('call lead search and audited link API use dedicated authenticated routes',async()=>{
