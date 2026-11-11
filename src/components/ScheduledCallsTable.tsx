@@ -17,8 +17,8 @@ function YesNo({value}:{value:boolean|null|undefined}) {
     <style jsx>{`span{display:inline-block;border-radius:20px;padding:3px 9px;font-weight:700;font-size:12px}.yes{background:#e5f4e9;color:#196a35}.no{background:#fff2d6;color:#855a0b}.unknown{color:#667085}`}</style></span>;
 }
 
-export default function ScheduledCallsTable({token,rows,attention=false,onChanged}:{
-  token:string;rows:ScheduledCallRow[];attention?:boolean;onChanged:(notice:string)=>void;
+export default function ScheduledCallsTable({token,rows,attention=false,pipeline=false,onChanged}:{
+  token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;onChanged:(notice:string)=>void;
 }) {
   const [historyBooking,setHistoryBooking]=useState<ScheduledCallRow|null>(null);
   const notes=useLeadNoteSummaries(token,rows.map(row=>({id:row.contactId,kind:'contact'})));
@@ -27,16 +27,17 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
       <th scope="col">Call time (UK)</th><th scope="col">Name</th><th scope="col">Agent</th><th scope="col">Phone number</th>
       <th scope="col">Apeluri din ziua programarii si dupa / callcoduri</th>
       <th scope="col">Became a lead</th><th scope="col">Call booked on</th>
-      <th scope="col">Booking email sent</th><th scope="col">Booking WhatsApp sent</th>
+      {!pipeline&&<><th scope="col">Booking email sent</th><th scope="col">Booking WhatsApp sent</th>
       <th scope="col">Reminder email sent</th><th scope="col">Reminder WhatsApp sent</th>
       <th scope="col">Manual calls that day</th><th scope="col">Agent conversations that day</th><th scope="col">On dialler now</th>
       <th scope="col">On WhatsApp Business</th><th scope="col">Solved on WhatsApp</th>
-      <th scope="col">WhatsApp client in ziua programarii</th><th scope="col">WhatsApp noi in ziua programarii</th>
+      <th scope="col">WhatsApp client in ziua programarii</th><th scope="col">WhatsApp noi in ziua programarii</th></>}
+      {pipeline&&<th scope="col">WhatsApp messages in ziua programarii</th>}
       <th scope="col">Actiuni programare</th>
     </tr></thead><tbody>{rows.map(row=><tr key={row.intentId} style={nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate)}>
       <td><time dateTime={row.appointmentAtUtc}>{attention?dateTime(row.appointmentAtUtc):londonTime.format(new Date(row.appointmentAtUtc))}</time></td>
       <th scope="row">{row.phone?<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.name||"Client"}</Link>:row.name||"Client"}
-        <small>{row.intentType==="MANUAL_BOOK"?"Manual booking":"Calendly"}{row.serviceName?` · ${row.serviceName}`:""}</small>
+        <small>{pipeline?row.leadSource:(row.intentType==="MANUAL_BOOK"?"Manual booking":"Calendly")}{!pipeline&&row.serviceName?` · ${row.serviceName}`:""}</small>
         {attention&&row.attentionReasons?.map(reason=><small className="reason" key={reason}>{reason}</small>)}
         {attention&&row.lastMediatelWhatsAppFromClient&&<small>Last client message: {dateTime(row.lastMediatelWhatsAppAtUtc)}</small>}
       </th>
@@ -45,13 +46,14 @@ export default function ScheduledCallsTable({token,rows,attention=false,onChange
         aria-label={`Open WhatsApp and call history for ${row.phone}`} onClick={()=>setHistoryBooking(row)}>{row.phone}</button>:"Unavailable"}</td>
       <td className="history"><BookingCallHistory booking={row}/></td>
       <td>{dateTime(row.leadCreatedAtUtc)}</td><td>{dateTime(row.bookedAtUtc)}</td>
-      <td><YesNo value={row.bookingEmailSent}/></td><td><YesNo value={row.bookingWhatsAppSent}/></td>
+      {!pipeline&&<><td><YesNo value={row.bookingEmailSent}/></td><td><YesNo value={row.bookingWhatsAppSent}/></td>
       <td><YesNo value={row.reminderEmailSent}/></td><td><YesNo value={row.reminderWhatsAppSent}/></td>
       <td className="number">{row.manualCallsToday??"Unavailable"}</td><td className="number">{row.agentConversationsToday??"Unavailable"}</td>
       <td><YesNo value={row.onDialler}/></td>
       <td><YesNo value={row.onWhatsAppBusiness}/>{row.onWhatsAppBusiness&&<small>{dateTime(row.whatsAppBusinessAtUtc)}<br/>{row.whatsAppBusinessBy}</small>}</td>
       <td><YesNo value={row.solvedOnWhatsApp}/>{row.solvedOnWhatsApp&&<small>{dateTime(row.solvedOnWhatsAppAtUtc ?? null)}<br/>{row.solvedOnWhatsAppBy}</small>}</td>
-      <td className="number">{row.whatsAppClientMessages??"Unavailable"}</td><td className="number">{row.whatsAppTeamMessages??"Unavailable"}</td>
+      <td className="number">{row.whatsAppClientMessages??"Unavailable"}</td><td className="number">{row.whatsAppTeamMessages??"Unavailable"}</td></>}
+      {pipeline&&<td className="number">{row.whatsAppClientMessages==null||row.whatsAppTeamMessages==null?'Unavailable':row.whatsAppClientMessages+row.whatsAppTeamMessages}</td>}
       <td className="history"><BookingActions token={token} booking={row}
         onChanged={result=>onChanged(bookingActionNotice(result))}
         onSolved={()=>onChanged("Rezolvarea pe WhatsApp a fost inregistrata.")}

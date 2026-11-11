@@ -1,5 +1,9 @@
 # Lead Pipeline
 
+## ScheduledCall daily view (11 November 2026)
+
+Selecting ScheduledCall displays ScheduledDate, defaulting to today in Europe/London on each page load (not persisted). The server filters appointments by that date before pagination. This stage reuses ScheduledCallsTable in pipeline mode with nine columns: UK call time, name and lead source, agent assignment, linked phone/history, shared coloured call/callcode history, became a lead, booking creation, combined inbound/outbound WhatsApp messages on the booking date, and the identical booking actions plus internal comments. Other pipeline filters remain applicable. The existing Scheduled calls tab keeps its full original columns.
+
 CRM `/admin/crm/?tab=leadPipeline` displays automatically calculated pipeline statuses for non-client contacts first received within the past 60 days. Backend contract: `docs/systems/crm-lead-pipeline.md` in LaunchingStack.
 
 Status priority: `AgreedToBuy`, `SimulationDone`, `SimulationInProgress`, `newLead`. Contact/enquiry operational statuses remain unchanged. The page provides counts, bucket filtering, name/email/phone search, 30-row pagination and expandable contact history. Refresh recalculates evidence and removes contacts that have become clients.
