@@ -37,7 +37,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
       <th scope="col">WhatsApp client in ziua programarii</th><th scope="col">WhatsApp noi in ziua programarii</th></>}
       {pipeline&&<th scope="col">WhatsApp messages in ziua programarii</th>}
       <th scope="col">Actiuni programare</th>
-    </tr></thead><tbody>{rows.map(row=><tr key={row.intentId} style={pipeline?{backgroundColor:scheduledCallDisplay(row.appointmentAtUtc,now).backgroundColor}:nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate)}>
+    </tr></thead><tbody>{rows.map(row=><tr key={row.intentId} style={pipeline?(nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate,now)?.backgroundColor==='#dbeafe'?{backgroundColor:'#dbeafe'}:{backgroundColor:scheduledCallDisplay(row.appointmentAtUtc,now).backgroundColor}):nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate)}>
       <td><time dateTime={row.appointmentAtUtc}>{(attention||showCallDate||pipeline)?dateTime(row.appointmentAtUtc):londonTime.format(new Date(row.appointmentAtUtc))}</time>{pipeline&&<small>{scheduledCallDisplay(row.appointmentAtUtc,now).label}</small>}</td>
       <th scope="row">{row.phone?<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.name||"Client"}</Link>:row.name||"Client"}
         <small>{pipeline?row.leadSource:(row.intentType==="MANUAL_BOOK"?"Manual booking":"Calendly")}{!pipeline&&row.serviceName?` · ${row.serviceName}`:""}</small>
