@@ -164,7 +164,7 @@ test('CRM direct-link tab is visible only for authenticated Adrian with CRM acce
     ['adrian@proveitweb.co.uk', true, 'loading', false],
   ]) {
     const exports = {};
-    vm.runInNewContext(code, { exports, URLSearchParams, window: { location: { search: '?tab=privatePensions' } }, require: name => name === 'react' ? React : name === 'react/jsx-runtime' ? require(name) : name === '@/context/AuthContext' ? { useAuth: () => ({ user: { email }, token: 'test', isCrm, status }) } : name === 'next/router' ? { useRouter: () => ({ query: {}, isReady: true }) } : ['next/head', 'next/link', '@/components/PrivatePensionsPanel'].includes(name) ? { default: () => null } : {} });
+    vm.runInNewContext(code, { exports, URLSearchParams, process:{env:{}}, window: { location: { search: '?tab=privatePensions' } }, require: name => name === 'react' ? React : name === 'react/jsx-runtime' ? require(name) : name === '@/context/AuthContext' ? { useAuth: () => ({ user: { email }, token: 'test', isCrm, status }) } : name === 'next/router' ? { useRouter: () => ({ query: {}, isReady: true }) } : ['next/head', 'next/link', '@/components/PrivatePensionsPanel'].includes(name) ? { default: () => null } : {} });
     const html = renderToStaticMarkup(React.createElement(exports.default));
     assert.equal(html.includes('Livrare Pensii Private'), visible);
   }

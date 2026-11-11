@@ -514,6 +514,9 @@ function appendFormValue(searchParams, key, value) {
 function buildMetadata(values) {
   return {
     service: SERVICE_KEY,
+    serviceKey: SERVICE_KEY,
+    serviceName: SERVICE_NAME,
+    ...(process.env.SALECONSULTATION_TENANT_ID?{tenantId:process.env.SALECONSULTATION_TENANT_ID}:{}),
     display_price_pence: String(DISPLAY_PRICE_PENCE),
     requested_schedule: "50_now_23_50_month_2_23_50_month_3_cancel",
     ...Object.fromEntries(

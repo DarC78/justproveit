@@ -1,6 +1,7 @@
 const { Parser } = require('htmlparser2');
 
-const config = require('./email-links.json');
+const defaults = require('./email-links.json');
+const config={...defaults,origin:process.env.EMAIL_LINK_ORIGIN||defaults.origin,senderDomains:process.env.EMAIL_LINK_SENDER_DOMAINS?.split(',').map(v=>v.trim()).filter(Boolean)||defaults.senderDomains};
 const escapeAttribute = value => value.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 function brandedEmailLink(value, { exclude = [] } = {}) {

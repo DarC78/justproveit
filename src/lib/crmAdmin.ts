@@ -4,8 +4,8 @@ const BASE_PATH = "/justproveit/admin/crm";
 const CANONICAL_READ_API_BASE_URL =
   process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL ??
   process.env.VITE_JPI_CRM_READ_API_BASE_URL ??
-  "https://launchingstack-func-dev.azurewebsites.net/api";
-const ASAP_LEAD_API_URL = "https://launchingstack-func-dev.azurewebsites.net/api/justproveit/leads/asap";
+  "/api";
+const ASAP_LEAD_API_URL = "/api/justproveit/leads/asap";
 
 export function getPensionProfiles(token:string,filters:Record<string,string>={}) {
  const query=new URLSearchParams(Object.entries(filters).filter(([,value])=>value!==''));

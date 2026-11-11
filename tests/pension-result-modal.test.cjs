@@ -28,8 +28,8 @@ test('Accept enables both categories and allows viewing even if scripts are bloc
 });
 test('saved results are not requested or rendered until the modal choice is resolved',async()=>{
  const h=hooks();let requests=0;
- function Choice(){}function Panel(){}
- const Component=load('src/pages/ro/rezultate-simulare.tsx',{'react':h.react,'react/jsx-runtime':jsx,'@/components/PensionResultTrackingChoice':Choice,'@/components/PensionResultPanel':Panel,'@/lib/pensionResultTracking':{preparePensionResultVisit:()=> 'private-token'},'@/lib/auth':{API_BASE_URL:'https://example.test'},'next/link':'a','next/head':'head'},{AbortController,fetch:async()=>{requests++;return {ok:true,json:async()=>({success:true,result:{scenarios:[]},contact:{fullName:'Ion Popescu',email:'ion@example.test',phone:'+44000000000'}})};}});
+ function Choice(){}function Panel(){}function NextSteps(){}
+ const Component=load('src/pages/ro/rezultate-simulare.tsx',{'react':h.react,'react/jsx-runtime':jsx,'@/components/PensionResultTrackingChoice':Choice,'@/components/PensionResultPanel':Panel,'@/components/PensionNextSteps':NextSteps,'@/lib/pensionResultTracking':{preparePensionResultVisit:()=> 'private-token'},'@/lib/auth':{API_BASE_URL:'https://example.test'},'next/link':'a','next/head':'head'},{AbortController,fetch:async()=>{requests++;return {ok:true,json:async()=>({success:true,result:{scenarios:[]},contact:{fullName:'Ion Popescu',email:'ion@example.test',phone:'+44000000000'}})};}});
  const render=()=>{h.reset();const tree=Component();for(const effect of h.effects)effect();return tree;};
  let tree=render();tree=render();assert.equal(requests,0);assert.equal(nodes(tree).some(n=>n.type===Panel),false);
  nodes(tree).find(n=>n.type===Choice).props.onContinue();render();assert.equal(requests,1);
@@ -38,7 +38,7 @@ test('saved results are not requested or rendered until the modal choice is reso
  assert.ok(person);assert.equal(person.props['data-clarity-mask'],'True');
  assert.deepEqual(nodes(person).filter(n=>n.type==='dd').map(n=>n.props.children),['Ion Popescu','ion@example.test','+44000000000']);
  const heading=all.findIndex(n=>n.type==='h1');assert.ok(all.indexOf(person)>heading);
- const cta=all.find(n=>n.props?.children==='Detalii Serviciu Pensionare');assert.equal(cta.props.href,'https://www.proveitweb.co.uk/salepensieinternationala?UTM_CAMPAIGN=IP_SIMULARE_WEBPAGE_RES_BTN');assert.match(cta.props.className,/bg-emerald-700/);assert.match(cta.props.className,/text-white/);
+ const nextSteps=all.find(n=>n.type===NextSteps);assert.ok(nextSteps);assert.deepEqual(Array.from(nextSteps.props.result.scenarios),[]);assert.equal(nextSteps.props.residenceCountry,'');
  assert.equal(all.some(n=>['Fă o simulare nouă','Află mai multe despre serviciile Proveit','Modifică preferințele de confidențialitate'].includes(n.props?.children)),false);
- assert.ok(all.findIndex(n=>n.type==='footer')>all.indexOf(cta));
+ assert.ok(all.findIndex(n=>n.type==='footer')>all.indexOf(nextSteps));
 });

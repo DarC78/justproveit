@@ -5,10 +5,15 @@ type ProxyConfig = {
   allowedQueryKeys: string[];
 };
 
-const ADMIN_API_BASE_URL =
+const configuredAdminApiBase =
+  process.env.JUSTPROVEIT_API_BASE_URL ??
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.VITE_API_BASE_URL ??
-  "https://launchingstack-func-dev.azurewebsites.net/api";
+  "/api";
+const ADMIN_API_BASE_URL = new URL(
+  configuredAdminApiBase,
+  process.env.BACKEND_BASE_URL ?? "http://127.0.0.1:7072",
+).toString().replace(/\/+$/, "");
 
 export async function handleStripeInstallmentsProxy(
   req: NextApiRequest,

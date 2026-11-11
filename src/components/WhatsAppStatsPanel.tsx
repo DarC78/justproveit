@@ -6,7 +6,7 @@ type Client = {Phone:string;ClientName:string;InitialAtUtc:string;ThreadStatus:s
 type Message = {Id:string;TicketID:number;Type:number;Message:string|null;SubType:string|null;Author:string;AtUtc:string;TotalMessages:number};
 type Report = {summary:Record<Category,number>;clients:Client[];messages:Message[]};
 const categories: [Category,string][] = [['clients','Clients'],['closed','ClosedThreads'],['passive','Passive'],['active','Active'],['called','Users called'],['contacted','Users contacted']];
-const apiBase=(process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||'https://launchingstack-func-dev.azurewebsites.net/api').replace(/\/$/,'');
+const apiBase=(process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||'/api').replace(/\/$/,'');
 const timestamp=(value:string)=>new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'}).format(new Date(value));
 const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 async function loadReport(token:string,query:URLSearchParams,signal:AbortSignal):Promise<Report>{

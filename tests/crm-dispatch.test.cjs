@@ -97,3 +97,41 @@ test('explicit pension queues route regardless of history and use nume prefill',
   }
   for(const queue of ['Inbound','','Other'])assert.equal(isPensionDispatchQueue(queue),false);
 });
+
+test('dispatch hydration preserves initial markup and then shows invalid-phone validation',async()=>{
+  const React=require('react');
+  const {renderToString}=require('react-dom/server');
+  const {JSDOM}=require('jsdom');
+  const pageModule={exports:{}};
+  const pageSource=ts.transpileModule(fs.readFileSync('src/pages/crmdispatch.tsx','utf8'),{
+    compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}
+  }).outputText;
+  vm.runInNewContext(pageSource,{exports:pageModule.exports,module:pageModule,require:name=>{
+    if(name==='next/head')return ()=>null;
+    if(name==='next/link')return ({children})=>children;
+    if(name==='next/router')return {useRouter:()=>({query:{},isReady:true,asPath:'/crmdispatch'})};
+    if(name==='@/context/AuthContext')return {useAuth:()=>({status:'loading',token:null,isCrm:false})};
+    if(name==='@/lib/crmDispatch')return exportsObject;
+    if(name==='@/lib/crmAdmin')return {loadCrmDispatchContact:()=>assert.fail('Invalid phone must not load a contact'),loadCrmDispatchRouting:()=>assert.fail('Invalid phone must not request routing')};
+    return require(name);
+  }});
+  const element=React.createElement(pageModule.exports.default);
+  const html=renderToString(element);
+  assert.ok(!html.includes('role="alert"'),'Server must retain the loading markup before hydration');
+  const dom=new JSDOM('<div id="root">'+html+'</div>',{url:'http://localhost/crmdispatch'});
+  const keys=['window','document','navigator','IS_REACT_ACT_ENVIRONMENT'];
+  const previous=keys.map(key=>[key,Object.getOwnPropertyDescriptor(globalThis,key)]);
+  let root;
+  try{
+    for(const[key,value]of Object.entries({window:dom.window,document:dom.window.document,navigator:dom.window.navigator,IS_REACT_ACT_ENVIRONMENT:true}))Object.defineProperty(globalThis,key,{configurable:true,writable:true,value});
+    const {hydrateRoot}=require('react-dom/client');const hydrationErrors=[];
+    await React.act(async()=>{root=hydrateRoot(document.getElementById('root'),element,{onRecoverableError:error=>hydrationErrors.push(error.message)});});
+    assert.deepEqual(hydrationErrors,[],'Hydration must match the server snapshot');
+    assert.match(document.querySelector('[role="alert"]').textContent,/Adauga un numar valid/);
+    assert.equal(document.querySelector('button').textContent,'Reincearca');
+  }finally{
+    if(root)await React.act(async()=>root.unmount());
+    dom.window.close();
+    for(const[key,descriptor]of previous){if(descriptor)Object.defineProperty(globalThis,key,descriptor);else delete globalThis[key];}
+  }
+});

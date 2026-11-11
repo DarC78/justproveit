@@ -1,3 +1,4 @@
+import { randomUuid } from "@/lib/randomUuid";
 type FunnelWindow = Window & { proveitEmailToken?: string };
 type Visit = { id: string; visitor: string; template: string | null; created: number };
 let visit: Visit | null = null;
@@ -7,13 +8,13 @@ function denied() {
 }
 function browserId() {
   try { const saved = JSON.parse(localStorage.getItem('proveit-funnel-browser-v1') || 'null'); if (saved?.expires > Date.now() && /^[a-f0-9-]{36}$/i.test(saved.id)) return saved.id as string;
-    const id = crypto.randomUUID(); localStorage.setItem('proveit-funnel-browser-v1', JSON.stringify({ id, expires: Date.now() + 180 * 86400000 })); return id;
-  } catch { return crypto.randomUUID(); }
+    const id = randomUuid(); localStorage.setItem('proveit-funnel-browser-v1', JSON.stringify({ id, expires: Date.now() + 180 * 86400000 })); return id;
+  } catch { return randomUuid(); }
 }
 export function installEmailTemplateFunnel() {
   if (typeof window === 'undefined' || !/^\/bani-uk-ai\/?$/.test(location.pathname) || denied()) return () => {};
   const template = new URL(location.href).searchParams.get('utm_content');
-  if (!visit || Date.now() - visit.created > 2000) visit = { id: crypto.randomUUID(), visitor: browserId(), template: templatePattern.test(template || '') ? template : null, created: Date.now() };
+  if (!visit || Date.now() - visit.created > 2000) visit = { id: randomUuid(), visitor: browserId(), template: templatePattern.test(template || '') ? template : null, created: Date.now() };
   const current = visit;
   const send = (eventType: string, eventId: string) => {
     if (denied()) return;
@@ -27,8 +28,9 @@ export function installEmailTemplateFunnel() {
     const anchor = event.target instanceof Element ? event.target.closest('a') : null;
     if (!anchor) return;
     let target: URL; try { target = new URL(anchor.href); } catch { return; }
-    if (target.origin !== 'https://buy.stripe.com' || target.pathname !== '/00wdR8gUP7548yvd7R4Ni1o') return;
-    const id = crypto.randomUUID(); target.searchParams.set('client_reference_id', 'jpi_' + id); anchor.href = target.href;
+    const local=process.env.NEXT_PUBLIC_LOCAL_STAGING==='true' && target.origin===location.origin && target.pathname==='/__simulation/course';
+    if (!local && (target.origin !== 'https://buy.stripe.com' || target.pathname !== '/00wdR8gUP7548yvd7R4Ni1o')) return;
+    const id = randomUuid(); target.searchParams.set('client_reference_id', 'jpi_' + id); anchor.href = target.href;
     send('checkout_click', id);
   };
   document.addEventListener('click', click, true); document.addEventListener('auxclick', click, true);

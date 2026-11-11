@@ -1,3 +1,4 @@
+import { randomUuid } from "@/lib/randomUuid";
 import { FormEvent, useState } from "react";
 import { BookingActionResult, changeScheduledBooking, markBookingWhatsAppBusiness, markBookingSolvedOnWhatsApp, ScheduledCallRow } from "@/lib/crmAdmin";
 
@@ -38,7 +39,7 @@ export default function BookingActions({ token, booking, onChanged, onBusinessMa
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Marcarea nu a putut fi salvata. Reincarca lista."); }
     finally { setSaving(false); }
   }
-  function open(action: "reschedule" | "cancel") { setMode(action); setRequestId(crypto.randomUUID()); setError(""); }
+  function open(action: "reschedule" | "cancel") { setMode(action); setRequestId(randomUuid()); setError(""); }
   async function save(event: FormEvent) {
     event.preventDefault(); if (!mode || saving) return;
     setSaving(true); setError("");
@@ -49,7 +50,7 @@ export default function BookingActions({ token, booking, onChanged, onBusinessMa
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Modificarea nu a putut fi salvata. Reincarca lista inainte de a reincerca."); }
     finally { setSaving(false); }
   }
-  const [diallerRequestId] = useState(() => crypto.randomUUID());
+  const [diallerRequestId] = useState(() => randomUuid());
   const [returned, setReturned] = useState(false);
   async function returnToDialler() {
     if(saving || returned)return;
@@ -73,9 +74,9 @@ export default function BookingActions({ token, booking, onChanged, onBusinessMa
       <strong>{mode === "reschedule" ? "Reprogrameaza (ora UK)" : "Anulezi aceasta programare?"}</strong>
       {mode === "reschedule" && <div className="date-time">
         <label>Data noua<input type="date" required min={londonDate.format(new Date())} disabled={saving} value={date}
-          onChange={event => { setDate(event.target.value); setRequestId(crypto.randomUUID()); setError(""); }} /></label>
+          onChange={event => { setDate(event.target.value); setRequestId(randomUuid()); setError(""); }} /></label>
         <label>Ora UK<input type="time" required disabled={saving} value={time}
-          onChange={event => { setTime(event.target.value); setRequestId(crypto.randomUUID()); setError(""); }} /></label>
+          onChange={event => { setTime(event.target.value); setRequestId(randomUuid()); setError(""); }} /></label>
       </div>}
       <p>{mode === "reschedule" ? "Confirmarea se trimite prin WhatsApp ca text si prin email, daca adresa este valida. Lipsa emailului nu blocheaza reprogramarea. Reminderele vechi se anuleaza." : "Programarea și mesajele email/WhatsApp de confirmare sau reminder netrimise vor fi anulate. Mesajul WhatsApp text de anulare va fi pus în coada de trimitere, dacă numărul de telefon este valid."}</p>
       {booking.intentType === "CALENDLY" && <p className="provider-note">Actiunea modifica programarea in CRM. Notificarile trimise direct de Calendly nu sunt controlate de CRM.</p>}

@@ -2,10 +2,12 @@ import { resetPasswordRequest } from "@/lib/auth";
 import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const token = readQueryValue(router.query.token);
   const email = readQueryValue(router.query.email);
   const [password, setPassword] = useState("");
@@ -69,7 +71,7 @@ export default function ResetPasswordPage() {
               Enter a new password for your JustProveIt account.
             </p>
 
-            {router.isReady && !isReadyForReset ? (
+            {mounted && router.isReady && !isReadyForReset ? (
               <p className="mt-6 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-800">
                 This reset link is invalid or incomplete. Request a new link from the sign in page.
               </p>

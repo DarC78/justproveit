@@ -1067,7 +1067,7 @@ export default function AdminCrmPage() {
   const detailsTabButtonRef = useRef<HTMLButtonElement | null>(null);
   const autoloadedPhoneRef = useRef("");
   const agentName = user?.name || user?.email || "";
-  const canUsePrivatePensions = status === "authenticated" && isCrm && user?.email?.trim().toLowerCase() === "adrian@proveitweb.co.uk";
+  const canUsePrivatePensions = status === "authenticated" && isCrm && user?.email?.trim().toLowerCase() === (process.env.NEXT_PUBLIC_PRIVATE_PENSIONS_OWNER_EMAIL ?? "adrian@proveitweb.co.uk").trim().toLowerCase();
   const activeTab = activeTabState === "privatePensions" && !canUsePrivatePensions ? "details" : activeTabState;
   const forcedDetailsIntent = useMemo(() => {
     const intentQuery = router.query.intent ?? router.query.leadIntent ?? router.query.interestType;

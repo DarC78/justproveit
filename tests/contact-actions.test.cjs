@@ -4,7 +4,7 @@ const tick=()=>new Promise(r=>setImmediate(r));
 function harness(){
  const slots=[],effects=[],calls=[],results=[],changes=[];let cursor=0,tree,opened=0,id=0;
  const react={useState(initial){const i=cursor++;if(!(i in slots))slots[i]=initial;return [slots[i],v=>{slots[i]=typeof v==='function'?v(slots[i]):v;}];},useRef(v){const i=cursor++;return slots[i]??={current:v};},useEffect(fn,deps){const i=cursor++;if(!slots[i]||deps.some((v,n)=>v!==slots[i][n])){slots[i]=deps;effects.push(fn);}}};
- const exports={};vm.runInNewContext(compiled,{exports,crypto:{randomUUID:()=>`request-${++id}`},require:n=>n==='react'?react:n==='react/jsx-runtime'?{jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})}:{runContactAction:async(...args)=>{calls.push(args);const result=results.shift();if(result instanceof Error)throw result;return await result;}},console});
+ const exports={};vm.runInNewContext(compiled,{exports,crypto:{randomUUID:()=>`request-${++id}`},require:n=>n==='@/lib/randomUuid'?{randomUuid:()=>`request-${++id}`}:n==='react'?react:n==='react/jsx-runtime'?{jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props})}:{runContactAction:async(...args)=>{calls.push(args);const result=results.shift();if(result instanceof Error)throw result;return await result;}},console});
  const walk=n=>!n?[]:Array.isArray(n)?n.flatMap(walk):typeof n==='object'?[n,...walk(n.props?.children)]:[];
  const text=n=>!n?'':Array.isArray(n)?n.map(text).join(''):typeof n==='object'?text(n.props?.children):String(n);
  const nodes=type=>walk(tree).filter(n=>n.type===type),button=label=>nodes('button').find(n=>text(n)===label);

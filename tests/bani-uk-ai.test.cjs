@@ -6,7 +6,7 @@ const ts = require('typescript');
 const exportsObject = {};
 vm.runInNewContext(ts.transpileModule(fs.readFileSync('src/lib/baniUkAi.ts', 'utf8'), {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2017 },
-}).outputText, { exports: exportsObject, URL });
+}).outputText, { exports: exportsObject, URL, URLSearchParams, process: {env:{}} });
 
 test('checkout accepts only an explicit HTTPS Stripe Payment Link', () => {
   assert.equal(exportsObject.courseCheckoutUrl('https://buy.stripe.com/synthetic-link'), 'https://buy.stripe.com/synthetic-link');

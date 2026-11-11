@@ -6,12 +6,12 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
 const FORGOT_PASSWORD_BASE_URL =
-  "https://launchingstack-func-dev.azurewebsites.net/api/auth/forgot-password";
+  "/api/auth/forgot-password";
 const DEFAULT_FORGOT_PASSWORD_URL =
   `${FORGOT_PASSWORD_BASE_URL}` +
   `?tenantKey=justproveit` +
-  `&domain=www.justproveit.co.uk` +
-  `&next=https%3A%2F%2Fwww.justproveit.co.uk%2Fadmin%2Fcrm%2F%3Ftab%3Dmanual`;
+  `&domain=192.168.87.187` +
+  `&next=%2Fadmin%2Fcrm%2F`;
 
 export default function LoginPage() {
   const router = useRouter();

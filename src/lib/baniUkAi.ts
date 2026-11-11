@@ -1,7 +1,7 @@
 // Owner-supplied Proveit Payment Link: £97 less the DISC58 promotion (£58).
 // Never reuse a checkout for another course or accept a URL from query parameters.
-export const BANI_UK_AI_CHECKOUT_URL = "https://buy.stripe.com/00wdR8gUP7548yvd7R4Ni1o?prefilled_promo_code=DISC58";
-export const BANI_UK_AI_DEADLINE = "2026-11-01T23:59:59Z";
+export const BANI_UK_AI_CHECKOUT_URL = process.env.NEXT_PUBLIC_BANI_UK_AI_CHECKOUT_URL || "https://buy.stripe.com/00wdR8gUP7548yvd7R4Ni1o?prefilled_promo_code=DISC58";
+export const BANI_UK_AI_DEADLINE = process.env.NEXT_PUBLIC_BANI_UK_AI_DEADLINE || "2026-11-01T23:59:59Z";
 
 export const BANI_UK_AI_SOURCES = [
   {
@@ -72,7 +72,10 @@ export const BANI_UK_AI_SOURCES = [
 export function courseCheckoutUrl(value: string, search = ""): string | null {
   try {
     const url = new URL(value);
-    if (url.protocol !== "https:" || url.hostname !== "buy.stripe.com") return null;
+    if (url.protocol !== "https:" || url.hostname !== "buy.stripe.com") {
+      const local=process.env.NEXT_PUBLIC_LOCAL_STAGING === "true" && url.href === process.env.NEXT_PUBLIC_BANI_UK_AI_CHECKOUT_URL && url.pathname === "/__simulation/course";
+      if(!local) return null;
+    }
     const attribution = new URLSearchParams(search);
     for (const key of ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"]) {
       const value = attribution.get(key);

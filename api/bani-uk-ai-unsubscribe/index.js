@@ -1,3 +1,4 @@
+const { backendUrl } = require('../shared/backendUrl');
 module.exports=async function(context,req){
  const token=req.query?.token;
  const headers={'Cache-Control':'no-store','Referrer-Policy':'no-referrer','X-Robots-Tag':'noindex, nofollow','Content-Type':'text/html; charset=utf-8'};
@@ -10,7 +11,7 @@ module.exports=async function(context,req){
   if(Buffer.byteLength(body)>2048){context.res={status:413,headers,body:'Cerere prea mare.'};return;}
  }
  try{
-  const upstream=await fetch('https://launchingstack-func-dev.azurewebsites.net/api/justproveit/public/email-unsubscribe?token='+encodeURIComponent(token),{method,headers:method==='POST'?{'Content-Type':'application/x-www-form-urlencoded'}:undefined,body,redirect:'error',signal:AbortSignal.timeout(15000)});
+  const upstream=await fetch(backendUrl('/justproveit/public/email-unsubscribe?token=')+encodeURIComponent(token),{method,headers:method==='POST'?{'Content-Type':'application/x-www-form-urlencoded'}:undefined,body,redirect:'error',signal:AbortSignal.timeout(15000)});
   const csp=upstream.headers.get('content-security-policy');if(csp)headers['Content-Security-Policy']=csp;
   context.res={status:upstream.status,headers,body:await upstream.text()};
  }catch{context.res={status:503,headers,body:'Nu am putut salva dezabonarea. Încearcă din nou.'};}

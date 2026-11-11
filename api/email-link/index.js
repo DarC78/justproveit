@@ -15,5 +15,11 @@ module.exports = async function emailLink(context, req) {
     context.res = { status: 400, headers, body: 'Invalid email link.' };
     return;
   }
+  if (process.env.LocalStaging === 'true') {
+    const base = new URL(process.env.EmailLinkDestinationOrigin || '');
+    if (!['http://192.168.87.187:3000'].includes(base.origin)) throw Error('Explicit local email destination required');
+    if (['www.justproveit.co.uk','justproveit.co.uk'].includes(url.hostname)) { url.protocol=base.protocol; url.host=base.host; }
+    else { context.res={status:409,headers,body:'This registered destination requires an explicitly authorized external acceptance test.'};return; }
+  }
   context.res = { status: 302, headers: { ...headers, Location: url.href }, body: '' };
 };

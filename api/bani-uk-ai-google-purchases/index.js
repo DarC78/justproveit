@@ -1,3 +1,4 @@
+const { backendUrl } = require('../shared/backendUrl');
 const { validSignature } = require('../shared/baniUkAiStripe');
 const course = require('../shared/bani-uk-ai-course.json');
 
@@ -13,7 +14,7 @@ module.exports = async function googlePurchaseCallback(context, req) {
     if (process.env.BANI_UK_AI_GOOGLE_CALLBACK_ENABLED !== 'true' || !process.env.BANI_UK_AI_GOOGLE_CALLBACK_KEY) { reply(503, { retryable: true }); return; }
     // Only the event ID crosses the boundary. LaunchingStack independently
     // retrieves Stripe event/session and validates value, live mode and consent.
-    const result = await fetch('https://launchingstack-func-dev.azurewebsites.net/api/justproveit/internal/google-course-purchases', {
+    const result = await fetch(backendUrl('/justproveit/internal/google-course-purchases'), {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'x-functions-key': process.env.BANI_UK_AI_GOOGLE_CALLBACK_KEY },
       body: JSON.stringify({ stripeEventId: event.id }), signal: AbortSignal.timeout(8000),
     });

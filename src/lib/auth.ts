@@ -46,7 +46,7 @@ export class ApiError extends Error {
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.VITE_API_BASE_URL ??
-  "https://launchingstack-func-dev.azurewebsites.net/api";
+  "/api";
 
 export const TENANT_KEY = "justproveit";
 
@@ -152,12 +152,13 @@ export async function resetPasswordRequest(payload: {
   token: string;
   password: string;
 }) {
-  await fetchJson<{ success?: boolean }>("/auth/reset-password", {
+  await fetchJson<{ success?: boolean }>("/auth/set-password", {
     method: "POST",
     body: JSON.stringify({
       email: payload.email,
       token: payload.token,
       password: payload.password,
+      confirmPassword: payload.password,
       tenantKey: TENANT_KEY,
       domain: getCurrentDomain(),
     }),
@@ -237,7 +238,7 @@ function getCurrentDomain() {
 
 function buildResetPasswordUrl() {
   if (typeof window === "undefined") {
-    return "https://www.justproveit.co.uk/reset-password";
+    return "/reset-password";
   }
 
   return `${window.location.origin}/reset-password`;

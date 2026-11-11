@@ -111,6 +111,7 @@ export type CustomerContextResponse = {
 };
 
 export type SendReplyRequest = {
+  requestId?: string;
   to: string;
   bcc?: string;
   subject: string;

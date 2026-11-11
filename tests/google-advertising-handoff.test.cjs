@@ -123,11 +123,11 @@ test('separate signed purchase callback remains disabled and never invokes fulfi
 });
 test('purchase callback forwards only a signed event ID, and upstream errors request independent retries', async () => {
   const callback = require('../api/bani-uk-ai-google-purchases');
-  const names = ['BANI_UK_AI_GOOGLE_STRIPE_WEBHOOK_SECRET', 'BANI_UK_AI_GOOGLE_CALLBACK_ENABLED', 'BANI_UK_AI_GOOGLE_CALLBACK_KEY'];
+  const names = ['BANI_UK_AI_GOOGLE_STRIPE_WEBHOOK_SECRET', 'BANI_UK_AI_GOOGLE_CALLBACK_ENABLED', 'BANI_UK_AI_GOOGLE_CALLBACK_KEY', 'JUSTPROVEIT_API_BASE_URL'];
   const old = names.map(name => process.env[name]);
   const oldFetch = global.fetch;
   try {
-    process.env[names[0]] = 'fixture'; process.env[names[1]] = 'true'; process.env[names[2]] = 'fixture-key';
+    process.env[names[0]] = 'fixture'; process.env[names[1]] = 'true'; process.env[names[2]] = 'fixture-key'; process.env[names[3]]='http://127.0.0.1:7072/api';
     const raw = JSON.stringify({ id: 'evt_fixture', type: 'checkout.session.completed', data: { object: { payment_link: require('../api/shared/bani-uk-ai-course.json').paymentLinkId, customer_details: { email: 'fixture@example.test' } } } });
     const t = Math.floor(Date.now() / 1000);
     const signature = crypto.createHmac('sha256', 'fixture').update(t + '.' + raw).digest('hex');

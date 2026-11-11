@@ -1,3 +1,4 @@
+import {randomUuid} from "@/lib/randomUuid";
 import { useAuth } from "@/context/AuthContext";
 import {
   addCustomerEmail,
@@ -34,6 +35,7 @@ import {
   useEffect,
   useMemo,
   useState,
+  useRef,
 } from "react";
 
 type LoadStatus = "idle" | "loading" | "ready" | "error";
@@ -405,6 +407,7 @@ export default function SupportInboxPage() {
   const [customerContext, setCustomerContext] =
     useState<CustomerContextResponse | null>(null);
   const [selectedTemplateKey, setSelectedTemplateKey] = useState("");
+  const replyAttempt=useRef<{binding:string;id:string}|null>(null);
   const [replyText, setReplyText] = useState("");
   const [lastSentEmailStatus, setLastSentEmailStatus] = useState("");
   const visibleMessages = useMemo(
@@ -745,7 +748,10 @@ export default function SupportInboxPage() {
         trimmedReply,
         customerContext,
       );
+      const binding=JSON.stringify({recipient,subject,replyBodyText,selectedMessageId});
+      if(replyAttempt.current?.binding!==binding)replyAttempt.current={binding,id:randomUuid()};
       const result = await sendGmailReply(token, {
+        requestId: replyAttempt.current.id,
         to: recipient,
         bcc:
           templateKey === config?.stageOneTemplateKey

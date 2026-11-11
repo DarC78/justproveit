@@ -1,3 +1,4 @@
+const { backendUrl } = require('./backendUrl');
 const crypto = require('node:crypto');
 const course = require('./bani-uk-ai-course.json');
 const { onboardingEmail } = require('./baniUkAiEmail');
@@ -16,7 +17,7 @@ function paidCourseSession(session) {
 }
 async function table() {
   if (!process.env.BANI_UK_AI_STORAGE_CONNECTION) throw new Error('Course storage configuration unavailable');
-  const client = TableClient.fromConnectionString(process.env.BANI_UK_AI_STORAGE_CONNECTION, 'BaniUkAiFounders');
+  const client = TableClient.fromConnectionString(process.env.BANI_UK_AI_STORAGE_CONNECTION, 'BaniUkAiFounders', {allowInsecureConnection:process.env.LocalStaging==='true'&&/TableEndpoint=http:\/\/127\.0\.0\.1:10002\//.test(process.env.BANI_UK_AI_STORAGE_CONNECTION)});
   await client.createTable().catch(error => { if (error.statusCode !== 409) throw error; });
   return client;
 }
@@ -54,7 +55,7 @@ async function fulfill(session, client, sendEmail) {
   // window, require reconciliation instead of risking another onboarding email.
   if (saved?.firstAttempt && now - epoch(saved.firstAttempt) > 23 * 3600000) throw new Error('Delivery requires reconciliation');
   // ISO strings avoid implicit EDM Int32 inference for millisecond timestamps.
-  const entity = { partitionKey: PARTITION, rowKey: session.id, course: course.key, email: session.customer_details.email, name: session.customer_details.name || '', amountPence: session.amount_total, currency: 'GBP', status: 'paid', paidAt: new Date(session.created * 1000).toISOString(), leaseUntil: new Date(now + 120000).toISOString(), firstAttempt: new Date(epoch(saved?.firstAttempt) || now).toISOString() };
+  const entity = { partitionKey: PARTITION, rowKey: session.id, course: course.key, email: session.customer_details.email, name: session.customer_details.name || '', amountPence: session.amount_total, currency: 'GBP', status: 'paid', simulation: session.metadata?.simulation === 'true', paidAt: new Date(session.created * 1000).toISOString(), leaseUntil: new Date(now + 120000).toISOString(), firstAttempt: new Date(epoch(saved?.firstAttempt) || now).toISOString() };
   if (!saved) await client.createEntity(entity);
   else await client.updateEntity(entity, 'Merge', { etag: saved.etag });
   try {
@@ -84,7 +85,7 @@ async function webhook(context, req) {
     });
     // Forward the original signed event. The backend validates Stripe's signature
     // and records each paid checkout once; retries do not repeat onboarding.
-    const funnelReceipt = await fetch('https://launchingstack-func-dev.azurewebsites.net/api/justproveit/public/email-template-funnel-sale', {
+    const funnelReceipt = await fetch(backendUrl('/justproveit/public/email-template-funnel-sale'), {
       method: 'POST', headers: { 'Content-Type': 'application/json', 'Stripe-Signature': req.headers['stripe-signature'] },
       body: Buffer.isBuffer(raw) ? raw : Buffer.from(raw, 'utf8'), signal: AbortSignal.timeout(10000)
     });

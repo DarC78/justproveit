@@ -7,7 +7,7 @@ const PAGE_PATH = "/ro/hai-in-club";
 const CANONICAL = `${SITE_URL}${PAGE_PATH}`;
 const CALENDLY_URL = "https://calendly.com/proveitweb/verificare-sa-nu-pierdeti-bani";
 const CLUB_CHECKOUT_API_URL =
-  "https://launchingstack-func-dev.azurewebsites.net/api/justproveit/money-check/club/checkout-session";
+  "/api/justproveit/money-check/club/checkout-session";
 const CONTACT_EMAIL = "adriandefta@proveitweb.co.uk";
 const FULL_PRICE = "£297";
 const MONTHLY_PRICE = "£99";

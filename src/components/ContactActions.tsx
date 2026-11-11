@@ -1,3 +1,4 @@
+import { randomUuid } from "@/lib/randomUuid";
 import {FormEvent,useEffect,useRef,useState} from "react";
 import {ContactAction,ContactActionResult,runContactAction} from "@/lib/allCustomers";
 
@@ -11,7 +12,7 @@ export default function ContactActions({token,contactId,name,phone,onChanged}:{t
  async function act(action:ContactAction){
   if(inFlight.current||(action==="reply"&&!text.trim()))return;
   inFlight.current=true;
-  const id=request?.action===action?request.id:crypto.randomUUID();setRequest({action,id});setSaving(action);setError("");
+  const id=request?.action===action?request.id:randomUuid();setRequest({action,id});setSaving(action);setError("");
   try {
    const result=await runContactAction(token,contactId,action,{requestId:id,...(action==="reply"?{text:text.trim()}:{})});
    setReply(false);setText("");setRequest(null);onChanged(result);

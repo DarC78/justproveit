@@ -1,3 +1,4 @@
+import { randomUuid } from "@/lib/randomUuid";
 import {FormEvent, useEffect, useId, useRef, useState} from "react";
 import {sendContactWhatsAppReply,sendScheduledWhatsAppReply, WhatsAppReplyResult, ComposerRequest, ComposerTemplate, getComposerTemplates} from "@/lib/crmAdmin";
 
@@ -28,7 +29,7 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
   async function submit(event:FormEvent) {
     event.preventDefault();if(busy.current||(!attempt.current&&!valid))return;
     busy.current=true;setSending(true);setError("");
-    const current=attempt.current||{requestId:crypto.randomUUID(),...(template?{templateName:template.name,templateLanguage:template.language,parameters:values,headerUrl}:{text:text.trim()})};
+    const current=attempt.current||{requestId:randomUuid(),...(template?{templateName:template.name,templateLanguage:template.language,parameters:values,headerUrl}:{text:text.trim()})};
     attempt.current=current;
     try {
       const response=await (contactId?sendContactWhatsAppReply(token,contactId,{...current,expectedPhone:phone}):sendScheduledWhatsAppReply(token,intentId!,{...current,expectedPhone:phone}));

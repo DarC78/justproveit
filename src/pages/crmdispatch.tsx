@@ -1,14 +1,21 @@
 ﻿import Head from "next/head";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { DispatchContact, loadCrmDispatchContact, loadCrmDispatchRouting } from "@/lib/crmAdmin";
 import { calculatorDispatchUrl, dispatchPhoneFromQuery, inboundDispatchUrl, isPensionDispatchQueue } from "@/lib/crmDispatch";
 
+// Hydration has a server snapshot of false and a client snapshot of true.
+// No subscription is needed: this value changes only when React hydrates.
+const subscribeToHydration=()=>()=>{};
+const clientMounted=()=>true;
+const serverMounted=()=>false;
+
 type Result={key:string;contact:DispatchContact|null;url:string;checked:boolean};
 export default function CrmDispatchPage() {
   const router=useRouter();
+  const mounted=useSyncExternalStore(subscribeToHydration,clientMounted,serverMounted);
   const {status,token,isCrm}=useAuth();
   const phone=dispatchPhoneFromQuery(router.query);
   const queue=typeof router.query.queue==='string'?router.query.queue.trim():'';
@@ -18,7 +25,7 @@ export default function CrmDispatchPage() {
   const [attempt,setAttempt]=useState(0);
   const requestKey=JSON.stringify([phone,queue,agent,attempt,token]);
   const result=loaded?.key===requestKey?loaded:null;
-  const error=router.isReady&&!phone?"Adauga un numar valid folosind phone_leads, phone_dnis, phone_ani sau phone. Exemplu: /crmdispatch?phone_leads=447440526630":failure?.key===requestKey?failure.message:"";
+  const error=mounted&&router.isReady&&!phone?"Adauga un numar valid folosind phone_leads, phone_dnis, phone_ani sau phone. Exemplu: /crmdispatch?phone_leads=447440526630":failure?.key===requestKey?failure.message:"";
   useEffect(()=>{
     if(!router.isReady || status==="loading") return;
     if(status!=="authenticated") {
