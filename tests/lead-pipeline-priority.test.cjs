@@ -13,3 +13,16 @@ test('AgreedToBuy renders UK date/time first, date-only actions honestly, and fu
   await React.act(async()=>rows[0].querySelector('button.pipeline-phone-link').click());assert.equal(document.querySelector('td[colspan]').colSpan,5);
  }finally{await React.act(async()=>root.unmount());global.fetch=old;dom.window.close();delete global.window;delete global.document;}
 });
+test('Clients renders red P0/P1, yellow P2 and blue P3 with priority date and purchases columns',async()=>{
+ const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ window.localStorage.setItem('proveit.crm.leadPipeline.filters.v1:default',JSON.stringify({status:'clients',showFutureScheduled:true}));
+ const old=global.fetch;global.fetch=async()=>({ok:true,json:async()=>({counts:{clients:4},cohortTotal:4,total:4,asOfUtc:'2026-11-11T12:00Z',rows:Array.from({length:4},(_,priority)=>({contactId:'c'+priority,name:'Client '+priority,phone:'44770090000'+priority,createdAtUtc:'2026-11-01',pipelineStatus:'clients',priority,priorityLabel:'Reason '+priority,nextActionDate:priority===0?'2099-01-01':null,priorityDate:priority===3?'2099-01-01':null,purchases:[{service:'pension',label:'Pension',purchasedAtUtc:'2026-11-01'}]}))})});
+ const code=ts.transpileModule(fs.readFileSync('src/components/LeadPipelinePanel.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,mod={exports:{}},empty={__esModule:true,default:()=>null};
+ const mocks={'@/lib/auth':{API_BASE_URL:'https://api.test'},'@/lib/allCustomers':{contactActionNotice:()=>''},'@/lib/bookedCalls':{bookingActionNotice:()=>''},'@/lib/leadNotes':{useLeadNoteSummaries:()=>({summaries:{},refresh(){}}),nextActionRowStyle:()=>({backgroundColor:'#dbeafe'})},'./ContactActions':empty,'./PipelineLeadControls':empty,'./BookingActions':empty,'./ScheduledCallsTable':empty,'./LeadPhoneHistory':{__esModule:true,default:()=>React.createElement('p',null,'History')}};
+ new Function('require','module','exports',code)(name=>mocks[name]||require(name),mod,mod.exports);const root=createRoot(document.getElementById('root'));
+ try{await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'token'})));
+  const rows=[...document.querySelectorAll('tbody>tr')];assert.deepEqual(rows.map(r=>r.style.backgroundColor),['rgb(254, 202, 202)','rgb(254, 202, 202)','rgb(254, 243, 199)','rgb(219, 234, 254)']);
+  assert.equal(document.querySelector('thead th').textContent,'Date / time (UK)');assert.equal(document.querySelectorAll('thead th').length,6);assert.match(rows[2].textContent,/P2/);assert.match(rows[2].textContent,/Pension/);
+  await React.act(async()=>rows[0].querySelector('button.pipeline-phone-link').click());assert.equal(document.querySelector('td[colspan]').colSpan,6);
+ }finally{await React.act(async()=>root.unmount());global.fetch=old;dom.window.close();delete global.window;delete global.document;}
+});

@@ -17,6 +17,7 @@ type Report={counts:Record<Status,number>;purchasedServices?:{value:string;label
 const clock=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'});
 const at=(value:string|null)=>value?clock.format(new Date(value)):'—';
 const priorityColors:Record<number,string|undefined>={0:'#fff1f2',1:'#fecaca',2:'#fecaca',3:'#dcfce7',4:'#dcfce7',5:undefined};
+const clientPriorityColors:Record<number,string>={0:'#fecaca',1:'#fecaca',2:'#fef3c7',3:'#dbeafe'};
 const descriptions:Record<Status,string>={newLead:'No meaningful call in the past 30 days and no simulation progress or outcome.',SimulationInProgress:'Simulation answers started; results not confirmed delivered.',SimulationDone:'Meaningful call in the past 30 days, or WhatsApp simulation results delivered.',ScheduledCall:'Has a recorded past or future call booking, unless the lead qualifies for AgreedToBuy, ToAdrian or clients.',AgreedToBuy:'VA_CUMPARA or PROGRAMARE_CONSULTATIE, or manually assigned; retained until purchase or explicit closure.',ToAdrian:'Files/photos received from the lead, or manually assigned for Adrian. Manual stage assignments take precedence.',clients:'Clients with call or WhatsApp activity in the past 60 days. Car-finance-only clients are excluded; mixed-service clients are included.'};
 export default function LeadPipelinePanel({token,userId='default'}:{token:string;userId?:string}) {
  const [status,setStatus]=useState<Status|''>(''),[search,setSearch]=useState(''),[applied,setApplied]=useState(''),[page,setPage]=useState(0),[revision,setRevision]=useState(0);
@@ -48,7 +49,7 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
  const changeSource=(value:string)=>{setSource(value);setPage(0);persist({status,source:value,inboundDays});};
  const changeDays=(value:string)=>{const days=value===''?0:Number(value);if(!Number.isInteger(days)||days<0||days>365)return;setInboundDays(days);setPage(0);persist({status,source,inboundDays:days});};
  const sources=[...new Set([...(report?.sources||[]),...(source?[source]:[])])];
- const priorityView=['AgreedToBuy','ToAdrian'].includes(status);
+ const priorityView=['AgreedToBuy','ToAdrian','clients'].includes(status);
  const pipelineChanged=(message:string)=>{setNotice(message);setRevision(n=>n+1);};
  return <section className="pipeline-panel">
   <h1>Lead Pipeline — activity in the last 60 days</h1>
@@ -72,13 +73,14 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
   </form>
   <p className="pipeline-filter-help"><small>Filters are saved for your account in this browser. N/A applies no inbound filter. A number includes inbound calls (including missed calls) or incoming WhatsApp messages; SMS, email and outbound messages do not qualify.</small></p>
   <details className="pipeline-rules"><summary>Classification rules</summary><ul>{statuses.map(s=><li key={s}><strong>{s}</strong>: {descriptions[s]}</li>)}</ul><p>Priority: manual assignments, then clients (purchased), ToAdrian, AgreedToBuy → ScheduledCall → SimulationDone → SimulationInProgress → newLead. Unanswered calls, voicemail, no audio, default/invalid callcodes and calls without a connected agent do not count as meaningful. WhatsApp results must have a delivery/read confirmation for the final result message.</p></details>
+  {status==='clients'&&<p className="pipeline-filter-help">P0: incoming contact awaiting response (red). P1: Next Action Date today or overdue (red). P2: no Next Action Date (yellow). P3: future Next Action Date (blue). Mark event as handled acknowledges the current incoming event.</p>}
   {notice&&<p role="status">{notice}</p>}{notes.error&&<p role="alert">{notes.error}</p>}
   {error?<p role="alert">{error}</p>:loading?<p role="status">Loading lead pipeline…</p>:report&&<>
    <p>{report.total} {status==='ScheduledCall'?'scheduled calls':status==='clients'?'clients':'leads'} matching these filters · Updated {at(report.asOfUtc)} UK time</p>
    {status==='ScheduledCall'&&!report.rows.length&&<p>No calls match the selected date range and filters.</p>}
    {report.warnings?.map(w=><p key={w}>{w}</p>)}
    {status==='ScheduledCall'?<ScheduledCallsTable token={token} pipeline showCallDate={showFutureScheduled} renderExtraActions={booking=>{const row=report.rows.find(r=>r.contactId===booking.contactId);return row?<PipelineLeadControls token={token} row={row} onChanged={pipelineChanged}/>:null;}} rows={report.rows.flatMap(row=>row.booking?[{...row.booking,leadSource:row.source}]:[])} onChanged={message=>{setNotice(message);setRevision(n=>n+1);}}/>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr>{[...(priorityView?['Date / time (UK)']:[]),'Lead','Phone','Email',...(status==='clients'?['Purchased services / purchase date']:[]),'Actions'].map(h=><th key={h} style={{padding:10,textAlign:'left',background:'#edf3fc'}}>{h}</th>)}</tr></thead><tbody>
-    {report.rows.map(row=>{const key='contact:'+row.contactId.toLowerCase(),date=notes.summaries[key]?notes.summaries[key].nextActionDate:row.nextActionDate,noteStyle=nextActionRowStyle(date),futureStyle=date&&noteStyle?.backgroundColor==='#dbeafe'?noteStyle:undefined;return <Fragment key={row.contactId}><tr style={{borderBottom:'1px solid #dae2ee',...(futureStyle||((priorityView||row.manualPriority)?{backgroundColor:priorityColors[row.priority??5]}:noteStyle))}}>
+    {report.rows.map(row=>{const key='contact:'+row.contactId.toLowerCase(),date=notes.summaries[key]?notes.summaries[key].nextActionDate:row.nextActionDate,noteStyle=nextActionRowStyle(date),futureStyle=date&&noteStyle?.backgroundColor==='#dbeafe'?noteStyle:undefined;return <Fragment key={row.contactId}><tr style={{borderBottom:'1px solid #dae2ee',...(status==='clients'?{backgroundColor:clientPriorityColors[row.priority??2]}:futureStyle||((priorityView||row.manualPriority)?{backgroundColor:priorityColors[row.priority??5]}:noteStyle))}}>
      {priorityView&&<td className="pipeline-priority-date"><time dateTime={row.priorityAtUtc||row.priorityDate||undefined}>{row.priorityAtUtc?at(row.priorityAtUtc):row.priorityDate?row.priorityDate.split('-').reverse().join('/')+' \u00b7 No time set':at(null)}</time><br/><strong>P{row.priority??5}</strong><br/><small>{row.priorityLabel||'No higher-priority condition'}</small></td>}
      <td style={{padding:10}}><strong>{row.name||'Unnamed lead'}</strong><br/><small>Received: {at(row.createdAtUtc)}</small></td>
      <td><button className="pipeline-phone-link" type="button" title="Open lead history" onClick={()=>setHistory(history===row.contactId?null:row.contactId)} aria-expanded={history===row.contactId}>{row.phone||'Open history'}</button></td><td>{row.email||'—'}</td>
@@ -87,8 +89,8 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
       <PipelineLeadControls token={token} row={row} onChanged={pipelineChanged}/>
       {row.booking&&<BookingActions key={row.booking.intentId+':'+row.booking.appointmentAtUtc} token={token} booking={row.booking} onChanged={result=>{setNotice(bookingActionNotice(result));setRevision(n=>n+1);}} onBusinessMarked={()=>setRevision(n=>n+1)} onSolved={()=>{setNotice('Booking marked solved on WhatsApp.');setRevision(n=>n+1);}}/>}
      </td>
-    </tr>{history===row.contactId&&<tr><td colSpan={status==='clients'||priorityView?5:4}><LeadPhoneHistory token={token} contactId={row.contactId} phone={row.phone} name={row.name} onCollapse={()=>setHistory(null)}/></td></tr>}</Fragment>;})}
-    {!report.rows.length&&<tr><td colSpan={status==='clients'||priorityView?5:4}>No leads match these filters.</td></tr>}
+    </tr>{history===row.contactId&&<tr><td colSpan={4+Number(priorityView)+Number(status==='clients')}><LeadPhoneHistory token={token} contactId={row.contactId} phone={row.phone} name={row.name} onCollapse={()=>setHistory(null)}/></td></tr>}</Fragment>;})}
+    {!report.rows.length&&<tr><td colSpan={4+Number(priorityView)+Number(status==='clients')}>No leads match these filters.</td></tr>}
    </tbody></table></div>}
    <div className="pipeline-pagination"><button className="pipeline-button" type="button" disabled={!page} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page+1} of {Math.max(1,Math.ceil(report.total/30))}</span><button className="pipeline-button" type="button" disabled={(page+1)*30>=report.total} onClick={()=>setPage(p=>p+1)}>Next</button></div>
   </>}
