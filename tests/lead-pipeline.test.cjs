@@ -9,7 +9,7 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   '@/lib/bookedCalls':{bookingActionNotice:()=> 'Booking saved'},
   '@/lib/leadNotes':{useLeadNoteSummaries:()=>({summaries:{},refresh(){},error:''}),nextActionRowStyle:()=>undefined},
   './ContactActions':{__esModule:true,default:props=>{actions=props;return React.createElement('button',{onClick:()=>props.onChanged({action:'solve',success:true})},'Fixture Solve');}},
-  './BookingActions':{__esModule:true,default:()=>null},
+  './PipelineLeadControls':{__esModule:true,default:()=>null},'./BookingActions':{__esModule:true,default:()=>null},
   './ScheduledCallsTable':{__esModule:true,default:props=>React.createElement('div',{'data-testid':'scheduled-table'},props.pipeline?'Scheduled pipeline table':'Other table')},
   './LeadPhoneHistory':{__esModule:true,default:props=>{history=props;return React.createElement('button',{onClick:props.onCollapse},'Collapse history');}}
  };
@@ -59,5 +59,7 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   assert.equal(new URL(calls.at(-1).url).searchParams.get('purchasedService'),'pension');assert.equal(JSON.parse(window.localStorage.getItem('proveit.crm.leadPipeline.filters.v1:another-user')).purchasedService,'pension');
   await React.act(async()=>root.unmount());root=createRoot(document.getElementById('root'));await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'another-token',userId:'another-user'})));
   assert.equal(document.querySelector('[aria-label="Purchased service"]').value,'pension');assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'clients');
+  const options=[...document.querySelector('[aria-label="Pipeline status"]').options].map(o=>o.value);assert.equal(options.indexOf('ToAdrian'),options.indexOf('AgreedToBuy')+1);assert.equal(options.indexOf('clients'),options.indexOf('ToAdrian')+1);
+  await React.act(async()=>{const select=document.querySelector('[aria-label="Pipeline status"]');select.value='ToAdrian';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'ToAdrian');assert.equal(document.querySelector('thead th').textContent,'Date / time (UK)');assert.equal(JSON.parse(window.localStorage.getItem('proveit.crm.leadPipeline.filters.v1:another-user')).status,'ToAdrian');
  }finally{await React.act(async()=>root.unmount());global.fetch=previous;dom.window.close();delete global.window;delete global.document;}
 });

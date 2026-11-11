@@ -1,6 +1,6 @@
 import LeadAgentAssignment from "./LeadAgentAssignment";
 import Link from "next/link";
-import {useState} from "react";
+import {useState,type ReactNode} from "react";
 import PhoneHistoryModal from "./PhoneHistoryModal";
 import BookingCallHistory from "./BookingCallHistory";
 import BookingActions from "./BookingActions";
@@ -17,8 +17,8 @@ function YesNo({value}:{value:boolean|null|undefined}) {
     <style jsx>{`span{display:inline-block;border-radius:20px;padding:3px 9px;font-weight:700;font-size:12px}.yes{background:#e5f4e9;color:#196a35}.no{background:#fff2d6;color:#855a0b}.unknown{color:#667085}`}</style></span>;
 }
 
-export default function ScheduledCallsTable({token,rows,attention=false,pipeline=false,onChanged}:{
-  token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;onChanged:(notice:string)=>void;
+export default function ScheduledCallsTable({token,rows,attention=false,pipeline=false,onChanged,renderExtraActions}:{
+  token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;onChanged:(notice:string)=>void;renderExtraActions?:(row:ScheduledCallRow)=>ReactNode;
 }) {
   const [historyBooking,setHistoryBooking]=useState<ScheduledCallRow|null>(null);
   const notes=useLeadNoteSummaries(token,rows.map(row=>({id:row.contactId,kind:'contact'})));
@@ -57,7 +57,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
       <td className="history"><BookingActions token={token} booking={row}
         onChanged={result=>onChanged(bookingActionNotice(result))}
         onSolved={()=>onChanged("Rezolvarea pe WhatsApp a fost inregistrata.")}
-        onBusinessMarked={()=>onChanged("Continuarea conversatiei pe WhatsApp Business a fost inregistrata.")}/><InternalLeadActions token={token} contactId={row.contactId} name={row.name||'Lead'} allowEnd={false} onChanged={()=>{}} summary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh}/></td>
+        onBusinessMarked={()=>onChanged("Continuarea conversatiei pe WhatsApp Business a fost inregistrata.")}/><InternalLeadActions token={token} contactId={row.contactId} name={row.name||'Lead'} allowEnd={false} onChanged={()=>{}} summary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh}/>{renderExtraActions?.(row)}</td>
     </tr>)}</tbody></table>
     <style jsx>{`
       .table-scroll{overflow-x:auto;border:1px solid #dce3ee;border-radius:7px}

@@ -1,5 +1,13 @@
 # Lead Pipeline
 
+## ToAdrian and pipeline controls (11 November 2026)
+
+ToAdrian follows AgreedToBuy and precedes clients, with the same first UK date/time column and P0–P5 presentation. Received files/photos route eligible non-clients into ToAdrian automatically; automatic existing clients remain in clients. Historical evidence recalculates on read.
+
+PipelineLeadControls is rendered in every pipeline category, including the shared ScheduledCall table through its optional extra-actions renderer. Assign pipeline stage offers Automatic, AgreedToBuy and ToAdrian. Manual selection overrides computed classification until cleared and puts the lead first as manual P0 (also before other rows in All). The service/client purchase records and bookings are preserved. Explicitly reassigning the same stage can re-pin P0.
+
+P0 rows also expose Mark as handled. This uses the new metadata-only pipeline-control API, not Solve. The request carries the displayed incoming timestamp and pipeline version; retries retain the same request ID/payload. Handling clears only the current incoming/manual alert, retaining the stage. New incoming contact can reactivate P0. A stale assignment from another agent returns a conflict rather than silently being overwritten. Successful changes refresh the list with the user's filters intact. No message is sent and no appointment/reminder is cancelled.
+
 ## AgreedToBuy priorities (11 November 2026)
 
 AgreedToBuy adds Date / time (UK) as its first column, showing the backend-selected priority timestamp plus P0–P5 and a reason. Next Action Dates are date-only and display “No time set”. Backend priority order is applied before pagination: P0 client reply after our latest contact (light red, newest first); P1 today's appointment over 30 minutes overdue without call/WhatsApp follow-up (red, oldest first); P2 overdue Next Action Date (red, oldest first); P3 appointment within 30 minutes or upcoming, including future days (green, soonest first); P4 today/future Next Action Date (green, soonest first); P5 remainder (no background, latest activity first). First matching priority wins. The 30-minute threshold uses the scheduled appointment time, not booking creation.
