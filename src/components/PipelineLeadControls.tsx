@@ -4,6 +4,7 @@ export default function PipelineLeadControls({token,row,onChanged}:{token:string
  const [stage,setStage]=useState<ManualPipelineStage|''>(row.manualStage?.stage||''),[saving,setSaving]=useState(false),[error,setError]=useState('');
  const pending=useRef<PipelineControlInput|null>(null),busy=useRef(false);
  const [ending,setEnding]=useState(false),[reason,setReason]=useState('');
+ const canEnd=['newLead','SimulationInProgress','SimulationDone','ScheduledCall','AgreedToBuy','ToAdrian','clients'].includes(row.pipelineStatus||'');
  useEffect(()=>{setStage(row.manualStage?.stage||'');pending.current=null;setError('');},[row.contactId,row.pipelineVersion,row.manualStage?.stage]);
  async function save(action:'stage'|'handle'|'end'|'reopen'){
   if(busy.current)return;busy.current=true;setSaving(true);setError('');
@@ -14,7 +15,7 @@ export default function PipelineLeadControls({token,row,onChanged}:{token:string
  }
  return <div className="pipeline-lead-controls">
   {row.ended?<><strong>Ended lead</strong><small>{row.ended.reason}{row.ended.actor?` — ${row.ended.actor}`:''}</small><button type="button" disabled={saving} onClick={()=>void save('reopen')}>Reopen Lead</button></>:<>
-  <button type="button" disabled={saving} onClick={()=>setEnding(true)}>End Lead</button>
+  <button type="button" disabled={saving||!canEnd} title={canEnd?undefined:'Pipeline classification is unavailable. Refresh before ending this lead.'} onClick={()=>setEnding(true)}>End Lead</button>
   {ending&&<form onSubmit={e=>{e.preventDefault();if(reason.trim())void save('end');}}><label>Reason for ending lead<textarea aria-label="Reason for ending lead" required maxLength={2000} value={reason} disabled={saving} onChange={e=>{setReason(e.target.value);pending.current=null;}}/></label><button type="submit" disabled={saving||!reason.trim()}>Confirm End Lead</button><button type="button" disabled={saving} onClick={()=>{setEnding(false);setReason('');pending.current=null;}}>Cancel</button></form>}
   {row.priority===0&&<button type="button" disabled={saving} onClick={()=>void save('handle')}>Mark event as handled</button>}
   <div className="stage-controls"><label>Assign pipeline stage<select aria-label="Assign pipeline stage" disabled={saving} value={stage} onChange={e=>{setStage(e.target.value as ManualPipelineStage|'');pending.current=null;setError('');}}><option value="">Automatic</option><option value="AgreedToBuy">AgreedToBuy</option><option value="ToAdrian">ToAdrian</option></select></label>

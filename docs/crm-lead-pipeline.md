@@ -65,7 +65,7 @@ Lead and scheduled-call history uses backend pages of 25 combined events (calls,
 
 The pipeline endpoint returns a precomputed cohort, still filtered/sorted/paged on the backend. Source reconciliation refreshes in the background; the visible page checks for a newer model every 30 seconds. The actual snapshot time stays visible, with an explicit warning if background refresh is delayed. Current stage, handled/end and Next Action Date metadata is checked live. Background reloads keep the existing rows and open history; changing filters/pages shows a loading state until the matching result arrives. History is still fetched only when opened.
 
-## AllWhatsAppMessages (12 November 2026)
+## AllWhatsAppMessages — initial per-message version (12 November 2026)
 
 The CRM tab key and label are `AllWhatsAppMessages`, next to Lead Pipeline. It lists incoming WhatsApp messages linked to JustProveIt CRM contacts, with Date (Europe/London), CRM Lead (expandable history), Phone, primary Email, Message, LeadStatus, Agent and actions. Default: all dates and all completion states, newest first, 50 events per page. Search covers lead name, phone, email, message, agent and stage. Optional inclusive UK-calendar date range and All/Pending/Done filter.
 
@@ -79,7 +79,7 @@ LeadStatus uses the existing pipeline read model with live manual controls. Lead
 
 Vendor reads are cached for up to 30 seconds; CRM metadata/completions are read live. A failed source returns an error rather than silently omitting its messages. Pipeline classification failure is reported as a warning while manual assignments remain visible.
 
-## CRM navigation and All Messages update (12 November 2026)
+## CRM navigation and initial All Messages update (12 November 2026)
 
 Primary navigation, left to right: Lead Pipeline, All Leads CRM, Lead Nou, All Messages, Agent Report, Other. Other is an accessible disclosure displaying the remaining existing CRM sections. Restricted/private-pension and gateway feature visibility is preserved. Existing deep links remain routable; AllWhatsAppMessages resolves to the new allMessages tab. Bare CRM URLs now open Lead Pipeline; legacy phone-only links still open lead details. Programmatic lead-detail navigation remains functional when Other is collapsed.
 
@@ -92,3 +92,16 @@ The new authenticated endpoint is GET/POST /api/justproveit/admin/crm/all-messag
 The shared 25-event phone-history page also includes incoming app.InboundSmsMessages and outgoing wix.ozSMSCampaigns, globally sorted with calls, both WhatsApp channels, email and Stripe before pagination. All reads resolve the authorized tenant/contact or booking and match full normalized phones, never suffixes. Explicit incoming ContactId assignments take precedence over phone matching. Company WhatsApp number 447447707829 is excluded from phone aliases. SMS entries preserve the exact sender/recipient number, recorded author and provider outcome; accepted, queued, failed and unknown records are not labelled delivered. SMS read failure is reported without removing the other channels.
 
 The response adds smsMessages (page count) and linkedPhones (server-verified contact/SMS phone aliases). A secondary-number SMS can open the correct lead history; calls/WhatsApp continue to identify their canonical number. SMS rows and history cards use distinct pink styling. Each incoming SMS has Reply via SMS. The composer displays a fixed recipient, requires message review and an explicit Send SMS click, then uses the existing authenticated manual-sms route. Success requires a provider message receipt and is labelled provider accepted, not delivered. Duplicate clicks are blocked; an uncertain/failed attempt is never automatically retried. Successful replies refresh the history. No messages were sent during feature verification.
+
+
+## Grouped All Messages inbox and shared actions (12 November 2026)
+
+The All Messages UI requests `GET /api/justproveit/admin/crm/all-messages?grouped=1`. It shows one row per CRM contact: all deduplicated incoming WhatsApp Mediatel, WhatsApp Agenti and SMS messages strictly after the latest confirmed outgoing message on any supported channel or saved phone alias. With no recorded reply, all available incoming messages form the batch. Contacts without any incoming message after their latest reply have no row. Calls and emails do not end a message batch. Contacts sharing a number retain separate CRM records; authoritative gateway/SMS assignments are preserved.
+
+Reply evidence comes from positive Mediatel send/delivery/read receipts, accepted/sent/delivered/read local WhatsApp records with provider IDs, confirmed external Agenti sends, and successful SMS sends. Queued, processing, failed, unknown or future-dated attempts do not end a batch. A later read receipt uses the original outgoing-message time, not the read time. The Mediatel query materializes candidate provider IDs and hash-joins receipts once; it does not perform a per-message correlated receipt scan. A reply-source read failure fails the grouped request rather than silently guessing boundaries.
+
+The Date column and ordering use the latest incoming message. The Message column renders the entire batch oldest first, with a UK date/time and channel on every message. SMS keeps its pink styling and a reply composer on the latest SMS for each actual sender number. Media placeholders still open through the existing lead history. Content is rendered as text, not HTML. Pagination counts 50 conversations, never 50 individual messages. Search and channel filters select whole batches; UK From/To dates apply to the latest incoming date. They do not split messages or change reply boundaries.
+
+Both Lead Pipeline and All Messages use the same `LeadPipelineRowActions` component: existing ContactActions, PipelineLeadControls and applicable BookingActions. This preserves Reply on WhatsApp, Solve, payment recording, Add comment/Next Action Date, New ASAP, Book a call, End/Reopen Lead, Mark event as handled, stage assignment and booking-specific actions. Ending is disabled when the real pipeline classification is unavailable; no guessed stage is saved. A handled batch is derived from the shared pipeline handled-through timestamp (or all legacy message completions). Handling uses the displayed last incoming timestamp, so a new incoming message after that snapshot stays pending; it does not send a message or advance a service case.
+
+Unparameterized All Messages requests and the legacy WhatsApp-only API retain per-message responses and the idempotent legacy Done mutation for compatibility. The grouped UI replaces its bespoke per-message Done/stage card with the actual shared Lead Pipeline controls. No database migration or automatic outbound delivery is introduced.

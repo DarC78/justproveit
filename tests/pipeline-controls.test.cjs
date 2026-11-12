@@ -5,7 +5,7 @@ test('mark handled retries the same request and snapshot; any stage can be assig
  const calls=[],changes=[],mod={exports:{}};let failures=1;
  const savePipelineControl=async(_token,contactId,input)=>{calls.push({contactId,input});if(failures-->0)throw Error('Retry same request');return {success:true};};
  new Function('require','module','exports',compile('src/components/PipelineLeadControls.tsx'))(name=>name==='@/lib/leadPipelineControls'?{savePipelineControl}:require(name),mod,mod.exports);
- const root=createRoot(document.getElementById('root'));let row={contactId:'lead',pipelineVersion:0,priority:0,lastInboundAtUtc:'2026-11-11T10:00:00Z',manualStage:null};
+ const root=createRoot(document.getElementById('root'));let row={contactId:'lead',pipelineStatus:'newLead',pipelineVersion:0,priority:0,lastInboundAtUtc:'2026-11-11T10:00:00Z',manualStage:null};
  const render=()=>root.render(React.createElement(mod.exports.default,{token:'token',row,onChanged:message=>changes.push(message)}));const button=label=>[...document.querySelectorAll('button')].find(b=>b.textContent===label);
  try{
   await React.act(async()=>render());await React.act(async()=>button('Mark event as handled').click());assert.match(document.body.textContent,/Retry same request/);

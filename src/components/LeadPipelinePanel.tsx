@@ -1,13 +1,10 @@
 import {Fragment,useEffect,useState,useRef} from 'react';
 import {API_BASE_URL} from '@/lib/auth';
 import LeadPhoneHistory from './LeadPhoneHistory';
-import ContactActions from './ContactActions';
-import BookingActions from './BookingActions';
+import LeadPipelineRowActions from './LeadPipelineRowActions';
 import PipelineLeadControls from './PipelineLeadControls';
 import type {PipelineControlView} from '@/lib/leadPipelineControls';
 import ScheduledCallsTable from './ScheduledCallsTable';
-import {contactActionNotice} from '@/lib/allCustomers';
-import {bookingActionNotice} from '@/lib/bookedCalls';
 import {nextActionRowStyle,useLeadNoteSummaries} from '@/lib/leadNotes';
 import type {ScheduledCallRow} from '@/lib/crmAdmin';
 const statuses=['newLead','SimulationInProgress','SimulationDone','ScheduledCall','AgreedToBuy','ToAdrian','clients'] as const;
@@ -89,10 +86,7 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
      <td style={{padding:10}}><strong>{row.name||'Unnamed lead'}</strong><br/><small>Received: {at(row.createdAtUtc)}</small></td>
      <td><button className="pipeline-phone-link" type="button" title="Open lead history" onClick={()=>setHistory(history===row.contactId?null:row.contactId)} aria-expanded={history===row.contactId}>{row.phone||'Open history'}</button></td><td>{row.email||'—'}</td>
      {status==='clients'&&<td style={{padding:10,minWidth:220}}>{row.purchases?.map((p,index)=><div key={p.saleId||index}><strong>{p.label}</strong><br/><small>Purchased: {at(p.purchasedAtUtc)}</small></div>)}</td>}
-     <td style={{padding:10,minWidth:300}}><ContactActions token={token} contactId={row.contactId} name={row.name} phone={row.phone} noteSummary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={()=>{notes.refresh();setRevision(n=>n+1);}} onChanged={result=>{setNotice(contactActionNotice(result));setRevision(n=>n+1);}}/>
-      <PipelineLeadControls token={token} row={row} onChanged={pipelineChanged}/>
-      {row.booking&&<BookingActions key={row.booking.intentId+':'+row.booking.appointmentAtUtc} token={token} booking={row.booking} onChanged={result=>{setNotice(bookingActionNotice(result));setRevision(n=>n+1);}} onBusinessMarked={()=>setRevision(n=>n+1)} onSolved={()=>{setNotice('Booking marked solved on WhatsApp.');setRevision(n=>n+1);}}/>}
-     </td>
+     <td style={{padding:10,minWidth:300}}><LeadPipelineRowActions token={token} row={row} noteSummary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={()=>{notes.refresh();setRevision(n=>n+1);}} onChanged={pipelineChanged}/></td>
     </tr>{history===row.contactId&&<tr><td colSpan={4+Number(priorityView)+Number(status==='clients')}><LeadPhoneHistory token={token} contactId={row.contactId} phone={row.phone} name={row.name} onCollapse={()=>setHistory(null)}/></td></tr>}</Fragment>;})}
     {!report.rows.length&&<tr><td colSpan={4+Number(priorityView)+Number(status==='clients')}>No leads match these filters.</td></tr>}
    </tbody></table></div>}

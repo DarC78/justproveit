@@ -9,6 +9,7 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   '@/lib/bookedCalls':{bookingActionNotice:()=> 'Booking saved'},
   '@/lib/leadNotes':{useLeadNoteSummaries:()=>({summaries:{},refresh(){},error:''}),nextActionRowStyle:()=>undefined},
   './ContactActions':{__esModule:true,default:props=>{actions=props;return React.createElement('button',{onClick:()=>props.onChanged({action:'solve',success:true})},'Fixture Solve');}},
+  './LeadPipelineRowActions':{__esModule:true,default:props=>{actions={...props,contactId:props.row.contactId,phone:props.row.phone};return React.createElement('button',{onClick:()=>props.onChanged('Action saved')},'Fixture Solve');}},
   './PipelineLeadControls':{__esModule:true,default:()=>null},'./BookingActions':{__esModule:true,default:()=>null},
   './ScheduledCallsTable':{__esModule:true,default:props=>React.createElement('div',{'data-testid':'scheduled-table','data-show-date':String(props.showCallDate)},props.pipeline?'Scheduled pipeline table':'Other table')},
   './LeadPhoneHistory':{__esModule:true,default:props=>{history=props;return React.createElement('button',{onClick:props.onCollapse},'Collapse history');}}
