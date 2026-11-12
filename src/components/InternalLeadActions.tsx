@@ -1,3 +1,4 @@
+import ManualPayment from './ManualPayment';
 import {FormEvent,useEffect,useRef,useState} from 'react';
 import {API_BASE_URL} from '@/lib/auth';
 import {ContactActionResult} from '@/lib/allCustomers';
@@ -23,7 +24,7 @@ export default function InternalLeadActions({token,contactId,name,disabled,onCha
    if(mode==='end'){setMode(null);onChanged(data);}else{setNotes(current=>current.some(n=>n.id===data.note.id)?current:[...current,data.note]);setCurrentDate(data.nextActionDate||null);setNextActionDate(data.nextActionDate||'');setDateEdited(false);setText('');request.current=crypto.randomUUID();setMode(null);onNoteSaved?.();}
   }catch(e){setError(e instanceof Error?e.message:'Unable to save.');}finally{busy.current=false;setSaving(false);}
  }
- return <>{allowEnd&&<button type="button" disabled={disabled||saving||loading} onClick={()=>void open('end')}>End lead</button>}<button type="button" disabled={disabled||saving||loading} onClick={()=>void open('note')}>Add comment{summary?.noteCount?` (${summary.noteCount})`:''}</button>{currentDate&&<small className="next-action">Next Action Date: {displayDate(currentDate)}</small>}
+ return <>{recordKind==='contact'&&<ManualPayment token={token} contactId={contactId} name={name} onSaved={onNoteSaved}/>} {allowEnd&&<button type="button" disabled={disabled||saving||loading} onClick={()=>void open('end')}>End lead</button>}<button type="button" disabled={disabled||saving||loading} onClick={()=>void open('note')}>Add comment{summary?.noteCount?` (${summary.noteCount})`:''}</button>{currentDate&&<small className="next-action">Next Action Date: {displayDate(currentDate)}</small>}
  {mode&&<dialog ref={dialog} aria-label={mode==='end'?'End lead':'Internal comments'} onCancel={e=>{if(saving)e.preventDefault();else setMode(null);}}><form onSubmit={save}>
  <h3>{mode==='end'?'End lead':'Internal comments'}</h3><p>{name}</p><p>Doar pentru echipa noastră. Nu se trimite niciun mesaj clientului.</p>
  {loading?<p role="status">Se încarcă...</p>:<ul>{[...notes].reverse().map(n=><li key={n.id}><strong>{n.kind==='end'?'Motiv închidere':'Comentariu'}</strong> · {n.actor||'CRM user'} · {new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'}).format(new Date(n.atUtc))}<p className="note">{n.text}</p>{n.nextActionDate&&<p>Next Action Date: {displayDate(n.nextActionDate)}</p>}</li>)}</ul>}

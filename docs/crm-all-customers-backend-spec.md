@@ -160,3 +160,5 @@ checks. API failures never display an all-clear state. These are CRM dashboard
 alerts only. Daily archives are local to the same host, retain seven verified
 copies and need separate protected recovery configuration/key for restoration;
 o off-host backup or external notification delivery is configured.
+
+Manual bank transfers: the shared per-lead action controls expose Confirm bank payment. The authenticated form loads existing purchases, requires service/amount/currency/payment date/reference/plan and explicit receipt verification, and closes after verified save. The paginated history displays bank transfers separately from Stripe. Client classification refreshes through the normal purchase read model; opening a service case remains manual. Backend contract: docs/systems/crm-manual-payments.md in LaunchingStack.

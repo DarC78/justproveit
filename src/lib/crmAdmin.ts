@@ -392,7 +392,7 @@ export type CrmEmailEvent = {kind:"email";id:string;atUtc:string|null;direction:
 export type CrmEmailBody = {subject:string;from:string;to:string[];text:string;html:string};
 export type CrmStripeEvent = {kind:"stripe";id:string;atUtc:string;source:"proveit"|"justproveit";label:string;eventType:string;amount:number|null;currency:string|null;status:string|null;reference:string};
 export type SmsHistoryEvent={kind:"sms";id:string;atUtc:string|null;direction:"inbound"|"outbound";phone:string;author:string;text:string;source:"SMS";status:string;providerMessageId:string|null;errorMessage?:string|null};
-export type PhoneHistoryEvent = CrmStripeEvent | CrmEmailEvent | SmsHistoryEvent | {
+export type PhoneHistoryEvent = ManualPaymentEvent | CrmStripeEvent | CrmEmailEvent | SmsHistoryEvent | {
   kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
   image?: {mediaId:string;mimeType:string;name:string}|null; author: string; text: string; messageType: string; status: string; source?: string; channel?:'mediatel'|'agents'; providerMessageId?: string; accountId?: string; errorCode?: string | null; errorMessage?: string | null;
 } | {
@@ -1480,3 +1480,5 @@ export function getCrmStripeHistory(token:string,kind:"contact"|"booking",id:str
 export function getCrmHistoryContactByPhone(token:string,phone:string){
  return fetchCanonicalCrmReadJson<{found:boolean;contact:{id:string}|null;phones:CrmContactPhone[]}>(`${BASE_PATH}/canonical/contact${buildQuery({phone})}`,{headers:authHeaders(token),cache:"no-store"});
 }
+
+export type ManualPaymentEvent={kind:"payment";id:string;atUtc:string;amount:number;currency:string;label:string;reference:string;actor:string;paidDate:string;plan:string;note:string};
