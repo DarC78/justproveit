@@ -5,6 +5,7 @@ import {confirmEarlyManualBooking,isEarlyManualAppointment} from '@/lib/manualBo
 import AllLeadsView from "@/components/AllLeadsView";
 import AllCustomersView from "@/components/AllCustomersView";
 import LeadPipelinePanel from "@/components/LeadPipelinePanel";
+import AllWhatsAppMessagesPanel from "@/components/AllWhatsAppMessagesPanel";
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
 import BookedCallsDayPanel from "@/components/BookedCallsDayPanel";
@@ -67,6 +68,7 @@ type TabKey =
   | "attention"
   | "allCustomersView"
   | "leadPipeline"
+  | "AllWhatsAppMessages"
   | "sales"
   | "all"
   | "intents"
@@ -107,6 +109,7 @@ const TABS: Array<{ key: TabKey; label: string }> = [
   { key: "attention", label: "Attention" },
   { key: "allCustomersView", label: "AllCustomersView" },
   { key: "leadPipeline", label: "Lead Pipeline" },
+  { key: "AllWhatsAppMessages", label: "AllWhatsAppMessages" },
   { key: "sales", label: "Arata Vanzarile" },
   { key: "all", label: "All Leads CRM" },
   { key: "intents", label: "Lead Intents" },
@@ -1291,6 +1294,7 @@ export default function AdminCrmPage() {
               {activeTab === "whatsappGateway" ? <WhatsAppGatewayInbox token={token}/> : null}
               {activeTab === "allCustomersView" ? <AllCustomersView token={token} /> : null}
               {activeTab === "leadPipeline" ? <LeadPipelinePanel key={user?.id} token={token} userId={user?.id} /> : null}
+              {activeTab === "AllWhatsAppMessages" ? <AllWhatsAppMessagesPanel key={user?.id} token={token} /> : null}
 
               {activeTab === "sales" ? (
                 <SalesPanel token={token} onError={setErrorMessage} />

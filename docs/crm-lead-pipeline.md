@@ -64,3 +64,17 @@ Lead and scheduled-call history uses backend pages of 25 combined events (calls,
 ## Fast list loading
 
 The pipeline endpoint returns a precomputed cohort, still filtered/sorted/paged on the backend. Source reconciliation refreshes in the background; the visible page checks for a newer model every 30 seconds. The actual snapshot time stays visible, with an explicit warning if background refresh is delayed. Current stage, handled/end and Next Action Date metadata is checked live. Background reloads keep the existing rows and open history; changing filters/pages shows a loading state until the matching result arrives. History is still fetched only when opened.
+
+## AllWhatsAppMessages (12 November 2026)
+
+The CRM tab key and label are `AllWhatsAppMessages`, next to Lead Pipeline. It lists incoming WhatsApp messages linked to JustProveIt CRM contacts, with Date (Europe/London), CRM Lead (expandable history), Phone, primary Email, Message, LeadStatus, Agent and actions. Default: all dates and all completion states, newest first, 50 events per page. Search covers lead name, phone, email, message, agent and stage. Optional inclusive UK-calendar date range and All/Pending/Done filter.
+
+Sources: incoming Mediatel conversation messages, legacy native WhatsApp rows whose sender matches a tenant CRM phone, and matched WhatsApp Agenti messages for the configured tenant/account. Gateway shared-phone links use authoritative ContactId/ContactIdsJson assignments. Mirrored Mediatel provider IDs are deduplicated per lead; unlinked contacts and merged leads are excluded. A shared message can appear for each verified associated CRM lead, with separate completion state. Explicit internal identities remain excluded except when searched. Mediatel agent is the recorded message agent, falling back to the ticket's current assigned agent; unavailable agent details are labelled Unassigned / not recorded.
+
+LeadStatus uses the existing pipeline read model with live manual controls. Leads outside that cohort are labelled Outside current pipeline, unless a valid manual assignment exists. Change Lead Status reuses the existing versioned/idempotent pipeline-control endpoint: Automatic, AgreedToBuy, ToAdrian. Ended leads must be reopened in Lead Pipeline first.
+
+`GET /api/justproveit/admin/crm/all-whatsapp-messages?search=&from=&to=&completion=all&offset=0` returns rows, total, offset, limit (50), asOfUtc and warnings. Each row includes a stable messageKey, contactId and current pipelineVersion. Both read and write require JustProveIt CRM authorization; responses are private/no-store.
+
+`POST` to the same endpoint with `{action:"done",contactId,messageKey}` freshly verifies the incoming message belongs to that tenant/contact. A locked transaction stores its completion actor/time in `crm.Contacts.RawJson.whatsappMessageCompletions[messageKey]` and adds an audit log. Repeating completion returns the first receipt. This acknowledges only that message for that lead; it does not send a reply, alter bookings/status, close the lead, or acknowledge the pipeline P0 watermark. Done events remain available in the All/Done filters. There is no new schema migration.
+
+Vendor reads are cached for up to 30 seconds; CRM metadata/completions are read live. A failed source returns an error rather than silently omitting its messages. Pipeline classification failure is reported as a warning while manual assignments remain visible.
