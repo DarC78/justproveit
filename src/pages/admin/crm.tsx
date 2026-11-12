@@ -6,6 +6,8 @@ import AllLeadsView from "@/components/AllLeadsView";
 import AllCustomersView from "@/components/AllCustomersView";
 import LeadPipelinePanel from "@/components/LeadPipelinePanel";
 import AllWhatsAppMessagesPanel from "@/components/AllWhatsAppMessagesPanel";
+import CrmTabNavigation from "@/components/CrmTabNavigation";
+import {resolveCrmTab,type CrmTabKey as TabKey} from "@/lib/crmTabs";
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
 import BookedCallsDayPanel from "@/components/BookedCallsDayPanel";
@@ -60,25 +62,6 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
-type TabKey =
-  | "privatePensions"
-  | "details"
-  | "new"
-  | "scheduledCalls"
-  | "attention"
-  | "allCustomersView"
-  | "leadPipeline"
-  | "AllWhatsAppMessages"
-  | "sales"
-  | "all"
-  | "intents"
-  | "inboundSms"
-  | "whatsappGateway"
-  | "whatsappStats"
-  | "agentreport"
-  | "manual"
-  | "highLevelFunnels"
-  | "missed";
 type GateStatus = "checking" | "allowed" | "denied";
 type InboundSmsThreadStatus = "answered" | "to_be_answered" | "past_due";
 type InboundSmsThread = {
@@ -101,33 +84,10 @@ type LocalOutboundSms = SmsTranscriptItem & {
   timestamp: string;
 };
 
-const TABS: Array<{ key: TabKey; label: string }> = [
-  { key: "privatePensions", label: "Livrare Pensii Private" },
-  { key: "details", label: "Detalii Lead" },
-  { key: "new", label: "Lead Nou" },
-  { key: "scheduledCalls", label: "Scheduled calls" },
-  { key: "attention", label: "Attention" },
-  { key: "allCustomersView", label: "AllCustomersView" },
-  { key: "leadPipeline", label: "Lead Pipeline" },
-  { key: "AllWhatsAppMessages", label: "AllWhatsAppMessages" },
-  { key: "sales", label: "Arata Vanzarile" },
-  { key: "all", label: "All Leads CRM" },
-  { key: "intents", label: "Lead Intents" },
-  { key: "inboundSms", label: "InboundSMS" },
-  ...(process.env.NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM === "true" ? [{ key: "whatsappGateway" as TabKey, label: "WhatsApp inbox" }] : []),
-  { key: "whatsappStats", label: "WhatsApp stats" },
-  { key: "agentreport", label: "Agent Report" },
-  { key: "manual", label: "Send Manual Email/SMS" },
-];
-const ROUTABLE_TABS = new Set<TabKey>([...TABS.map((item) => item.key), "missed", "highLevelFunnels"]);
-
 function getInitialTab(): TabKey {
-  if (typeof window === "undefined") {
-    return "details";
-  }
-
-  const tab = new URLSearchParams(window.location.search).get("tab");
-  return ROUTABLE_TABS.has(tab as TabKey) ? (tab as TabKey) : "details";
+  if (typeof window === "undefined") return "leadPipeline";
+  const params = new URLSearchParams(window.location.search);
+  return resolveCrmTab(params.get("tab"), {gatewayEnabled:process.env.NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM === "true",hasContactQuery:["phone","phoneNumber","telefon"].some(key=>params.has(key))});
 }
 
 function hasCheckoutReturnSignal(query: Record<string, string | string[] | undefined>) {
@@ -1219,19 +1179,7 @@ export default function AdminCrmPage() {
       <main className="crm-page">
         <TopNav />
 
-        <section className="crm-toolbar" aria-label="CRM sections">
-          {TABS.filter(tab => tab.key !== "privatePensions" || canUsePrivatePensions).map((tab) => (
-            <button
-              key={tab.key}
-              ref={tab.key === "details" ? detailsTabButtonRef : undefined}
-              type="button"
-              className={activeTab === tab.key ? "toolbar-btn active" : "toolbar-btn"}
-              onClick={() => handleTabChange(tab.key)}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </section>
+        <CrmTabNavigation activeTab={activeTab} onChange={handleTabChange} canUsePrivatePensions={canUsePrivatePensions} detailsButtonRef={detailsTabButtonRef}/>
 
         {gateStatus === "checking" ? <StatusCard message="Checking admin access..." /> : null}
         {gateStatus === "denied" ? (
@@ -1294,7 +1242,7 @@ export default function AdminCrmPage() {
               {activeTab === "whatsappGateway" ? <WhatsAppGatewayInbox token={token}/> : null}
               {activeTab === "allCustomersView" ? <AllCustomersView token={token} /> : null}
               {activeTab === "leadPipeline" ? <LeadPipelinePanel key={user?.id} token={token} userId={user?.id} /> : null}
-              {activeTab === "AllWhatsAppMessages" ? <AllWhatsAppMessagesPanel key={user?.id} token={token} /> : null}
+              {activeTab === "allMessages" ? <AllWhatsAppMessagesPanel key={user?.id} token={token} /> : null}
 
               {activeTab === "sales" ? (
                 <SalesPanel token={token} onError={setErrorMessage} />
