@@ -391,7 +391,8 @@ export type CallTranscription = {
 export type CrmEmailEvent = {kind:"email";id:string;atUtc:string|null;direction:"inbound"|"outbound";subject:string;from:string;mailbox:string};
 export type CrmEmailBody = {subject:string;from:string;to:string[];text:string;html:string};
 export type CrmStripeEvent = {kind:"stripe";id:string;atUtc:string;source:"proveit"|"justproveit";label:string;eventType:string;amount:number|null;currency:string|null;status:string|null;reference:string};
-export type PhoneHistoryEvent = CrmStripeEvent | CrmEmailEvent | {
+export type SmsHistoryEvent={kind:"sms";id:string;atUtc:string|null;direction:"inbound"|"outbound";phone:string;author:string;text:string;source:"SMS";status:string;providerMessageId:string|null;errorMessage?:string|null};
+export type PhoneHistoryEvent = CrmStripeEvent | CrmEmailEvent | SmsHistoryEvent | {
   kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
   image?: {mediaId:string;mimeType:string;name:string}|null; author: string; text: string; messageType: string; status: string; source?: string; channel?:'mediatel'|'agents'; providerMessageId?: string; accountId?: string; errorCode?: string | null; errorMessage?: string | null;
 } | {
@@ -403,7 +404,7 @@ export type PhoneHistoryEvent = CrmStripeEvent | CrmEmailEvent | {
 };
 export type ScheduledPhoneHistory = {
   intentId: string; phone: string; timeZone: string; whatsAppMessages: number; calls: number; events: PhoneHistoryEvent[];
-  page?:number;pageSize?:number;hasMore?:boolean;warnings?:string[];
+  page?:number;pageSize?:number;hasMore?:boolean;warnings?:string[];smsMessages?:number;linkedPhones?:string[];
 };
 
 export function getScheduledPhoneHistory(token: string, intentId: string, signal?: AbortSignal,fresh=false,page=0) {
@@ -1370,7 +1371,7 @@ export function sendPublicManualCrmEmail(payload: ManualCrmEmailPayload) {
 }
 
 export function sendManualCrmSms(token: string, payload: ManualCrmSmsPayload) {
-  return fetchJson<{ success: boolean; result?: string; message?: string }>(`${BASE_PATH}/manual-sms`, {
+  return fetchJson<{ success: boolean; result?: string; message?: string; providerMessageId?:string|null }>(`${BASE_PATH}/manual-sms`, {
     method: "POST",
     headers: authHeaders(token),
     body: JSON.stringify(payload),

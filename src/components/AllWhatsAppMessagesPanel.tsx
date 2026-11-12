@@ -1,3 +1,4 @@
+import SmsReplyComposer from './SmsReplyComposer';
 ﻿import {Fragment,useEffect,useRef,useState} from 'react';
 import {getAllWhatsAppMessages,markWhatsAppMessageDone,type WhatsAppMessageRow,type WhatsAppMessageReport} from '@/lib/allWhatsAppMessages';
 import {savePipelineControl,type ManualPipelineStage,type PipelineControlInput} from '@/lib/leadPipelineControls';
@@ -56,10 +57,10 @@ export default function AllWhatsAppMessagesPanel({token}:{token:string}){
   {notice&&<p role="status">{notice}</p>}{error&&<p role="alert">{error}</p>}{loading&&<p role="status">Loading incoming WhatsApp messages…</p>}
   {report&&<><p>{report.total} incoming message events · Updated {at(report.asOfUtc)} UK time</p>{report.warnings?.map(w=><p key={w} role="status">{w}</p>)}
    <div style={{overflowX:'auto'}}><table><thead><tr>{['Date','CRM Lead','Phone','Email','Message','LeadStatus','Agent','Actions'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>
-    {report.rows.map(row=><Fragment key={row.id}><tr style={{background:row.done?'#f0fdf4':undefined}}>
+    {report.rows.map(row=><Fragment key={row.id}><tr style={{background:row.channel==='sms'?'#fff1f2':row.done?'#f0fdf4':undefined,borderLeft:row.channel==='sms'?'4px solid #db2777':undefined}}>
      <td><time dateTime={row.atUtc}>{at(row.atUtc)}</time><br/><small>{row.source}</small></td>
      <td><button type="button" aria-expanded={history===row.id} onClick={()=>setHistory(history===row.id?null:row.id)}>{row.name}</button></td><td>{row.phone}</td><td>{row.email||'—'}</td>
-     <td style={{minWidth:280,maxWidth:500,whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{row.message}{row.messageType!=='text'&&<small style={{display:'block'}}>Type: {row.messageType}. Open the lead history to view available media.</small>}</td>
+     <td style={{minWidth:280,maxWidth:500,whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{row.message}{row.channel==='sms'&&<SmsReplyComposer token={token} phone={row.phone} name={row.name} onSent={()=>changed('SMS accepted by the provider. Delivery is not yet confirmed.')}/>} {row.messageType!=='text'&&<small style={{display:'block'}}>Type: {row.messageType}. Open the lead history to view available media.</small>}</td>
      <td>{row.pipelineStatus}{row.manualStage&&<small style={{display:'block'}}>Manual assignment</small>}</td><td>{row.agent||'Unassigned / not recorded'}</td>
      <td><WhatsAppMessageActions token={token} row={row} onChanged={changed}/></td>
     </tr>{history===row.id&&<tr><td colSpan={8}><LeadPhoneHistory token={token} contactId={row.contactId} phone={row.phone} name={row.name} onCollapse={()=>setHistory(null)}/></td></tr>}</Fragment>)}
