@@ -16,12 +16,23 @@ export function WhatsAppMessageActions({token,row,onChanged}:{token:string;row:W
   }catch(e){setError(e instanceof Error?e.message:'Unable to save. Refresh and retry.');}
   finally{running.current=false;setBusy(false);}
  }
- return <div style={{display:'grid',gap:8,minWidth:215}}>
-  {row.done?<small>Done {at(row.done.atUtc)}{row.done.actor?` by ${row.done.actor}`:''}</small>:<button type="button" disabled={busy} onClick={()=>void save('done')}>Mark The Event Done</button>}
-  <label style={{display:'grid',gap:4}}>Lead status<select aria-label={`Lead status for ${row.name}`} value={stage} disabled={busy||Boolean(row.ended)} onChange={e=>{setStage(e.target.value as ManualPipelineStage|'');pending.current=null;setError('');}}><option value="">Automatic</option><option value="AgreedToBuy">AgreedToBuy</option><option value="ToAdrian">ToAdrian</option></select></label>
-  <button type="button" disabled={busy||Boolean(row.ended)} onClick={()=>void save('stage')}>Change Lead Status</button>
+ return <div className="wa-message-actions" aria-busy={busy}>
+  {row.done?<div className="wa-done-receipt"><span className="wa-done-badge"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3 3 7-7"/></svg>Event done</span><small>{at(row.done.atUtc)}{row.done.actor?` by ${row.done.actor}`:''}</small></div>:<button className="wa-action wa-action-done" type="button" disabled={busy} onClick={()=>void save('done')}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 10 3 3 7-7"/></svg><span>Mark The Event Done</span></button>}
+  <label className="wa-stage-field"><span>Lead status</span><span className="wa-select-wrap"><select aria-label={`Lead status for ${row.name}`} value={stage} disabled={busy||Boolean(row.ended)} onChange={e=>{setStage(e.target.value as ManualPipelineStage|'');pending.current=null;setError('');}}><option value="">Automatic</option><option value="AgreedToBuy">AgreedToBuy</option><option value="ToAdrian">ToAdrian</option></select><svg viewBox="0 0 20 20" aria-hidden="true"><path d="m6 8 4 4 4-4"/></svg></span></label>
+  <button className="wa-action wa-action-stage" type="button" disabled={busy||Boolean(row.ended)} onClick={()=>void save('stage')}><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12m-3-3 3 3-3 3M16 14H4m3-3-3 3 3 3"/></svg><span>Change Lead Status</span></button>
   {row.ended&&<small>This lead is ended. Reopen it in Lead Pipeline to change its status.</small>}
-  {error&&<p role="alert" style={{color:'#b42318',maxWidth:280}}>{error}</p>}
+  {error&&<p role="alert">{error}</p>}
+  <style jsx>{`
+   .wa-message-actions{display:grid;gap:12px;width:248px;max-width:100%;box-sizing:border-box;padding:14px;background:#f8fafc;border:1px solid #dce3ee;border-radius:10px}
+   .wa-action{display:flex;align-items:center;justify-content:center;gap:8px;min-height:40px;padding:10px 12px;border:1px solid transparent;border-radius:7px;font:inherit;font-size:12px;font-weight:650;line-height:1.4;cursor:pointer;transition:background-color .15s,border-color .15s,box-shadow .15s}
+   .wa-action svg,.wa-done-badge svg{width:17px;height:17px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+   .wa-action-done{background:#ecfdf3;border-color:#a6d9bc;color:#166534}.wa-action-done:hover:not(:disabled){background:#dcfce7;border-color:#64b78b}
+   .wa-action-stage{background:#123c92;border-color:#123c92;color:#fff;box-shadow:0 1px 2px #102a5614}.wa-action-stage:hover:not(:disabled){background:#0e3076;border-color:#0e3076}
+   .wa-stage-field{display:grid;gap:6px;color:#475569;font-size:11px;font-weight:650}.wa-select-wrap{position:relative;display:block}.wa-select-wrap svg{position:absolute;right:11px;top:50%;transform:translateY(-50%);width:17px;height:17px;fill:none;stroke:#64748b;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+   select{appearance:none;width:100%;min-height:40px;box-sizing:border-box;padding:9px 36px 9px 12px;background:#fff;border:1px solid #cbd5e1;border-radius:7px;color:#17376e;font:inherit;font-size:13px;font-weight:500;cursor:pointer;transition:border-color .15s,box-shadow .15s}select:hover:not(:disabled){border-color:#94a3b8}
+   .wa-action:focus-visible,select:focus-visible{outline:3px solid #bfdbfe;outline-offset:2px}.wa-action:disabled,select:disabled{opacity:.5;cursor:not-allowed;box-shadow:none}
+   .wa-done-receipt{display:grid;gap:6px}.wa-done-badge{display:inline-flex;align-items:center;gap:5px;justify-self:start;padding:4px 9px;border:1px solid #bbdfc9;border-radius:20px;background:#ecfdf3;color:#166534;font-size:11px;font-weight:650}small{font-size:11px;color:#64748b;line-height:1.5;overflow-wrap:anywhere}p[role=alert]{margin:0;color:#b42318;font-size:12px;line-height:1.5}
+  `}</style>
  </div>;
 }
 export default function AllWhatsAppMessagesPanel({token}:{token:string}){
