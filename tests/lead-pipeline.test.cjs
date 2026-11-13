@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),ts=require('typescript'),React=require('react'),{JSDOM}=require('jsdom'),{createRoot}=require('react-dom/client');
 test('pipeline filters and paginates server-side and opens the correct contact history',async()=>{
  const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
- const previous=global.fetch,calls=[];global.fetch=async(url,options)=>{calls.push({url,options});return{ok:true,json:async()=>({sources:['FB','TikTok'],counts:{newLead:31,SimulationInProgress:0,SimulationDone:0,ScheduledCall:0,AgreedToBuy:0,clients:1},purchasedServices:[{value:'pension',label:'International pension'}],cohortTotal:31,total:31,asOfUtc:'2026-11-10T12:00Z',rows:[{contactId:'correct-contact',name:'Fixture',phone:'447700900123',pipelineStatus:'newLead',source:'FB',service:'Simulator',createdAtUtc:'2026-11-01',purchases:[{saleId:'sale',service:'pension',label:'International pension',purchasedAtUtc:'2026-11-02T10:00:00Z'}]}]})};};
+ const previous=global.fetch,calls=[];global.fetch=async(url,options)=>{calls.push({url,options});return{ok:true,json:async()=>{const data=({sources:['FB','TikTok'],counts:{newLead:31,SimulationInProgress:0,SimulationDone:0,ScheduledCall:0,AgreedToBuy:0,clients:1},purchasedServices:[{value:'pension',label:'International pension'}],cohortTotal:31,total:31,asOfUtc:'2026-11-10T12:00Z',rows:[{contactId:'correct-contact',name:'Fixture',phone:'447700900123',pipelineStatus:'newLead',source:'FB',service:'Simulator',createdAtUtc:'2026-11-01',purchases:[{saleId:'sale',service:'pension',label:'International pension',purchasedAtUtc:'2026-11-02T10:00:00Z'}]}]});if(new URL(url).searchParams.get('status')==='ScheduledCall')data.rows=['selectedDay','unresolved','future'].map((section,i)=>({...data.rows[0],contactId:'scheduled-'+i,scheduleSection:section,booking:{intentId:'booking-'+i,contactId:'scheduled-'+i}}));return data;}};};
  const code=ts.transpileModule(fs.readFileSync('src/components/LeadPipelinePanel.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,mod={exports:{}};let history,actions;
  const mocks={
   '@/lib/auth':{API_BASE_URL:'https://api.example.test'},
@@ -55,7 +55,10 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'ScheduledCall');assert.equal(new URL(calls.at(-1).url).searchParams.get('offset'),'0');
   const today=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
   assert.equal(document.querySelector('[aria-label="ScheduledDate"]').value,today);assert.equal(new URL(calls.at(-1).url).searchParams.get('scheduledDate'),today);assert.ok(document.querySelector('[data-testid="scheduled-table"]'));
-  assert.equal(document.querySelector('[data-testid="scheduled-table"]').dataset.showDate,'false');
+  assert.equal(document.querySelector('[data-testid="scheduled-table"]').dataset.showDate,'true');
+  assert.ok(document.querySelector('[aria-label="Older unresolved scheduled calls"]'));
+  assert.match(document.body.textContent,/25 calls per page/);
+  await React.act(async()=>button('Next').click());assert.equal(new URL(calls.at(-1).url).searchParams.get('offset'),'25');
   await React.act(async()=>document.querySelector('input[type="checkbox"]').click());
   assert.equal(new URL(calls.at(-1).url).searchParams.get('showFutureScheduled'),'true');
   assert.equal(new URL(calls.at(-1).url).searchParams.get('scheduledDate'),today);

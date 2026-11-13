@@ -107,3 +107,9 @@ Both Lead Pipeline and All Messages use the same `LeadPipelineRowActions` compon
 Unparameterized All Messages requests and the legacy WhatsApp-only API retain per-message responses and the idempotent legacy Done mutation for compatibility. The grouped UI replaces its bespoke per-message Done/stage card with the actual shared Lead Pipeline controls. No database migration or automatic outbound delivery is introduced.
 
 Returning leads retain historical stage evidence: a new incoming message does not restart them at newLead. Meaningful calls no longer expire after 30 days; the 60-day recent activity scope remains separate. Stage descriptions reflect this behavior.
+
+## Scheduled calls and unresolved backlog (13 November 2026)
+
+ScheduledCall displays the selected UK date (today by default), then older unresolved scheduled calls, with labelled sections and full appointment dates. The future checkbox appends later bookings after the backlog. Existing pipeline filters and actions are preserved. Resolution follows the backend scheduled-call attention rules; Solved on WhatsApp removes an older appointment from the backlog. The page refreshes after actions and moves back to the last available page if the result shrinks.
+
+ScheduledCall uses fixed 25-row pages: offsets 0, 25, 50, etc. Production SQL Server computes booking totals, grouping/order and OFFSET/FETCH against the indexed scheduled-call read projection, returning only the requested booking payloads. Other pipeline stages keep their 30-row pages. Appointment-specific solved/Business flags and cancellation/rescheduling are checked live; call/message evidence refreshes in the background. PostgreSQL staging retains its existing live reader.
