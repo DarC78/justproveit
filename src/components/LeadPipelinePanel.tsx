@@ -84,7 +84,7 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
    {status==='ScheduledCall'?<>
     <p className="pipeline-filter-help">Selected day first, then older unresolved scheduled calls. 25 calls per page.</p>
     {(['selectedDay','unresolved','future'] as const).map(section=>{const rows=report.rows.filter(row=>(row.scheduleSection||'selectedDay')===section);if(!rows.length)return null;return <section key={section} aria-label={section==='selectedDay'?'Calls for selected day':section==='unresolved'?'Older unresolved scheduled calls':'Future scheduled calls'}>
-     <h2>{section==='selectedDay'?'Scheduled calls ? '+scheduledDate:section==='unresolved'?'Older unresolved scheduled calls':'Future scheduled calls'}</h2>
+     <h2>{section==='selectedDay'?'Scheduled calls: '+scheduledDate:section==='unresolved'?'Older unresolved scheduled calls':'Future scheduled calls'}</h2>
      <ScheduledCallsTable token={token} pipeline showCallDate renderExtraActions={booking=>{const row=rows.find(r=>r.booking?.intentId===booking.intentId);return row?<PipelineLeadControls token={token} row={row} onChanged={pipelineChanged}/>:null;}} rows={rows.flatMap(row=>row.booking?[{...row.booking,leadSource:row.source}]:[])} onChanged={pipelineChanged}/>
     </section>;})}
    </>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr>{[...(priorityView?['Date / time (UK)']:[]),'Lead','Phone','Email',...(status==='clients'?['Purchased services / purchase date']:[]),'Actions'].map(h=><th key={h} style={{padding:10,textAlign:'left',background:'#edf3fc'}}>{h}</th>)}</tr></thead><tbody>
