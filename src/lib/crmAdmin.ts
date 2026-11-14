@@ -395,7 +395,7 @@ export type CrmStripeEvent = {kind:"stripe";id:string;atUtc:string;source:"prove
 export type SmsHistoryEvent={kind:"sms";id:string;atUtc:string|null;direction:"inbound"|"outbound";phone:string;author:string;text:string;source:"SMS";status:string;providerMessageId:string|null;errorMessage?:string|null};
 export type PhoneHistoryEvent = ManualPaymentEvent | CrmStripeEvent | CrmEmailEvent | SmsHistoryEvent | {
   kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
-  gatewayMedia?:GatewayMedia;reaction?:GatewayReaction;image?: {mediaId:string;mimeType:string;name:string}|null; author: string; text: string; messageType: string; status: string; source?: string; channel?:'mediatel'|'agents'; providerMessageId?: string; accountId?: string; errorCode?: string | null; errorMessage?: string | null;
+  gatewayMedia?:GatewayMedia;reaction?:GatewayReaction;attachment?:{mediaId:string;mimeType:string;name:string;kind:string}|null;image?: {mediaId:string;mimeType:string;name:string}|null; author: string; text: string; messageType: string; status: string; source?: string; channel?:'mediatel'|'agents'; providerMessageId?: string; accountId?: string; errorCode?: string | null; errorMessage?: string | null;
 } | {
   kind: "call"; id: string; atUtc: string | null; endedAtUtc: string | null;
   agentId: number | null; agent: string; callCode: number | null; resolution: string;

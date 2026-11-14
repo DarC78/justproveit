@@ -1,7 +1,7 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript'),React=require('react');
 const {JSDOM}=require('jsdom'),{createRoot}=require('react-dom/client');
 const source=ts.transpileModule(fs.readFileSync('src/components/PhoneHistoryModal.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
-const loaded={exports:{}};new Function('require','module','exports',source)(name=>name==='./GatewayMessageMedia'?{__esModule:true,default:()=>null}:name==='@/lib/crmAdmin'?{}:/(?:WhatsApp|Sms)ReplyComposer/.test(name)?{default:()=>null}:require(name),loaded,loaded.exports);
+const loaded={exports:{}};new Function('require','module','exports',source)(name=>name==='./MediatelMessageAttachment'?{__esModule:true,default:()=>null}:name==='./GatewayMessageMedia'?{__esModule:true,default:()=>null}:name==='@/lib/crmAdmin'?{}:/(?:WhatsApp|Sms)ReplyComposer/.test(name)?{default:()=>null}:require(name),loaded,loaded.exports);
 test('call summary is shown beside its call; full transcript expands on demand as safe text',async()=>{
  const dom=new JSDOM('<div id="root"></div>');global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
  const root=createRoot(document.getElementById('root'));const event={kind:'call',id:'call:123',atUtc:'2026-11-06T12:00:00Z',endedAtUtc:null,agent:'Daniel',callType:'Outgoing',resolution:'VA_CUMPARA',callCode:7,durationSeconds:60,talkSeconds:50,transcriptions:[{recordingId:7,status:'completed',summary:'Clientul dorește serviciul.',transcript:'<script>untrusted()</script>\nConvorbire completă.'}]};
