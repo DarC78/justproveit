@@ -1457,13 +1457,17 @@ export function prefetchAttentionPhoneHistories(token:string,report:CrmAttention
 
 export function assignCrmLead(token:string,contactId:string,agent:string){return fetchCanonicalCrmReadJson<{success:boolean;assignment:LeadAssignment}>(`${BASE_PATH}/contacts/${encodeURIComponent(contactId)}/assignment`,{method:"POST",headers:authHeaders(token),body:JSON.stringify({agent})});}
 
-export async function getPhoneHistoryImage(token:string,targetKind:"contact"|"booking",id:string,messageId:string,signal?:AbortSignal):Promise<Blob>{
+export async function getPhoneHistoryAttachment(token:string,targetKind:"contact"|"booking",id:string,messageId:string,signal?:AbortSignal):Promise<Blob>{
  const path=`${BASE_PATH}/${targetKind==="contact"?"contacts":"scheduled-calls"}/${encodeURIComponent(id)}/history/media/${encodeURIComponent(messageId)}`;
  const response=await fetch(resolveUrl(CANONICAL_READ_API_BASE_URL,path),{headers:authHeaders(token),cache:"no-store",signal});
- if(!response.ok)throw new Error("Fotografia nu mai este disponibilă în WhatsApp.");
+ if(!response.ok)throw new Error("Fișierul nu mai este disponibil în WhatsApp.");
  const blob=await response.blob();
- if(!["image/jpeg","image/png","image/webp","image/gif"].includes(blob.type))throw new Error("Formatul fotografiei nu este acceptat.");
+ if(blob.size>32*1024*1024||!["image/jpeg","image/png","image/webp","image/gif","application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","application/vnd.ms-excel","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","text/plain","video/mp4","video/3gpp","video/webm","audio/aac","audio/amr","audio/mpeg","audio/mp4","audio/ogg","audio/webm","audio/wav"].includes(blob.type.split(";")[0]))throw new Error("Formatul fotografiei nu este acceptat.");
  return blob;
+}
+export async function getPhoneHistoryImage(token:string,targetKind:"contact"|"booking",id:string,messageId:string,signal?:AbortSignal):Promise<Blob>{
+ const blob=await getPhoneHistoryAttachment(token,targetKind,id,messageId,signal);
+ if(!["image/jpeg","image/png","image/webp","image/gif"].includes(blob.type))throw new Error("Unsupported photo format.");return blob;
 }
 export function getCrmEmailHistory(token:string,kind:"contact"|"booking",id:string,cursor:string|null=null,signal?:AbortSignal){
  return fetchCanonicalCrmReadJson<{items:CrmEmailEvent[];nextCursor:string|null;systemArchivePending?:boolean}>(BASE_PATH+"/"+(kind==="contact"?"contacts":"scheduled-calls")+"/"+encodeURIComponent(id)+"/emails"+(cursor?"?cursor="+encodeURIComponent(cursor):""),{headers:authHeaders(token),cache:"no-store",signal});
