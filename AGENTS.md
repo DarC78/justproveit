@@ -10,7 +10,7 @@
 
 ## Deployment Rules
 
-- Explicit user-authorized exception: SignWell delivers IPC authority signing invitations and its existing signing notifications after the agent reviews and confirms the named recipients. This exception is limited to that signing flow and never authorizes connected mailboxes or unrelated messages.
+- Explicit user-authorized exception: SignWell delivers IPC and Private Pension authority signing invitations and their existing signing notifications after the agent reviews and confirms the named recipients. This exception is limited to those signing flows and never authorizes connected mailboxes or unrelated messages.
 
 - Deploy through GitHub only.
 - Do not deploy Azure Static Web Apps, Azure Functions, or any live service by zip/package upload or direct CLI deployment.

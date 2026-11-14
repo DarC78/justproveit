@@ -1,7 +1,7 @@
-# IPC authority action — two steps
+# Authority action — IPC and Private Pension
 
-**Împuternicire IPC** opens the agent form for full name, email, phone, address,
-DOB and NINO. The flow is:
+**Împuternicire** opens an empty type selector. Choosing IPC or Private Pension
+shows that template's input fields. The flow is:
 
 1. **Verifică datele** validates content through CRM only. Opening and validation
    do not call SignWell, including template reads, and do not create a remote
@@ -36,3 +36,12 @@ explicit confirmation. Service stages remain manual.
 This replaces the previous draft-on-validation flow. Backend contract:
 `docs/systems/crm-signwell-ipc.md` in LaunchingStack. IPC template 3 only;
 templates 1 and 2 remain out of scope.
+
+
+## IPC / Private Pension selector — 14 November 2026
+
+The action is now **Împuternicire**, with no default type selected. The authenticated API supplies the catalogue for IPC and Private Pension. Fields appear only after selection; changing the type resets input, verification, explicit invitation confirmation and request UUID. IPC retains its existing inputs. Private Pension shows name, signing email, NINO, DOB, current address, five previous addresses and five employer/period pairs. The full name populates all three document name fields automatically. Email is needed for delivery, even though it is not a Private Pension document field. There is no Private Pension client-phone field.
+
+Blank Private Pension fields are sent as one space under the owner's instruction. SignWell strips that space to an empty value; fields required in its template must still be completed by the client. The form explains that fact. Name and email remain required; other private inputs are optional, with format validation when supplied. Signing dates stay provider-controlled.
+
+History identifies the type on every authority. Existing records without a type remain IPC. Pending or completed authorities only restrict another authority of that same type; both types may coexist. PDF filenames reflect the authority type. No SignWell communication occurs on open/check, no invitations occur before the existing explicit send confirmation, and service stages remain manual. Backend metadata/status reconciliation remains authoritative and legacy API paths are preserved.
