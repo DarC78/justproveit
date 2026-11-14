@@ -1,15 +1,36 @@
-# IPC authority action
+# IPC authority action — two steps
 
-Contact lead actions now include **Împuternicire IPC**. The agent fills full name, email, phone, full address, DOB and NINO, reviews all details and the client/Adrian recipients, then explicitly confirms sending through SignWell. No invitation is sent merely by opening or reviewing the form.
+**Împuternicire IPC** opens the agent form for full name, email, phone, address,
+DOB and NINO. The flow is:
 
-LOADate and ClientSignDate are automatically the client's actual signing date; ProveitSignDate is Adrian's actual signing date. The dates are locked in the SignWell template and have no frontend inputs. SignWell delivers its own signing invitations and existing notifications under the user's explicit exception to the usual Resend delivery rule.
+1. **Verifică datele** validates content through CRM only. Opening and validation
+   do not call SignWell, including template reads, and do not create a remote
+   draft/document. The verified input snapshot is kept locally; editing requires
+   verification again. Local verification entries are not shown as documents.
+2. **Confirmă și trimite prin SignWell** requires the agent's explicit recipient
+   authorization. The backend validates the current template, then creates and
+   sends once using `draft:false`. Provider validation errors appear directly in
+   the interface, including the HTTP status and field error details.
 
-Authenticated endpoint: `/justproveit/admin/crm/contacts/{id}/signwell-ipc`, GET setup/history and POST validate/send/refresh/pdf. API credentials remain backend-only. History shows delivery/signing state, allows refresh, and offers the final signed PDF after completion. Active or uncertain requests block duplicate authorities; completed ones require explicit confirmation for a new document. No service stage is advanced automatically.
+There is no **Actualizează starea** button. Pending sending/signing records
+update automatically through local polling, authenticated provider reads in the
+background and signed webhooks. A missing or delayed send response does not
+cause another creation or an automatic resend. Already confirmed sending clears
+a stale transport error. Unknown outcomes stay blocked until safely reconciled.
+The signed PDF download remains available after all signatures are completed.
 
-Backend contract: `C:\DevProjects\LaunchingStack\docs\systems\crm-signwell-ipc.md`. This implements IPC template 3 only. Templates 1/2 are not enabled.
+The client and Adrian Defta sign in SignWell. LOADate/ClientSignDate are the
+client's actual signing date; ProveitSignDate is Adrian's actual signing date.
+These locked dates have no editable frontend fields. SignWell sends invitations
+and its existing signing notifications under the user's explicit exception to
+the usual Resend rule; no connected mailbox is used.
 
-## Verification before sending — 14 November 2026
+Endpoint: `/justproveit/admin/crm/contacts/{id}/signwell-ipc`, authenticated GET
+local setup/history and POST validate/send/pdf. The legacy refresh action remains
+backend-compatible but has no UI control. Credentials stay backend-only. Existing
+active authorities block duplicates, and a new authority after completion needs
+explicit confirmation. Service stages remain manual.
 
-**Verifică datele** validates inputs and template, creates a draft with draft:true, and verifies its recipient emails, field values and signature dates through the provider response. No invitations are sent in this step. Only a successful Verified result opens the review/confirmation step. Client email must differ from Adrian’s ProveIt signing email; SignWell rejects duplicate recipients (`recipients.duplicated_emails`), reproduced with a synthetic unsent draft. The former generic template error in the screenshot was caused by this duplicate email, not a broken template.
-
-Send requires the same verified request UUID and input fingerprint, atomically reserves Sending and sends the stored draft. It never creates another draft or checks the template at send time. Authorization, confirmation, input integrity and duplicate-send guards remain mandatory. Editing requires verification again; a new verified draft supersedes the previous unsent draft, preserving history. Uncertain outcomes are still blocked from automatic retry. Both locked client dates and ProveIt signing date remain automatic.
+This replaces the previous draft-on-validation flow. Backend contract:
+`docs/systems/crm-signwell-ipc.md` in LaunchingStack. IPC template 3 only;
+templates 1 and 2 remain out of scope.
