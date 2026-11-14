@@ -1,3 +1,4 @@
+import GatewayMessageMedia from './GatewayMessageMedia';
 import SmsReplyComposer from './SmsReplyComposer';
 import {Fragment,useEffect,useState} from 'react';
 import {getAllWhatsAppMessages,type IncomingMessage,type WhatsAppMessageRow,type WhatsAppMessageReport} from '@/lib/allWhatsAppMessages';
@@ -7,13 +8,13 @@ import LeadPhoneHistory from './LeadPhoneHistory';
 const clock=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'});
 const at=(value:string)=>clock.format(new Date(value));
 export function IncomingMessageBatch({token,row,onChanged}:{token:string;row:WhatsAppMessageRow;onChanged:(message:string)=>void}){
- const items:IncomingMessage[]=row.messages?.length?row.messages:[{messageKey:row.messageKey,atUtc:row.atUtc,message:row.message,messageType:row.messageType,channel:row.channel==='mixed'?undefined:row.channel,source:row.source,phone:row.phone,agent:row.agent}];
+ const items:IncomingMessage[]=row.messages?.length?row.messages:[{messageKey:row.messageKey,atUtc:row.atUtc,message:row.message,messageType:row.messageType,channel:row.channel==='mixed'?undefined:row.channel,source:row.source,phone:row.phone,agent:row.agent,gatewayMedia:row.gatewayMedia,reaction:row.reaction}];
  const lastSms=new Map<string,number>();items.forEach((m,i)=>{if(m.channel==='sms')lastSms.set(m.phone,i);});
  return <div><p className="batch-summary">{items.length} incoming {items.length===1?'event':'events'}{row.lastReplyAtUtc?<> since our reply on <time dateTime={row.lastReplyAtUtc}>{at(row.lastReplyAtUtc)}</time></>:'. No earlier reply recorded.'}</p>
   <div className="message-batch">{items.map((m,index)=><article key={m.messageKey} data-channel={m.channel||'mediatel'} className={m.channel==='sms'?'incoming-message sms-message':'incoming-message'}>
    <header><time dateTime={m.atUtc}>{at(m.atUtc)}</time><span>{m.source}</span></header><p>{m.message}</p>
-   {m.messageType!=='text'&&m.channel!=='call'&&<small>Type: {m.messageType}. Open the lead history to view available media.</small>}
-   {m.channel==='sms'&&lastSms.get(m.phone)===index&&<SmsReplyComposer token={token} phone={m.phone} name={row.name} onSent={()=>onChanged('SMS accepted by the provider. Delivery is not yet confirmed.')}/>}
+   {m.messageType!=='text'&&m.channel!=='call'&&!m.gatewayMedia&&!m.reaction&&<small>Type: {m.messageType}. Open the lead history to view available media.</small>}
+   <GatewayMessageMedia token={token} media={m.gatewayMedia} reaction={m.reaction}/>{m.channel==='sms'&&lastSms.get(m.phone)===index&&<SmsReplyComposer token={token} phone={m.phone} name={row.name} onSent={()=>onChanged('SMS accepted by the provider. Delivery is not yet confirmed.')}/>}
   </article>)}</div>
   <style jsx>{`.batch-summary{margin:0 0 9px;font-size:11px;color:#64748b}.message-batch{display:grid;gap:9px;max-height:480px;overflow:auto;min-width:300px}.incoming-message{padding:11px 13px;border:1px solid #dce3ee;border-left:3px solid #4f7ac5;border-radius:8px;background:#f8faff}.sms-message{background:#fff1f2;border-color:#fecdd3;border-left-color:#db2777}header{display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap;font-size:11px;color:#475569}header time{font-weight:700}header span{font-weight:600}.incoming-message p{margin:7px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}small{display:block;margin-top:6px;color:#64748b}`}</style>
  </div>;
