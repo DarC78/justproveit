@@ -3,8 +3,8 @@ import {API_BASE_URL} from '@/lib/auth';
 type Input={name:string;email:string;phone:string;address:string;dob:string;nino:string};
 type Entry={requestId:string;documentId:string|null;status:string;name:string;email:string;createdAtUtc:string;clientSignedAt:string|null;proveitSignedAt:string|null};
 type Data={contactId:string;setup:{ready:boolean;reasons:string[]};defaults:Input;records:Entry[];testMode:boolean;proveitSigner:{name:string;email:string}};
-const terminal=new Set(['Completed','Declined','Canceled','Expired','Rejected']);
-const labels:Record<string,string>={Creating:'Creare în curs',Draft:'Draft salvat',Sending:'Trimitere în curs',Sent:'Trimis pentru semnare',InProgress:'Semnare în curs',Completed:'Semnat de toți destinatarii',Declined:'Refuzat',Canceled:'Anulat',Expired:'Expirat',Rejected:'Creare respinsă',Uncertain:'Necesită verificare în SignWell'};
+const terminal=new Set(['Completed','Declined','Canceled','Expired','Rejected','Superseded']);
+const labels:Record<string,string>={Verified:'Date verificate · netrimis',Superseded:'Draft înlocuit · netrimis',Creating:'Verificare în curs',Draft:'Draft salvat',Sending:'Trimitere în curs',Sent:'Trimis pentru semnare',InProgress:'Semnare în curs',Completed:'Semnat de toți destinatarii',Declined:'Refuzat',Canceled:'Anulat',Expired:'Expirat',Rejected:'Creare respinsă',Uncertain:'Necesită verificare în SignWell'};
 const blank:Input={name:'',email:'',phone:'',address:'',dob:'',nino:''};
 export default function SignwellIpc({token,contactId,name}:{token:string;contactId:string;name:string}){
  const [open,setOpen]=useState(false),[data,setData]=useState<Data|null>(null),[input,setInput]=useState<Input>(blank),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[review,setReview]=useState(false),[confirmed,setConfirmed]=useState(false),[newAuthority,setNewAuthority]=useState(false);
@@ -15,21 +15,22 @@ export default function SignwellIpc({token,contactId,name}:{token:string;contact
  async function load(){const r=await fetch(url,{headers,cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.error?.message||'Date indisponibile.');if(d.contactId?.toLowerCase()!==contactId.toLowerCase()||!Array.isArray(d.records)||!d.defaults||!d.setup)throw Error('Datele împuternicirii nu au putut fi verificate.');setData(d);return d as Data;}
  async function start(){setOpen(true);setData(null);setReview(false);setConfirmed(false);setNewAuthority(false);setError('');setNotice('');requestId.current=crypto.randomUUID();try{const d=await load();setInput({...blank,...d.defaults,name:d.defaults.name||name});}catch(e){setError(e instanceof Error?e.message:'Date indisponibile.');}}
  function change(key:keyof Input,value:string){setInput(old=>({...old,[key]:value}));setConfirmed(false);requestId.current=crypto.randomUUID();}
- async function action(action:'send'|'refresh'|'pdf',entry?:Entry){
+ async function action(action:'validate'|'send'|'refresh'|'pdf',entry?:Entry){
   if(inFlight.current)return;inFlight.current=true;setBusy(true);setError('');setNotice('');
   try{
-   const payload=action==='send'?{action,...input,requestId:requestId.current,confirmed,newAuthority}:{action,requestId:entry?.requestId};
+   const payload=(action==='send'||action==='validate')?{action,...input,requestId:requestId.current,confirmed,newAuthority}:{action,requestId:entry?.requestId};
    const r=await fetch(url,{method:'POST',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify(payload),cache:'no-store'});
    if(action==='pdf'&&r.ok){const blob=await r.blob();if(!blob.type.includes('pdf'))throw Error('PDF indisponibil.');const objectUrl=URL.createObjectURL(blob),a=document.createElement('a');a.href=objectUrl;a.download='Imputernicire-IPC.pdf';a.click();setTimeout(()=>URL.revokeObjectURL(objectUrl),1000);return;}
    const d=await r.json();if(!r.ok)throw Error(d.error?.message||'Operațiunea nu a putut fi confirmată. Actualizați starea înainte de a încerca din nou.');
    if(!d.success||d.contactId?.toLowerCase()!==contactId.toLowerCase()||!d.record?.requestId)throw Error('Rezultatul nu poate fi verificat. Actualizați starea.');
    setData(old=>old?{...old,records:[...old.records.filter(e=>e.requestId!==d.record.requestId),d.record]}:old);
+   if(action==='validate'){if(d.record.status!=='Verified')throw Error('Verificarea nu este finalizată: '+(labels[d.record.status]||d.record.status)+'.');setReview(true);setConfirmed(false);setNotice('Datele și draftul SignWell au fost verificate. Nu s-a trimis nicio invitație.');}
    if(action==='send'){setReview(false);setConfirmed(false);setNotice(['Sent','InProgress','Completed'].includes(d.record.status)?'SignWell a confirmat trimiterea documentului.':'Cererea există deja: '+(labels[d.record.status]||d.record.status)+'. Nu se trimite o invitație duplicată.');}
-  }catch(e){setError(e instanceof Error?e.message:'Operațiune indisponibilă.');if(action==='send')await load().catch(()=>{});}
+  }catch(e){setError(e instanceof Error?e.message:'Operațiune indisponibilă.');if(action==='send'||action==='validate')await load().catch(()=>{});}
   finally{inFlight.current=false;setBusy(false);}
  }
- function submit(e:FormEvent){e.preventDefault();if(!review){setReview(true);setConfirmed(false);}else if(confirmed)void action('send');}
- const active=data?.records.some(r=>!terminal.has(r.status)),completed=data?.records.some(r=>r.status==='Completed');
+ function submit(e:FormEvent){e.preventDefault();if(!review){void action('validate');}else if(confirmed)void action('send');}
+ const active=data?.records.some(r=>!terminal.has(r.status)&&r.status!=='Verified'),completed=data?.records.some(r=>r.status==='Completed');
  return <><button type="button" onClick={()=>void start()}>Împuternicire IPC</button>{open&&<dialog ref={dialog} aria-label={`Împuternicire IPC — ${name}`} onCancel={e=>{if(busy)e.preventDefault();else setOpen(false);}}><form onSubmit={submit}><h3>Împuternicire IPC</h3><p>{name}</p><p className="hint">Datele sunt completate de agent. Clientul și Adrian semnează în SignWell. Datele semnării se completează automat. Etapele dosarului rămân manuale.</p>
  {!data?<p>Se încarcă…</p>:<>
  {!data.setup.ready&&<div role="alert">{data.setup.reasons.map(reason=><p key={reason}>{reason}</p>)}</div>}
