@@ -18,6 +18,8 @@ background and signed webhooks. A missing or delayed send response does not
 cause another creation or an automatic resend. Already confirmed sending clears
 a stale transport error. Unknown outcomes stay blocked until safely reconciled.
 The signed PDF download remains available after all signatures are completed.
+An existing document returning HTTP 404 is labelled unavailable and shows the
+provider error; no replacement document is created automatically.
 
 The client and Adrian Defta sign in SignWell. LOADate/ClientSignDate are the
 client's actual signing date; ProveitSignDate is Adrian's actual signing date.
