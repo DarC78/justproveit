@@ -1241,7 +1241,7 @@ export default function AdminCrmPage() {
               {activeTab === "whatsappGateway" ? <WhatsAppGatewayInbox token={token}/> : null}
               {activeTab === "allCustomersView" ? <AllCustomersView token={token} /> : null}
               {activeTab === "leadPipeline" ? <LeadPipelinePanel key={user?.id} token={token} userId={user?.id} /> : null}
-              {activeTab === "allMessages" ? <AllWhatsAppMessagesPanel key={user?.id} token={token} /> : null}
+              {activeTab === "InboundContacts" ? <AllWhatsAppMessagesPanel key={user?.id} token={token} /> : null}
 
               {activeTab === "sales" ? (
                 <SalesPanel token={token} onError={setErrorMessage} />

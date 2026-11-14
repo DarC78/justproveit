@@ -10,7 +10,7 @@ test('incoming messages tab renders required columns, text safely, filters and p
  await React.act(async()=>{const select=document.querySelector('[aria-label="Event completion"]');select.value='pending';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await React.act(async()=>document.querySelector('form').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.equal(calls.at(-1).completion,'pending');assert.equal(calls.at(-1).offset,0);
  }finally{await React.act(async()=>root.unmount());dom.window.close();}
 });
-test('All Messages is routed to the combined message panel',()=>{const source=fs.readFileSync('src/pages/admin/crm.tsx','utf8');assert.match(source,/activeTab === "allMessages".*AllWhatsAppMessagesPanel/);assert.match(fs.readFileSync('src/lib/allWhatsAppMessages.ts','utf8'),/crm\/all-messages/);});
+test('InboundContacts is routed to the combined message panel',()=>{const source=fs.readFileSync('src/pages/admin/crm.tsx','utf8');assert.match(source,/activeTab === "InboundContacts".*AllWhatsAppMessagesPanel/);assert.match(fs.readFileSync('src/lib/allWhatsAppMessages.ts','utf8'),/crm\/all-messages/);});
 
 test('pagination recovers when replied conversations disappear from the last page',async()=>{
  const {dom,root}=await setup(),calls=[];const Panel=load({getAllWhatsAppMessages:async(_token,filters)=>{calls.push(filters.offset);return {rows:filters.offset?[]:[base],total:calls.length===1?51:1,offset:filters.offset,limit:50,asOfUtc:'2026-11-12T11:00Z',warnings:[]};}}).default;

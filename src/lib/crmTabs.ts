@@ -1,10 +1,10 @@
-﻿export type CrmTabKey='privatePensions'|'details'|'new'|'scheduledCalls'|'attention'|'allCustomersView'|'leadPipeline'|'allMessages'|'AllWhatsAppMessages'|'sales'|'all'|'intents'|'inboundSms'|'whatsappGateway'|'whatsappStats'|'agentreport'|'manual'|'highLevelFunnels'|'missed';
+﻿export type CrmTabKey='privatePensions'|'details'|'new'|'scheduledCalls'|'attention'|'allCustomersView'|'leadPipeline'|'InboundContacts'|'allMessages'|'AllWhatsAppMessages'|'sales'|'all'|'intents'|'inboundSms'|'whatsappGateway'|'whatsappStats'|'agentreport'|'manual'|'highLevelFunnels'|'missed';
 export type CrmTab={key:CrmTabKey;label:string};
 export const PRIMARY_CRM_TABS:CrmTab[]=[
  {key:'leadPipeline',label:'Lead Pipeline'},
  {key:'all',label:'All Leads CRM'},
  {key:'new',label:'Lead Nou'},
- {key:'allMessages',label:'All Messages'},
+ {key:'InboundContacts',label:'InboundContacts'},
  {key:'agentreport',label:'Agent Report'},
 ];
 export function otherCrmTabs(gatewayEnabled=false,privatePensions=true):CrmTab[]{return [
@@ -23,6 +23,6 @@ export function otherCrmTabs(gatewayEnabled=false,privatePensions=true):CrmTab[]
  {key:'highLevelFunnels',label:'High Level Funnels'},
 ];}
 export function resolveCrmTab(value:string|null|undefined,{gatewayEnabled=false,hasContactQuery=false}={}):CrmTabKey{
- if(value==='AllWhatsAppMessages')return 'allMessages';
+ if(value==='AllWhatsAppMessages'||value==='allMessages')return 'InboundContacts';
  return [...PRIMARY_CRM_TABS,...otherCrmTabs(gatewayEnabled)].some(t=>t.key===value)?value as CrmTabKey:hasContactQuery?'details':'leadPipeline';
 }
