@@ -19,6 +19,7 @@ export default function RomanianPensionCalculatorPage() {
   const [linking,setLinking]=useState(false);
   const [linkError,setLinkError]=useState('');
   const [linkVersion,setLinkVersion]=useState(0);
+  const [activeTab,setActiveTab]=useState<'calculator'|'crm'>('calculator');
   const {token}=useAuth();
   useEffect(()=>{
     const params=new URLSearchParams(window.location.search);
@@ -69,17 +70,33 @@ export default function RomanianPensionCalculatorPage() {
     {linkError&&<><p role="alert" className="mt-2 text-sm text-red-700">{linkError}</p><button type="button" disabled={linking} className="mt-2 text-sm font-semibold underline" onClick={()=>void saveEmail().catch(()=>{})}>Actualizează verificarea</button></>}
   </section>:null;
   return <><Head><title>Calculator varsta de pensionare in Romania | Proveit</title><meta name="robots" content="noindex,nofollow"/><meta name="referrer" content="no-referrer"/></Head>
-    <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 text-slate-900">
+    <main className={`mx-auto flex w-full ${activeTab==='crm'?'max-w-full':'max-w-4xl'} flex-col gap-8 px-4 py-8 text-slate-900`}>
       <Link href="/ro" className="font-bold text-emerald-800">JustProveIt</Link>
       <section><h1 className="text-3xl font-extrabold">Calculator varsta de pensionare in Romania</h1>
         <dl data-clarity-mask="True" className="mt-4 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
           <div><dt className="text-sm font-semibold text-slate-600">Nume</dt><dd className="break-words">{contact.fullName||'Nespecificat'}</dd></div>
           <div><dt className="text-sm font-semibold text-slate-600">Email</dt><dd className="break-all">{contact.email||'Nespecificat'}</dd></div>
-          <div><dt className="text-sm font-semibold text-slate-600">Telefon</dt><dd className="flex flex-wrap items-center gap-3"><span className="break-words">{contact.phone||'Nespecificat'}</span>{contact.phone.trim()&&<a href={`https://www.justproveit.co.uk/admin/crm/?tab=all&phone=${encodeURIComponent(contact.phone.trim())}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-6 py-3 font-bold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">CRM</a>}</dd></div>
+          <div><dt className="text-sm font-semibold text-slate-600">Telefon</dt><dd className="flex flex-wrap items-center gap-3"><span className="break-words">{contact.phone||'Nespecificat'}</span>{contact.phone.trim()&&<button type="button" onClick={()=>setActiveTab('crm')} className="inline-flex items-center justify-center rounded-lg bg-emerald-700 px-6 py-3 font-bold text-white hover:bg-emerald-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">CRM</button>}</dd></div>
         </dl>
+        <div role="tablist" aria-label="Spațiu de lucru agent" className="mt-5 flex gap-2 border-b border-slate-200 pb-3" onKeyDown={event=>{
+          if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+          event.preventDefault();
+          const next=event.key==='Home'?'calculator':event.key==='End'?(contact.phone.trim()?'crm':'calculator'):activeTab==='calculator'&&contact.phone.trim()?'crm':'calculator';
+          setActiveTab(next);document.getElementById(`workspace-tab-${next}`)?.focus();
+        }}>
+          {(['calculator','crm'] as const).map(tab=><button key={tab} id={`workspace-tab-${tab}`} role="tab" type="button" aria-selected={activeTab===tab} aria-controls={`workspace-panel-${tab}`} tabIndex={activeTab===tab?0:-1} disabled={tab==='crm'&&!contact.phone.trim()} onClick={()=>setActiveTab(tab)} className={`rounded-lg px-6 py-3 font-bold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:opacity-50 ${activeTab===tab?'bg-emerald-700 text-white':'border border-emerald-700 bg-white text-emerald-800 hover:bg-emerald-50'}`}>{tab==='calculator'?'Calculator':'CRM'}</button>)}
+        </div>
+        <div id="workspace-panel-calculator" role="tabpanel" aria-labelledby="workspace-tab-calculator" hidden={activeTab!=='calculator'}>
         <PensionServicesTable contact={contact} token={token}/>
         <PensionAgentWorkflow contact={contact} onContact={(key,value)=>{setContact(current=>({...current,[key]:value}));setEmailConflict(null);setConfirmLink(false);setLinkError('');}} onResult={setResponse} onSaveEmail={saveEmail} crmStatus={activeConflict?'':crmStatus} contactReview={contactReview} contactReviewBusy={linking} contactLinkVersion={linkVersion}/>
+        </div>
+        <div id="workspace-panel-crm" role="tabpanel" aria-labelledby="workspace-tab-crm" hidden={activeTab!=='crm'} className="mt-4">
+          {contact.phone.trim()&&<>
+            <p className="mb-3 text-sm text-slate-600">CRM pentru {contact.phone}. <a className="font-semibold text-emerald-800 underline" href={`/admin/crm/?tab=all&phone=${encodeURIComponent(contact.phone.trim())}`} target="_blank" rel="noopener noreferrer">Deschide într-o fereastră separată</a></p>
+            <iframe key={contact.phone.trim()} title="CRM — istoricul contactului" src={`/admin/crm/?tab=all&phone=${encodeURIComponent(contact.phone.trim())}`} loading="eager" referrerPolicy="no-referrer" className="w-full rounded-lg border border-slate-200 bg-white" style={{height:'80vh',minHeight:600}}/>
+          </>}
+        </div>
       </section>
-      <aside><ResultPanel response={response} emailMessage="" sendingEmail={false} onSendEmail={()=>{}} readOnly/></aside>
+      <aside hidden={activeTab!=='calculator'}><ResultPanel response={response} emailMessage="" sendingEmail={false} onSendEmail={()=>{}} readOnly/></aside>
     </main></>;
 }

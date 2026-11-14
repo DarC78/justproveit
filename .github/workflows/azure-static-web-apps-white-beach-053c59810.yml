@@ -34,6 +34,7 @@ jobs:
         run: |
           npm ci
           npm run test:crm-lead-search
+          node --test tests/pension-calculator-layout.test.cjs
           node --test tests/whatsapp-gateway-crm.test.cjs
           node --test tests/international-pension-case.test.cjs
           node --test tests/signwell-ipc.test.cjs

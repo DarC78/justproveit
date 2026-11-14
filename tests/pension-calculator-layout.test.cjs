@@ -21,6 +21,45 @@ test('calculator removes detailed form and keeps one-column results after workfl
  assert.equal(tree.some(n=>n.type==='form'),false);
  assert.ok(tree.findIndex(n=>n.type==='aside')>tree.findIndex(n=>n.props?.onContact));
 });
+
+test('workspace preloads CRM while calculator is active and keeps both panels mounted when switching',async()=>{
+ const React=require('react'),{JSDOM}=require('jsdom');
+ const dom=new JSDOM('<div id="workspace-root"></div>',{url:'https://www.justproveit.co.uk/ro/calculator-varsta-pensionare?phone=447440526630'});
+ global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ const {createRoot}=require('react-dom/client');
+ const dispatch={};vm.runInNewContext(compile('src/lib/crmDispatch.ts'),{exports:dispatch,URLSearchParams});
+ const exports={};vm.runInNewContext(compile('src/pages/ro/calculator-varsta-pensionare.tsx'),{exports,URLSearchParams,window:dom.window,document:dom.window.document,require:name=>{
+  if(name==='react')return React;
+  if(name==='react/jsx-runtime')return require(name);
+  if(name==='@/context/AuthContext')return {useAuth:()=>({token:null})};
+  if(name==='@/lib/crmDispatch')return dispatch;
+  if(name==='@/lib/crmAdmin')return {};
+  if(name==='@/components/PensionAgentWorkflow')return function Workflow({onContact}){return React.createElement('div',null,React.createElement('input',{'aria-label':'Draft answer',defaultValue:''}),React.createElement('button',{onClick:()=>onContact('phone','+40 746 088353')},'Change phone'));};
+  return ()=>null;
+ }});
+ const root=createRoot(document.getElementById('workspace-root'));
+ const tab=name=>document.getElementById(`workspace-tab-${name}`),panel=name=>document.getElementById(`workspace-panel-${name}`);
+ try{
+  await React.act(async()=>root.render(React.createElement(exports.default)));
+  const frame=document.querySelector('iframe'),draft=document.querySelector('input');
+  assert.equal(tab('calculator').getAttribute('aria-selected'),'true');assert.equal(panel('crm').hidden,true);
+  assert.equal(frame.getAttribute('src'),'/admin/crm/?tab=all&phone=447440526630');assert.equal(frame.loading||frame.getAttribute('loading'),'eager');
+  draft.value='Unfinished simulation';
+  await React.act(async()=>tab('crm').click());
+  assert.equal(panel('calculator').hidden,true);assert.equal(panel('crm').hidden,false);assert.strictEqual(document.querySelector('iframe'),frame);assert.strictEqual(document.querySelector('input'),draft);
+  assert.ok(document.querySelector('main').className.includes('max-w-full'));
+  await React.act(async()=>tab('calculator').click());assert.equal(draft.value,'Unfinished simulation');assert.strictEqual(document.querySelector('iframe'),frame);
+  await React.act(async()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Change phone').click());
+  assert.equal(document.querySelector('iframe').getAttribute('src'),'/admin/crm/?tab=all&phone=%2B40%20746%20088353');
+  assert.notStrictEqual(document.querySelector('iframe'),frame);assert.strictEqual(document.querySelector('input'),draft);
+ }finally{await React.act(async()=>root.unmount());dom.window.close();}
+});
+
+test('workspace does not preload CRM until a phone is available',()=>{
+ const tree=setup('').render();
+ assert.equal(tree.some(n=>n.type==='iframe'),false);
+ assert.equal(tree.find(n=>n.props?.id==='workspace-tab-crm').props.disabled,true);
+});
 test('contact parameters take precedence and CRM fills missing fields using normalized phone',async()=>{
  const h=setup('?phone_leads=07440526630&nume=Page%20Name');h.render();await h.flush();h.render();await h.flush();
  assert.equal(h.states[0].fullName,'Page Name');
