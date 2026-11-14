@@ -35,3 +35,13 @@ test('pipeline writes use authenticated POST and validate returned identity, sta
   reply.ended.pipelineStatus='newLead';await assert.rejects(mod.exports.savePipelineControl('token','lead',end),/could not be verified/);
  }finally{global.fetch=old;}
 });
+test('InboundContacts can handle ended and non-P0 leads without reopening or editing their stage',async()=>{
+ const dom=new JSDOM('<div id="root"></div>');global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;const calls=[],notices=[],mod={exports:{}};
+ new Function('require','module','exports',compile('src/components/PipelineLeadControls.tsx'))(name=>name==='@/lib/leadPipelineControls'?{savePipelineControl:async(token,id,input)=>{calls.push({token,id,input});}}:require(name),mod,mod.exports);const root=createRoot(document.getElementById('root'));
+ const ended={pipelineStatus:'SimulationDone',reason:'Closed by agent',actor:'Fixture',atUtc:'2026-11-10T10:00Z'};
+ try{for(const row of [{contactId:'closed',pipelineStatus:'SimulationDone',ended,pipelineVersion:4,priority:undefined,lastInboundAtUtc:'2026-11-14T10:00:00Z'},{contactId:'outside',pipelineStatus:'Outside current pipeline',pipelineVersion:0,priority:2,lastInboundAtUtc:'2026-11-14T11:00:00Z'}]){
+  await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'token',row,allowHandleForAllLeads:true,onChanged:m=>notices.push(m)})));const handle=[...document.querySelectorAll('button')].find(b=>b.textContent==='Mark event as handled');assert.ok(handle);assert.equal(handle.disabled,false);await React.act(async()=>handle.click());assert.equal(calls.at(-1).input.action,'handle');assert.equal(calls.at(-1).input.inboundThroughAtUtc,row.lastInboundAtUtc);assert.equal(calls.at(-1).input.expectedVersion,row.pipelineVersion);
+  if(row.ended){assert.match(document.body.textContent,/Closed by agent/);assert.ok([...document.querySelectorAll('button')].some(b=>b.textContent==='Reopen Lead'));assert.equal(document.querySelector('select'),null);}
+ }assert.equal(calls.length,2);assert.ok(calls.every(c=>c.input.action==='handle'));assert.match(notices[0],/closed leads remain closed/);
+ }finally{await React.act(async()=>root.unmount());dom.window.close();delete global.window;delete global.document;}
+});

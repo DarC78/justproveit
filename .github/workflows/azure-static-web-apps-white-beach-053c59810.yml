@@ -38,7 +38,7 @@ jobs:
           node --test tests/whatsapp-gateway-crm.test.cjs
           node --test tests/international-pension-case.test.cjs
           node --test tests/signwell-ipc.test.cjs
-          node --test tests/lead-pipeline.test.cjs tests/all-whatsapp-messages.test.cjs tests/crm-tab-navigation.test.cjs tests/sms-history-reply.test.cjs
+          node --test tests/lead-pipeline.test.cjs tests/pipeline-controls.test.cjs tests/all-whatsapp-messages.test.cjs tests/crm-tab-navigation.test.cjs tests/sms-history-reply.test.cjs
           node --test tests/crm-attention.test.cjs tests/auth-session.test.cjs tests/phone-history-performance.test.cjs tests/lead-details-phone-history.test.cjs tests/crm-email-history.test.cjs tests/whatsapp-reply-composer.test.cjs tests/contact-actions.test.cjs tests/contact-book-call.test.cjs tests/internal-lead-actions.test.cjs tests/call-transcription.test.cjs
 
       - name: Build And Deploy

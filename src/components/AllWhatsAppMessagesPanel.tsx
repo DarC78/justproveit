@@ -47,7 +47,7 @@ export default function AllWhatsAppMessagesPanel({token}:{token:string}){
      <td><button type="button" aria-expanded={history===row.id} onClick={()=>setHistory(history===row.id?null:row.id)}>{row.name}</button></td><td>{row.phone}</td><td>{row.email||'—'}</td>
      <td style={{minWidth:320,maxWidth:540}}><IncomingMessageBatch token={token} row={row} onChanged={changed}/></td>
      <td>{row.pipelineStatus}{row.manualStage&&<small style={{display:'block'}}>Manual assignment</small>}</td><td>{row.agent||'Unassigned / not recorded'}</td>
-     <td><LeadPipelineRowActions token={token} row={row} noteSummary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={()=>{notes.refresh();setRevision(v=>v+1);}} onChanged={changed}/>{row.done&&<small>Incoming batch marked handled{row.done.actor?` by ${row.done.actor}`:''}.</small>}</td>
+     <td><LeadPipelineRowActions token={token} row={row} allowHandleForAllLeads noteSummary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={()=>{notes.refresh();setRevision(v=>v+1);}} onChanged={changed}/>{row.done&&<small>Incoming batch marked handled{row.done.actor?` by ${row.done.actor}`:''}.</small>}</td>
     </tr>{history===row.id&&<tr><td colSpan={8}><LeadPhoneHistory token={token} contactId={row.contactId} phone={row.phone} name={row.name} onCollapse={()=>setHistory(null)}/></td></tr>}</Fragment>)}
     {!report.rows.length&&<tr><td colSpan={8}>No incoming events match these filters.</td></tr>}
    </tbody></table></div>
