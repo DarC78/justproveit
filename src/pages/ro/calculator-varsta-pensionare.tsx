@@ -75,7 +75,7 @@ export default function RomanianPensionCalculatorPage() {
         <dl data-clarity-mask="True" className="mt-4 grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-4 sm:grid-cols-3">
           <div><dt className="text-sm font-semibold text-slate-600">Nume</dt><dd className="break-words">{contact.fullName||'Nespecificat'}</dd></div>
           <div><dt className="text-sm font-semibold text-slate-600">Email</dt><dd className="break-all">{contact.email||'Nespecificat'}</dd></div>
-          <div><dt className="text-sm font-semibold text-slate-600">Telefon</dt><dd className="break-words">{contact.phone||'Nespecificat'}</dd></div>
+          <div><dt className="text-sm font-semibold text-slate-600">Telefon</dt><dd className="flex flex-wrap items-center gap-3"><span className="break-words">{contact.phone||'Nespecificat'}</span>{contact.phone.trim()&&<a href={`https://www.justproveit.co.uk/admin/crm/?tab=all&phone=${encodeURIComponent(contact.phone.trim())}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center rounded border border-emerald-700 px-3 py-1 text-sm font-semibold text-emerald-800 hover:bg-emerald-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">CRM</a>}</dd></div>
         </dl>
         <PensionServicesTable contact={contact} token={token}/>
         <PensionAgentWorkflow contact={contact} onContact={(key,value)=>{setContact(current=>({...current,[key]:value}));setEmailConflict(null);setConfirmLink(false);setLinkError('');}} onResult={setResponse} onSaveEmail={saveEmail} crmStatus={activeConflict?'':crmStatus} contactReview={contactReview} contactReviewBusy={linking} contactLinkVersion={linkVersion}/>
