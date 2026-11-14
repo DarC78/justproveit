@@ -26,6 +26,7 @@ test('workspace preloads CRM while calculator is active and keeps both panels mo
  const React=require('react'),{JSDOM}=require('jsdom');
  const dom=new JSDOM('<div id="workspace-root"></div>',{url:'https://www.justproveit.co.uk/ro/calculator-varsta-pensionare?phone=447440526630'});
  global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ Object.defineProperty(global,'navigator',{value:dom.window.navigator,configurable:true});
  const {createRoot}=require('react-dom/client');
  const dispatch={};vm.runInNewContext(compile('src/lib/crmDispatch.ts'),{exports:dispatch,URLSearchParams});
  const exports={};vm.runInNewContext(compile('src/pages/ro/calculator-varsta-pensionare.tsx'),{exports,URLSearchParams,window:dom.window,document:dom.window.document,require:name=>{
