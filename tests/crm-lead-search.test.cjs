@@ -96,6 +96,10 @@ test('URL searches automatically select phone before email before name and react
  try{
   for(const [query,expected] of [
    [{phone:'40746088353',email:'lead@example.invalid',name:'Daniel'},{phone:'40746088353',email:'',name:''}],
+   [{phoneDNIS:'447366038559',email:'lead@example.invalid'},{phone:'447366038559',email:'',name:''}],
+   [{phone:'07447707829',phoneDNIS:'40746088353'},{phone:'40746088353',email:'',name:''}],
+   [{phone:'447366038559',phoneDNIS:'+44 7447 707829'},{phone:'447366038559',email:'',name:''}],
+   [{phone:'40746088353',phoneDNIS:'447366038559'},{phone:'40746088353',email:'',name:''}],
    [{email:'lead@example.invalid',name:'Daniel'},{phone:'',email:'lead@example.invalid',name:''}],
    [{name:'Daniel'},{phone:'',email:'',name:'Daniel'}]
   ]){
@@ -105,6 +109,24 @@ test('URL searches automatically select phone before email before name and react
    assert.deepEqual([...host.querySelectorAll('.filters input')].map(input=>input.value),[expected.name,expected.phone,expected.email]);
   }
  }finally{router.query={};await act(async()=>root.unmount());host.remove();}
+});
+
+test('CRM URL phone lookup excludes our number only when both candidates are filled',()=>{
+ const {crmPhoneLookup}=load('src/lib/crmPhoneLookup.ts');
+ const client='447366038559';
+ for(const own of ['7447707829','07447707829','+44 7447 707829','00447447707829']){
+  assert.equal(crmPhoneLookup({phone:own,phoneDNIS:client}),client);
+  assert.equal(crmPhoneLookup({phone:client,phoneDNIS:own}),client);
+  assert.equal(crmPhoneLookup({phone:own,phoneDNIS:own}),'');
+  assert.equal(crmPhoneLookup({phone:own}),own);
+ }
+ assert.equal(crmPhoneLookup({phone:' ',phoneDNIS:client}),client);
+ assert.equal(crmPhoneLookup({phone:client,phoneDNIS:'40746088353'}),client);
+ assert.equal(crmPhoneLookup({phone:client,phoneDNIS:client}),client);
+ assert.equal(crmPhoneLookup({phoneNumber:client,phoneDNIS:'07447707829'}),client);
+ assert.equal(crmPhoneLookup({telefon:client}),client);
+ assert.equal(crmPhoneLookup({phoneDNIS:[client,'40746088353']}),client);
+ assert.equal(crmPhoneLookup({}),'');
 });
 
 test('customer query helper sends five-lead offsets without changing the default customer page size',()=>{

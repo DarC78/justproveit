@@ -3,6 +3,7 @@ import LeadDetailsPhoneHistory from "@/components/LeadDetailsPhoneHistory";
 import CrmEmailConnections from "@/components/CrmEmailConnections";
 import {confirmEarlyManualBooking,isEarlyManualAppointment} from '@/lib/manualBookingConfirmation';
 import AllLeadsView from "@/components/AllLeadsView";
+import {crmPhoneLookup} from "@/lib/crmPhoneLookup";
 import AllCustomersView from "@/components/AllCustomersView";
 import LeadPipelinePanel from "@/components/LeadPipelinePanel";
 import AllWhatsAppMessagesPanel from "@/components/AllWhatsAppMessagesPanel";
@@ -87,7 +88,7 @@ type LocalOutboundSms = SmsTranscriptItem & {
 function getInitialTab(): TabKey {
   if (typeof window === "undefined") return "leadPipeline";
   const params = new URLSearchParams(window.location.search);
-  return resolveCrmTab(params.get("tab"), {gatewayEnabled:process.env.NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM === "true",hasContactQuery:["phone","phoneNumber","telefon"].some(key=>params.has(key))});
+  return resolveCrmTab(params.get("tab"), {gatewayEnabled:process.env.NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM === "true",hasContactQuery:["phone","phoneNumber","telefon","phoneDNIS"].some(key=>params.has(key))});
 }
 
 function hasCheckoutReturnSignal(query: Record<string, string | string[] | undefined>) {
@@ -1088,9 +1089,7 @@ export default function AdminCrmPage() {
       return;
     }
 
-    const phoneQuery = router.query.phone ?? router.query.phoneNumber ?? router.query.telefon;
-    const phone = Array.isArray(phoneQuery) ? phoneQuery[0] : phoneQuery;
-    const cleanPhone = String(phone || "").trim();
+    const cleanPhone = crmPhoneLookup(router.query);
     if (!cleanPhone || autoloadedPhoneRef.current === cleanPhone) {
       return;
     }
@@ -1131,7 +1130,7 @@ export default function AdminCrmPage() {
     return () => {
       cancelled = true;
     };
-  }, [activeTab, gateStatus, router.isReady, router.query.phone, router.query.phoneNumber, router.query.telefon, token]);
+  }, [activeTab, gateStatus, router.isReady, router.query.phone, router.query.phoneNumber, router.query.telefon, router.query.phoneDNIS, token]);
 
   function openTab(nextTab: TabKey) {
     setActiveTabState(nextTab);

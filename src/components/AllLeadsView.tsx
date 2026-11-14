@@ -1,10 +1,11 @@
 import {useState} from "react";
 import {useRouter} from "next/router";
 import {CustomersSection} from "./AllCustomersView";
+import {crmPhoneLookup} from "@/lib/crmPhoneLookup";
 export default function AllLeadsView({token}:{token:string}) {
  const router=useRouter();
  const value=(key:string)=>{const raw=router.query[key];return String(Array.isArray(raw)?raw[0]:raw||"").trim();};
- const phone=value("phone")||value("phoneNumber")||value("telefon"),email=value("email"),name=value("name")||value("nume");
+ const phone=crmPhoneLookup(router.query),email=value("email"),name=value("name")||value("nume");
  const defaultFilters={phone,email:phone?"":email,name:phone||email?"":name};
  const [revision,setRevision]=useState(0);
  const changed=()=>setRevision(n=>n+1);
