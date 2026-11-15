@@ -8,9 +8,10 @@ are collected. Recent input expires after 60 seconds; hidden/unfocused tabs are
 separate states. Timer suspension and delivery outages leave unknown coverage.
 
 Existing CRM authentication is used. The backend derives user/session/tenant and
-matches `platform.Users.DisplayName` exactly to Mediatel AGENTNAME after trimming
-and case normalization. Passwords are independent. Unmatched/ambiguous/offline
-mapping is explicit and does not block CRM work.
+uses an explicit mapping table from CRM User ID to Mediatel Agent ID. Emails,
+display names and passwords remain independent; no name or email-prefix matching
+is performed. Unmapped users still have activity collected under their CRM User ID.
+Tenant administrators maintain links through the backend agent-mappings API.
 
 Browser batches go to the canonical CRM API's `/justproveit/admin/crm/agent-telemetry`
 endpoint. Retries reuse IDs, expire after 110 seconds and remain in memory only.
