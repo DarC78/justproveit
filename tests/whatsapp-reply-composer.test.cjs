@@ -10,7 +10,7 @@ function fixture(send,templates){
  function find(node,type){if(!node||typeof node!=='object')return null;if(node.type===type)return node;const children=node.props?.children;for(const child of Array.isArray(children)?children:[children]){const result=find(child,type);if(result)return result;}return null;}
  return {render,find,updated:()=>updated,async load(){render();for(const effect of effects.splice(0))effect();await Promise.resolve();await Promise.resolve();}};
 }
-const submit=tree=>tree.props.onSubmit({preventDefault(){}});
+const submit=tree=>{function form(n){if(!n||typeof n!=='object')return null;if(n.type==='form')return n;for(const child of [n.props?.children].flat()){const found=form(child);if(found)return found;}return null;}return form(tree).props.onSubmit({preventDefault(){}});};
 test('composer sends exact booking text and clears only after provider acceptance',async()=>{
  let calls=[];const f=fixture(async(...args)=>{calls.push(args);return {id:'1',status:'accepted'};});
  f.find(f.render(),'textarea').props.onChange({target:{value:' Hello '}});

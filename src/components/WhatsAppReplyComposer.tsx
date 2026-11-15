@@ -1,7 +1,8 @@
+import ScheduleWhatsAppReply from './ScheduleWhatsAppReply';
 import {FormEvent, useEffect, useId, useRef, useState} from "react";
 import {sendContactWhatsAppReply,sendScheduledWhatsAppReply, WhatsAppReplyResult, ComposerRequest, ComposerTemplate, getComposerTemplates,getWhatsAppReplyRouting,WhatsAppReplyRouting} from "@/lib/crmAdmin";
 
-export default function WhatsAppReplyComposer({token,intentId,contactId,phone,onSent}:{token:string;intentId?:string;contactId?:string;phone:string;onSent:(result:WhatsAppReplyResult)=>void}) {
+export default function WhatsAppReplyComposer({token,intentId,contactId,phone,name,onSent}:{token:string;intentId?:string;contactId?:string;phone:string;name?:string;onSent:(result:WhatsAppReplyResult)=>void}) {
   const fieldId=useId();
   const [text,setText]=useState("");
   const [sending,setSending]=useState(false);
@@ -46,7 +47,7 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
       if(mounted.current)setError((cause instanceof Error?cause.message:"Unable to confirm the send.")+" Use Check send status to safely check the same request; do not create another copy.");
     } finally {busy.current=false;if(mounted.current)setSending(false);}
   }
-  return <form onSubmit={submit} aria-label="Reply on WhatsApp">
+  return <section className="reply-composer"><form id={fieldId+"-form"} onSubmit={submit} aria-label="Reply on WhatsApp">
     <label htmlFor={fieldId+"-template"}>Meta template</label>
     <select id={fieldId+"-template"} value={selected} disabled={sending||unresolved} onChange={event=>{setSelected(event.target.value);setValues({});setHeaderUrl("");setResult(null);setError("");}}>
       <option value="">Free text message</option>{templates.map(item=><option disabled={routing?.channel==='agents'} key={item.name+":"+item.language} value={item.name+":"+item.language}>{item.name} ({item.language})</option>)}
@@ -60,8 +61,8 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
 
     <textarea id={fieldId+"-reply"} rows={template?12:4} maxLength={4096} value={template?preview:text} disabled={sending||unresolved||!!template}
       onChange={event=>{setText(event.target.value);setResult(null);setError("");}} placeholder="Type your WhatsApp reply…" />
-    <div className="actions"><small>{template?"Approved template preview":text.length+"/4096"}</small><button type="submit" disabled={sending||(!unresolved&&(!valid||!routing?.available||Boolean(template&&routing.channel==='agents')))}>
-      {sending?"Sending…":unresolved?"Check send status":"Send WhatsApp"}</button></div>
+    </form><div className="actions"><small>{template?"Approved template preview":text.length+"/4096"}</small><div className="send-actions"><button type="submit" form={fieldId+"-form"} disabled={sending||(!unresolved&&(!valid||!routing?.available||Boolean(template&&routing.channel==='agents')))}>
+      {sending?"Sending…":unresolved?"Check send status":"Send WhatsApp"}</button>{contactId&&<ScheduleWhatsAppReply token={token} contactId={contactId} phone={phone} name={name||phone} disabled={sending||unresolved} onScheduled={()=>setResult(null)}/>}</div></div>
     <button type="button" disabled={sending} onClick={()=>setRoutingRevision(n=>n+1)}>Refresh reply channel</button>
     {error?<p role="alert" className="failure">{error}</p>:result&&<p role={result.status==="failed"?"alert":"status"} className={result.status==="failed"?"failure":"feedback"}>
       {result.status==="failed"?result.errorMessage||"WhatsApp could not deliver the reply. Your text has been kept.":
@@ -69,13 +70,13 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
         result.status==="accepted"?"WhatsApp accepted the reply. Delivery is not yet confirmed; the history updates automatically.":`WhatsApp reply: ${result.status}.`}
     </p>}
     <style jsx>{`
-      form{margin-top:24px;padding:18px;background:white;border:1px solid #cbd5e1;border-radius:9px}
+      .reply-composer{margin-top:24px;padding:18px;background:white;border:1px solid #cbd5e1;border-radius:9px}
       label{display:block;font-weight:700;color:#17376e}.help{font-size:12px;color:#667085;line-height:1.5}
       select,input{box-sizing:border-box;width:100%;padding:10px;border:1px solid #94a3b8;border-radius:6px;margin:6px 0 12px;font:inherit}label{font-size:13px}
       textarea{display:block;box-sizing:border-box;width:100%;resize:vertical;padding:12px;border:1px solid #94a3b8;border-radius:6px;font:inherit;color:#344054;background:white}
-      textarea:focus{outline:2px solid #315fba;outline-offset:2px}.actions{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
+      textarea:focus{outline:2px solid #315fba;outline-offset:2px}.send-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:10px}
       small{color:#667085}button{background:#176c43;color:white;border:0;border-radius:6px;padding:10px 16px;font-weight:700;cursor:pointer}
       button:disabled{opacity:.5;cursor:default}.failure{color:#b42318;font-size:14px;white-space:pre-wrap}.feedback{font-size:14px;color:#17376e}
     `}</style>
-  </form>;
+  </section>;
 }
