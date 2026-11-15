@@ -11,6 +11,7 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
  useEffect(()=>{let active=true;queueMicrotask(()=>{if(active)setPage(0);});return()=>{active=false;};},[contactId,phone]);
  const [loading,setLoading]=useState(!!phone),[error,setError]=useState(""),[revision,setRevision]=useState(0);
  useEffect(()=>{const changed=(event:Event)=>{if((event as CustomEvent).detail?.contactId?.toLowerCase()===contactId.toLowerCase()){setPage(0);setRevision(n=>n+1);}};window.addEventListener('crm-scheduled-reply',changed);return()=>window.removeEventListener('crm-scheduled-reply',changed);},[contactId]);
+ useEffect(()=>{if(loading||!history?.events.some(e=>e.kind==='whatsapp'&&['scheduled','queued'].includes(e.status)))return;const timer=window.setInterval(()=>{if(document.visibilityState==='visible')setRevision(n=>n+1);},30000);return()=>window.clearInterval(timer);},[history,loading]);
  useEffect(()=>{
   if(!phone)return;
   const controller=new AbortController();

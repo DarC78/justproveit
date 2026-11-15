@@ -1,5 +1,11 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),ts=require('typescript');
 const compile=p=>ts.transpileModule(fs.readFileSync(p,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+test('pending replies use peach history styling and a scheduled UK time without claiming delivery',()=>{
+ const React=require('react'),{renderToStaticMarkup}=require('react-dom/server'),mod={exports:{}};
+ new Function('require','module','exports',compile('src/components/PhoneHistoryModal.tsx'))(n=>n==='react'||n==='react/jsx-runtime'?require(n):n==='@/lib/crmAdmin'?{}:{__esModule:true,default:()=>null},mod,mod.exports);
+ const html=renderToStaticMarkup(React.createElement(mod.exports.PhoneHistoryTimeline,{paged:true,events:[{kind:'whatsapp',id:'scheduled',direction:'outbound',atUtc:'2026-11-15T13:00Z',author:'Synthetic agent',text:'Pending reply',messageType:'text',status:'scheduled',source:'Scheduled WhatsApp reply',scheduledAtUtc:'2026-11-16T09:00Z'}]}));
+ assert.match(html,/class="outbound scheduled-pending"/);assert.match(html,/#ffedd5/);assert.match(html,/Pending: scheduled for/);assert.match(html,/16 Nov 2026, 09:00:00/);assert.doesNotMatch(html,/Accepted by WhatsApp|WhatsApp Mediatel/);
+});
 test('red scheduled reply opens a separate composer, cancels without writes and preserves the same request after failure',async()=>{
  const slots=[],effects=[],calls=[],changes=[],exports={};let cursor=0,tree,fail=true;
  const react={useState(v){const i=cursor++;if(!(i in slots))slots[i]=v;return[slots[i],v=>slots[i]=v];},useRef(v){const i=cursor++;return slots[i]??={current:v};},useEffect(fn,deps){const i=cursor++;if(!slots[i]||deps.some((v,j)=>v!==slots[i][j])){slots[i]=deps;effects.push(fn);}}};
