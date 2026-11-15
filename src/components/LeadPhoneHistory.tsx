@@ -1,4 +1,4 @@
-﻿import {useEffect,useState} from "react";
+import {useEffect,useState} from "react";
 import {ContactPhoneHistory,getContactPhoneHistory} from "@/lib/crmAdmin";
 import {PhoneHistoryTimeline,HistoryPagination} from "./PhoneHistoryModal";
 import WhatsAppReplyComposer from "./WhatsAppReplyComposer";
@@ -10,7 +10,7 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
  const [page,setPage]=useState(0);
  useEffect(()=>{let active=true;queueMicrotask(()=>{if(active)setPage(0);});return()=>{active=false;};},[contactId,phone]);
  const [loading,setLoading]=useState(!!phone),[error,setError]=useState(""),[revision,setRevision]=useState(0);
- useEffect(()=>{const changed=(event:Event)=>{if((event as CustomEvent).detail?.contactId?.toLowerCase()===contactId.toLowerCase()){setPage(0);setRevision(n=>n+1);}};window.addEventListener('crm-scheduled-reply',changed);return()=>window.removeEventListener('crm-scheduled-reply',changed);},[contactId]);
+ useEffect(()=>{const changed=(event:Event)=>{if((event as CustomEvent).detail?.contactId?.toLowerCase()===contactId.toLowerCase()){setPage(0);setRevision(n=>n+1);}};window.addEventListener('crm-scheduled-reply',changed);return()=>window.removeEventListener('crm-scheduled-reply',changed);},[contactId]);
  useEffect(()=>{
   if(!phone)return;
   const controller=new AbortController();
