@@ -1,4 +1,5 @@
 import WhatsAppGatewayInbox from "@/components/WhatsAppGatewayInbox";
+import CrmAgentActivityTracking from '@/components/CrmAgentActivityTracking';
 import LeadDetailsPhoneHistory from "@/components/LeadDetailsPhoneHistory";
 import CrmEmailConnections from "@/components/CrmEmailConnections";
 import {confirmEarlyManualBooking,isEarlyManualAppointment} from '@/lib/manualBookingConfirmation';
@@ -1190,6 +1191,7 @@ export default function AdminCrmPage() {
 
         {gateStatus === "allowed" && token ? (
           <>
+            <CrmAgentActivityTracking token={token} />
             {errorMessage ? <p className="crm-alert error">{errorMessage}</p> : null}
             {statusMessage ? <p className="crm-alert success">{statusMessage}</p> : null}
 
