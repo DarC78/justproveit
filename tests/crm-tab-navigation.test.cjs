@@ -19,3 +19,29 @@ test('Other expands remaining tabs, remembers selection, collapses, and preserve
  await React.act(async()=>[...document.querySelectorAll('.primary-tabs button')].find(b=>b.textContent==='Lead Pipeline').click());assert.equal(panel().hidden,true);
  }finally{await React.act(async()=>root.unmount());dom.window.close();}
 });
+
+test('deep-linked CRM tabs hydrate without stale selection and every tab follows navigation',async()=>{
+ const hook={exports:{}};new Function('require','module','exports',compile('src/lib/useCrmTab.ts'))(name=>name==='./crmTabs'?tabs:require(name),hook,hook.exports);
+ const nav={exports:{}};new Function('require','module','exports',compile('src/components/CrmTabNavigation.tsx'))(name=>name==='@/lib/crmTabs'?tabs:require(name),nav,nav.exports);
+ const {renderToString}=require('react-dom/server'),{hydrateRoot}=require('react-dom/client');
+ const all=[...tabs.PRIMARY_CRM_TABS,...tabs.otherCrmTabs(false,true)];
+ let query={tab:'InboundContacts'},ready=true;
+ function Wrapper(){const [active,onChange]=hook.exports.useCrmTab(ready,query);return React.createElement(nav.exports.default,{activeTab:active,onChange,canUsePrivatePensions:true,detailsButtonRef:null});}
+ const html=renderToString(React.createElement(Wrapper));
+ const dom=new JSDOM('<div id="root">'+html+'</div>',{url:'https://example.test/admin/crm?tab=InboundContacts'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ const errors=[];let root;
+ const selected=()=>[...document.querySelectorAll('button[aria-current="page"]')];
+ try{
+  await React.act(async()=>{root=hydrateRoot(document.getElementById('root'),React.createElement(Wrapper),{onRecoverableError:e=>errors.push(e)});});
+  assert.equal(selected().length,1);assert.equal(selected()[0].textContent,'InboundContacts');assert.ok(selected()[0].classList.contains('active'));assert.equal(errors.length,0);
+  for(const tab of all){
+   await React.act(async()=>[...document.querySelectorAll('button')].find(b=>b.textContent===tab.label).click());
+   assert.equal(selected().length,1);assert.equal(selected()[0].textContent,tab.label);assert.ok(selected()[0].classList.contains('active'));
+   assert.equal(document.querySelector('.other-button').classList.contains('active'),tabs.otherCrmTabs(false,true).some(t=>t.key===tab.key));
+   // A route change (including a saved link or browser navigation) updates the same state.
+   query={tab:tab.key};await React.act(async()=>root.render(React.createElement(Wrapper)));
+   assert.equal(selected()[0].textContent,tab.label);
+  }
+  query={tab:'allMessages'};await React.act(async()=>root.render(React.createElement(Wrapper)));assert.equal(selected()[0].textContent,'InboundContacts');
+ }finally{await React.act(async()=>root?.unmount());dom.window.close();}
+});

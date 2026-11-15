@@ -9,7 +9,8 @@ import AllCustomersView from "@/components/AllCustomersView";
 import LeadPipelinePanel from "@/components/LeadPipelinePanel";
 import AllWhatsAppMessagesPanel from "@/components/AllWhatsAppMessagesPanel";
 import CrmTabNavigation from "@/components/CrmTabNavigation";
-import {resolveCrmTab,type CrmTabKey as TabKey} from "@/lib/crmTabs";
+import {useCrmTab} from "@/lib/useCrmTab";
+import {type CrmTabKey as TabKey} from "@/lib/crmTabs";
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
 import BookedCallsDayPanel from "@/components/BookedCallsDayPanel";
@@ -86,11 +87,6 @@ type LocalOutboundSms = SmsTranscriptItem & {
   timestamp: string;
 };
 
-function getInitialTab(): TabKey {
-  if (typeof window === "undefined") return "leadPipeline";
-  const params = new URLSearchParams(window.location.search);
-  return resolveCrmTab(params.get("tab"), {gatewayEnabled:process.env.NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM === "true",hasContactQuery:["phone","phoneNumber","telefon","phoneDNIS"].some(key=>params.has(key))});
-}
 
 function hasCheckoutReturnSignal(query: Record<string, string | string[] | undefined>) {
   const checkout = getQueryValue(query.checkout);
@@ -1032,7 +1028,7 @@ export default function AdminCrmPage() {
   const { status, user, token, isCrm } = useAuth();
   const [gateStatus, setGateStatus] = useState<GateStatus>("checking");
   const [gateError, setGateError] = useState("");
-  const [activeTabState, setActiveTabState] = useState<TabKey>(() => getInitialTab());
+  const [activeTabState, setActiveTabState] = useCrmTab(router.isReady, router.query);
   const [selectedLead, setSelectedLead] = useState<CrmLead>(() => blankLead());
   const [selectedIntent, setSelectedIntent] = useState<CrmLeadIntentRow | null>(null);
   const [statusMessage, setStatusMessage] = useState("");
