@@ -1,6 +1,7 @@
 import {FormEvent,useEffect,useRef,useState} from "react";
 import {ContactAction,ContactActionResult,runContactAction} from "@/lib/allCustomers";
 import ContactBookCall from './ContactBookCall';
+import ScheduleWhatsAppReply from './ScheduleWhatsAppReply';
 import ContactIdentityEditor from './ContactIdentityEditor';
 import ContactBookAdrian from './ContactBookAdrian';
 import InternalLeadActions from './InternalLeadActions';
@@ -27,6 +28,7 @@ export default function ContactActions({token,contactId,name,phone,onChanged,int
  return <div className="contact-actions">
   <div className="buttons">
    <button type="button" disabled={!!saving||!phone} onClick={()=>{setReply(true);setError("");}}>Reply on WhatsApp</button>
+   <ScheduleWhatsAppReply token={token} contactId={contactId} phone={phone} name={name} disabled={!!saving} onScheduled={()=>onChanged({success:true,action:'schedule-reply',contactId,solved:false})}/>
    {!internalLead&&<button type="button" disabled={!!saving} onClick={()=>void act("solve")}>{saving==="solve"?"Solving":"Solve"}</button>}
    <InternalLeadActions token={token} contactId={contactId} name={name} disabled={!!saving} onChanged={onChanged} allowEnd={internalLead} summary={noteSummary} onNoteSaved={onNoteSaved}/>
    <button type="button" disabled={!!saving||!phone} onClick={()=>void act("asap")}>{saving==="asap"?"Scheduling":"New ASAP"}</button>
