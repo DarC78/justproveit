@@ -30,7 +30,7 @@ export default function AllWhatsAppMessagesPanel({token}:{token:string}){
  useEffect(()=>{const controller=new AbortController();
   Promise.resolve().then(()=>{if(controller.signal.aborted)return null;setLoading(true);setError('');return getAllWhatsAppMessages(token,{...filters,offset},controller.signal);}).then(r=>{if(r&&!controller.signal.aborted){if(offset>0&&offset>=r.total){setOffset(Math.max(0,Math.floor(Math.max(0,r.total-1)/50)*50));return;}setReport(r);}}).catch(e=>{if(!controller.signal.aborted)setError(e instanceof Error?e.message:'Unable to load messages.');}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});return()=>controller.abort();
  },[token,filters,offset,revision]);
- useEffect(()=>{if(loading)return;const timer=setTimeout(()=>setRevision(v=>v+1),60000);return()=>clearTimeout(timer);},[loading,revision]);
+ useEffect(()=>{if(loading)return;const timer=setInterval(()=>{if(document.visibilityState==='visible')setRevision(v=>v+1);},(report?.refreshIntervalSeconds||30)*1000);return()=>clearInterval(timer);},[loading,revision,report?.refreshIntervalSeconds]);
  const changed=(message:string)=>{setNotice(message);setRevision(v=>v+1);};
  return <section aria-label="InboundContacts">
   <h2>InboundContacts</h2><p>One row per CRM lead, combining incoming WhatsApp and SMS messages and inbound calls that did not reach an agent since our latest confirmed human reply. Chatbot replies keep the conversation visible. Each message shows its date and time in the UK. Filters select conversations; the complete incoming batch stays visible. Newest incoming first. Green: handled or chatbot question within 1 hour; yellow: over 1 hour; red: over 8 hours; no color: no current chatbot question. Actions are the same as Lead Pipeline.</p>
@@ -42,6 +42,7 @@ export default function AllWhatsAppMessagesPanel({token}:{token:string}){
    <label>Event completion<select aria-label="Event completion" value={completion} onChange={e=>setCompletion(e.target.value as typeof completion)}><option value="all">All events</option><option value="pending">Pending</option><option value="done">Done</option></select></label>
    <button type="submit">Search</button><button type="button" onClick={()=>{setSearch('');setFrom('');setTo('');setCompletion('all');setChannel('all');setCategory('');setOffset(0);setHistory(null);setFilters({search:'',from:'',to:'',completion:'all',channel:'all',category:''});}}>Clear</button><button type="button" disabled={loading} onClick={()=>setRevision(v=>v+1)}>Refresh</button>
   </form>
+  <p className="saved-inbox-note">The saved inbox refreshes in the background every 30 seconds. Refresh loads the latest saved view; your lead controls use current data.</p>
   {notice&&<p role="status">{notice}</p>}{error&&<p role="alert">{error}</p>}{notes.error&&<p role="alert">{notes.error}</p>}{loading&&<p role="status">Loading incoming conversations…</p>}
   {report&&<><p>{report.total} incoming conversations · Updated {at(report.asOfUtc)} UK time</p>{report.warnings?.map(w=><p key={w} role="status">{w}</p>)}
    <div style={{overflowX:'auto'}}><table><thead><tr>{['Date','CRM Lead','Phone','Email','Message','LeadStatus','Agent','Actions'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>
