@@ -1,3 +1,9 @@
+## Shared actions and ToInvestigate (15 November 2026)
+
+Lead Pipeline, All Leads and InboundContacts render LeadPipelineRowActions, preserving the superset of existing contact, note, WhatsApp, ASAP, ordinary booking, booking-management and pipeline controls. All Leads obtains current authenticated pipeline metadata before enabling versioned controls. Mark event as handled is available on all three views.
+
+ToInvestigate opens a text dialog with ToInvestigate and Cancel. It adds an independent metadata flag, with an optional clear action. No lead status, stage, booking, queue or automation changes. Lead Pipeline has a separate ToInvestigate view; flagged leads retain their ordinary stage and can appear in both. The flag view includes ended, future-dated and out-of-cohort leads; merged contacts stay excluded. Common source/search/inbound filters still apply. Backend contract: docs/systems/crm-lead-pipeline.md.
+
 # Lead Pipeline
 
 ## ToAdrian and pipeline controls (11 November 2026)

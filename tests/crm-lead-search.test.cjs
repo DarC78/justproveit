@@ -25,7 +25,7 @@ const crm={
  async sendContactWhatsAppReply(token,id,body){calls.sends.push({id,body});return {id:'send-1',status:'accepted'};},
  async sendScheduledWhatsAppReply(){assert.fail('A booking must not be required for lead replies');}
 };
-const mocks={'@/lib/leadNotes':{nextActionRowStyle:()=>undefined,useLeadNoteSummaries:()=>({summaries:{},error:'',refresh(){}})},'./InternalLeadActions':{default:()=>null},
+const mocks={'@/lib/leadPipelineControls':{loadPipelineControl:async(token,contactId)=>({contactId,pipelineVersion:0,pipelineStatus:'newLead'})},'@/lib/leadNotes':{nextActionRowStyle:()=>undefined,useLeadNoteSummaries:()=>({summaries:{},error:'',refresh(){}})},'./InternalLeadActions':{default:()=>null},
  '@/lib/internationalPensionCases':{async loadPensionCaseSummaries(){return {summaries:{}};}},
  './InternationalPensionCase':{default:()=>null},
  'next/router':{useRouter:()=>router},
