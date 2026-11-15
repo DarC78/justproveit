@@ -2,6 +2,7 @@ import {FormEvent,useEffect,useRef,useState} from "react";
 import {ContactAction,ContactActionResult,runContactAction} from "@/lib/allCustomers";
 import ContactBookCall from './ContactBookCall';
 import ContactIdentityEditor from './ContactIdentityEditor';
+import ContactBookAdrian from './ContactBookAdrian';
 import InternalLeadActions from './InternalLeadActions';
 import type {LeadNoteSummary} from '@/lib/leadNotes';
 
@@ -31,6 +32,7 @@ export default function ContactActions({token,contactId,name,phone,onChanged,int
    <button type="button" disabled={!!saving||!phone} onClick={()=>void act("asap")}>{saving==="asap"?"Scheduling":"New ASAP"}</button>
    <ContactBookCall token={token} contactId={contactId} name={name||phone||'Lead'} disabled={!!saving||!phone} onBooked={onChanged}/>
    <ContactIdentityEditor token={token} contactId={contactId} disabled={!!saving} onChanged={()=>onChanged({success:true,action:'identity',contactId,solved:false})}/>
+   <ContactBookAdrian token={token} contactId={contactId} name={name||phone||'Lead'} disabled={!!saving} onBooked={()=>onChanged({success:true,action:'book-adrian',contactId,solved:false})}/>
   </div>
   {error&&!reply&&<p role="alert">{error}</p>}
   {reply&&<dialog ref={dialog} aria-label={`Reply to ${name||phone} on WhatsApp`} onCancel={event=>{if(saving)event.preventDefault();else setReply(false);}}>
