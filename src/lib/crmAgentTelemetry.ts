@@ -3,7 +3,7 @@
 export function startCrmActivityTracking(token: string, endpoint: string, host: Window = window) {
   const doc=host.document, nativeFetch=host.fetch.bind(host), tabId=host.crypto.randomUUID();
   let lastInput: number|null=null, previous=Date.now(), stopped=false, sending=false;
-  type Sample={id:string;kind:'sample'|'leave';atUtc:string;previousAtUtc:string;lastInteractionAtUtc:string|null;visible:boolean;focused:boolean};
+  type Sample={id:string;kind:'sample';atUtc:string;previousAtUtc:string;lastInteractionAtUtc:string|null;visible:boolean;focused:boolean};
   let queue:Sample[]=[];
   const target=new URL(endpoint,host.location.href);
   const focused=()=>doc.visibilityState==='visible'&&doc.hasFocus();
@@ -22,14 +22,14 @@ export function startCrmActivityTracking(token: string, endpoint: string, host: 
     }catch{/* Retry bounded samples; CRM work must continue during telemetry outages. */}
     finally{sending=false;}
   }
-  function sample(kind:'sample'|'leave'='sample',keepalive=false){
+  function sample(){
     if(stopped)return;
     const now=Date.now();
-    queue.push({id:host.crypto.randomUUID(),kind,atUtc:new Date(now).toISOString(),previousAtUtc:new Date(previous).toISOString(),lastInteractionAtUtc:lastInput===null?null:new Date(lastInput).toISOString(),visible:doc.visibilityState==='visible',focused:doc.hasFocus()});
-    previous=now;queue=queue.slice(-20);void flush(keepalive);
+    if(now-previous<60000)return;
+    queue.push({id:host.crypto.randomUUID(),kind:'sample',atUtc:new Date(now).toISOString(),previousAtUtc:new Date(previous).toISOString(),lastInteractionAtUtc:lastInput===null?null:new Date(lastInput).toISOString(),visible:doc.visibilityState==='visible',focused:doc.hasFocus()});
+    previous=now;queue=queue.slice(-20);void flush();
   }
-  const changed=()=>sample(),leaving=()=>sample('leave',true);
-  doc.addEventListener('visibilitychange',changed);host.addEventListener('focus',changed);host.addEventListener('blur',changed);host.addEventListener('pagehide',leaving);
+  // Focus and visibility are sampled only by the minute timer.
   // Correlation only: recent-input does not prove that a particular request was
   // manually triggered. Server stores it separately from confirmed operations.
   const originalFetch=host.fetch;
@@ -45,11 +45,10 @@ export function startCrmActivityTracking(token: string, endpoint: string, host: 
     return nativeFetch(input,init);
   };
   host.fetch=wrappedFetch;
-  sample();const timer=host.setInterval(()=>sample(),15000);
+  const timer=host.setInterval(()=>sample(),60000);
   return ()=>{
-    sample('leave',true);stopped=true;host.clearInterval(timer);
+    stopped=true;host.clearInterval(timer);void flush(true);
     for(const name of inputs)doc.removeEventListener(name,observe,true);
-    doc.removeEventListener('visibilitychange',changed);host.removeEventListener('focus',changed);host.removeEventListener('blur',changed);host.removeEventListener('pagehide',leaving);
     if(host.fetch===wrappedFetch)host.fetch=originalFetch;
   };
 }

@@ -1,8 +1,10 @@
 # CRM agent activity collection
 
 The CRM mounts `CrmAgentActivityTracking` after successful CRM authorization.
-It records focus, visibility and last trusted interaction every 15 seconds, with
-immediate visibility/focus and best-effort leave samples. Opening a tab or polling
+It records focus, visibility and last trusted interaction once per minute per tab.
+The first sample is after one minute. Mount, focus/visibility changes and leaving
+the CRM create no extra samples. Operations are still recorded individually.
+Opening a tab or polling
 does not count as input. No keys, input values, message bodies or search strings
 are collected. Recent input expires after 60 seconds; hidden/unfocused tabs are
 separate states. Timer suspension and delivery outages leave unknown coverage.
