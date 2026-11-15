@@ -8,6 +8,7 @@ import {crmPhoneLookup} from "@/lib/crmPhoneLookup";
 import AllCustomersView from "@/components/AllCustomersView";
 import LeadPipelinePanel from "@/components/LeadPipelinePanel";
 import AllWhatsAppMessagesPanel from "@/components/AllWhatsAppMessagesPanel";
+import NextBestActionsPanel from "@/components/NextBestActionsPanel";
 import CrmTabNavigation from "@/components/CrmTabNavigation";
 import {useCrmTab} from "@/lib/useCrmTab";
 import {type CrmTabKey as TabKey} from "@/lib/crmTabs";
@@ -1239,6 +1240,7 @@ export default function AdminCrmPage() {
               {activeTab === "whatsappGateway" ? <WhatsAppGatewayInbox token={token}/> : null}
               {activeTab === "allCustomersView" ? <AllCustomersView token={token} /> : null}
               {activeTab === "leadPipeline" ? <LeadPipelinePanel key={user?.id} token={token} userId={user?.id} /> : null}
+              {activeTab === "nextBestActions" ? <NextBestActionsPanel key={user?.id} token={token} /> : null}
               {activeTab === "InboundContacts" ? <AllWhatsAppMessagesPanel key={user?.id} token={token} /> : null}
 
               {activeTab === "sales" ? (
