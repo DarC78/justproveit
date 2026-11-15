@@ -2,7 +2,7 @@ import MediatelMessageAttachment from './MediatelMessageAttachment';
 import GatewayMessageMedia from './GatewayMessageMedia';
 import SmsReplyComposer from './SmsReplyComposer';
 import {Fragment,useEffect,useState} from 'react';
-import {getAllWhatsAppMessages,type IncomingMessage,type WhatsAppMessageRow,type WhatsAppMessageReport} from '@/lib/allWhatsAppMessages';
+import {getAllWhatsAppMessages,type ConversationCategory,type IncomingMessage,type WhatsAppMessageRow,type WhatsAppMessageReport} from '@/lib/allWhatsAppMessages';
 import {useLeadNoteSummaries} from '@/lib/leadNotes';
 import LeadPipelineRowActions from './LeadPipelineRowActions';
 import LeadPhoneHistory from './LeadPhoneHistory';
@@ -22,28 +22,31 @@ export function IncomingMessageBatch({token,row,onChanged}:{token:string;row:Wha
 }
 export default function AllWhatsAppMessagesPanel({token}:{token:string}){
  const [search,setSearch]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState(''),[completion,setCompletion]=useState<'all'|'pending'|'done'>('all');
+ const [category,setCategory]=useState<ConversationCategory|''>('');
  const [channel,setChannel]=useState<'all'|'mediatel'|'agents'|'sms'|'call'>('all');
- const [filters,setFilters]=useState({search:'',from:'',to:'',completion:'all' as 'all'|'pending'|'done',channel:'all' as typeof channel}),[offset,setOffset]=useState(0),[revision,setRevision]=useState(0),[history,setHistory]=useState<string|null>(null);
+ const [filters,setFilters]=useState({search:'',from:'',to:'',completion:'all' as 'all'|'pending'|'done',channel:'all' as typeof channel,category:'' as ConversationCategory|''}),[offset,setOffset]=useState(0),[revision,setRevision]=useState(0),[history,setHistory]=useState<string|null>(null);
  const [report,setReport]=useState<WhatsAppMessageReport|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const notes=useLeadNoteSummaries(token,(report?.rows||[]).map(row=>({id:row.contactId,kind:'contact'})));
  useEffect(()=>{const controller=new AbortController();
-  Promise.resolve().then(()=>{if(controller.signal.aborted)return null;setLoading(true);setError('');setReport(null);return getAllWhatsAppMessages(token,{...filters,offset},controller.signal);}).then(r=>{if(r&&!controller.signal.aborted){if(offset>0&&offset>=r.total){setOffset(Math.max(0,Math.floor(Math.max(0,r.total-1)/50)*50));return;}setReport(r);}}).catch(e=>{if(!controller.signal.aborted)setError(e instanceof Error?e.message:'Unable to load messages.');}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});return()=>controller.abort();
+  Promise.resolve().then(()=>{if(controller.signal.aborted)return null;setLoading(true);setError('');return getAllWhatsAppMessages(token,{...filters,offset},controller.signal);}).then(r=>{if(r&&!controller.signal.aborted){if(offset>0&&offset>=r.total){setOffset(Math.max(0,Math.floor(Math.max(0,r.total-1)/50)*50));return;}setReport(r);}}).catch(e=>{if(!controller.signal.aborted)setError(e instanceof Error?e.message:'Unable to load messages.');}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});return()=>controller.abort();
  },[token,filters,offset,revision]);
+ useEffect(()=>{if(loading)return;const timer=setTimeout(()=>setRevision(v=>v+1),60000);return()=>clearTimeout(timer);},[loading,revision]);
  const changed=(message:string)=>{setNotice(message);setRevision(v=>v+1);};
  return <section aria-label="InboundContacts">
-  <h2>InboundContacts</h2><p>One row per CRM lead, combining incoming WhatsApp and SMS messages and inbound calls that did not reach an agent since our latest confirmed reply. Each message shows its date and time in the UK. Filters select conversations; the complete incoming batch stays visible. Actions are the same as Lead Pipeline.</p>
-  <form className="wa-filters" onSubmit={e=>{e.preventDefault();setOffset(0);setHistory(null);setFilters({search:search.trim(),from,to,completion,channel});}}>
+  <h2>InboundContacts</h2><p>One row per CRM lead, combining incoming WhatsApp and SMS messages and inbound calls that did not reach an agent since our latest confirmed human reply. Chatbot replies keep the conversation visible. Each message shows its date and time in the UK. Filters select conversations; the complete incoming batch stays visible. Newest incoming first. Green: handled or chatbot question within 1 hour; yellow: over 1 hour; red: over 8 hours; no color: no current chatbot question. Actions are the same as Lead Pipeline.</p>
+  <form className="wa-filters" onSubmit={e=>{e.preventDefault();setOffset(0);setHistory(null);setFilters({search:search.trim(),from,to,completion,channel,category});}}>
    <label>Lead, phone, email, message or agent<input value={search} maxLength={320} onChange={e=>setSearch(e.target.value)}/></label>
    <label>Latest incoming from<input type="date" value={from} max={to||undefined} onChange={e=>setFrom(e.target.value)}/></label><label>Latest incoming to<input type="date" value={to} min={from||undefined} onChange={e=>setTo(e.target.value)}/></label>
    <label>Channel<select aria-label="Message channel" value={channel} onChange={e=>setChannel(e.target.value as typeof channel)}><option value="all">All channels</option><option value="mediatel">WhatsApp Mediatel</option><option value="agents">WhatsApp Agenti</option><option value="sms">SMS</option><option value="call">Inbound calls without agent</option></select></label>
+   <label>Show Category<select aria-label="Show Category" value={category} onChange={e=>{const value=e.target.value as typeof category;setCategory(value);setOffset(0);setHistory(null);setFilters(f=>({...f,category:value}));}}><option value="">All categories</option><option value="red">Red</option><option value="yellow">Yellow</option><option value="green">Green</option><option value="none">No color</option></select></label>
    <label>Event completion<select aria-label="Event completion" value={completion} onChange={e=>setCompletion(e.target.value as typeof completion)}><option value="all">All events</option><option value="pending">Pending</option><option value="done">Done</option></select></label>
-   <button type="submit">Search</button><button type="button" onClick={()=>{setSearch('');setFrom('');setTo('');setCompletion('all');setChannel('all');setOffset(0);setHistory(null);setFilters({search:'',from:'',to:'',completion:'all',channel:'all'});}}>Clear</button><button type="button" disabled={loading} onClick={()=>setRevision(v=>v+1)}>Refresh</button>
+   <button type="submit">Search</button><button type="button" onClick={()=>{setSearch('');setFrom('');setTo('');setCompletion('all');setChannel('all');setCategory('');setOffset(0);setHistory(null);setFilters({search:'',from:'',to:'',completion:'all',channel:'all',category:''});}}>Clear</button><button type="button" disabled={loading} onClick={()=>setRevision(v=>v+1)}>Refresh</button>
   </form>
   {notice&&<p role="status">{notice}</p>}{error&&<p role="alert">{error}</p>}{notes.error&&<p role="alert">{notes.error}</p>}{loading&&<p role="status">Loading incoming conversations…</p>}
   {report&&<><p>{report.total} incoming conversations · Updated {at(report.asOfUtc)} UK time</p>{report.warnings?.map(w=><p key={w} role="status">{w}</p>)}
    <div style={{overflowX:'auto'}}><table><thead><tr>{['Date','CRM Lead','Phone','Email','Message','LeadStatus','Agent','Actions'].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>
-    {report.rows.map(row=><Fragment key={row.id}><tr style={{background:row.channel==='sms'?'#fff1f2':row.done?'#f0fdf4':undefined,borderLeft:row.channel==='sms'?'4px solid #db2777':undefined}}>
-     <td><time dateTime={row.atUtc}>{at(row.atUtc)}</time><br/><small>{row.source}</small></td>
+    {report.rows.map(row=><Fragment key={row.id}><tr data-category={row.category||(row.done?'green':'none')} style={{background:row.category==='red'?'#fef2f2':row.category==='yellow'?'#fef9c3':row.category==='green'||row.done?'#f0fdf4':undefined,borderLeft:row.channel==='sms'?'4px solid #db2777':undefined}}>
+     <td><time dateTime={row.atUtc}>{at(row.atUtc)}</time><br/><small>{row.source}</small>{row.lastChatbotQuestionAtUtc&&<small style={{display:'block'}}>Last chatbot question: {at(row.lastChatbotQuestionAtUtc)}</small>}</td>
      <td><button type="button" aria-expanded={history===row.id} onClick={()=>setHistory(history===row.id?null:row.id)}>{row.name}</button></td><td>{row.phone}</td><td>{row.email||'—'}</td>
      <td style={{minWidth:320,maxWidth:540}}><IncomingMessageBatch token={token} row={row} onChanged={changed}/></td>
      <td>{row.pipelineStatus}{row.manualStage&&<small style={{display:'block'}}>Manual assignment</small>}</td><td>{row.agent||'Unassigned / not recorded'}</td>

@@ -32,3 +32,13 @@ test('the shared action group forwards the same lead, version, incoming snapshot
  const row={...base,pipelineVersion:0,priority:0,lastInboundAtUtc:'2026-11-12T10:02Z',booking:{intentId:'booking',appointmentAtUtc:'2026-11-13T10:00Z'}},summary={noteCount:2,nextActionDate:'2026-11-13'};
  try{await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'token',row,allowHandleForAllLeads:true,noteSummary:summary,onChanged:m=>changed.push(m)})));assert.equal(seen.contact.contactId,base.contactId);assert.equal(seen.contact.noteSummary,summary);assert.equal(seen.pipeline.row,row);assert.equal(seen.pipeline.allowHandleForAllLeads,true);assert.equal(seen.pipeline.row.lastInboundAtUtc,'2026-11-12T10:02Z');assert.equal(seen.booking.booking,row.booking);await React.act(async()=>document.querySelector('button').click());assert.deepEqual(changed,['Solved']);}finally{await React.act(async()=>root.unmount());dom.window.close();}
 });
+
+ test('category dropdown applies immediately, defaults to all, and retains the requested option order',async()=>{
+ const {dom,root}=await setup(),calls=[],Panel=load({getAllWhatsAppMessages:async(_token,filters)=>{calls.push(filters);return {rows:[{...base,category:'red'}],total:1,offset:filters.offset,limit:50,asOfUtc:'2026-11-15T12:00Z',warnings:[]};}}).default;
+ try{await React.act(async()=>root.render(React.createElement(Panel,{token:'token'})));
+ const select=document.querySelector('[aria-label="Show Category"]');assert.equal(select.value,'');assert.equal(calls[0].category,'');assert.deepEqual([...select.options].map(o=>o.value),['','red','yellow','green','none']);
+ assert.equal(document.querySelector('tr[data-category="red"]').style.background,'rgb(254, 242, 242)');
+ await React.act(async()=>{select.value='none';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});assert.equal(calls.at(-1).category,'none');assert.equal(calls.at(-1).offset,0);
+ await React.act(async()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Clear').click());assert.equal(calls.at(-1).category,'');
+ }finally{await React.act(async()=>root.unmount());dom.window.close();}
+ });
