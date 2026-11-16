@@ -18,8 +18,8 @@ function YesNo({value}:{value:boolean|null|undefined}) {
     <style jsx>{`span{display:inline-block;border-radius:20px;padding:3px 9px;font-weight:700;font-size:12px}.yes{background:#e5f4e9;color:#196a35}.no{background:#fff2d6;color:#855a0b}.unknown{color:#667085}`}</style></span>;
 }
 
-export default function ScheduledCallsTable({token,rows,attention=false,pipeline=false,showCallDate=false,onChanged,renderExtraActions}:{
-  token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;showCallDate?:boolean;onChanged:(notice:string)=>void;renderExtraActions?:(row:ScheduledCallRow)=>ReactNode;
+export default function ScheduledCallsTable({token,rows,attention=false,pipeline=false,showCallDate=false,showCallbackPriority=false,onChanged,renderExtraActions}:{
+  token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;showCallDate?:boolean;showCallbackPriority?:boolean;onChanged:(notice:string)=>void;renderExtraActions?:(row:ScheduledCallRow)=>ReactNode;
 }) {
   const [historyBooking,setHistoryBooking]=useState<ScheduledCallRow|null>(null);
   const [now,setNow]=useState(()=>new Date());
@@ -38,7 +38,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
       {pipeline&&<th scope="col">WhatsApp messages in ziua programarii</th>}
       <th scope="col">Actiuni programare</th>
     </tr></thead><tbody>{rows.map(row=><tr key={row.intentId} style={pipeline?(nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate,now)?.backgroundColor==='#dbeafe'?{backgroundColor:'#dbeafe'}:{backgroundColor:scheduledCallDisplay(row.appointmentAtUtc,now,(row.meaningfulCallsSinceAppointment??0)>0||!!row.onWhatsAppBusiness||!!row.solvedOnWhatsApp).backgroundColor}):nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate)}>
-      <td><time dateTime={row.appointmentAtUtc}>{(attention||showCallDate||pipeline)?dateTime(row.appointmentAtUtc):londonTime.format(new Date(row.appointmentAtUtc))}</time>{pipeline&&<small>{scheduledCallDisplay(row.appointmentAtUtc,now).label}</small>}</td>
+      <td>{showCallbackPriority&&row.callbackPriority===0&&<strong className="callback-priority">P0 - Client returned after our call</strong>}<time dateTime={row.appointmentAtUtc}>{(attention||showCallDate||pipeline)?dateTime(row.appointmentAtUtc):londonTime.format(new Date(row.appointmentAtUtc))}</time>{pipeline&&<small>{scheduledCallDisplay(row.appointmentAtUtc,now).label}</small>}</td>
       <th scope="row">{row.phone?<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.name||"Client"}</Link>:row.name||"Client"}
         <small>{pipeline?row.leadSource:(row.intentType==="MANUAL_BOOK"?"Manual booking":"Calendly")}{!pipeline&&row.serviceName?` · ${row.serviceName}`:""}</small>
         {attention&&row.attentionReasons?.map(reason=><small className="reason" key={reason}>{reason}</small>)}
@@ -67,7 +67,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
       table{width:100%;min-width:1650px;border-collapse:collapse;font-size:12px;text-align:left}thead{background:#eef3fb;color:#17376e}
       th,td{padding:14px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top}thead th{min-width:100px;font-size:11px;line-height:1.5}
       tbody th{min-width:175px;font-weight:700}tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fafc}
-      small{display:block;font-size:11px;color:#667085;font-weight:400;margin-top:5px}.reason{color:#a3480b;font-weight:600}
+      .callback-priority{display:block;color:#b42318;margin-bottom:6px}small{display:block;font-size:11px;color:#667085;font-weight:400;margin-top:5px}.reason{color:#a3480b;font-weight:600}
       time{color:#143b92;font-size:15px;font-weight:800}.phone{white-space:nowrap}.history{min-width:240px}
       .number{text-align:center;font-variant-numeric:tabular-nums;font-weight:700}
       .phone-history{border:0;background:none;padding:0;color:#123c92;text-decoration:underline;font:inherit;cursor:pointer}.phone-history:focus-visible{outline:2px solid #123c92;outline-offset:4px}

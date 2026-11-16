@@ -9,5 +9,7 @@ test('pipeline schedule shares assignment, history, call colours and booking act
  const dom=new JSDOM(renderToStaticMarkup(React.createElement(mod.exports.default,{token:'token',rows:[row],pipeline:true,onChanged(){}})));
  const doc=dom.window.document;assert.equal(doc.querySelectorAll('thead th').length,9);assert.match(doc.body.textContent,/WhatsApp messages in ziua programarii/);assert.match(doc.querySelector('tbody').textContent,/Facebook/);assert.equal(doc.querySelector('time').textContent,'4 Jun 2026, 10:15');assert.equal(doc.querySelector('td.number').textContent,'8');assert.equal(doc.querySelector('button.phone-history').textContent,row.phone);
  assert.equal(received.assignment.contactId,'lead');assert.equal(received.actions.booking,row);assert.equal(received.callHistory.booking,row);assert.equal(received.notes.allowEnd,false);
+ const priority=new JSDOM(renderToStaticMarkup(React.createElement(mod.exports.default,{token:'token',rows:[{...row,callbackPriority:0}],pipeline:true,showCallbackPriority:true,onChanged(){}})));
+ assert.match(priority.window.document.querySelector('tbody').textContent,/P0 - Client returned after our call/);assert.doesNotMatch(doc.querySelector('tbody').textContent,/P0/);priority.window.close();
  const original=new JSDOM(renderToStaticMarkup(React.createElement(mod.exports.default,{token:'token',rows:[row],onChanged(){}})));assert.equal(original.window.document.querySelectorAll('thead th').length,19);dom.window.close();original.window.close();
 });
