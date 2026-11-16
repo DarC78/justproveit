@@ -13,7 +13,26 @@ test('incoming messages tab renders required columns, text safely, filters and p
 test('InboundContacts is routed to the combined message panel',()=>{const source=fs.readFileSync('src/pages/admin/crm.tsx','utf8');assert.match(source,/activeTab === "InboundContacts".*AllWhatsAppMessagesPanel/);assert.match(fs.readFileSync('src/lib/allWhatsAppMessages.ts','utf8'),/crm\/all-messages/);});
 test('InboundContacts enables handling for a closed, non-P0 row',async()=>{
  const {dom,root}=await setup(),Panel=load({getAllWhatsAppMessages:async()=>({rows:[{...base,priority:2,ended:{reason:'Closed',pipelineStatus:'SimulationDone',actor:'Fixture',atUtc:'2026-11-12T09:00Z'}}],total:1,offset:0,limit:50,asOfUtc:'2026-11-12T11:00Z',warnings:[]})}).default;
- try{await React.act(async()=>root.render(React.createElement(Panel,{token:'token'})));assert.equal(document.querySelector('button[data-contact="lead"]').dataset.allowHandle,'true');}finally{await React.act(async()=>root.unmount());dom.window.close();}
+ try{await React.act(async()=>root.render(React.createElement(Panel,{token:'token'})));await React.act(async()=>document.querySelector('.row-toggle').click());assert.equal(document.querySelector('button[data-contact="lead"]').dataset.allowHandle,'true');}finally{await React.act(async()=>root.unmount());dom.window.close();}
+});
+
+test('conversations default to one-line summaries, expand independently, retain expansion on refresh and reset on page changes',async()=>{
+ const {dom,root}=await setup();let calls=0;
+ const second={...base,id:'event2',contactId:'lead2',name:'Second Lead'},Panel=load({getAllWhatsAppMessages:async(_token,filters)=>{calls++;return {rows:[base,second],total:51,offset:filters.offset,limit:50,asOfUtc:'2026-11-12T11:00Z',warnings:[]};}}).default;
+ const button=label=>[...document.querySelectorAll('button')].find(b=>b.textContent===label);
+ try{
+  await React.act(async()=>root.render(React.createElement(Panel,{token:'token'})));
+  assert.equal(document.querySelectorAll('.collapsed-row').length,2);assert.equal(document.querySelectorAll('article').length,0);assert.equal(document.querySelectorAll('button[data-contact]').length,0);
+  assert.equal(document.querySelector('.row-toggle').getAttribute('aria-expanded'),'false');assert.match(document.querySelector('.message-preview').textContent,/unsafe/);
+  await React.act(async()=>document.querySelectorAll('.row-toggle')[0].click());
+  assert.equal(document.querySelectorAll('.expanded-row').length,1);assert.equal(document.querySelectorAll('article').length,1);assert.equal(document.querySelector('button[data-contact]').dataset.contact,'lead');
+  assert.equal(document.querySelector('.row-toggle').getAttribute('aria-expanded'),'true');
+  await React.act(async()=>button('Fixture Lead').click());assert.match(document.body.textContent,/History/);
+  await React.act(async()=>document.querySelectorAll('.row-toggle')[1].click());assert.equal(document.querySelectorAll('.expanded-row').length,2);
+  await React.act(async()=>button('Refresh').click());assert.equal(calls,2);assert.equal(document.querySelectorAll('.expanded-row').length,2);assert.match(document.body.textContent,/History/);
+  await React.act(async()=>document.querySelectorAll('.row-toggle')[0].click());assert.equal(document.querySelectorAll('.expanded-row').length,1);assert.equal(document.querySelector('button[data-contact]').dataset.contact,'lead2');assert.doesNotMatch(document.body.textContent,/History/);
+  await React.act(async()=>button('Next').click());assert.equal(document.querySelectorAll('.collapsed-row').length,2);assert.equal(document.querySelectorAll('article').length,0);
+ }finally{await React.act(async()=>root.unmount());dom.window.close();}
 });
 
 test('pagination recovers when replied conversations disappear from the last page',async()=>{
