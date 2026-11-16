@@ -1,5 +1,5 @@
-import {FormEvent, useEffect, useState, type ReactNode} from 'react';
-import {PensionCalculatorResponse, submitPensionCalculator, sendPensionCalculatorEmail} from '@/lib/pensionCalculator';
+import {FormEvent, useEffect, useRef, useState, type ReactNode} from 'react';
+import {PensionCalculatorResponse, submitPensionCalculator, sendPensionCalculatorEmail, sendPensionCalculatorWhatsApp} from '@/lib/pensionCalculator';
 import {COUNTRY_GUIDES, INTERVIEW_COUNTRIES, INTERVIEW_DOCUMENTS, PROJECTABLE_COUNTRIES} from '@/lib/pensionInterview';
 
 type Contact={fullName:string;email:string;phone:string};
@@ -32,12 +32,13 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
   const [result,setResult]=useState<PensionCalculatorResponse|null>(null);
   const [birthOver,setBirthOver]=useState(false);
   const [residenceCountry,setResidenceCountry]=useState('');
-  const [whatsappFailed,setWhatsappFailed]=useState(false);
+  const [whatsappDone,setWhatsappDone]=useState(false);
+  const deliveryBusy=useRef(false);
   const [roMonths,setRoMonths]=useState('0');
   const [emailMessageVersion,setEmailMessageVersion]=useState(contactLinkVersion);
   useEffect(()=>{setAgent(new URLSearchParams(window.location.search).get('agent')||'');},[]);
   const countries=[...new Set(periods.filter(p=>p.country&&periodMonths(p)>0).map(p=>p.country))];
-  function reset() {setResult(null);onResult(null);setSent(false);setConfirmed(false);setEmailState('');setError('');setWhatsappFailed(false);}
+  function reset() {setResult(null);onResult(null);setSent(false);setConfirmed(false);setEmailState('');setError('');setWhatsappDone(false);}
   function edit(action:()=>void){reset();action();}
   async function simulate(event:FormEvent) {
     event.preventDefault();reset();
@@ -63,21 +64,24 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
     }catch(e){setError(e instanceof Error?e.message:'Simularea nu a reușit.');}
     finally{setBusy(false);}
   }
-  async function sendEmail(retryWhatsApp=false) {
-    if(!result||contactReviewBusy||Boolean(contactReview)||(sent&&!retryWhatsApp))return;
+  async function sendEmail(channel:'both'|'whatsapp'='both') {
+    if(!result||deliveryBusy.current||contactReviewBusy||Boolean(contactReview)||(channel==='both'?sent:whatsappDone))return;
     setEmailMessageVersion(contactLinkVersion);
-    if(!contact.fullName.trim()||!contact.phone.trim()||!/^\S+@\S+\.\S+$/.test(contact.email)){setEmailState('Completați numele, telefonul și un email valid înainte de trimitere.');return;}
-    setSending(true);setEmailState('');
+    if(!contact.fullName.trim()||!contact.phone.trim()||(channel==='both'&&!/^\S+@\S+\.\S+$/.test(contact.email))){setEmailState(channel==='both'?'Completați numele, telefonul și un email valid înainte de trimitere.':'Completați numele și telefonul înainte de trimiterea WhatsApp.');return;}
+    deliveryBusy.current=true;setSending(true);setEmailState('');
     try {
-      await onSaveEmail?.();
-      const response=await sendPensionCalculatorEmail(result.resultId,contact);
-      if(!response.emailSent)throw new Error(response.emailError||'Emailul nu a putut fi trimis.');
-      setSent(true);setWhatsappFailed(response.whatsappStatus==='queue_failed');
-      const whatsappMessage=response.whatsappQueued===false?` ${response.whatsappError||'Mesajul WhatsApp nu a putut fi pus în coadă.'}`:response.whatsappQueued?(['accepted','sent','delivered','read'].includes(response.whatsappStatus||'')?' Mesajul WhatsApp a fost preluat de furnizor.':' Mesajul text WhatsApp a fost pus în coadă pentru trimitere.') : '';
-      setEmailState('V-am trimis acum rezultatul pe email. Puteți verifica?'+whatsappMessage);
-      const updated={...result,emailSent:true};setResult(updated);onResult(updated);
+      if(channel==='both')await onSaveEmail?.();
+      const response=channel==='both'?await sendPensionCalculatorEmail(result.resultId,contact):await sendPensionCalculatorWhatsApp(result.resultId,contact);
+      if(channel==='both'&&!response.emailSent)throw new Error(response.emailError||'Emailul nu a putut fi trimis.');
+      if(channel==='both'){
+        setSent(true);
+        const updated={...result,emailSent:true};setResult(updated);onResult(updated);
+      }
+      setWhatsappDone(Boolean(response.whatsappQueued));
+      const whatsappMessage=response.whatsappQueued?(['accepted','sent','delivered','read'].includes(response.whatsappStatus||'')?'Mesajul WhatsApp a fost preluat de furnizor.':'Mesajul text WhatsApp a fost pus în coadă pentru trimitere.'):response.whatsappError||'Mesajul WhatsApp nu a putut fi pus în coadă. Puteți reîncerca folosind butonul doar pe WhatsApp.';
+      setEmailState((channel==='both'?'V-am trimis acum rezultatul pe email. Puteți verifica? ':'')+whatsappMessage);
     }catch(e){setEmailState(e instanceof Error?e.message:'Trimiterea nu a reușit.');}
-    finally{setSending(false);}
+    finally{deliveryBusy.current=false;setSending(false);}
   }
   const displayAgent=agent.trim()||'[numele agentului]';
   const earliest=result?.result.recommended?.retirementDate;
@@ -131,12 +135,12 @@ export default function PensionAgentWorkflow({contact,onContact,onResult,onSaveE
       <p className="text-lg font-bold">{earliest?`OK, din toate aceste variante, cel mai devreme vă puteți pensiona estimativ în ${month(earliest)}.`:'Este necesară verificarea situației de către un specialist.'}</p>
       <p className="text-sm">Estimarea nu reprezintă o decizie de pensie. Numai instituțiile competente confirmă stagiile și drepturile; combinațiile de state pot necesita calcule distincte.</p>
       <h3 className="font-bold">Trimiterea rezultatului</h3>
-      {(['fullName','email','phone'] as const).map(key=><label key={key} className="block text-sm font-semibold">{key==='fullName'?'Nume':key==='email'?'Email':'Telefon'}<input className={inputClass} type={key==='email'?'email':key==='phone'?'tel':'text'} value={contact[key]} disabled={sending||sent||contactReviewBusy} onChange={e=>onContact(key,e.target.value)} onBlur={()=>{if(key==='email'&&contact.email)void onSaveEmail?.().catch(()=>{});}}/></label>)}
+      {(['fullName','email','phone'] as const).map(key=><label key={key} className="block text-sm font-semibold">{key==='fullName'?'Nume':key==='email'?'Email':'Telefon'}<input className={inputClass} type={key==='email'?'email':key==='phone'?'tel':'text'} value={contact[key]} disabled={sending||sent||(whatsappDone&&key!=='email')||contactReviewBusy} onChange={e=>onContact(key,e.target.value)} onBlur={()=>{if(key==='email'&&contact.email)void onSaveEmail?.().catch(()=>{});}}/></label>)}
       {crmStatus&&<p role="status" className="text-sm text-slate-700">{crmStatus}</p>}
       {contactReview}
-      <button type="button" disabled={sending||sent||contactReviewBusy||Boolean(contactReview)} onClick={()=>sendEmail()} className="rounded-lg bg-emerald-700 px-5 py-3 font-bold text-white disabled:opacity-50">{sending?'Se trimite…':sent?'Email trimis':'Trimite rezultatul pe email'}</button>
-      {whatsappFailed&&<button type="button" disabled={sending} onClick={()=>sendEmail(true)} className="ml-2 rounded-lg border border-emerald-700 px-5 py-3 font-bold text-emerald-800 disabled:opacity-50">Reîncearcă WhatsApp</button>}
-      <p className="text-sm text-slate-600">La trimitere, rezumatul este trimis și ca mesaj text WhatsApp la telefonul de mai sus. Livrarea depinde de regulile WhatsApp și de fereastra de conversație de 24 de ore.</p>
+      <button type="button" disabled={sending||sent||contactReviewBusy||Boolean(contactReview)} onClick={()=>sendEmail()} className="rounded-lg bg-emerald-700 px-5 py-3 font-bold text-white disabled:opacity-50">{sending?'Se trimite…':sent?'Email trimis':'Trimite rezultatul pe email si WhatsApp'}</button>
+      <button type="button" disabled={sending||whatsappDone||contactReviewBusy||Boolean(contactReview)} onClick={()=>sendEmail('whatsapp')} className="ml-2 rounded-lg border border-emerald-700 px-5 py-3 font-bold text-emerald-800 disabled:opacity-50">{whatsappDone?'WhatsApp înregistrat pentru trimitere':'Trimite rezultatul doar pe WhatsApp'}</button>
+      <p className="text-sm text-slate-600">Alegeți email și WhatsApp sau doar WhatsApp. Pentru opțiunea doar pe WhatsApp nu este necesară o adresă de email. Livrarea depinde de regulile WhatsApp și de fereastra de conversație de 24 de ore.</p>
       {emailState&&emailMessageVersion===contactLinkVersion&&<p role="status" className={sent?'font-bold text-emerald-800':'text-red-700'}>{emailState}</p>}
       {sent&&<><p className="font-bold text-red-700">Se așteaptă verificarea emailului. Uneori durează mai mult sau ajunge în Spam. Rugați clientul să îl găsească, să îl scoată din Spam și să deschidă linkul pentru a vedea rezultatele pe site.</p><Check label="Clientul confirmă că a primit emailul și a deschis rezultatul" checked={confirmed} onChange={setConfirmed}/></>}
     </section>}

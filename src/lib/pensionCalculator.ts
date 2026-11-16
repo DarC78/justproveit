@@ -340,6 +340,17 @@ export async function sendPensionCalculatorEmail(
   return body as PensionCalculatorEmailResponse;
 }
 
+export async function sendPensionCalculatorWhatsApp(resultId:string,contact:Pick<PensionCalculatorPayload,'fullName'|'phone'>){
+  if(resultId.startsWith('local-'))throw new Error('Rezultatul trebuie salvat inainte de trimiterea WhatsApp.');
+  const response=await fetch(`${API_BASE_URL}/justproveit/pension-calculator/results/${encodeURIComponent(resultId)}/whatsapp`,{
+    method:'POST',headers:{'content-type':'application/json'},
+    body:JSON.stringify({tenantKey:TENANT_KEY,fullName:contact.fullName,phone:contact.phone}),
+  });
+  const body=await response.json().catch(()=>null);
+  if(!response.ok||!body?.success)throw new Error(readApiError(body,response.statusText));
+  return body as PensionCalculatorEmailResponse;
+}
+
 function calculatePensionLocally(
   payload: PensionCalculatorPayload,
   fallbackReason: string,

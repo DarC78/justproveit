@@ -7,14 +7,14 @@ const compile=file=>ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOpt
 const jsx={jsx:(type,props)=>({type,props}),jsxs:(type,props)=>({type,props}),Fragment:'fragment'};
 function all(tree){if(Array.isArray(tree))return tree.flatMap(all);if(!tree||typeof tree!=='object')return [];if(typeof tree.type==='function')return all(tree.type(tree.props));const children=tree.props?.children;return [tree,...(Array.isArray(children)?children:[children]).flatMap(all)];}
 function setup(overrides={}) {
- const states=[];let cursor=0;const calls=[];
- const react={useState:initial=>{const i=cursor++;if(!(i in states))states[i]=initial;return [states[i],value=>{states[i]=typeof value==='function'?value(states[i]):value;}];},useEffect:()=>{}};
+ const states=[];let cursor=0;const calls=[],deliveryRef={current:false};
+ const react={useRef:()=>deliveryRef,useState:initial=>{const i=cursor++;if(!(i in states))states[i]=initial;return [states[i],value=>{states[i]=typeof value==='function'?value(states[i]):value;}];},useEffect:()=>{}};
  const data={exports:{}};vm.runInNewContext(compile('src/lib/pensionInterview.ts'),{exports:data.exports,Set});
  const response={resultId:'saved-id',emailSent:false,result:{scenarios:[],recommended:{retirementDate:'2030-01'}}};
  const api={submitPensionCalculator:async payload=>{calls.push({kind:'calculate',payload});return response;},sendPensionCalculatorEmail:async()=>{calls.push({kind:'email'});return {emailSent:false,emailError:'Provider unavailable'};},...overrides};
  const exports={};vm.runInNewContext(compile('src/components/PensionAgentWorkflow.tsx'),{exports,require:name=>name==='react'?react:name==='react/jsx-runtime'?jsx:name==='@/lib/pensionCalculator'?api:data.exports,URLSearchParams,Date,Set,window:{location:{href:'https://example.com/calculator?agent=Test'}}});
  const props={contact:{fullName:'Test User',email:'test@example.com',phone:'447700900001'},onContact:()=>{},onResult:()=>{}};
- return {states,calls,render:()=>{cursor=0;return all(exports.default(props));}};
+ return {states,calls,props,render:()=>{cursor=0;return all(exports.default(props));}};
 }
 test('interview has five country selectors, digits-only fields, and UK questions upon selection',()=>{
  const h=setup();let nodes=h.render();
@@ -99,14 +99,26 @@ test('confirmed email acceptance reveals the receipt step and prevents resending
 
 test('WhatsApp queue failure preserves email success and permits a separate retry',async()=>{
  let attempts=0;
- const h=setup({sendPensionCalculatorEmail:async()=>++attempts===1?{emailSent:true,whatsappQueued:false,whatsappStatus:'queue_failed',whatsappError:'WhatsApp queue unavailable'}:{emailSent:true,whatsappQueued:true,whatsappStatus:'queued'}});
+ let whatsappAttempts=0;
+ const h=setup({sendPensionCalculatorEmail:async()=>{attempts++;return {emailSent:true,whatsappQueued:false,whatsappStatus:'queue_failed',whatsappError:'WhatsApp queue unavailable'};},sendPensionCalculatorWhatsApp:async()=>{whatsappAttempts++;return {whatsappQueued:true,whatsappStatus:'queued'};}});
  h.render();h.states[19]={resultId:'saved-id',result:{scenarios:[],recommended:null}};
  await h.render().find(n=>n.type==='button'&&n.props.onClick).props.onClick();
  assert.equal(h.states[17],true);
  assert.ok(h.states[16].includes('WhatsApp queue unavailable'));
- const retry=h.render().find(n=>n.type==='button'&&n.props.children==='Reîncearcă WhatsApp');
+ const retry=h.render().find(n=>n.type==='button'&&n.props.children==='Trimite rezultatul doar pe WhatsApp');
  assert.ok(retry);await retry.props.onClick();
- assert.equal(attempts,2);assert.equal(h.states[17],true);
+ assert.equal(attempts,1);assert.equal(whatsappAttempts,1);assert.equal(h.states[17],true);
  assert.ok(h.states[16].includes('pus în coadă'));
  assert.equal(h.render().some(n=>n.type==='button'&&n.props.children==='Reîncearcă WhatsApp'),false);
+});
+
+test('WhatsApp-only works without email, skips CRM email save and cannot claim email success',async()=>{
+ let whatsapp=0,email=0,saved=0,release;
+ const h=setup({sendPensionCalculatorEmail:async()=>{email++;},sendPensionCalculatorWhatsApp:async()=>{whatsapp++;await new Promise(r=>release=r);return {whatsappQueued:true,whatsappStatus:'queued'};}});
+ h.props.contact.email='';h.props.onSaveEmail=async()=>{saved++;};h.render();h.states[19]={resultId:'saved-id',emailSent:false,result:{scenarios:[],recommended:null}};
+ const button=h.render().find(n=>n.type==='button'&&n.props.children==='Trimite rezultatul doar pe WhatsApp');
+ const first=button.props.onClick();await button.props.onClick();assert.equal(whatsapp,1);release();await first;
+ assert.equal(email,0);assert.equal(saved,0);assert.equal(h.states[17],false);assert.match(h.states[16],/pus în coadă/);
+ assert.equal(h.render().some(n=>n.type==='button'&&n.props.children==='WhatsApp înregistrat pentru trimitere'&&n.props.disabled),true);
+ assert.equal(JSON.stringify(h.render()).includes('Clientul confirmă că a primit emailul'),false);
 });
