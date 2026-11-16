@@ -15,6 +15,7 @@ export default function NextBestActionsPanel({token}:{token:string}){
  function submit(e:FormEvent){e.preventDefault();setOffset(0);setFilters({search,rule,status});}
  return <section aria-label="Next Best Actions" className="nba-panel">
   <h2>Next Best Actions</h2>
+  <p>Showing leads with call or message activity in the past 30 days, and clients without activity in that period.</p>
   <p className="mode" role="status"><strong>Recommendation only — sending is disabled.</strong> Approvals and edits are saved for review. They do not queue WhatsApp messages, emails, calls or bookings.</p>
   <form onSubmit={submit} className="filters"><label>Lead, phone or reason<input value={search} onChange={e=>setSearch(e.target.value)} maxLength={320}/></label><label>Review status<select value={status} onChange={e=>setStatus(e.target.value)}>{['','recommended','blocked','approved','edited','snoozed','dismissed','takeover'].map(v=><option key={v} value={v}>{v||'All'}</option>)}</select></label><label>Journey<select value={rule} onChange={e=>setRule(e.target.value)}>{['','L00','L01','L02','L03','L04','L05','L06','L07','R00','R01','R02','R06','CF01','C00','C01','C02','C04'].map(v=><option key={v} value={v}>{v||'All'}</option>)}</select></label><button type="submit">Search</button><button type="button" disabled={loading} onClick={()=>setRevision(v=>v+1)}>Refresh</button></form>
   {notice&&<p role="status">{notice}</p>}{error&&<p role="alert">{error}</p>}{loading&&<p role="status">Loading recommendations…</p>}
