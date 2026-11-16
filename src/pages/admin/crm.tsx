@@ -1,3 +1,5 @@
+import AgentCrmMetrics from '@/components/AgentCrmMetrics';
+import type {AgentCrmProductivity} from '@/lib/crmAdmin';
 import WhatsAppGatewayInbox from "@/components/WhatsAppGatewayInbox";
 import CrmAgentActivityTracking from '@/components/CrmAgentActivityTracking';
 import LeadDetailsPhoneHistory from "@/components/LeadDetailsPhoneHistory";
@@ -3823,6 +3825,8 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
   const [dateEnd, setDateEnd] = useState(() => getDateInputDaysAgo(0));
   const [agentId, setAgentId] = useState("all");
   const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number | string; agentName?: string | null }>>([]);
+  const [loadedAgentId,setLoadedAgentId]=useState("all");
+  const [crmProductivity,setCrmProductivity]=useState<AgentCrmProductivity|null>(null);
   const [rows, setRows] = useState<CrmAgentReportRow[]>([]);
   const [pauseRows, setPauseRows] = useState<CrmAgentReportPauseBreakdownRow[]>([]);
   const [paymentSummary, setPaymentSummary] = useState<CrmAgentReportPaymentSummary | null>(null);
@@ -3866,6 +3870,8 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
         windowSchedule: AGENT_REPORT_WINDOW_SCHEDULE,
         hourlyRateEur: AGENT_REPORT_PAYMENT_RATE_EURO,
       });
+      setCrmProductivity(result.crmProductivity||null);
+      setLoadedAgentId(agentId);
       setRows(sortAgentReportRows(getAgentReportResponseRows(result)));
       setPauseRows(getAgentReportResponsePauseRows(result));
       setAgentOptions(result.options?.agents || result.agents || []);
@@ -3919,19 +3925,15 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
       </p>
 
       <div className="agent-report-summary">
-        <AgentReportMetric label="Logged total" seconds={summary.loggedSeconds} />
+        <AgentReportMetric label="Logged To Mediatel" seconds={summary.loggedSeconds} />
         <AgentReportMetric label="Pause total" seconds={summary.pauseSeconds} />
         <AgentReportMetric label="Talked total" seconds={summary.talkedSeconds} />
         <AgentReportMetric label="Clerical total" seconds={summary.clericalSeconds} />
-        <AgentReportMetric label="Logged interval RO" seconds={summary.eveningLoggedSeconds} />
-        <AgentReportMetric label="Pause interval RO" seconds={summary.eveningPauseSeconds} />
-        <AgentReportMetric label="Talked interval RO" seconds={summary.eveningTalkedSeconds} />
-        <AgentReportMetric label="Clerical interval RO" seconds={summary.eveningClericalSeconds} />
-        <AgentReportMetric label="Logged outside interval" seconds={summary.outsideLoggedSeconds} />
-        <AgentReportMetric label="Pause outside interval" seconds={summary.outsidePauseSeconds} />
-        <AgentReportMetric label="Talked outside interval" seconds={summary.outsideTalkedSeconds} />
-        <AgentReportMetric label="Clerical outside interval" seconds={summary.outsideClericalSeconds} />
+        <AgentCrmMetrics data={crmProductivity} agentId={loadedAgentId} />
       </div>
+
+      <p className="green-label">CRM minutes count each observed action minute once, excluding overlapping talk, clerical and break time. Counts use recorded activity and approved CRM/Mediatel mappings.</p>
+      {crmProductivity?.warnings.map(warning=><p key={warning} role="status">{warning}</p>)}
 
       <DataTable
         columns={[
@@ -3941,6 +3943,10 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
           "Pause by type",
           "Talked",
           "Clerical",
+          "Active in CRM",
+          "Simulations done",
+          "Cases opened",
+          "Cases updated",
           "Logged interval RO",
           "Pause interval RO by type",
           "Talked interval RO",
@@ -3960,6 +3966,10 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
           />,
           formatDurationHhMmSs(getAgentReportTalkedSeconds(row)),
           formatDurationHhMmSs(getAgentReportClericalSeconds(row)),
+          agentCrmCell(row,"activeCrmSeconds",true),
+          agentCrmCell(row,"simulationsDone"),
+          agentCrmCell(row,"casesOpened"),
+          agentCrmCell(row,"casesUpdated"),
           formatDurationHhMmSs(getAgentReportWindowLoggedSeconds(row)),
           <PauseBreakdownCell
             key={`evening-pause-${getAgentReportRowKey(row)}`}
@@ -3976,7 +3986,7 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
           formatDurationHhMmSs(getAgentReportOutsideClericalSeconds(row)),
         ])}
         loading={loading}
-        minWidth={1840}
+        minWidth={2180}
         className="agent-report-table"
       />
 
@@ -4015,6 +4025,10 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
       `}</style>
     </CrmCard>
   );
+}
+
+function agentCrmCell(row:CrmAgentReportRow,key:'activeCrmSeconds'|'simulationsDone'|'casesOpened'|'casesUpdated',time=false){
+ if(row.crmLinked===false)return 'Not linked';if(row.crmLinked===undefined)return 'Unavailable';const value=row[key];return value==null?'Not recorded':time?formatDurationHhMmSs(value):String(value);
 }
 
 function AgentReportMetric({ label, seconds }: { label: string; seconds: number }) {

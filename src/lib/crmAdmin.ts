@@ -548,6 +548,7 @@ export type CrmAgentReportPauseBreakdownRow = {
 };
 
 export type CrmAgentReportRow = {
+  crmLinked?:boolean;crmMetricsAvailable?:boolean;activeCrmSeconds?:number|null;simulationsDone?:number|null;casesOpened?:number|null;casesUpdated?:number|null;
   day?: string | null;
   date?: string | null;
   reportDate?: string | null;
@@ -663,7 +664,9 @@ export type CrmAgentReportAgentOption = {
   payment?: CrmAgentReportPaymentSummary | null;
 };
 
+export type AgentCrmProductivity={unavailable?:boolean;totals:{activeCrmSeconds:number|null;simulationsDone:number|null;casesOpened:number|null;casesUpdated:number|null}|null;mappedAgentIds?:number[];warnings:string[];coverageFromUtc?:string};
 export type CrmAgentReportResponse = {
+  crmProductivity?:AgentCrmProductivity;
   rows?: CrmAgentReportRow[];
   daily?: CrmAgentReportRow[];
   items?: CrmAgentReportRow[];

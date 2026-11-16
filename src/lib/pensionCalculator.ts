@@ -1,4 +1,4 @@
-import { API_BASE_URL, TENANT_KEY } from "@/lib/auth";
+import { API_BASE_URL, TENANT_KEY, getStoredSession, isCrmUser } from "@/lib/auth";
 import anexa5Men from "../../Specs/anexa5_men.json";
 import anexa5Women from "../../Specs/anexa5_women.json";
 
@@ -255,15 +255,18 @@ const COUNTRY_LABELS: Record<string, string> = {
 };
 
 export async function submitPensionCalculator(payload: PensionCalculatorPayload) {
+  let crmToken:string|null=null;
+  try{const session=payload.source==='ro-pension-agent-interview'?getStoredSession():null;crmToken=session?.token&&isCrmUser(session.user)?session.token:null;}catch{}
   let response: Response;
 
   try {
     response = await fetch(
-      `${API_BASE_URL}/justproveit/pension-calculator/calculate`,
+      `${API_BASE_URL}${crmToken?'/justproveit/admin/crm/pension-simulations':'/justproveit/pension-calculator/calculate'}`,
       {
         method: "POST",
         headers: {
           "content-type": "application/json",
+          ...(crmToken?{Authorization:`Bearer ${crmToken}`} : {}),
         },
         body: JSON.stringify({
           tenantKey: TENANT_KEY,
