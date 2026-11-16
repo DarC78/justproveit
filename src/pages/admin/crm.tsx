@@ -3932,7 +3932,7 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
         <AgentCrmMetrics data={crmProductivity} agentId={loadedAgentId} />
       </div>
 
-      <p className="green-label">CRM minutes count each observed action minute once, excluding overlapping talk, clerical and break time. Counts use recorded activity and approved CRM/Mediatel mappings.</p>
+      <p className="green-label">Each minute with recorded CRM activity counts as one full active minute, once per agent, including the current minute. Overlapping talk, clerical and break time does not reduce this count. Counts use recorded activity and approved CRM/Mediatel mappings.</p>
       {crmProductivity?.warnings.map(warning=><p key={warning} role="status">{warning}</p>)}
 
       <DataTable
