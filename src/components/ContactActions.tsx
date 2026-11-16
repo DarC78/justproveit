@@ -3,6 +3,7 @@ import {ContactAction,ContactActionResult,runContactAction} from "@/lib/allCusto
 import ContactBookCall from './ContactBookCall';
 import ContactIdentityEditor from './ContactIdentityEditor';
 import ContactBookAdrian from './ContactBookAdrian';
+import ContactStartSimulation from './ContactStartSimulation';
 import InternalLeadActions from './InternalLeadActions';
 import type {LeadNoteSummary} from '@/lib/leadNotes';
 
@@ -27,6 +28,7 @@ export default function ContactActions({token,contactId,name,phone,onChanged,int
  return <div className="contact-actions">
   <div className="buttons">
    <button type="button" disabled={!!saving||!phone} onClick={()=>{setReply(true);setError("");}}>Reply on WhatsApp</button>
+   <ContactStartSimulation token={token} contactId={contactId} name={name} phone={phone} disabled={!!saving} onChanged={onChanged}/>
    {!internalLead&&<button type="button" disabled={!!saving} onClick={()=>void act("solve")}>{saving==="solve"?"Solving":"Solve"}</button>}
    <InternalLeadActions token={token} contactId={contactId} name={name} disabled={!!saving} onChanged={onChanged} allowEnd={internalLead} summary={noteSummary} onNoteSaved={onNoteSaved}/>
    <button type="button" disabled={!!saving||!phone} onClick={()=>void act("asap")}>{saving==="asap"?"Scheduling":"New ASAP"}</button>

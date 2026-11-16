@@ -34,7 +34,7 @@ export async function loadCustomerPage(token:string,scope:CustomerScope,filters:
 }
 
 export type ContactAction="reply"|"solve"|"asap";
-export type ContactActionResult={success:boolean;action:ContactAction|'book'|'end'|'identity'|'book-adrian'|'schedule-reply';contactId:string;solved:boolean;whatsAppQueued?:boolean;messageId?:string|null;replayed?:boolean;intentId?:string|null;appointmentAtUtc?:string;mode?:'created'|'rescheduled';dialler?:{attempted:boolean;success:boolean;queued?:boolean;commandId?:string|null;error?:string|null}|null};
+export type ContactActionResult={success:boolean;action:ContactAction|'start-simulation'|'book'|'end'|'identity'|'book-adrian'|'schedule-reply';contactId:string;solved:boolean;whatsAppQueued?:boolean;messageId?:string|null;replayed?:boolean;intentId?:string|null;appointmentAtUtc?:string;mode?:'created'|'rescheduled';dialler?:{attempted:boolean;success:boolean;queued?:boolean;commandId?:string|null;error?:string|null}|null};
 export type ContactBookingContext={contactId:string;name:string;phone:string|null;serviceKey:string|null;bookings:Array<{id:string;appointmentAtUtc:string;serviceName:string}>};
 export type ContactBookingInput={requestId:string;appointmentDate:string;appointmentTime:string;confirmEarlyAppointment?:boolean;expectedPhone:string;expectedBookingId:string|null;expectedAppointmentAtUtc:string|null};
 async function bookingRequest<T>(token:string,contactId:string,payload?:ContactBookingInput):Promise<T>{
@@ -62,6 +62,7 @@ export function callcodeText(value:string|number|null|undefined) {
 }
 
 export function contactActionNotice(result:ContactActionResult) {
+ if(result.action==='start-simulation')return 'Cererea Start Simulare a fost confirmata. Trimiterea mesajului nu este inca confirmata.';
  if(result.action==='schedule-reply')return 'Reply queued for business hours. It is pending in history.';
  if(result.action==='book-adrian')return 'Call confirmed in Adrian?s calendar and added to ToAdrian.';
  if(result.action==='identity')return 'Contact details updated.';
