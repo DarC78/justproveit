@@ -20,6 +20,7 @@ test('calculator removes detailed form and keeps one-column results after workfl
  assert.equal(tree.some(n=>n.type==='details'),false);
  assert.equal(tree.some(n=>n.type==='form'),false);
  assert.ok(tree.findIndex(n=>n.type==='aside')>tree.findIndex(n=>n.props?.onContact));
+ const main=tree.find(n=>n.type==='main');assert.equal(main.props.children[0].props.role,'tablist');assert.equal(tree.filter(n=>n.props?.role==='tablist').length,1);assert.ok(tree.findIndex(n=>n.props?.role==='tablist')<tree.findIndex(n=>n.type==='h1'));assert.equal(tree.some(n=>n.props?.children==='JustProveIt'),false);
 });
 
 test('workspace preloads CRM while calculator is active and keeps both panels mounted when switching',async()=>{

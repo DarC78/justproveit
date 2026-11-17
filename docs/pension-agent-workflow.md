@@ -1,5 +1,7 @@
 # Pension calculator agent workflow
 
+The Calculator and CRM tabs occupy the top of the page, replacing the JustProveIt brand link. Their existing keyboard navigation, contact context and mounted panels are preserved.
+
 The calculator opens with the requested title, a single-column agent interview and the agent name from `?agent=...`. The previous detailed calculator is retained in a collapsed section; the previous result sidebar is at the bottom.
 
 The interview collects total Romanian years (including groups), work-book availability, group I/II years, five foreign-country periods, UK employment/private-pension questions, birth month/year, sex and children. Group years are subtracted from normal Romanian years to avoid double counting. Duplicate countries, missing countries and implausible totals are rejected. All European countries plus Israel, Canada and USA are listed. Countries outside the automatic coordination shortlist remain in the saved interview but are excluded from the projection pending specialist verification; selecting a country is not proof that every international combination can be totalised.
