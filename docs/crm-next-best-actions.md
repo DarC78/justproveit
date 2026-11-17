@@ -1,5 +1,7 @@
 # Next Best Actions review
 
+L06 previews the existing unsuccessful-call sequence (+30 minutes, +2 hours, +23 hours) as an internal ownership review, with the exact texts. Its dedicated sender owns delivery; NBA approval never creates a duplicate message or weekly chase. Activation approved 17 November 2026 is strictly prospective: historical calls/messages and approvals do not enroll. Other NBA journeys remain sending-disabled. The backend specification records the short-sequence daily-cap exception and activation safeguards.
+
 Open **Other → Next Best Actions**, or `/admin/crm/?tab=nextBestActions`. The page uses the existing CRM login and shows 25 recommendations per page with search, journey and review-status filters. It refreshes every minute while visible and preserves an open review dialog.
 
 Every page states that sending is disabled. The row shows the journey, due time in London, proposed route/message, source evidence, Next Action Date and any blocking reasons. Institution enquiries are drafts with no assumed recipient. Missing source data remains visible. The page does not fetch full Mediatel history or create a CRM contact when opened.

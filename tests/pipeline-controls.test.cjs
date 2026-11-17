@@ -1,5 +1,16 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),ts=require('typescript'),React=require('react'),{JSDOM}=require('jsdom'),{createRoot}=require('react-dom/client');
 const compile=path=>ts.transpileModule(fs.readFileSync(path,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+test('handled snapshots disable repeat handling, and a later incoming event re-enables it',async()=>{
+ const dom=new JSDOM('<div id="root"></div>');global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ const mod={exports:{}};let calls=0;new Function('require','module','exports',compile('src/components/PipelineLeadControls.tsx'))(name=>name==='@/lib/leadPipelineControls'?{savePipelineControl:async()=>{calls++;return{success:true};}}:require(name),mod,mod.exports);
+ const root=createRoot(document.getElementById('root'));let row={contactId:'lead',pipelineVersion:0,pipelineStatus:'clients',lastInboundAtUtc:'2030-01-14T10:00Z'},eventHandled=false;
+ const render=()=>root.render(React.createElement(mod.exports.default,{token:'agent',row,eventHandled,onChanged:()=>{}})),button=()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Mark event as handled');
+ try{
+  await React.act(async()=>render());await React.act(async()=>button().click());assert.equal(calls,1);assert.equal(button().disabled,true);await React.act(async()=>button().click());assert.equal(calls,1);
+  row={...row,pipelineVersion:1,lastInboundAtUtc:'2030-01-14T11:00Z'};await React.act(async()=>render());assert.equal(button().disabled,false);
+  eventHandled=true;await React.act(async()=>render());assert.equal(button().disabled,true);
+ }finally{await React.act(async()=>root.unmount());dom.window.close();}
+});
 test('mark handled retries the same request and snapshot; any stage can be assigned or returned to Automatic',async()=>{
  const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
  const calls=[],changes=[],mod={exports:{}};let failures=1;

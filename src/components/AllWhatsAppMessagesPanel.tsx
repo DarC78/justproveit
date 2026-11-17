@@ -21,11 +21,11 @@ export function IncomingMessageBatch({token,row,onChanged}:{token:string;row:Wha
  </div>;
 }
 export default function AllWhatsAppMessagesPanel({token}:{token:string}){
- const [search,setSearch]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState(''),[completion,setCompletion]=useState<'all'|'pending'|'done'>('all');
+ const [search,setSearch]=useState(''),[from,setFrom]=useState(''),[to,setTo]=useState(''),[completion,setCompletion]=useState<'all'|'pending'|'done'>('pending');
  const [showAll,setShowAll]=useState(false);
  const [category,setCategory]=useState<ConversationCategory|''>('');
  const [channel,setChannel]=useState<'all'|'mediatel'|'agents'|'sms'|'call'>('all');
- const [filters,setFilters]=useState({showAll:false,search:'',from:'',to:'',completion:'all' as 'all'|'pending'|'done',channel:'all' as typeof channel,category:'' as ConversationCategory|''}),[offset,setOffset]=useState(0),[revision,setRevision]=useState(0),[history,setHistory]=useState<string|null>(null);
+ const [filters,setFilters]=useState({showAll:false,search:'',from:'',to:'',completion:'pending' as 'all'|'pending'|'done',channel:'all' as typeof channel,category:'' as ConversationCategory|''}),[offset,setOffset]=useState(0),[revision,setRevision]=useState(0),[history,setHistory]=useState<string|null>(null);
  const [report,setReport]=useState<WhatsAppMessageReport|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const rowScope=JSON.stringify([token,filters,offset]);
  const [rowView,setRowView]=useState(()=>({scope:rowScope,expanded:new Set<string>()}));
@@ -49,7 +49,7 @@ export default function AllWhatsAppMessagesPanel({token}:{token:string}){
    <label>Channel<select aria-label="Message channel" value={channel} onChange={e=>setChannel(e.target.value as typeof channel)}><option value="all">All channels</option><option value="mediatel">WhatsApp Mediatel</option><option value="agents">WhatsApp Agenti</option><option value="sms">SMS</option><option value="call">Inbound calls without agent</option></select></label>
    <label>Show Category<select aria-label="Show Category" disabled={showAll} value={category} onChange={e=>{const value=e.target.value as typeof category;setCategory(value);setOffset(0);setHistory(null);setFilters(f=>({...f,category:value}));}}><option value="">All categories</option><option value="red">Red</option><option value="yellow">Yellow</option><option value="green">Green</option><option value="none">No color</option></select></label>
    <label>Event completion<select aria-label="Event completion" disabled={showAll} value={completion} onChange={e=>setCompletion(e.target.value as typeof completion)}><option value="all">All events</option><option value="pending">Pending</option><option value="done">Done</option></select></label>
-   <button type="submit">Search</button><button type="button" onClick={()=>{setSearch('');setFrom('');setTo('');setCompletion('all');setChannel('all');setCategory('');setShowAll(false);setOffset(0);setHistory(null);setFilters({showAll:false,search:'',from:'',to:'',completion:'all',channel:'all',category:''});}}>Clear</button><button type="button" disabled={loading} onClick={()=>setRevision(v=>v+1)}>Refresh</button>
+   <button type="submit">Search</button><button type="button" onClick={()=>{setSearch('');setFrom('');setTo('');setCompletion('pending');setChannel('all');setCategory('');setShowAll(false);setOffset(0);setHistory(null);setFilters({showAll:false,search:'',from:'',to:'',completion:'pending',channel:'all',category:''});}}>Clear</button><button type="button" disabled={loading} onClick={()=>setRevision(v=>v+1)}>Refresh</button>
   </form>
   <p className="saved-inbox-note">The saved inbox refreshes in the background every 30 seconds. Refresh loads the latest saved view; your lead controls use current data.</p>
   {notice&&<p role="status">{notice}</p>}{error&&<p role="alert">{error}</p>}{notes.error&&<p role="alert">{notes.error}</p>}{loading&&<p role="status">Loading incoming conversations…</p>}

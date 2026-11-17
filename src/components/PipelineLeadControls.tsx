@@ -1,6 +1,8 @@
 import {useEffect,useRef,useState} from 'react';
 import {savePipelineControl,type PipelineControlInput,type PipelineControlView,type ManualPipelineStage} from '@/lib/leadPipelineControls';
-export default function PipelineLeadControls({token,row,onChanged,allowHandleForAllLeads=true}:{token:string;row:PipelineControlView;onChanged:(message:string)=>void;allowHandleForAllLeads?:boolean}){
+export default function PipelineLeadControls({token,row,onChanged,allowHandleForAllLeads=true,eventHandled=false}:{token:string;row:PipelineControlView;onChanged:(message:string)=>void;allowHandleForAllLeads?:boolean;eventHandled?:boolean}){
+ const [handledSnapshot,setHandledSnapshot]=useState<{contactId:string;through:string}|null>(null);
+ const alreadyHandled=eventHandled||Boolean(row.lastInboundAtUtc&&handledSnapshot?.contactId===row.contactId&&Date.parse(handledSnapshot.through)>=Date.parse(row.lastInboundAtUtc));
  const [stage,setStage]=useState<ManualPipelineStage|''>(row.manualStage?.stage||''),[saving,setSaving]=useState(false),[error,setError]=useState('');
  const pending=useRef<PipelineControlInput|null>(null),busy=useRef(false);
  const [ending,setEnding]=useState(false),[reason,setReason]=useState('');
@@ -12,7 +14,7 @@ export default function PipelineLeadControls({token,row,onChanged,allowHandleFor
  async function save(action:'stage'|'handle'|'end'|'reopen'|'investigate'|'clearInvestigation'){
   if(busy.current)return;busy.current=true;setSaving(true);setError('');
   const input=pending.current?.action===action?pending.current:{requestId:crypto.randomUUID(),expectedVersion:row.pipelineVersion||0,...(action==='investigate'?{action,text:investigationText.trim()}:action==='clearInvestigation'?{action}:action==='stage'?{action,stage:stage||null}:action==='end'?{action,pipelineStatus:row.pipelineStatus,reason:reason.trim()}:action==='reopen'?{action}:{action,inboundThroughAtUtc:row.lastInboundAtUtc||null})} as PipelineControlInput;pending.current=input;
-  try{await savePipelineControl(token,row.contactId,input);pending.current=null;setEnding(false);setReason('');setInvestigating(false);onChanged(action==='investigate'?'Lead flagged ToInvestigate. Status and automations are unchanged.':action==='clearInvestigation'?'Investigation flag cleared.':action==='end'?'Lead ended. Its stage and bookings are preserved.':action==='reopen'?'Lead reopened.':action==='handle'?'Incoming event marked handled. Bookings and stage are preserved; closed leads remain closed.':stage?`Lead manually assigned to ${stage}.`:'Automatic pipeline classification restored.');}
+  try{await savePipelineControl(token,row.contactId,input);pending.current=null;if(input.action==='handle')setHandledSnapshot({contactId:row.contactId,through:input.inboundThroughAtUtc||new Date().toISOString()});setEnding(false);setReason('');setInvestigating(false);onChanged(action==='investigate'?'Lead flagged ToInvestigate. Status and automations are unchanged.':action==='clearInvestigation'?'Investigation flag cleared.':action==='end'?'Lead ended. Its stage and bookings are preserved.':action==='reopen'?'Lead reopened.':action==='handle'?'Incoming event marked handled. Bookings and stage are preserved; closed leads remain closed.':stage?`Lead manually assigned to ${stage}.`:'Automatic pipeline classification restored.');}
   catch(e){setError(e instanceof Error?e.message:'Unable to save pipeline action.');}
   finally{busy.current=false;setSaving(false);}
  }
@@ -27,7 +29,7 @@ export default function PipelineLeadControls({token,row,onChanged,allowHandleFor
    <button type="button" disabled={saving||(!stage&&!row.manualStage)} onClick={()=>void save('stage')}>{saving?'Saving…':'Assign stage'}</button></div>
   {row.manualStage&&<small>Manual assignment{row.manualStage.actor?` by ${row.manualStage.actor}`:''}. {row.priority===0?'P0 awaiting review.':'Current alert handled.'}</small>}
   </>}
-  {(allowHandleForAllLeads||row.priority===0)&&<button type="button" disabled={saving} onClick={()=>void save('handle')}>Mark event as handled</button>}
+  {(allowHandleForAllLeads||row.priority===0)&&<button type="button" disabled={saving||alreadyHandled} title={alreadyHandled?'The current incoming event is already handled.':undefined} onClick={()=>void save('handle')}>Mark event as handled</button>}
   {error&&<p role="alert">{error}</p>}
   <style jsx>{`dialog{border:1px solid #cbd5e1;border-radius:10px;padding:22px;width:min(480px,90vw)}dialog::backdrop{background:#10213d80}dialog textarea{box-sizing:border-box;width:100%;padding:10px}dialog p{font-size:12px}.pipeline-lead-controls{margin:10px 0;padding-top:8px;border-top:1px solid #dce3ee}.stage-controls{display:flex;align-items:end;gap:7px;flex-wrap:wrap;margin-top:8px}label{display:grid;gap:5px;font-size:11px;font-weight:600;color:#344054}select,button{border:1px solid #cbd5e1;border-radius:4px;padding:7px 9px;background:#fff;color:#123c92;font-size:12px}button{font-weight:600;cursor:pointer}button:disabled,select:disabled{opacity:.5;cursor:default}small{display:block;font-size:11px;margin-top:6px}p[role=alert]{font-size:12px;color:#b42318;max-width:300px}`}</style>
  </div>;
