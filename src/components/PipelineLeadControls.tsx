@@ -1,8 +1,8 @@
 import {useEffect,useRef,useState} from 'react';
 import {savePipelineControl,type PipelineControlInput,type PipelineControlView,type ManualPipelineStage} from '@/lib/leadPipelineControls';
 export default function PipelineLeadControls({token,row,onChanged,allowHandleForAllLeads=true,eventHandled=false}:{token:string;row:PipelineControlView;onChanged:(message:string)=>void;allowHandleForAllLeads?:boolean;eventHandled?:boolean}){
- const [handledSnapshot,setHandledSnapshot]=useState<{contactId:string;through:string}|null>(null);
- const alreadyHandled=eventHandled||Boolean(row.lastInboundAtUtc&&handledSnapshot?.contactId===row.contactId&&Date.parse(handledSnapshot.through)>=Date.parse(row.lastInboundAtUtc));
+ const [handledSnapshot,setHandledSnapshot]=useState<{contactId:string;through:string;assignmentId:string|null}|null>(null);
+ const alreadyHandled=eventHandled||Boolean(row.lastInboundAtUtc&&handledSnapshot?.contactId===row.contactId&&handledSnapshot.assignmentId===(row.manualStage?.assignmentId||null)&&Date.parse(handledSnapshot.through)>=Date.parse(row.lastInboundAtUtc));
  const [stage,setStage]=useState<ManualPipelineStage|''>(row.manualStage?.stage||''),[saving,setSaving]=useState(false),[error,setError]=useState('');
  const pending=useRef<PipelineControlInput|null>(null),busy=useRef(false);
  const [ending,setEnding]=useState(false),[reason,setReason]=useState('');
@@ -14,7 +14,7 @@ export default function PipelineLeadControls({token,row,onChanged,allowHandleFor
  async function save(action:'stage'|'handle'|'end'|'reopen'|'investigate'|'clearInvestigation'){
   if(busy.current)return;busy.current=true;setSaving(true);setError('');
   const input=pending.current?.action===action?pending.current:{requestId:crypto.randomUUID(),expectedVersion:row.pipelineVersion||0,...(action==='investigate'?{action,text:investigationText.trim()}:action==='clearInvestigation'?{action}:action==='stage'?{action,stage:stage||null}:action==='end'?{action,pipelineStatus:row.pipelineStatus,reason:reason.trim()}:action==='reopen'?{action}:{action,inboundThroughAtUtc:row.lastInboundAtUtc||null})} as PipelineControlInput;pending.current=input;
-  try{await savePipelineControl(token,row.contactId,input);pending.current=null;if(input.action==='handle')setHandledSnapshot({contactId:row.contactId,through:input.inboundThroughAtUtc||new Date().toISOString()});setEnding(false);setReason('');setInvestigating(false);onChanged(action==='investigate'?'Lead flagged ToInvestigate. Status and automations are unchanged.':action==='clearInvestigation'?'Investigation flag cleared.':action==='end'?'Lead ended. Its stage and bookings are preserved.':action==='reopen'?'Lead reopened.':action==='handle'?'Incoming event marked handled. Bookings and stage are preserved; closed leads remain closed.':stage?`Lead manually assigned to ${stage}.`:'Automatic pipeline classification restored.');}
+  try{await savePipelineControl(token,row.contactId,input);pending.current=null;if(input.action==='handle')setHandledSnapshot({contactId:row.contactId,through:input.inboundThroughAtUtc||new Date().toISOString(),assignmentId:row.manualStage?.assignmentId||null});setEnding(false);setReason('');setInvestigating(false);onChanged(action==='investigate'?'Lead flagged ToInvestigate. Status and automations are unchanged.':action==='clearInvestigation'?'Investigation flag cleared.':action==='end'?'Lead ended. Its stage and bookings are preserved.':action==='reopen'?'Lead reopened.':action==='handle'?'Incoming event marked handled. Bookings and stage are preserved; closed leads remain closed.':stage?`Lead manually assigned to ${stage}.`:'Automatic pipeline classification restored.');}
   catch(e){setError(e instanceof Error?e.message:'Unable to save pipeline action.');}
   finally{busy.current=false;setSaving(false);}
  }

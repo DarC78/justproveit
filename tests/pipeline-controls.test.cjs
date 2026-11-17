@@ -7,7 +7,8 @@ test('handled snapshots disable repeat handling, and a later incoming event re-e
  const render=()=>root.render(React.createElement(mod.exports.default,{token:'agent',row,eventHandled,onChanged:()=>{}})),button=()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Mark event as handled');
  try{
   await React.act(async()=>render());await React.act(async()=>button().click());assert.equal(calls,1);assert.equal(button().disabled,true);await React.act(async()=>button().click());assert.equal(calls,1);
-  row={...row,pipelineVersion:1,lastInboundAtUtc:'2030-01-14T11:00Z'};await React.act(async()=>render());assert.equal(button().disabled,false);
+  row={...row,pipelineVersion:1,manualStage:{stage:'ToAdrian',assignmentId:'new-assignment'}};await React.act(async()=>render());assert.equal(button().disabled,false,'A new manual stage assignment needs its own acknowledgement');
+  row={...row,pipelineVersion:2,lastInboundAtUtc:'2030-01-14T11:00Z'};await React.act(async()=>render());assert.equal(button().disabled,false);
   eventHandled=true;await React.act(async()=>render());assert.equal(button().disabled,true);
  }finally{await React.act(async()=>root.unmount());dom.window.close();}
 });
