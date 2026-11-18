@@ -62,3 +62,8 @@ test('proposal fills the shared textbox without sending; uncertain generation pr
  proposalButton(f.render()).props.onClick();await new Promise(setImmediate);assert.equal(f.find(f.render(),'textarea').props.value,'Would you like a call?');assert.equal(sends,0);assert.equal(calls,1);
  const failed=fixture(async()=>{sends++;},null,{contactId:'contact',fetch:async()=>{throw Error('Unavailable');}});failed.find(failed.render(),'textarea').props.onChange({target:{value:'Keep me'}});proposalButton(failed.render()).props.onClick();await new Promise(setImmediate);assert.equal(failed.find(failed.render(),'textarea').props.value,'Keep me');assert.equal(sends,0);
 });
+
+test('booking-based reply forms show the proposal button and use the booking-scoped endpoint',async()=>{
+ let calls=0;const f=fixture(async()=>{throw Error('must not send');},null,{fetch:async(url)=>{calls++;assert.match(url,/scheduled-calls\/booking\/proposed-reply$/);return{ok:true,json:async()=>({success:true,intentId:'booking',contactId:'resolved',text:'Booking conversation answer'})};}});
+ const button=proposalButton(f.render());assert.ok(button);button.props.onClick();await new Promise(setImmediate);assert.equal(f.find(f.render(),'textarea').props.value,'Booking conversation answer');assert.equal(calls,1);
+});

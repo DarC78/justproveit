@@ -10,7 +10,7 @@ function harness(){
  const nodes=type=>walk(tree).filter(n=>n.type===type),button=label=>nodes('button').find(n=>text(n)===label);
  function render(){cursor=0;tree=exports.default({token:'fixture-token',contactId:'contact',name:'Fixture',phone:'447700900001',onChanged:r=>changes.push(r)});for(const n of nodes('dialog'))n.props.ref.current={showModal(){opened++;}};effects.splice(0).forEach(fn=>fn());}
  function draft(value){button('Reply on WhatsApp').props.onClick();render();nodes('textarea')[0].props.onChange({target:{value}});render();}
- return {render,button,nodes,draft,calls,results,changes,opened:()=>opened};
+ return {render,button,nodes,draft,calls,results,changes,proposal:()=>walk(tree).find(n=>typeof n.props?.onProposed==='function'),opened:()=>opened};
 }
 test('floating reply composer requires a message, opens modally, and cancellation sends nothing',()=>{
  const h=harness();h.render();h.draft('');assert.equal(h.opened(),1);assert.equal(h.button('Send & solve').props.disabled,true);h.button('Cancel').props.onClick();h.render();assert.equal(h.nodes('dialog').length,0);assert.equal(h.calls.length,0);
@@ -26,4 +26,9 @@ test('Solve and New ASAP use their own actions without submitting a WhatsApp mes
  for(const [label,action] of [['Solve','solve'],['New ASAP','asap']]){
  const h=harness();h.render();h.results.push({success:true,action,solved:action==='solve'});h.button(label).props.onClick();await tick();assert.equal(h.calls.length,1);assert.equal(h.calls[0][2],action);assert.equal(h.calls[0][3].text,undefined);
  }
+});
+
+test('send-and-solve dialog includes a proposal action, locks while generating and fills the existing draft',()=>{
+ const h=harness();h.render();h.draft('Original');const proposal=h.proposal();assert.ok(proposal);proposal.props.onBusyChange(true);h.render();assert.equal(h.button('Send & solve').props.disabled,true);assert.equal(h.nodes('textarea')[0].props.disabled,true);
+ proposal.props.onProposed('Proposed answer');proposal.props.onBusyChange(false);h.render();assert.equal(h.nodes('textarea')[0].props.value,'Proposed answer');assert.equal(h.calls.length,0);
 });

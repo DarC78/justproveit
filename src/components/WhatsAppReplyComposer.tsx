@@ -51,13 +51,13 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
     } finally {busy.current=false;if(mounted.current)setSending(false);}
   }
   async function propose(){
-    if(busy.current||scheduleLocked||unresolved||!contactId)return;
+    if(busy.current||scheduleLocked||unresolved||(!contactId&&!intentId))return;
     busy.current=true;setProposing(true);setError("");
     try{
       const base=(process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||API_BASE_URL).replace(/\/+$/,'');
-      const r=await fetch(base+'/justproveit/admin/crm/contacts/'+encodeURIComponent(contactId)+'/proposed-reply',{method:'POST',headers:{Authorization:'Bearer '+token},cache:'no-store'}),data=await r.json();
+      const r=await fetch(base+'/justproveit/admin/crm/'+(contactId?'contacts':'scheduled-calls')+'/'+encodeURIComponent(contactId||intentId!)+'/proposed-reply',{method:'POST',headers:{Authorization:'Bearer '+token},cache:'no-store'}),data=await r.json();
       if(!r.ok)throw Error(data.error?.message||'Unable to propose an answer.');
-      if(!data.success||String(data.contactId).toLowerCase()!==contactId.toLowerCase()||typeof data.text!=='string'||!data.text.trim()||data.text.length>4096)throw Error('Unable to verify the proposed answer. Please try again.');
+      if(!data.success||String(contactId?data.contactId:data.intentId).toLowerCase()!==String(contactId||intentId).toLowerCase()||typeof data.text!=='string'||!data.text.trim()||data.text.length>4096)throw Error('Unable to verify the proposed answer. Please try again.');
       if(mounted.current){setText(data.text);setSelected("");setValues({});setHeaderUrl("");setResult(null);}
     }catch(e){if(mounted.current)setError(e instanceof Error?e.message:'Unable to propose an answer.');}
     finally{busy.current=false;if(mounted.current)setProposing(false);}
@@ -77,7 +77,7 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
     <textarea id={fieldId+"-reply"} rows={template?12:4} maxLength={4096} value={template?preview:text} disabled={proposing||sending||scheduleLocked||unresolved||!!template}
       onChange={event=>{setText(event.target.value);setResult(null);setError("");}} placeholder="Type your WhatsApp reply…" />
     </form><div className="actions"><small>{template?"Approved template preview":text.length+"/4096"}</small><div className="send-actions"><button type="submit" form={fieldId+"-form"} disabled={proposing||sending||scheduleLocked||(!unresolved&&(!valid||!routing?.available||Boolean(template&&routing.channel==='agents')))}>
-      {sending?"Sending…":unresolved?"Check send status":"Send WhatsApp"}</button>{contactId&&<ScheduleWhatsAppReply token={token} contactId={contactId} phone={phone} text={text} disabled={proposing||sending||unresolved||!!template} onLockChange={setScheduleLocked} onScheduled={()=>{setText("");setResult(null);setError("");}}/>}{contactId&&<button type="button" disabled={proposing||sending||scheduleLocked||unresolved} onClick={()=>void propose()}>{proposing?"Proposing...":"Propose an answer"}</button>}</div></div>
+      {sending?"Sending…":unresolved?"Check send status":"Send WhatsApp"}</button>{contactId&&<ScheduleWhatsAppReply token={token} contactId={contactId} phone={phone} text={text} disabled={proposing||sending||unresolved||!!template} onLockChange={setScheduleLocked} onScheduled={()=>{setText("");setResult(null);setError("");}}/>}{(contactId||intentId)&&<button type="button" disabled={proposing||sending||scheduleLocked||unresolved} onClick={()=>void propose()}>{proposing?"Proposing...":"Propose an answer"}</button>}</div></div>
     <button type="button" disabled={proposing||sending} onClick={()=>setRoutingRevision(n=>n+1)}>Refresh reply channel</button>
     {error?<p role="alert" className="failure">{error}</p>:result&&<p role={result.status==="failed"?"alert":"status"} className={result.status==="failed"?"failure":"feedback"}>
       {result.status==="failed"?result.errorMessage||"WhatsApp could not deliver the reply. Your text has been kept.":
