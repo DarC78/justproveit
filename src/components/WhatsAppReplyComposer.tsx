@@ -1,11 +1,14 @@
+import {API_BASE_URL} from '@/lib/auth';
 import ScheduleWhatsAppReply from './ScheduleWhatsAppReply';
 import {FormEvent, useEffect, useId, useRef, useState} from "react";
 import {sendContactWhatsAppReply,sendScheduledWhatsAppReply, WhatsAppReplyResult, ComposerRequest, ComposerTemplate, getComposerTemplates,getWhatsAppReplyRouting,WhatsAppReplyRouting} from "@/lib/crmAdmin";
 
-export default function WhatsAppReplyComposer({token,intentId,contactId,phone,name,onSent}:{token:string;intentId?:string;contactId?:string;phone:string;name?:string;onSent:(result:WhatsAppReplyResult)=>void}) {
+export default function WhatsAppReplyComposer({token,intentId,contactId,phone,onSent}:{token:string;intentId?:string;contactId?:string;phone:string;name?:string;onSent:(result:WhatsAppReplyResult)=>void}) {
   const fieldId=useId();
   const [text,setText]=useState("");
   const [sending,setSending]=useState(false);
+  const [proposing,setProposing]=useState(false);
+  const [scheduleLocked,setScheduleLocked]=useState(false);
   const [result,setResult]=useState<WhatsAppReplyResult|null>(null);
   const [error,setError]=useState("");
   const [routing,setRouting]=useState<WhatsAppReplyRouting|null>(null),[routingError,setRoutingError]=useState(''),[routingRevision,setRoutingRevision]=useState(0);
@@ -29,7 +32,7 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,na
   const preview=template?.components.filter(c=>c.text).map(c=>(c.text||"").replace(/\{\{(\w+)\}\}/g,(match,name)=>values[c.type.toLowerCase()+":"+name]||match)).join("\n\n");
   const unresolved=!!attempt.current&&(!!error||result?.status==="processing"||result?.status==='queued');
   async function submit(event:FormEvent) {
-    event.preventDefault();if(busy.current||(!attempt.current&&!valid))return;
+    event.preventDefault();if(busy.current||scheduleLocked||(!attempt.current&&!valid))return;
     busy.current=true;setSending(true);setError("");
     const current=attempt.current||{requestId:crypto.randomUUID(),...(template?{templateName:template.name,templateLanguage:template.language,parameters:values,headerUrl}:{text:text.trim()})};
     attempt.current=current;
@@ -47,23 +50,35 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,na
       if(mounted.current)setError((cause instanceof Error?cause.message:"Unable to confirm the send.")+" Use Check send status to safely check the same request; do not create another copy.");
     } finally {busy.current=false;if(mounted.current)setSending(false);}
   }
+  async function propose(){
+    if(busy.current||scheduleLocked||unresolved||(!contactId&&!intentId))return;
+    busy.current=true;setProposing(true);setError("");
+    try{
+      const base=(process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||API_BASE_URL).replace(/\/+$/,'');
+      const r=await fetch(base+'/justproveit/admin/crm/'+(contactId?'contacts':'scheduled-calls')+'/'+encodeURIComponent(contactId||intentId!)+'/proposed-reply',{method:'POST',headers:{Authorization:'Bearer '+token},cache:'no-store'}),data=await r.json();
+      if(!r.ok)throw Error(data.error?.message||'Unable to propose an answer.');
+      if(!data.success||String(contactId?data.contactId:data.intentId).toLowerCase()!==String(contactId||intentId).toLowerCase()||typeof data.text!=='string'||!data.text.trim()||data.text.length>4096)throw Error('Unable to verify the proposed answer. Please try again.');
+      if(mounted.current){setText(data.text);setSelected("");setValues({});setHeaderUrl("");setResult(null);}
+    }catch(e){if(mounted.current)setError(e instanceof Error?e.message:'Unable to propose an answer.');}
+    finally{busy.current=false;if(mounted.current)setProposing(false);}
+  }
   return <section className="reply-composer"><form id={fieldId+"-form"} onSubmit={submit} aria-label="Reply on WhatsApp">
     <label htmlFor={fieldId+"-template"}>Meta template</label>
-    <select id={fieldId+"-template"} value={selected} disabled={sending||unresolved} onChange={event=>{setSelected(event.target.value);setValues({});setHeaderUrl("");setResult(null);setError("");}}>
+    <select id={fieldId+"-template"} value={selected} disabled={proposing||sending||scheduleLocked||unresolved} onChange={event=>{setSelected(event.target.value);setValues({});setHeaderUrl("");setResult(null);setError("");}}>
       <option value="">Free text message</option>{templates.map(item=><option disabled={routing?.channel==='agents'} key={item.name+":"+item.language} value={item.name+":"+item.language}>{item.name} ({item.language})</option>)}
     </select>
     {templateError&&<p role="alert" className="failure">{templateError}</p>}
-    {fields.map(field=><label key={field.key}>{field.label}<input maxLength={1024} disabled={sending||unresolved} value={values[field.key]||""} onChange={event=>setValues({...values,[field.key]:event.target.value})}/></label>)}
-    {media&&<label>{media.format} attachment URL<input type="url" disabled={sending||unresolved} value={headerUrl} placeholder="https://..." onChange={event=>setHeaderUrl(event.target.value)}/></label>}
+    {fields.map(field=><label key={field.key}>{field.label}<input maxLength={1024} disabled={proposing||sending||scheduleLocked||unresolved} value={values[field.key]||""} onChange={event=>setValues({...values,[field.key]:event.target.value})}/></label>)}
+    {media&&<label>{media.format} attachment URL<input type="url" disabled={proposing||sending||scheduleLocked||unresolved} value={headerUrl} placeholder="https://..." onChange={event=>setHeaderUrl(event.target.value)}/></label>}
     <label htmlFor={fieldId+"-reply"}>Reply on WhatsApp</label>
     <p className="help">Send to {phone}. {routing?<>Reply channel: <strong>{routing.channelLabel}</strong>. {routing.reason==='mediatel_window_closed'||routing.reason==='no_open_mediatel_window'?'The Mediatel 24-hour window is closed. The first WhatsApp Agenti reply adds an introduction only if your message has no greeting.':'Uses the channel of the latest incoming WhatsApp message.'} {!routing.available&&'WhatsApp Agenti is not available yet. Please contact an administrator.'}</>:routingError?'Reply channel could not be verified.':'Checking the latest reply channel...'} The channel is checked again when you send.</p>
     {routingError&&<p role="alert" className="failure">{routingError}</p>}
 
-    <textarea id={fieldId+"-reply"} rows={template?12:4} maxLength={4096} value={template?preview:text} disabled={sending||unresolved||!!template}
+    <textarea id={fieldId+"-reply"} rows={template?12:4} maxLength={4096} value={template?preview:text} disabled={proposing||sending||scheduleLocked||unresolved||!!template}
       onChange={event=>{setText(event.target.value);setResult(null);setError("");}} placeholder="Type your WhatsApp reply…" />
-    </form><div className="actions"><small>{template?"Approved template preview":text.length+"/4096"}</small><div className="send-actions"><button type="submit" form={fieldId+"-form"} disabled={sending||(!unresolved&&(!valid||!routing?.available||Boolean(template&&routing.channel==='agents')))}>
-      {sending?"Sending…":unresolved?"Check send status":"Send WhatsApp"}</button>{contactId&&<ScheduleWhatsAppReply token={token} contactId={contactId} phone={phone} name={name||phone} disabled={sending||unresolved} onScheduled={()=>setResult(null)}/>}</div></div>
-    <button type="button" disabled={sending} onClick={()=>setRoutingRevision(n=>n+1)}>Refresh reply channel</button>
+    </form><div className="actions"><small>{template?"Approved template preview":text.length+"/4096"}</small><div className="send-actions"><button type="submit" form={fieldId+"-form"} disabled={proposing||sending||scheduleLocked||(!unresolved&&(!valid||!routing?.available||Boolean(template&&routing.channel==='agents')))}>
+      {sending?"Sending…":unresolved?"Check send status":"Send WhatsApp"}</button>{contactId&&<ScheduleWhatsAppReply token={token} contactId={contactId} phone={phone} text={text} disabled={proposing||sending||unresolved||!!template} onLockChange={setScheduleLocked} onScheduled={()=>{setText("");setResult(null);setError("");}}/>}{(contactId||intentId)&&<button type="button" disabled={proposing||sending||scheduleLocked||unresolved} onClick={()=>void propose()}>{proposing?"Proposing...":"Propose an answer"}</button>}</div></div>
+    <button type="button" disabled={proposing||sending} onClick={()=>setRoutingRevision(n=>n+1)}>Refresh reply channel</button>
     {error?<p role="alert" className="failure">{error}</p>:result&&<p role={result.status==="failed"?"alert":"status"} className={result.status==="failed"?"failure":"feedback"}>
       {result.status==="failed"?result.errorMessage||"WhatsApp could not deliver the reply. Your text has been kept.":
         result.status==='queued'?"Queued for WhatsApp Agenti. It has not been confirmed sent yet. Check send status to follow the same request.":result.status==="processing"?result.errorMessage||"The send is still being confirmed. Check its status before sending again.":

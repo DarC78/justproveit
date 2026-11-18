@@ -1,12 +1,12 @@
 const {test}=require('node:test');const assert=require('node:assert/strict');const fs=require('node:fs');const vm=require('node:vm');const ts=require('typescript');
-function fixture(send,templates){
+function fixture(send,templates,options={}){
  const effects=[];
  const states=[],refs=[];let stateIndex=0,refIndex=0,updated=0;
  const exports={};const source=ts.transpileModule(fs.readFileSync('src/components/WhatsAppReplyComposer.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText;
  const react={useId:()=>"reply-fixture",useState(initial){const i=stateIndex++;if(!(i in states))states[i]=initial;return [states[i],v=>{states[i]=typeof v==='function'?v(states[i]):v;}];},useRef(initial){const i=refIndex++;return refs[i]||(refs[i]={current:initial});},useEffect(effect){if(templates)effects.push(effect);}};
  const jsx=(type,props)=>({type,props});
- vm.runInNewContext(source,{exports,crypto:{randomUUID:()=> 'fixed-request-id'},require:name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:{sendScheduledWhatsAppReply:send,getComposerTemplates:async()=>({templates}),getWhatsAppReplyRouting:async()=>({channel:'mediatel',channelLabel:'WhatsApp Mediatel',available:true,reason:'latest_mediatel_open'})}});
- function render(){stateIndex=0;refIndex=0;return exports.default({token:'token',intentId:'booking',phone:'447700900001',onSent:()=>updated++});}
+ vm.runInNewContext(source,{exports,process:{env:{}},fetch:options.fetch,crypto:{randomUUID:()=> 'fixed-request-id'},require:name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:{API_BASE_URL:'https://api.invalid',sendContactWhatsAppReply:send,sendScheduledWhatsAppReply:send,getComposerTemplates:async()=>({templates}),getWhatsAppReplyRouting:async()=>({channel:'mediatel',channelLabel:'WhatsApp Mediatel',available:true,reason:'latest_mediatel_open'})}});
+ function render(){stateIndex=0;refIndex=0;return exports.default({token:'token',intentId:'booking',...(options.contactId?{contactId:options.contactId}:{}),phone:'447700900001',onSent:()=>updated++});}
  function find(node,type){if(!node||typeof node!=='object')return null;if(node.type===type)return node;const children=node.props?.children;for(const child of Array.isArray(children)?children:[children]){const result=find(child,type);if(result)return result;}return null;}
  return {render,find,updated:()=>updated,async load(){render();for(const effect of effects.splice(0))effect();await Promise.resolve();await Promise.resolve();}};
 }
@@ -53,4 +53,17 @@ test('approved template selector sends exact language and values and leaves free
  tree=f.render();assert.equal(f.find(tree,'textarea').props.value,'Buna Ana');assert.equal(f.find(tree,'button').props.disabled,false);
  await submit(tree);assert.equal(calls[0][2].templateName,'pensii_private_voicemail');assert.equal(calls[0][2].templateLanguage,'ro');assert.equal(calls[0][2].parameters['body:1'],'Ana');
  f.find(f.render(),'select').props.onChange({target:{value:''}});assert.equal(f.find(f.render(),'textarea').props.disabled,false);
+});
+
+function proposalButton(tree){const walk=n=>!n||typeof n!=='object'?[]:[n,...[n.props?.children].flat(Infinity).flatMap(walk)];return walk(tree).find(n=>n.type==='button'&&n.props.children==='Propose an answer');}
+test('proposal fills the shared textbox without sending; uncertain generation preserves the existing draft',async()=>{
+ let sends=0,calls=0;const f=fixture(async()=>{sends++;},null,{contactId:'contact',fetch:async(url,options)=>{calls++;assert.match(url,/contacts\/contact\/proposed-reply$/);assert.equal(options.method,'POST');return{ok:true,json:async()=>({success:true,contactId:'contact',text:'Would you like a call?'})};}});
+ f.find(f.render(),'textarea').props.onChange({target:{value:'Original draft'}});
+ proposalButton(f.render()).props.onClick();await new Promise(setImmediate);assert.equal(f.find(f.render(),'textarea').props.value,'Would you like a call?');assert.equal(sends,0);assert.equal(calls,1);
+ const failed=fixture(async()=>{sends++;},null,{contactId:'contact',fetch:async()=>{throw Error('Unavailable');}});failed.find(failed.render(),'textarea').props.onChange({target:{value:'Keep me'}});proposalButton(failed.render()).props.onClick();await new Promise(setImmediate);assert.equal(failed.find(failed.render(),'textarea').props.value,'Keep me');assert.equal(sends,0);
+});
+
+test('booking-based reply forms show the proposal button and use the booking-scoped endpoint',async()=>{
+ let calls=0;const f=fixture(async()=>{throw Error('must not send');},null,{fetch:async(url)=>{calls++;assert.match(url,/scheduled-calls\/booking\/proposed-reply$/);return{ok:true,json:async()=>({success:true,intentId:'booking',contactId:'resolved',text:'Booking conversation answer'})};}});
+ const button=proposalButton(f.render());assert.ok(button);button.props.onClick();await new Promise(setImmediate);assert.equal(f.find(f.render(),'textarea').props.value,'Booking conversation answer');assert.equal(calls,1);
 });

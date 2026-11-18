@@ -38,6 +38,7 @@ jobs:
           node --test tests/pension-calculator-layout.test.cjs
           node --test tests/pipeline-scheduled-table.test.cjs
           node --test tests/pension-agent-workflow.test.cjs
+          node --test tests/scheduled-reply.test.cjs
           node --test tests/contact-start-simulation.test.cjs
           node --test tests/whatsapp-gateway-crm.test.cjs
           node --test tests/international-pension-case.test.cjs
