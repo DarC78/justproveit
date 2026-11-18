@@ -26,7 +26,7 @@ test('expanded conversation shows CRM replies and WhatsApp-app sends together wi
   await React.act(async()=>resolveFirst(response()));
   assert.doesNotMatch(document.body.textContent,/Known incoming snapshot/);
   assert.deepEqual([...document.querySelectorAll('ol .body')].map(n=>n.textContent),['Sent from WhatsApp app','Sent from CRM','Client message']);
-  assert.equal(document.querySelectorAll('li.outbound').length,2);assert.equal(document.querySelectorAll('li.inbound').length,1);assert.match(document.body.textContent,/delivered/);
+  assert.equal(document.querySelectorAll('li.outbound').length,2);assert.equal(document.querySelectorAll('li.inbound').length,1);assert.match(document.body.textContent,/Delivered/);
   assert.deepEqual(calls[0],{token:'agent',id:'lead',fresh:true,page:0});
   await React.act(async()=>button('Next').click());assert.equal(calls.at(-1).page,1);assert.match(document.body.textContent,/Older message/);
   await React.act(async()=>root.render(React.createElement(Component,{...props,refreshKey:1})));assert.equal(calls.at(-1).fresh,true);

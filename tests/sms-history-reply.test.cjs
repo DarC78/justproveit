@@ -20,3 +20,11 @@ test('SMS timeline uses its own colour class and provides a reply beside inbound
  try{await React.act(async()=>h.root.render(React.createElement(mod.exports.PhoneHistoryTimeline,{paged:true,imageTarget:{token:'token',kind:'contact',id:'lead'},events:[{kind:'sms',id:'received',atUtc:'2030-01-10T11:00Z',direction:'inbound',phone:'447700900001',author:'Client',text:'Received SMS',status:'received'},{kind:'sms',id:'reply',atUtc:'2030-01-10T12:00Z',direction:'outbound',phone:'447700900001',author:'Agent',text:'SMS reply',status:'accepted'}]})));assert.equal(document.querySelectorAll('li.sms').length,2);assert.equal(document.querySelectorAll('button[data-phone]').length,1);assert.equal(document.querySelector('button[data-phone]').getAttribute('data-phone'),'447700900001');assert.match(document.querySelector('li').textContent,/delivery not confirmed/);
  }finally{await React.act(async()=>h.root.unmount());h.dom.window.close();}
 });
+
+test('WhatsApp history distinguishes failed, sent, delivered, read and unconfirmed messages',async()=>{
+ const h=await setup({}),mod={exports:{}};new Function('require','module','exports',compile('src/components/PhoneHistoryModal.tsx'))(name=>name==='./MediatelMessageAttachment'||name==='./GatewayMessageMedia'?{__esModule:true,default:()=>null}:name.includes('ReplyComposer')?{default:()=>null}:name==='@/lib/crmAdmin'?{}:require(name),mod,mod.exports);
+ try{const statuses=['failed','sent','delivered','read','recorded','accepted'];await React.act(async()=>h.root.render(React.createElement(mod.exports.PhoneHistoryTimeline,{paged:true,events:statuses.map(status=>({kind:'whatsapp',id:status,atUtc:'2026-11-18T09:38:03Z',direction:'outbound',author:'Agent',messageType:'text',text:status,status,errorCode:status==='failed'?'131047':null,errorMessage:status==='failed'?'Reply window closed':null}))})));
+ assert.match(document.querySelector('[role="alert"]').textContent,/Failed.*not delivered.*131047.*Reply window closed/);
+ for(const label of ['Sent (delivery not confirmed)','Delivered','Read','Delivery unconfirmed (no provider receipt)','Accepted by WhatsApp (delivery not confirmed)'])assert.ok(document.body.textContent.includes(label),label);
+ }finally{await React.act(async()=>h.root.unmount());h.dom.window.close();}
+});

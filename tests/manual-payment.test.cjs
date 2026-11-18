@@ -1,2 +1,22 @@
 ﻿const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),ts=require('typescript'),React=require('react'),{JSDOM}=require('jsdom'),{createRoot}=require('react-dom/client');
 test('bank confirmation loads authenticated purchases and exposes payment verification with no messages',async()=>{const dom=new JSDOM('<div id="root"></div>');global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};const old=global.fetch,calls=[];global.fetch=async(url,options)=>{calls.push({url,options});return {ok:true,json:async()=>({services:{pension:'Pensie internațională'},sales:[{id:'sale',service:'pension',paidAt:'2026-11-01'}],payments:[]})};};const code=ts.transpileModule(fs.readFileSync('src/components/ManualPayment.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,mod={exports:{}};new Function('require','module','exports',code)(n=>n==='@/lib/auth'?{API_BASE_URL:'https://api.test'}:require(n),mod,mod.exports);const root=createRoot(document.getElementById('root'));try{await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'token',contactId:'contact',name:'Fixture'})));await React.act(async()=>document.querySelector('button').click());assert.equal(calls[0].options.headers.Authorization,'Bearer token');assert.match(calls[0].url,/contacts\/contact\/manual-payments$/);assert.equal(document.querySelector('dialog').open,true);assert.equal(document.querySelector('input[type=checkbox]').required,true);assert.equal(document.querySelector('button[type=submit]').disabled,true);assert.match(document.body.textContent,/Existing purchase/);assert.match(document.body.textContent,/Service stages remain manual/);await React.act(async()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Cancel').click());assert.equal(document.querySelector('dialog'),null);}finally{await React.act(async()=>root.unmount());global.fetch=old;dom.window.close();}});
+test('failed payment load stops the spinner and can be retried without submitting payment',async()=>{
+ const dom=new JSDOM('<div id="root"></div>');global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ dom.window.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
+ const old=global.fetch,calls=[];
+ global.fetch=async(url,options)=>{calls.push(options);return calls.length===1?{ok:false,json:async()=>({error:{message:'Unable to load payments. Please retry.'}})}:{ok:true,json:async()=>({services:{pension:'Pension'},sales:[],payments:[]})};};
+ const code=ts.transpileModule(fs.readFileSync('src/components/ManualPayment.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,mod={exports:{}};
+ new Function('require','module','exports',code)(n=>n==='@/lib/auth'?{API_BASE_URL:'https://api.test'}:require(n),mod,mod.exports);
+ const root=createRoot(document.getElementById('root'));
+ try{
+  await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'token',contactId:'contact',name:'Fixture'})));
+  await React.act(async()=>document.querySelector('button').click());
+  assert.match(document.querySelector('[role=alert]').textContent,/Unable to load payments/);
+  assert.doesNotMatch(document.body.textContent,/Loading payments/);
+  assert.equal(document.querySelector('button[type=submit]').disabled,true);
+  await React.act(async()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='Retry loading payments').click());
+  assert.equal(calls.length,2);assert.ok(calls.every(c=>!c.method));
+  assert.equal(document.querySelector('[role=alert]'),null);
+  assert.ok(document.querySelector('fieldset'));assert.ok(document.querySelector('input[type=checkbox]'));
+ }finally{await React.act(async()=>root.unmount());global.fetch=old;dom.window.close();}
+});
