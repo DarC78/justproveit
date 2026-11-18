@@ -12,26 +12,27 @@
 
 - Explicit user-authorized exception: SignWell delivers IPC and Private Pension authority signing invitations and their existing signing notifications after the agent reviews and confirms the named recipients. This exception is limited to those signing flows and never authorizes connected mailboxes or unrelated messages.
 
-- Deploy through GitHub only.
-- Do not deploy Azure Static Web Apps, Azure Functions, or any live service by zip/package upload or direct CLI deployment.
-- For this frontend, production deployment is triggered by pushing to `main` and letting the Azure Static Web Apps GitHub workflow run.
+- Deploy through Gitea Actions. The user approved the primary CI cutover on 18 November 2026; the legacy GitHub frontend deployment workflow is disabled.
+- Push source to `origin` (Gitea at https://192.168.87.184:3443); `github` is the backup remote. Let the Gitea `.gitea/workflows/deploy.yml` workflow release `main`, then verify its deployment and live site.
+- Do not deploy live services manually outside the approved pipeline. Do not re-enable GitHub deployment concurrently.
+- GitHub backups run every two minutes and reject divergence; reconcile changes without force-pushing. See the backend `docs/systems/gitea-actions.md` runbook.
 
 ## End-to-end development across both repositories
 - Own requested development end to end, including the frontend in `C:\DevProjects\JustProveit\justproveit` and the backend in `C:\DevProjects\LaunchingStack`.
-- You may read, edit, test, stage, commit, pull, push, and deliver changes in both repositories as needed for the requested task. Follow each repository's applicable instructions and GitHub deployment workflow.
+- You may read, edit, test, stage, commit, pull, push, and deliver changes in both repositories as needed for the requested task. Follow each repository's applicable instructions and Gitea deployment workflow.
 - Implement and verify related frontend and backend changes directly; do not stop at a specification or hand work over to another repository's team.
 - Keep development work within these two folders unless the user explicitly authorizes another location. This replaces earlier single-repository restrictions and cross-repository handoff requirements.
 - Keep commits scoped to the relevant repository and requested changes, and preserve unrelated work.
 
 ## Code Delivery
-- After implementing requested code changes and passing the relevant checks, commit, push, and deploy through GitHub unless the user explicitly asks otherwise.
+- After implementing requested code changes and passing the relevant checks, commit, push, and deploy through Gitea Actions unless the user explicitly asks otherwise.
 - Verify the deployment before reporting completion. This standing authorization applies to code delivery, not publishing posts or sending messages.
 
 ## Continuous delivery for every feature
 
 - Before developing each new feature, fetch and pull the latest sources from the repository's remote branch. Preserve unrelated local work; never discard or overwrite it while synchronizing.
 - Deliver each requested feature end to end: implement it, pass the relevant checks, commit the scoped changes, and push them to the repository without waiting for a separate commit/push/release request, unless the user explicitly asks otherwise.
-- Release through the repository's GitHub deployment workflow and verify the deployed feature before reporting completion. Keep delivery continuous with small, focused commits and minimal delay between validation and release.
+- Release through the repository's Gitea deployment workflow and verify the deployed feature before reporting completion. Keep delivery continuous with small, focused commits and minimal delay between validation and release.
 - For work spanning both repositories, synchronize and deliver each affected repository, coordinating backend/frontend releases so dependencies are available before the feature uses them.
 - This standing authorization covers source synchronization and code delivery only; it does not authorize sending emails, publishing social content, or other external messages.
 
