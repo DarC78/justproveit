@@ -10,6 +10,9 @@
 
 ## Deployment Rules
 
+- New frontend agent checkouts must use the backend `tools/gitea/configure-agent-checkouts.mjs` installer with their checkout root and the trusted public CA. It sets Gitea as the default push destination and preserves existing hooks while blocking direct GitHub pushes. Never bypass this push guard.
+
+
 - Explicit user-authorized exception: SignWell delivers IPC and Private Pension authority signing invitations and their existing signing notifications after the agent reviews and confirms the named recipients. This exception is limited to those signing flows and never authorizes connected mailboxes or unrelated messages.
 
 - Deploy through Gitea Actions. The user approved the primary CI cutover on 18 November 2026; the legacy GitHub frontend deployment workflow is disabled.
