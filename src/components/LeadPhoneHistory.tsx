@@ -30,13 +30,13 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
   return()=>controller.abort();
  },[token,contactId,phone,revision,page,conversation,refreshKey]);
  return <section aria-label={`History for ${name||phone||"lead"}`}>
+  {phone&&<div className="history-reply"><WhatsAppReplyComposer key={contactId+phone} token={token} contactId={contactId} phone={phone} name={name} onSent={result=>{setRevision(n=>n+1);if(['accepted','sent','delivered','read'].includes(result.status))onReplied?.();}}/></div>}
   <header><div><h3>{conversation?'Conversation':'Calls, WhatsApp, SMS & email history'}</h3><p>{name||"Lead"} · {phone||"No phone number recorded"} · Newest first · UK time</p>{conversation&&<p>Includes incoming messages and replies sent from CRM or synced from the WhatsApp app.</p>}</div>
    <div className="history-controls">
     {phone&&<button type="button" disabled={loading} onClick={()=>setRevision(n=>n+1)}>Refresh history</button>}
     {onCollapse&&<button type="button" onClick={onCollapse}>Restrânge istoricul</button>}
    </div></header>
   {!phone?<><p>Add a phone number to view calls and WhatsApp messages.</p><PhoneHistoryTimeline events={[]} imageTarget={{token,kind:"contact",id:contactId}}/></>:<>
-   {!conversation&&<WhatsAppReplyComposer key={contactId+phone} token={token} contactId={contactId} phone={phone} name={name} onSent={result=>{setRevision(n=>n+1);if(['accepted','sent','delivered','read'].includes(result.status))onReplied?.();}}/>}
    <div aria-live="polite" aria-busy={loading}>
     {loading&&<p role="status">Loading history…</p>}
     {error&&<p role="alert">{error}</p>}
@@ -50,6 +50,7 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
    </div>
   </>}
   <style jsx>{`
+   .history-reply{margin-bottom:16px}.history-reply :global(.reply-composer){margin-top:0}
    .history-controls{display:flex;flex-wrap:wrap;gap:8px}
    section{max-width:1100px;min-width:0;color:#344054}header{display:flex;justify-content:space-between;gap:16px;align-items:start;margin-bottom:16px}h3{font-size:17px;margin:0 0 6px;color:#17376e}p{font-size:13px;line-height:1.5;margin:8px 0 14px}button{background:white;border:1px solid #cbd5e1;border-radius:5px;padding:8px 12px;color:#143b92;cursor:pointer}button:disabled{opacity:.5}[role=alert]{color:#b42318}
   `}</style>
