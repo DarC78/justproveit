@@ -18,8 +18,8 @@ function YesNo({value}:{value:boolean|null|undefined}) {
     <style jsx>{`span{display:inline-block;border-radius:20px;padding:3px 9px;font-weight:700;font-size:12px}.yes{background:#e5f4e9;color:#196a35}.no{background:#fff2d6;color:#855a0b}.unknown{color:#667085}`}</style></span>;
 }
 
-export default function ScheduledCallsTable({token,rows,attention=false,pipeline=false,showCallDate=false,showCallbackPriority=false,onChanged,renderExtraActions}:{
-  token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;showCallDate?:boolean;showCallbackPriority?:boolean;onChanged:(notice:string)=>void;renderExtraActions?:(row:ScheduledCallRow)=>ReactNode;
+export default function ScheduledCallsTable({token,rows,attention=false,pipeline=false,showCallDate=false,showCallbackPriority=false,onChanged,renderExtraActions,onAdrianCall}:{
+  onAdrianCall?:(row:ScheduledCallRow)=>void;token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;showCallDate?:boolean;showCallbackPriority?:boolean;onChanged:(notice:string)=>void;renderExtraActions?:(row:ScheduledCallRow)=>ReactNode;
 }) {
   const [historyBooking,setHistoryBooking]=useState<ScheduledCallRow|null>(null);
   const [now,setNow]=useState(()=>new Date());
@@ -39,14 +39,14 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
       <th scope="col">Actiuni programare</th>
     </tr></thead><tbody>{rows.map(row=><tr key={row.intentId} style={pipeline?(nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate,now)?.backgroundColor==='#dbeafe'?{backgroundColor:'#dbeafe'}:{backgroundColor:scheduledCallDisplay(row.appointmentAtUtc,now,(row.meaningfulCallsSinceAppointment??0)>0||!!row.onWhatsAppBusiness||!!row.solvedOnWhatsApp).backgroundColor}):nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate)}>
       <td>{showCallbackPriority&&row.callbackPriority===0&&<strong className="callback-priority">P0 - Client returned after our call</strong>}<time dateTime={row.appointmentAtUtc}>{(attention||showCallDate||pipeline)?dateTime(row.appointmentAtUtc):londonTime.format(new Date(row.appointmentAtUtc))}</time>{pipeline&&<small>{scheduledCallDisplay(row.appointmentAtUtc,now).label}</small>}</td>
-      <th scope="row">{row.phone?<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.name||"Client"}</Link>:row.name||"Client"}
+      <th scope="row">{row.adrianReadOnly?row.name||"Client":row.phone?<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.name||"Client"}</Link>:row.name||"Client"}
         <small>{pipeline?row.leadSource:(row.intentType==="MANUAL_BOOK"?"Manual booking":"Calendly")}{!pipeline&&row.serviceName?` · ${row.serviceName}`:""}</small>
         {attention&&row.attentionReasons?.map(reason=><small className="reason" key={reason}>{reason}</small>)}
         {attention&&row.lastMediatelWhatsAppFromClient&&<small>Last client message: {dateTime(row.lastMediatelWhatsAppAtUtc)}</small>}
       </th>
-      <td><LeadAgentAssignment token={token} contactId={row.contactId} assignment={row.assignment} calledAgents={row.calledAgents} onChanged={onChanged}/></td>
-      <td className="phone">{row.phone?<button type="button" className="phone-history" aria-haspopup="dialog"
-        aria-label={`Open WhatsApp and call history for ${row.phone}`} onClick={()=>setHistoryBooking(row)}>{row.phone}</button>:"Unavailable"}</td>
+      <td>{row.adrianReadOnly?<strong className="adrian-booking">Call booked with Adrian</strong>:<LeadAgentAssignment token={token} contactId={row.contactId} assignment={row.assignment} calledAgents={row.calledAgents} onChanged={onChanged}/>}</td>
+      <td className="phone">{row.phone?<button type="button" className="phone-history" aria-haspopup={row.adrianReadOnly?undefined:"dialog"}
+        aria-label={row.adrianReadOnly?`Open ToAdrian details for ${row.phone}`:`Open WhatsApp and call history for ${row.phone}`} onClick={()=>row.adrianReadOnly?onAdrianCall?.(row):setHistoryBooking(row)}>{row.phone}</button>:"Unavailable"}</td>
       <td className="history"><BookingCallHistory booking={row}/></td>
       <td>{dateTime(row.leadCreatedAtUtc)}</td><td>{dateTime(row.bookedAtUtc)}</td>
       {!pipeline&&<><td><YesNo value={row.bookingEmailSent}/></td><td><YesNo value={row.bookingWhatsAppSent}/></td>
@@ -57,17 +57,17 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
       <td><YesNo value={row.solvedOnWhatsApp}/>{row.solvedOnWhatsApp&&<small>{dateTime(row.solvedOnWhatsAppAtUtc ?? null)}<br/>{row.solvedOnWhatsAppBy}</small>}</td>
       <td className="number">{row.whatsAppClientMessages??"Unavailable"}</td><td className="number">{row.whatsAppTeamMessages??"Unavailable"}</td></>}
       {pipeline&&<td className="number">{row.whatsAppClientMessages==null||row.whatsAppTeamMessages==null?'Unavailable':row.whatsAppClientMessages+row.whatsAppTeamMessages}</td>}
-      <td className="history"><BookingActions token={token} booking={row}
+      <td className="history">{!row.adrianReadOnly&&<><BookingActions token={token} booking={row}
         onChanged={result=>onChanged(bookingActionNotice(result))}
         onSolved={()=>onChanged("Rezolvarea pe WhatsApp a fost inregistrata.")}
-        onBusinessMarked={()=>onChanged("Continuarea conversatiei pe WhatsApp Business a fost inregistrata.")}/><InternalLeadActions token={token} contactId={row.contactId} name={row.name||'Lead'} allowEnd={false} onChanged={()=>{}} summary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh}/>{renderExtraActions?.(row)}</td>
+        onBusinessMarked={()=>onChanged("Continuarea conversatiei pe WhatsApp Business a fost inregistrata.")}/><InternalLeadActions token={token} contactId={row.contactId} name={row.name||'Lead'} allowEnd={false} onChanged={()=>{}} summary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh}/>{renderExtraActions?.(row)}</>}</td>
     </tr>)}</tbody></table>
     <style jsx>{`
       .table-scroll{overflow-x:auto;border:1px solid #dce3ee;border-radius:7px}
       table{width:100%;min-width:1650px;border-collapse:collapse;font-size:12px;text-align:left}thead{background:#eef3fb;color:#17376e}
       th,td{padding:14px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top}thead th{min-width:100px;font-size:11px;line-height:1.5}
       tbody th{min-width:175px;font-weight:700}tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}tbody tr:hover{background:#f8fafc}
-      .callback-priority{display:block;color:#b42318;margin-bottom:6px}small{display:block;font-size:11px;color:#667085;font-weight:400;margin-top:5px}.reason{color:#a3480b;font-weight:600}
+      .adrian-booking{color:#b42318}.callback-priority{display:block;color:#b42318;margin-bottom:6px}small{display:block;font-size:11px;color:#667085;font-weight:400;margin-top:5px}.reason{color:#a3480b;font-weight:600}
       time{color:#143b92;font-size:15px;font-weight:800}.phone{white-space:nowrap}.history{min-width:240px}
       .number{text-align:center;font-variant-numeric:tabular-nums;font-weight:700}
       .phone-history{border:0;background:none;padding:0;color:#123c92;text-decoration:underline;font:inherit;cursor:pointer}.phone-history:focus-visible{outline:2px solid #123c92;outline-offset:4px}
