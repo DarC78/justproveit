@@ -2,6 +2,7 @@ import {useEffect,useState} from "react";
 import type {ReactNode} from "react";
 import {ContactPhoneHistory,getContactPhoneHistory} from "@/lib/crmAdmin";
 import {PhoneHistoryTimeline,HistoryPagination} from "./PhoneHistoryModal";
+import LeadPrivateData from "./LeadPrivateData";
 import WhatsAppReplyComposer from "./WhatsAppReplyComposer";
 
 function phoneKey(value:string){let digits=value.replace(/\D/g,"");if(digits.startsWith("00"))digits=digits.slice(2);if(digits.startsWith("0")&&[10,11].includes(digits.length))digits=(digits.length===11?"44":"40")+digits.slice(1);return digits;}
@@ -31,6 +32,7 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
  },[token,contactId,phone,revision,page,conversation,refreshKey]);
  return <section aria-label={`History for ${name||phone||"lead"}`}>
   {phone&&<div className="history-reply"><WhatsAppReplyComposer key={contactId+phone} token={token} contactId={contactId} phone={phone} name={name} onSent={result=>{setRevision(n=>n+1);if(['accepted','sent','delivered','read'].includes(result.status))onReplied?.();}}/></div>}
+  <LeadPrivateData key={token+contactId} token={token} contactId={contactId}/>
   <header><div><h3>{conversation?'Conversation':'Calls, WhatsApp, SMS & email history'}</h3><p>{name||"Lead"} · {phone||"No phone number recorded"} · Newest first · UK time</p>{conversation&&<p>Includes incoming messages and replies sent from CRM or synced from the WhatsApp app.</p>}</div>
    <div className="history-controls">
     {phone&&<button type="button" disabled={loading} onClick={()=>setRevision(n=>n+1)}>Refresh history</button>}

@@ -394,7 +394,8 @@ export type CrmEmailEvent = {kind:"email";id:string;atUtc:string|null;direction:
 export type CrmEmailBody = {subject:string;from:string;to:string[];text:string;html:string};
 export type CrmStripeEvent = {kind:"stripe";id:string;atUtc:string;source:"proveit"|"justproveit";label:string;eventType:string;amount:number|null;currency:string|null;status:string|null;reference:string};
 export type SmsHistoryEvent={kind:"sms";id:string;atUtc:string|null;direction:"inbound"|"outbound";phone:string;author:string;text:string;source:"SMS";status:string;providerMessageId:string|null;errorMessage?:string|null};
-export type PhoneHistoryEvent = ManualPaymentEvent | CrmStripeEvent | CrmEmailEvent | SmsHistoryEvent | {
+export type DocumentNoteEvent={kind:"note";id:string;atUtc:string;text:string;approximate:boolean;dateBasis:string;source:string};
+export type PhoneHistoryEvent = DocumentNoteEvent | ManualPaymentEvent | CrmStripeEvent | CrmEmailEvent | SmsHistoryEvent | {
   kind: "whatsapp"; id: string; atUtc: string | null; direction: "inbound" | "outbound";
   gatewayMedia?:GatewayMedia;reaction?:GatewayReaction;attachment?:{mediaId:string;mimeType:string;name:string;kind:string}|null;image?: {mediaId:string;mimeType:string;name:string}|null; author: string; text: string; messageType: string; status: string; scheduledAtUtc?:string; source?: string; channel?:'mediatel'|'agents'; providerMessageId?: string; accountId?: string; errorCode?: string | null; errorMessage?: string | null;
 } | {
@@ -406,7 +407,7 @@ export type PhoneHistoryEvent = ManualPaymentEvent | CrmStripeEvent | CrmEmailEv
 };
 export type ScheduledPhoneHistory = {
   intentId: string; phone: string; timeZone: string; whatsAppMessages: number; calls: number; events: PhoneHistoryEvent[];
-  page?:number;pageSize?:number;hasMore?:boolean;warnings?:string[];smsMessages?:number;linkedPhones?:string[];
+  page?:number;pageSize?:number;hasMore?:boolean;warnings?:string[];smsMessages?:number;linkedPhones?:string[];hasPrivateData?:boolean;
 };
 
 export function getScheduledPhoneHistory(token: string, intentId: string, signal?: AbortSignal,fresh=false,page=0) {
@@ -1491,3 +1492,6 @@ export function getCrmHistoryContactByPhone(token:string,phone:string){
 }
 
 export type ManualPaymentEvent={kind:"payment";id:string;atUtc:string;amount:number;currency:string;label:string;reference:string;actor:string;paidDate:string;plan:string;note:string};
+
+export function getLeadPrivateDataAvailability(token:string,id:string){return fetchCanonicalCrmReadJson<{hasPrivateData:boolean}>(`${BASE_PATH}/contacts/${encodeURIComponent(id)}/private-data`,{headers:authHeaders(token),cache:"no-store"});}
+export function revealLeadPrivateData(token:string,id:string,password:string){return fetchCanonicalCrmReadJson<{sections:{text:string}[];expiresAt:string}>(`${BASE_PATH}/contacts/${encodeURIComponent(id)}/private-data`,{method:"POST",headers:{...authHeaders(token),"Content-Type":"application/json"},body:JSON.stringify({password}),cache:"no-store"});}
