@@ -1,8 +1,8 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('fs'),ts=require('typescript'),React=require('react'),{JSDOM}=require('jsdom'),{createRoot}=require('react-dom/client');
 test('pipeline filters and paginates server-side and opens the correct contact history',async()=>{
  const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
- const previous=global.fetch,calls=[];global.fetch=async(url,options)=>{calls.push({url,options});return{ok:true,json:async()=>{const data=({sources:['FB','TikTok'],counts:{newLead:31,SimulationInProgress:0,SimulationDone:0,ScheduledCall:0,AgreedToBuy:0,clients:1},purchasedServices:[{value:'pension',label:'International pension'}],cohortTotal:31,total:31,asOfUtc:'2026-11-10T12:00Z',rows:[{contactId:'correct-contact',name:'Fixture',phone:'447700900123',pipelineStatus:'newLead',source:'FB',service:'Simulator',createdAtUtc:'2026-11-01',purchases:[{saleId:'sale',service:'pension',label:'International pension',purchasedAtUtc:'2026-11-02T10:00:00Z'}]}]});if(new URL(url).searchParams.get('status')==='ScheduledCall')data.rows=['selectedDay','unresolved','future'].map((section,i)=>({...data.rows[0],contactId:'scheduled-'+i,scheduleSection:section,booking:{intentId:'booking-'+i,contactId:'scheduled-'+i}}));return data;}};};
- const code=ts.transpileModule(fs.readFileSync('src/components/LeadPipelinePanel.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,mod={exports:{}};let history,actions;
+ const previous=global.fetch,calls=[];global.fetch=async(url,options)=>{calls.push({url,options});return{ok:true,json:async()=>{const data=({sources:['FB','TikTok'],counts:{newLead:31,SimulationInProgress:0,SimulationDone:0,ScheduledCall:0,AgreedToBuy:0,clients:1},purchasedServices:[{value:'pension',label:'International pension'}],cohortTotal:31,total:31,asOfUtc:'2026-11-10T12:00Z',rows:[{contactId:'correct-contact',name:'Fixture',phone:'447700900123',pipelineStatus:'newLead',source:'FB',service:'Simulator',createdAtUtc:'2026-11-01',purchases:[{saleId:'sale',service:'pension',label:'International pension',purchasedAtUtc:'2026-11-02T10:00:00Z'}]}]});if(new URL(url).searchParams.get('status')==='ScheduledCall')data.rows=['selectedDay','unresolved','future'].map((section,i)=>({...data.rows[0],contactId:'scheduled-'+i,scheduleSection:section,booking:{intentId:'booking-'+i,contactId:'scheduled-'+i}}));if(new URL(url).searchParams.get('status')==='ToAdrian'&&new URL(url).searchParams.get('search')==='Fixture')data.rows=[{...data.rows[0],contactId:'scheduled-2',pipelineStatus:'ToAdrian'}];return data;}};};
+ const code=ts.transpileModule(fs.readFileSync('src/components/LeadPipelinePanel.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,mod={exports:{}};let history,actions,scheduledTable;
  const mocks={
   '@/lib/auth':{API_BASE_URL:'https://api.example.test'},
   '@/lib/allCustomers':{contactActionNotice:()=> 'Action saved'},
@@ -11,7 +11,7 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   './ContactActions':{__esModule:true,default:props=>{actions=props;return React.createElement('button',{onClick:()=>props.onChanged({action:'solve',success:true})},'Fixture Solve');}},
   './LeadPipelineRowActions':{__esModule:true,default:props=>{actions={...props,contactId:props.row.contactId,phone:props.row.phone};return React.createElement('button',{onClick:()=>props.onChanged('Action saved')},'Fixture Solve');}},
   './PipelineLeadControls':{__esModule:true,default:()=>null},'./BookingActions':{__esModule:true,default:()=>null},
-  './ScheduledCallsTable':{__esModule:true,default:props=>React.createElement('div',{'data-testid':'scheduled-table','data-show-date':String(props.showCallDate)},props.pipeline?'Scheduled pipeline table':'Other table')},
+  './ScheduledCallsTable':{__esModule:true,default:props=>{scheduledTable=props;return React.createElement('div',{'data-testid':'scheduled-table','data-show-date':String(props.showCallDate)},props.pipeline?'Scheduled pipeline table':'Other table');}},
   './LeadPhoneHistory':{__esModule:true,default:props=>{history=props;return React.createElement('button',{onClick:props.onCollapse},'Collapse history');}}
  };
  new Function('require','module','exports',code)(name=>mocks[name]||require(name),mod,mod.exports);
@@ -64,7 +64,7 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   assert.equal(new URL(calls.at(-1).url).searchParams.get('scheduledDate'),today);
   assert.equal(document.querySelector('[data-testid="scheduled-table"]').dataset.showDate,'true');
   await React.act(async()=>document.querySelector('input[type="checkbox"]').click());
-  assert.ok(document.body.textContent.includes('Has a recorded past or future call booking'));
+  assert.ok(document.body.textContent.includes('All recorded call bookings across lead stages'));
   assert.equal(document.querySelector('[aria-label="Show leads with a call booked"]'),null);
   await React.act(async()=>root.unmount());root=createRoot(document.getElementById('root'));await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'another-token',userId:'another-user'})));
   assert.equal(document.querySelector('[aria-label="Pipeline status"]').value,'ScheduledCall');assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'ScheduledCall');
@@ -77,5 +77,8 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   assert.equal(document.querySelector('[aria-label="Purchased service"]').value,'pension');assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'clients');
   const options=[...document.querySelector('[aria-label="Pipeline status"]').options].map(o=>o.value);assert.equal(options.indexOf('ToAdrian'),options.indexOf('AgreedToBuy')+1);assert.equal(options.indexOf('clients'),options.indexOf('ToAdrian')+1);
   await React.act(async()=>{const select=document.querySelector('[aria-label="Pipeline status"]');select.value='ToAdrian';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});assert.equal(new URL(calls.at(-1).url).searchParams.get('status'),'ToAdrian');assert.equal(document.querySelector('thead th').textContent,'Date / time (UK)');assert.equal(JSON.parse(window.localStorage.getItem('proveit.crm.leadPipeline.filters.v1:another-user')).status,'ToAdrian');
+  await React.act(async()=>{const select=document.querySelector('[aria-label="Pipeline status"]');select.value='ScheduledCall';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});
+  await React.act(async()=>scheduledTable.onAdrianCall(scheduledTable.rows[0]));
+  const handoff=new URL(calls.at(-1).url).searchParams;assert.equal(handoff.get('status'),'ToAdrian');assert.equal(handoff.get('search'),'Fixture');assert.equal(handoff.get('source'),'');assert.equal(handoff.get('inboundDays'),'0');assert.equal(handoff.get('offset'),'0');assert.equal(history.contactId,'scheduled-2');
  }finally{await React.act(async()=>root.unmount());global.fetch=previous;dom.window.close();delete global.window;delete global.document;}
 });
