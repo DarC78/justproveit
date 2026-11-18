@@ -164,6 +164,8 @@ ScheduledCall includes bookings across lead stages and confirmed Adrian calendar
 
 ## End Lead resolutions (18 November 2026)
 
-End Lead uses a required dropdown with the resolution labels `2ANI_PLUS_PANA_LA_PENSIE`, `A_DEMARAT_SINGUR`, `NO_QUALIFY`, and `NU_MAI_RASPUNDE`. The initial blank choice cannot be confirmed. The selected value is sent in the existing `reason` field; retries retain the request ID and selected resolution. Historical free-text reasons remain readable. The existing closure flag, version checks, reopen action and booking/stage preservation remain unchanged. This action does not update the dialler callcode or send messages.
+End Lead uses a required dropdown with the resolution labels `2ANI_PLUS_PANA_LA_PENSIE`, `A_DEMARAT_SINGUR`, `NO_QUALIFY`, `NU_MAI_RASPUNDE`, and `DO_NOT_CONTACT_AGAIN`. The initial blank choice cannot be confirmed. The selected value is sent in the existing `reason` field; retries retain the request ID and selected resolution. Historical free-text reasons remain readable. The existing closure flag, version checks, reopen action and booking/stage preservation remain unchanged. This action does not update the dialler callcode or send messages.
 
 `NU_MAI_RASPUNDE` is the user-requested fourth CRM option. It does not create or rename the dialler's existing `NU_A_RASPUNS` code.
+
+`DO_NOT_CONTACT_AGAIN` is also available as an End Lead reason. This adds a selectable reason under the existing closure behavior; it does not add a new communications-suppression mechanism.

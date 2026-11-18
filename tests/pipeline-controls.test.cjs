@@ -67,14 +67,14 @@ test('ToInvestigate modal saves only an explicit flag with text and can cancel w
  const confirm=document.querySelector('dialog button[type=submit]');assert.equal(confirm.disabled,false);await React.act(async()=>document.querySelector('dialog form').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.equal(calls[0].action,'investigate');assert.equal(calls[0].expectedVersion,7);assert.equal(calls[0].text,'Check identity');
  }finally{await React.act(async()=>root.unmount());dom.window.close();}
 });
-test('End Lead requires one of the four dialler resolutions and retries the same selected value',async()=>{
+test('End Lead requires one of the five configured resolutions and retries the same selected value',async()=>{
  const dom=new JSDOM('<div id="root"></div>');global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
  const calls=[],mod={exports:{}};let failOnce=true;
  new Function('require','module','exports',compile('src/components/PipelineLeadControls.tsx'))(name=>name==='@/lib/leadPipelineControls'?{savePipelineControl:async(token,id,input)=>{calls.push(input);if(failOnce){failOnce=false;throw Error('Try again');}}}:require(name),mod,mod.exports);
  const root=createRoot(document.getElementById('root')),button=text=>[...document.querySelectorAll('button')].find(b=>b.textContent===text);
  try{
   await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'token',row:{contactId:'lead',pipelineVersion:2,pipelineStatus:'ToAdrian'},onChanged:()=>{}})));
-  const values=['2ANI_PLUS_PANA_LA_PENSIE','A_DEMARAT_SINGUR','NO_QUALIFY','NU_MAI_RASPUNDE'];
+  const values=['2ANI_PLUS_PANA_LA_PENSIE','A_DEMARAT_SINGUR','NO_QUALIFY','NU_MAI_RASPUNDE','DO_NOT_CONTACT_AGAIN'];
   for(const value of values){
    await React.act(async()=>button('End Lead').click());const select=document.querySelector('select[aria-label="Resolution for ending lead"]');
    assert.deepEqual([...select.options].map(o=>o.value),['',...values]);assert.equal(select.value,'');assert.equal(button('Confirm End Lead').disabled,true);assert.equal(document.querySelector('textarea'),null);
