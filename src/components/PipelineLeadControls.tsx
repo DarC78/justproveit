@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {savePipelineControl,type PipelineControlInput,type PipelineControlView,type ManualPipelineStage} from '@/lib/leadPipelineControls';
-const END_LEAD_RESOLUTIONS=['2ANI_PLUS_PANA_LA_PENSIE','A_DEMARAT_SINGUR','NO_QUALIFY'];
+const END_LEAD_RESOLUTIONS=['2ANI_PLUS_PANA_LA_PENSIE','A_DEMARAT_SINGUR','NO_QUALIFY','NU_MAI_RASPUNDE'];
 export default function PipelineLeadControls({token,row,onChanged,allowHandleForAllLeads=true,eventHandled=false}:{token:string;row:PipelineControlView;onChanged:(message:string)=>void;allowHandleForAllLeads?:boolean;eventHandled?:boolean}){
  const [handledSnapshot,setHandledSnapshot]=useState<{contactId:string;through:string;assignmentId:string|null}|null>(null);
  const alreadyHandled=eventHandled||Boolean(row.lastInboundAtUtc&&handledSnapshot?.contactId===row.contactId&&handledSnapshot.assignmentId===(row.manualStage?.assignmentId||null)&&Date.parse(handledSnapshot.through)>=Date.parse(row.lastInboundAtUtc));
