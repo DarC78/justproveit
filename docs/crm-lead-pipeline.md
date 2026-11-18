@@ -156,3 +156,8 @@ WhatsApp history shows a delivery status on every outgoing message, including ex
 Private pension document activities appear as dated imported notes in lead history. Approximate dates are labelled. Leads with imported private details have Show private data in their history panel; it checks Adrian's current account password and automatically hides revealed notes after five minutes or leaving the tab. No private notes are stored in browser storage. Backend contract: docs/systems/crm-private-document-notes.md in LaunchingStack.
 
 ScheduledCall includes bookings across lead stages and confirmed Adrian calendar reservations. ToAdrian/Adrian booking rows retain all nine schedule columns and the normal call/message metrics. The Agent cell displays Call booked with Adrian in red; assignment controls and every action in the final cell are omitted. Clicking the phone changes the pipeline shortcut to ToAdrian, clears restrictive source/inbound/date filters, searches for the selected lead and opens the matching contact history. Regular schedule rows retain their controls. Appointment-date/future and ended-lead filters remain available.
+
+
+## End Lead resolutions (18 November 2026)
+
+End Lead uses a required dropdown with the exact verified dialler labels `2ANI_PLUS_PANA_LA_PENSIE`, `A_DEMARAT_SINGUR`, and `NO_QUALIFY`. The initial blank choice cannot be confirmed. The selected value is sent in the existing `reason` field; retries retain the request ID and selected resolution. Historical free-text reasons remain readable. The existing closure flag, version checks, reopen action and booking/stage preservation remain unchanged. This action does not update the dialler callcode or send messages.

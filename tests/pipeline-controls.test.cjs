@@ -27,8 +27,8 @@ test('mark handled retries the same request and snapshot; any stage can be assig
   await React.act(async()=>{const select=document.querySelector('select');select.value='ToAdrian';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await React.act(async()=>button('Assign stage').click());assert.equal(calls.at(-1).input.stage,'ToAdrian');assert.equal(calls.at(-1).input.expectedVersion,1);assert.match(changes.at(-1),/ToAdrian/);
   row={...row,pipelineVersion:2,manualStage:{stage:'ToAdrian',actor:'Agent'}};await React.act(async()=>render());assert.equal(button('Assign stage').disabled,false); // explicit reassign can re-pin P0
   await React.act(async()=>{const select=document.querySelector('select');select.value='';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await React.act(async()=>button('Assign stage').click());assert.equal(calls.at(-1).input.stage,null);assert.match(changes.at(-1),/Automatic/);
-  await React.act(async()=>button('End Lead').click());assert.equal(document.querySelector('textarea').required,true);assert.equal(button('Confirm End Lead').disabled,true);
-  await React.act(async()=>button('Cancel').click());assert.equal(document.querySelector('textarea'),null);
+  await React.act(async()=>button('End Lead').click());assert.equal(document.querySelector('select[aria-label="Resolution for ending lead"]').required,true);assert.equal(button('Confirm End Lead').disabled,true);
+  await React.act(async()=>button('Cancel').click());assert.equal(document.querySelector('select[aria-label="Resolution for ending lead"]'),null);
   row={...row,pipelineVersion:3,pipelineStatus:'ToAdrian',ended:{pipelineStatus:'ToAdrian',reason:'Not interested',actor:'Agent',atUtc:'2026-11-11T10:00Z'}};await React.act(async()=>render());
   assert.match(document.body.textContent,/Not interested/);assert.equal(button('End Lead'),undefined);assert.equal(document.querySelector('select'),null);
   await React.act(async()=>button('Reopen Lead').click());assert.equal(calls.at(-1).input.action,'reopen');assert.equal(calls.at(-1).input.expectedVersion,3);assert.match(changes.at(-1),/reopened/);
@@ -65,5 +65,24 @@ test('ToInvestigate modal saves only an explicit flag with text and can cancel w
  const open=()=>[...document.querySelectorAll('button')].find(b=>b.textContent==='ToInvestigate').click();await React.act(async()=>open());assert.deepEqual([...document.querySelector('dialog').querySelectorAll('button')].map(b=>b.textContent),['ToInvestigate','Cancel']);await React.act(async()=>[...document.querySelector('dialog').querySelectorAll('button')].find(b=>b.textContent==='Cancel').click());assert.equal(calls.length,0);
  await React.act(async()=>open());await React.act(async()=>{const input=document.querySelector('dialog textarea');Object.getOwnPropertyDescriptor(dom.window.HTMLTextAreaElement.prototype,'value').set.call(input,'Check identity');input.dispatchEvent(new dom.window.Event('input',{bubbles:true}));input.dispatchEvent(new dom.window.Event('change',{bubbles:true}));const event=new dom.window.Event('propertychange',{bubbles:true});Object.defineProperty(event,'propertyName',{value:'value'});input.dispatchEvent(event);});
  const confirm=document.querySelector('dialog button[type=submit]');assert.equal(confirm.disabled,false);await React.act(async()=>document.querySelector('dialog form').dispatchEvent(new dom.window.Event('submit',{bubbles:true,cancelable:true})));assert.equal(calls[0].action,'investigate');assert.equal(calls[0].expectedVersion,7);assert.equal(calls[0].text,'Check identity');
+ }finally{await React.act(async()=>root.unmount());dom.window.close();}
+});
+test('End Lead requires one of the three dialler resolutions and retries the same selected value',async()=>{
+ const dom=new JSDOM('<div id="root"></div>');global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ const calls=[],mod={exports:{}};let failOnce=true;
+ new Function('require','module','exports',compile('src/components/PipelineLeadControls.tsx'))(name=>name==='@/lib/leadPipelineControls'?{savePipelineControl:async(token,id,input)=>{calls.push(input);if(failOnce){failOnce=false;throw Error('Try again');}}}:require(name),mod,mod.exports);
+ const root=createRoot(document.getElementById('root')),button=text=>[...document.querySelectorAll('button')].find(b=>b.textContent===text);
+ try{
+  await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'token',row:{contactId:'lead',pipelineVersion:2,pipelineStatus:'ToAdrian'},onChanged:()=>{}})));
+  const values=['2ANI_PLUS_PANA_LA_PENSIE','A_DEMARAT_SINGUR','NO_QUALIFY'];
+  for(const value of values){
+   await React.act(async()=>button('End Lead').click());const select=document.querySelector('select[aria-label="Resolution for ending lead"]');
+   assert.deepEqual([...select.options].map(o=>o.value),['',...values]);assert.equal(select.value,'');assert.equal(button('Confirm End Lead').disabled,true);assert.equal(document.querySelector('textarea'),null);
+   await React.act(async()=>{select.value=value;select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});assert.equal(button('Confirm End Lead').disabled,false);
+   await React.act(async()=>button('Confirm End Lead').click());
+   if(document.querySelector('[role=alert]')){const first=calls.at(-1);await React.act(async()=>button('Confirm End Lead').click());assert.deepEqual(calls.at(-1),first);}
+   assert.equal(calls.at(-1).action,'end');assert.equal(calls.at(-1).reason,value);assert.equal(calls.at(-1).pipelineStatus,'ToAdrian');assert.equal(calls.at(-1).expectedVersion,2);
+   assert.equal(document.querySelector('select[aria-label="Resolution for ending lead"]'),null);
+  }
  }finally{await React.act(async()=>root.unmount());dom.window.close();}
 });
