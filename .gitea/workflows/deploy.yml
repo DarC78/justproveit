@@ -11,7 +11,7 @@ on:
 
 jobs:
   build_and_deploy_job:
-    if: vars.GITEA_PRODUCTION_DEPLOYMENT_ENABLED == 'true' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed'))
+    if: vars.PRODUCTION_DEPLOYMENT_ENABLED == 'true' && (github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed'))
     runs-on: inhouse-linux
     name: Build and Deploy Job
     env:
@@ -57,7 +57,7 @@ jobs:
           output_location: "out"
 
   close_pull_request_job:
-    if: vars.GITEA_PRODUCTION_DEPLOYMENT_ENABLED == 'true' && (github.event_name == 'pull_request' && github.event.action == 'closed')
+    if: vars.PRODUCTION_DEPLOYMENT_ENABLED == 'true' && (github.event_name == 'pull_request' && github.event.action == 'closed')
     runs-on: inhouse-linux
     name: Close Pull Request Job
     steps:
