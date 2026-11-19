@@ -1,4 +1,6 @@
 import ProposeWhatsAppAnswer from './ProposeWhatsAppAnswer';
+import UploadWhatsAppPicture,{type UploadedWhatsAppPicture} from './UploadWhatsAppPicture';
+import {sendContactWhatsAppReply} from '@/lib/crmAdmin';
 import {FormEvent,useEffect,useRef,useState} from "react";
 import {ContactAction,ContactActionResult,runContactAction} from "@/lib/allCustomers";
 import ContactBookCall from './ContactBookCall';
@@ -11,16 +13,18 @@ import type {LeadNoteSummary} from '@/lib/leadNotes';
 export default function ContactActions({token,contactId,name,phone,onChanged,internalLead=false,noteSummary,onNoteSaved}:{internalLead?:boolean;token:string;contactId:string;name:string;phone:string|null;onChanged:(result:ContactActionResult)=>void;noteSummary?:LeadNoteSummary;onNoteSaved?:()=>void}) {
  const [reply,setReply]=useState(false),[text,setText]=useState("");
  const [proposing,setProposing]=useState(false);
+ const [picture,setPicture]=useState<UploadedWhatsAppPicture|null>(null),[uploading,setUploading]=useState(false);
  const [saving,setSaving]=useState<ContactAction|null>(null),[error,setError]=useState("");
  const [request,setRequest]=useState<{action:ContactAction;id:string}|null>(null);
  const dialog=useRef<HTMLDialogElement>(null);
  const inFlight=useRef(false);
  useEffect(()=>{if(reply)dialog.current?.showModal();},[reply]);
  async function act(action:ContactAction){
-  if(proposing||inFlight.current||(action==="reply"&&!text.trim()))return;
+  if(uploading||proposing||inFlight.current||(action==="reply"&&!text.trim()&&!picture))return;
   inFlight.current=true;
   const id=request?.action===action?request.id:crypto.randomUUID();setRequest({action,id});setSaving(action);setError("");
   try {
+   if(action==='reply'&&picture){const result=await sendContactWhatsAppReply(token,contactId,{requestId:id,pictureId:picture.pictureId,text:text.trim(),expectedPhone:phone!});if(result.status==='failed'){setRequest(null);throw Error(result.errorMessage||'Picture delivery failed.');}if(!['accepted','sent','delivered','read'].includes(result.status)){setError('Picture queued or delivery is still being confirmed. Use Check send status before sending again.');return;}setPicture(null);setReply(false);setText('');setRequest(null);onChanged({success:true,action:'reply',contactId,solved:false,whatsAppQueued:true});return;}
    const result=await runContactAction(token,contactId,action,{requestId:id,...(action==="reply"?{text:text.trim()}:{})});
    setReply(false);setText("");setRequest(null);onChanged(result);
   }catch(cause){setError(cause instanceof Error?cause.message:"Unable to save this action.");}
@@ -42,13 +46,14 @@ export default function ContactActions({token,contactId,name,phone,onChanged,int
   {reply&&<dialog ref={dialog} aria-label={`Reply to ${name||phone} on WhatsApp`} onCancel={event=>{if(saving||proposing)event.preventDefault();else setReply(false);}}>
    <form onSubmit={send}>
     <h3>Reply on WhatsApp</h3><p className="recipient">{name} · {phone}</p>
-    <label>Message<textarea autoFocus required maxLength={4096} rows={8} value={text} disabled={!!saving||proposing}
+    <label>Message<textarea autoFocus required={!picture} maxLength={picture?1024:4096} rows={8} value={text} disabled={uploading||!!saving||proposing||!!(picture&&request)}
      onChange={event=>{setText(event.target.value);setRequest(null);setError("");}}/></label>
-    <p className="hint">Your reply will be queued on WhatsApp and this lead will be marked solved.</p>
+    <p className="hint">{picture?'The picture will be sent with the message above as an optional caption.':'Your reply will be queued on WhatsApp and this lead will be marked solved.'}</p>
     {error&&<p role="alert">{error}</p>}
-    <div className="buttons"><button type="submit" disabled={!!saving||proposing||!text.trim()}>{saving?"Sending":"Send & solve"}</button>
-     <ProposeWhatsAppAnswer token={token} contactId={contactId} disabled={!!saving||!!request} onBusyChange={setProposing} onProposed={value=>{setText(value);setRequest(null);setError("");}}/>
-     <button type="button" disabled={!!saving||proposing} onClick={()=>setReply(false)}>Cancel</button></div>
+    <div className="buttons"><button type="submit" disabled={uploading||!!saving||proposing||(!picture&&!text.trim())||!!(picture&&text.length>1024)}>{saving?'Sending...':picture?(request?'Check send status':'Send WhatsApp'):'Send & solve'}</button>
+     <ProposeWhatsAppAnswer token={token} contactId={contactId} disabled={uploading||!!saving||!!request} onBusyChange={setProposing} onProposed={value=>{setText(value);setRequest(null);setError("");}}/>
+     <UploadWhatsAppPicture token={token} contactId={contactId} phone={phone} picture={picture} disabled={!!saving||proposing||!!request} onBusyChange={setUploading} onChange={value=>{setPicture(value);setRequest(null);setError('');}}/>
+     <button type="button" disabled={uploading||!!saving||proposing} onClick={()=>setReply(false)}>Cancel</button></div>
    </form>
   </dialog>}
   <style jsx>{`

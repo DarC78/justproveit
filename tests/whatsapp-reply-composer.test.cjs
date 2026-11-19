@@ -41,6 +41,24 @@ test('queued gateway reply keeps the same request and cannot be duplicated by a 
  await submit(f.render());assert.equal(calls[0][2].requestId,calls[1][2].requestId);assert.equal(f.find(f.render(),'textarea').props.value,'');
 });
 
+test('picture-only sends retain the attachment and exact request through uncertainty, and clear on acceptance',async()=>{
+ const calls=[],f=fixture(async(...args)=>{calls.push(args);if(calls.length===1)throw Error('uncertain');return{id:'image',status:'accepted'};});
+ const walk=n=>!n||typeof n!=='object'?[]:[n,...[n.props?.children].flat(Infinity).flatMap(walk)];
+ const upload=tree=>walk(tree).find(n=>typeof n.props?.onBusyChange==='function');
+ upload(f.render()).props.onChange({pictureId:'picture',mimeType:'image/png',size:100,fileName:'fixture.png',previewUrl:'blob:fixture'});
+ assert.equal(f.find(f.render(),'textarea').props.maxLength,1024);await submit(f.render());
+ assert.equal(calls[0][2].pictureId,'picture');assert.equal(calls[0][2].text,'');assert.equal(upload(f.render()).props.picture.pictureId,'picture');assert.equal(upload(f.render()).props.disabled,true);
+ await submit(f.render());assert.equal(calls[0][2].requestId,calls[1][2].requestId);assert.equal(calls[1][2].pictureId,'picture');assert.equal(upload(f.render()).props.picture,null);
+});
+
+test('picture caption and reference are shared with scheduled replies, and uploading locks sending',()=>{
+ const f=fixture(async()=>assert.fail(),null,{contactId:'contact'}),walk=n=>!n||typeof n!=='object'?[]:[n,...[n.props?.children].flat(Infinity).flatMap(walk)];
+ const upload=()=>walk(f.render()).find(n=>typeof n.props?.onBusyChange==='function');
+ upload().props.onChange({pictureId:'picture',previewUrl:'blob:fixture'});f.find(f.render(),'textarea').props.onChange({target:{value:'Optional caption'}});
+ const scheduled=walk(f.render()).find(n=>typeof n.props?.onScheduled==='function');assert.equal(scheduled.props.pictureId,'picture');assert.equal(scheduled.props.text,'Optional caption');
+ upload().props.onBusyChange(true);assert.equal(f.find(f.render(),'textarea').props.disabled,true);assert.equal(f.find(f.render(),'button').props.disabled,true);
+});
+
 test('approved template selector sends exact language and values and leaves free text available',async()=>{
  let calls=[];
  const f=fixture(async(...args)=>{calls.push(args);return {id:'1',status:'accepted'};},[{name:'pensii_private_voicemail',language:'ro',components:[{type:'BODY',text:'Buna {{1}}'}]}]);
