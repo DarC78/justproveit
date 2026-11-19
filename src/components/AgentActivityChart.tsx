@@ -9,7 +9,7 @@ export default function AgentActivityChart({data,loading}:{data?:AgentActivityHi
  const selected=active===null?null:data?.bins[active];
  return <section aria-label="CRM activity report" aria-busy={loading}>
   <h3>CRM activity — {data?.date||'Date end'}</h3>
-  <p>Successful human CRM actions and completed simulations, grouped every 5 minutes. Background heartbeats and automatic refreshes are excluded. Timezone: Romania (Europe/Bucharest). Uses the report’s selected agents.</p>
+  <p>Recorded CRM actions and completed simulations, grouped every 5 minutes. Presence heartbeats are excluded. Timezone: Romania (Europe/Bucharest). Uses the report’s selected agents.</p>
   {loading?<p role="status">Loading activity…</p>:!data?<p role="status">CRM activity is unavailable for this report.</p>:<>
    <p><strong>{data.total} events between 06:00 and 23:59.</strong>{data.total===0?' No recorded activity in this period.':''}</p>
    <p className="detail" aria-live="polite">{selected?`${selected.time}–${end(selected.time)}: ${selected.count} events`:'Hover over or focus a bar to see its event count.'}</p>
