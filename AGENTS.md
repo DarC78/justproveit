@@ -45,3 +45,9 @@
 - This Google Doc is the working business specification for existing-client international pensions delivery, separate from the WhatsApp lead-qualification funnel. It is currently a draft template: examples and `[TO DEFINE]` fields are not approved requirements or implemented behavior. Use subsequent explicit user decisions to resolve them; do not silently implement example rules.
 - Fetch the current document when doing related work; do not rely on an old copied version. If access is unavailable, report the access gap rather than inventing the flow. Keep this locator current if the specification moves.
 - Frontend contract: `docs/crm-all-customers-backend-spec.md`. Backend counterpart: `C:\DevProjects\LaunchingStack\docs\systems\crm-all-customers-view.md`. Keep implemented behavior documented separately from proposed workflow changes.
+
+## Protected main delivery
+
+- Publish changes on a feature branch and open a Gitea pull request. Main rejects direct/force pushes and administrator merge overrides. Wait for the latest PR revision to pass required tests/build, merge through Gitea, then verify its normal deployment. Keep the branch up to date with main. Never fabricate statuses or bypass checks.
+- The user selected CI-gated PRs without mandatory independent approval for now. An agent may merge its passing PR when rejected/unresolved reviews are cleared; outbound messages and other restricted actions still require their existing authorization.
+- Preserve proveitweb-live on GitHub; its source and deployment rules are excluded.
