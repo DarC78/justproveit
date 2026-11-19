@@ -169,3 +169,7 @@ End Lead uses a required dropdown with the resolution labels `2ANI_PLUS_PANA_LA_
 `NU_MAI_RASPUNDE` is the user-requested fourth CRM option. It does not create or rename the dialler's existing `NU_A_RASPUNS` code.
 
 `DO_NOT_CONTACT_AGAIN` is also available as an End Lead reason. This adds a selectable reason under the existing closure behavior; it does not add a new communications-suppression mechanism.
+
+## Lead row action groups (19 November 2026)
+
+Lead Pipeline (including scheduled call rows), All Leads and InboundContacts share two action sections. Usual actions: Reprogrameaza and Delete book when a booking exists, Add comment, ToInvestigate, End Lead, Assign pipeline stage and Mark event as handled. Special actions: Confirm bank payment and Imputernicire. Other lead-row shortcuts are removed, including Reply on WhatsApp, Start Simulare, Solve, New ASAP, new bookings, identity editing, dialler return, WhatsApp Business markers, Reopen Lead and Clear investigation flag. Existing action eligibility, confirmation forms and handled-state protection remain in place. Conversation history/composers and existing-customer controls are separate from this lead-row action menu.

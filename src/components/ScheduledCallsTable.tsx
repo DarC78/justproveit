@@ -57,10 +57,10 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
       <td><YesNo value={row.solvedOnWhatsApp}/>{row.solvedOnWhatsApp&&<small>{dateTime(row.solvedOnWhatsAppAtUtc ?? null)}<br/>{row.solvedOnWhatsAppBy}</small>}</td>
       <td className="number">{row.whatsAppClientMessages??"Unavailable"}</td><td className="number">{row.whatsAppTeamMessages??"Unavailable"}</td></>}
       {pipeline&&<td className="number">{row.whatsAppClientMessages==null||row.whatsAppTeamMessages==null?'Unavailable':row.whatsAppClientMessages+row.whatsAppTeamMessages}</td>}
-      <td className="history">{!row.adrianReadOnly&&<><BookingActions token={token} booking={row}
+      <td className="history">{!row.adrianReadOnly&&(pipeline&&renderExtraActions?renderExtraActions(row):<><BookingActions token={token} booking={row}
         onChanged={result=>onChanged(bookingActionNotice(result))}
         onSolved={()=>onChanged("Rezolvarea pe WhatsApp a fost inregistrata.")}
-        onBusinessMarked={()=>onChanged("Continuarea conversatiei pe WhatsApp Business a fost inregistrata.")}/><InternalLeadActions token={token} contactId={row.contactId} name={row.name||'Lead'} allowEnd={false} onChanged={()=>{}} summary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh}/>{renderExtraActions?.(row)}</>}</td>
+        onBusinessMarked={()=>onChanged("Continuarea conversatiei pe WhatsApp Business a fost inregistrata.")}/><InternalLeadActions token={token} contactId={row.contactId} name={row.name||'Lead'} allowEnd={false} onChanged={()=>{}} summary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh}/>{renderExtraActions?.(row)}</>)}</td>
     </tr>)}</tbody></table>
     <style jsx>{`
       .table-scroll{overflow-x:auto;border:1px solid #dce3ee;border-radius:7px}

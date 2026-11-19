@@ -5,8 +5,8 @@ import { BookingActionResult, changeScheduledBooking, markBookingWhatsAppBusines
 const londonDate = new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London", year: "numeric", month: "2-digit", day: "2-digit" });
 const londonTime = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/London", hour: "2-digit", minute: "2-digit", hourCycle: "h23" });
 
-export default function BookingActions({ token, booking, onChanged, onBusinessMarked, onSolved }: {
-  token: string; booking: ScheduledCallRow; onChanged: (result: BookingActionResult) => void; onBusinessMarked?: () => void; onSolved?: () => void;
+export default function BookingActions({ token, booking, onChanged, onBusinessMarked, onSolved, leadActionsOnly=false }: {
+  leadActionsOnly?: boolean; token: string; booking: ScheduledCallRow; onChanged: (result: BookingActionResult) => void; onBusinessMarked?: () => void; onSolved?: () => void;
 }) {
   const [mode, setMode] = useState<"reschedule" | "cancel" | null>(null);
   const [date, setDate] = useState(() => londonDate.format(new Date(booking.appointmentAtUtc)));
@@ -64,13 +64,13 @@ export default function BookingActions({ token, booking, onChanged, onBusinessMa
   }
   return <div className="booking-actions">
     {!mode ? <div className="buttons">
-      <button type="button" disabled={saving || returned} onClick={returnToDialler}>Add Back To Dialler</button>
+      {!leadActionsOnly&&<button type="button" disabled={saving || returned} onClick={returnToDialler}>Add Back To Dialler</button>}
       <button type="button" disabled={saving} onClick={() => open("reschedule")}>Reprogrameaza</button>
       <button type="button" disabled={saving} className="delete" onClick={() => open("cancel")}>Delete book</button>
-      <button type="button" className="business" disabled={saving || businessMarked || booking.onWhatsAppBusiness}
-        title="Inregistreaza continuarea conversatiei pe WhatsApp Business. Nu trimite un mesaj." onClick={markBusiness}>On WhatsApp Business</button>
-      <button type="button" className="business" disabled={saving || solved}
-        title="Inregistreaza rezolvarea pe WhatsApp. Nu trimite un mesaj." onClick={markSolved}>Solved on WhatsApp</button>
+      {!leadActionsOnly&&<button type="button" className="business" disabled={saving || businessMarked || booking.onWhatsAppBusiness}
+        title="Inregistreaza continuarea conversatiei pe WhatsApp Business. Nu trimite un mesaj." onClick={markBusiness}>On WhatsApp Business</button>}
+      {!leadActionsOnly&&<button type="button" className="business" disabled={saving || solved}
+        title="Inregistreaza rezolvarea pe WhatsApp. Nu trimite un mesaj." onClick={markSolved}>Solved on WhatsApp</button>}
     </div> : <form onSubmit={save} aria-label={mode === "reschedule" ? "Reprogramare" : "Anulare programare"}>
       <strong>{mode === "reschedule" ? "Reprogrameaza (ora UK)" : "Anulezi aceasta programare?"}</strong>
       {mode === "reschedule" && <div className="date-time">
