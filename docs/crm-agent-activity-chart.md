@@ -1,0 +1,3 @@
+# CRM activity chart
+
+The Agent Report shows a five-minute histogram below the detailed table for Date end, using the loaded agent filter (one agent or all agents). The 216 intervals span 06:00?23:59 in Europe/Bucharest, consistent with the report. Successful explicitly mapped human server actions and authenticated persisted simulations count as events; browser presence, background reads, failed or replayed actions, support-account activity and simulation request duplicates are excluded. Empty intervals remain visible. Hover or keyboard focus shows the interval count. Historical coverage follows the existing telemetry coverage; unavailable metrics are labelled unavailable.

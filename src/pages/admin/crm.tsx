@@ -1,3 +1,4 @@
+import AgentActivityChart from "@/components/AgentActivityChart";
 import AgentCrmMetrics from '@/components/AgentCrmMetrics';
 import type {AgentCrmProductivity} from '@/lib/crmAdmin';
 import WhatsAppGatewayInbox from "@/components/WhatsAppGatewayInbox";
@@ -3989,6 +3990,7 @@ function AgentReportPanel({ token, onError }: { token: string; onError: (message
         minWidth={2180}
         className="agent-report-table"
       />
+      <AgentActivityChart data={crmProductivity?.activityHistogram} loading={loading} />
 
       <style jsx>{panelStyles}</style>
       <style jsx>{`

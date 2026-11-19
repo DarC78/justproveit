@@ -667,7 +667,8 @@ export type CrmAgentReportAgentOption = {
   payment?: CrmAgentReportPaymentSummary | null;
 };
 
-export type AgentCrmProductivity={unavailable?:boolean;totals:{activeCrmSeconds:number|null;simulationsDone:number|null;casesOpened:number|null;casesUpdated:number|null}|null;mappedAgentIds?:number[];warnings:string[];coverageFromUtc?:string};
+export type AgentActivityHistogram={date:string;timeZone:string;intervalMinutes:number;total:number;bins:Array<{time:string;count:number}>};
+export type AgentCrmProductivity={activityHistogram?:AgentActivityHistogram;unavailable?:boolean;totals:{activeCrmSeconds:number|null;simulationsDone:number|null;casesOpened:number|null;casesUpdated:number|null}|null;mappedAgentIds?:number[];warnings:string[];coverageFromUtc?:string};
 export type CrmAgentReportResponse = {
   crmProductivity?:AgentCrmProductivity;
   rows?: CrmAgentReportRow[];
