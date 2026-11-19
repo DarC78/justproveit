@@ -3,6 +3,10 @@ import {loadPipelineControl} from '@/lib/leadPipelineControls';
 import InternalLeadActions from './InternalLeadActions';
 import ManualPayment from './ManualPayment';
 import SignwellIpc from './SignwellIpc';
+import ContactStartSimulation from './ContactStartSimulation';
+import ContactBookCall from './ContactBookCall';
+import ContactIdentityEditor from './ContactIdentityEditor';
+import ContactBookAdrian from './ContactBookAdrian';
 import PipelineLeadControls from './PipelineLeadControls';
 import BookingActions from './BookingActions';
 import {contactActionNotice} from '@/lib/allCustomers';
@@ -19,6 +23,12 @@ export default function LeadPipelineRowActions({token,row,noteSummary,onNoteSave
  return <div className="lead-row-actions" style={{minWidth:300}}>
   <section aria-label="Usual actions">
    <h4>Usual actions</h4>
+   <div className="usual-buttons">
+    <ContactStartSimulation token={token} contactId={row.contactId} name={row.name} phone={row.phone} onChanged={result=>changed(contactActionNotice(result))}/>
+    <ContactBookCall token={token} contactId={row.contactId} name={row.name||row.phone||'Lead'} disabled={!row.phone} onBooked={result=>changed(contactActionNotice(result))}/>
+    <ContactIdentityEditor token={token} contactId={row.contactId} onChanged={()=>changed('Contact details updated.')}/>
+    <ContactBookAdrian token={token} contactId={row.contactId} name={row.name||row.phone||'Lead'} onBooked={()=>changed('Adrian booking updated.')}/>
+   </div>
    {row.booking&&<BookingActions leadActionsOnly key={row.booking.intentId+':'+row.booking.appointmentAtUtc} token={token} booking={row.booking} onChanged={result=>changed(bookingActionNotice(result))}/>}
    <div className="comment-actions"><InternalLeadActions showSpecialActions={false} allowEnd={false} token={token} contactId={row.contactId} name={row.name} summary={noteSummary} onNoteSaved={onNoteSaved} onChanged={result=>changed(contactActionNotice(result))}/></div>
    {controls?<PipelineLeadControls leadActionsOnly token={token} row={controls} eventHandled={Boolean(row.done)} onChanged={changed} allowHandleForAllLeads={allowHandleForAllLeads}/>:<p role={loadError?'alert':'status'}>{loadError||'Loading lead controls...'}{loadError&&<button type="button" onClick={()=>setRevision(n=>n+1)}>Retry</button>}</p>}
@@ -27,6 +37,6 @@ export default function LeadPipelineRowActions({token,row,noteSummary,onNoteSave
    <h4>Special actions</h4>
    <div className="special-buttons"><ManualPayment token={token} contactId={row.contactId} name={row.name} onSaved={onNoteSaved}/><SignwellIpc token={token} contactId={row.contactId} name={row.name}/></div>
   </section>
-  <style jsx>{`h4{margin:0 0 8px;font-size:12px;font-weight:700;color:#475569}.comment-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.special-actions{border-top:1px solid #dce3ee;margin-top:12px;padding-top:12px}.special-buttons{display:flex;flex-wrap:wrap;gap:7px}`}</style>
+  <style jsx>{`h4{margin:0 0 8px;font-size:12px;font-weight:700;color:#475569}.comment-actions{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.special-actions{border-top:1px solid #dce3ee;margin-top:12px;padding-top:12px}.usual-buttons,.special-buttons{display:flex;flex-wrap:wrap;gap:7px}`}</style>
  </div>;
 }
