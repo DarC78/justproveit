@@ -5,6 +5,7 @@ import {FormEvent,useEffect,useRef,useState} from "react";
 import {ContactAction,ContactActionResult,runContactAction} from "@/lib/allCustomers";
 import ContactBookCall from './ContactBookCall';
 import ContactIdentityEditor from './ContactIdentityEditor';
+import LeadPrivateWorkspace from './LeadPrivateWorkspace';
 import ContactBookAdrian from './ContactBookAdrian';
 import ContactStartSimulation from './ContactStartSimulation';
 import InternalLeadActions from './InternalLeadActions';
@@ -40,6 +41,7 @@ export default function ContactActions({token,contactId,name,phone,onChanged,int
    <button type="button" disabled={!!saving||!phone} onClick={()=>void act("asap")}>{saving==="asap"?"Scheduling":"New ASAP"}</button>
    <ContactBookCall token={token} contactId={contactId} name={name||phone||'Lead'} disabled={!!saving||!phone} onBooked={onChanged}/>
    <ContactIdentityEditor token={token} contactId={contactId} disabled={!!saving||proposing} onChanged={()=>onChanged({success:true,action:'identity',contactId,solved:false})}/>
+   <LeadPrivateWorkspace token={token} contactId={contactId} name={name}/>
    <ContactBookAdrian token={token} contactId={contactId} name={name||phone||'Lead'} disabled={!!saving||proposing} onBooked={()=>onChanged({success:true,action:'book-adrian',contactId,solved:false})}/>
   </div>
   {error&&!reply&&<p role="alert">{error}</p>}

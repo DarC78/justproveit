@@ -6,6 +6,7 @@ import SignwellIpc from './SignwellIpc';
 import ContactStartSimulation from './ContactStartSimulation';
 import ContactBookCall from './ContactBookCall';
 import ContactIdentityEditor from './ContactIdentityEditor';
+import LeadPrivateWorkspace from './LeadPrivateWorkspace';
 import ContactBookAdrian from './ContactBookAdrian';
 import PipelineLeadControls from './PipelineLeadControls';
 import BookingActions from './BookingActions';
@@ -27,6 +28,7 @@ export default function LeadPipelineRowActions({token,row,noteSummary,onNoteSave
     <ContactStartSimulation token={token} contactId={row.contactId} name={row.name} phone={row.phone} onChanged={result=>changed(contactActionNotice(result))}/>
     <ContactBookCall token={token} contactId={row.contactId} name={row.name||row.phone||'Lead'} disabled={!row.phone} onBooked={result=>changed(contactActionNotice(result))}/>
     <ContactIdentityEditor token={token} contactId={row.contactId} onChanged={()=>changed('Contact details updated.')}/>
+    <LeadPrivateWorkspace token={token} contactId={row.contactId} name={row.name}/>
     <ContactBookAdrian token={token} contactId={row.contactId} name={row.name||row.phone||'Lead'} onBooked={()=>changed('Adrian booking updated.')}/>
    </div>
    {row.booking&&<BookingActions leadActionsOnly key={row.booking.intentId+':'+row.booking.appointmentAtUtc} token={token} booking={row.booking} onChanged={result=>changed(bookingActionNotice(result))}/>}
