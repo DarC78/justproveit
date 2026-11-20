@@ -3822,7 +3822,7 @@ const AGENT_REPORT_WINDOW_SCHEDULE = "weekday:18-22,saturday:11-17";
 const AGENT_REPORT_PAYMENT_RATE_EURO = 7;
 
 function AgentReportPanel({ token, onError }: { token: string; onError: (message: string) => void }) {
-  const [dateBegin, setDateBegin] = useState(() => getDateInputDaysAgo(30));
+  const [dateBegin, setDateBegin] = useState(() => getDateInputDaysAgo(0));
   const [dateEnd, setDateEnd] = useState(() => getDateInputDaysAgo(0));
   const [agentId, setAgentId] = useState("all");
   const [agentOptions, setAgentOptions] = useState<Array<{ agentId: number | string; agentName?: string | null }>>([]);
