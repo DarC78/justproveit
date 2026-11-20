@@ -102,7 +102,7 @@ The response adds smsMessages (page count) and linkedPhones (server-verified con
 
 ## Grouped All Messages inbox and shared actions (12 November 2026)
 
-The All Messages UI requests `GET /api/justproveit/admin/crm/all-messages?grouped=1`. It shows one row per CRM contact: all deduplicated incoming WhatsApp Mediatel, WhatsApp Agenti and SMS messages strictly after the latest confirmed outgoing message on any supported channel or saved phone alias. With no recorded reply, all available incoming messages form the batch. Contacts without any incoming message after their latest reply have no row. Calls and emails do not end a message batch. Contacts sharing a number retain separate CRM records; authoritative gateway/SMS assignments are preserved.
+The All Messages UI requests `GET /api/justproveit/admin/crm/all-messages?grouped=1`. It shows one row per CRM contact: all deduplicated incoming WhatsApp Mediatel, WhatsApp Agenti and SMS messages strictly after the latest confirmed outgoing message on any supported channel or saved phone alias. With no recorded reply, all available incoming messages form the batch. Contacts without any incoming message after their latest reply have no row. Completed meaningful calls end older incoming batches at call completion. Emails, unanswered/voicemail/no-audio attempts and active calls do not. A new client event after the call reopens the conversation even with a future Next Action Date. Contacts sharing a number retain separate CRM records; authoritative gateway/SMS assignments are preserved.
 
 Reply evidence comes from positive Mediatel send/delivery/read receipts, accepted/sent/delivered/read local WhatsApp records with provider IDs, confirmed external Agenti sends, and successful SMS sends. Queued, processing, failed, unknown or future-dated attempts do not end a batch. A later read receipt uses the original outgoing-message time, not the read time. The Mediatel query materializes candidate provider IDs and hash-joins receipts once; it does not perform a per-message correlated receipt scan. A reply-source read failure fails the grouped request rather than silently guessing boundaries.
 
@@ -181,3 +181,8 @@ The shared Add email / phone dialog includes an editable Name field prefilled fr
 ## Manual Client assignment (20 November 2026)
 
 Assign pipeline stage includes **Client**, using the existing `clients` stage value. Selection uses the same versioned manual-stage save and can be cleared with Automatic. It changes pipeline classification only; it does not create a purchase or confirm payment. Existing client-view priorities and cohort/closure/booking rules are retained.
+
+
+## Completed calls resolve previous incoming events (20 November 2026)
+
+InboundContacts clears incoming events through a completed meaningful agent conversation, across verified full phone aliases. Newer incoming contact stays pending independently of future Next Action Dates. Show all conversations retains resolved records; call resolution uses ordinary handled green, while dark green still requires our latest confirmed message reply. No lead status, booking, next-action date or original conversation history is changed. Call evidence is refreshed with the existing saved inbox (about 30 seconds).
