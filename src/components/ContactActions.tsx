@@ -50,7 +50,7 @@ export default function ContactActions({token,contactId,name,phone,onChanged,int
     <h3>Reply on WhatsApp</h3><p className="recipient">{name} · {phone}</p>
     <label>Message<textarea autoFocus required={!picture} maxLength={picture?1024:4096} rows={8} value={text} disabled={uploading||!!saving||proposing||!!(picture&&request)}
      onChange={event=>{setText(event.target.value);setRequest(null);setError("");}}/></label>
-    <p className="hint">{picture?'The picture will be sent with the message above as an optional caption.':'Your reply will be queued on WhatsApp and this lead will be marked solved.'}</p>
+    <p className="hint">{picture?'The attachment will be sent with the message above as an optional caption.':'Your reply will be queued on WhatsApp and this lead will be marked solved.'}</p>
     {error&&<p role="alert">{error}</p>}
     <div className="buttons"><button type="submit" disabled={uploading||!!saving||proposing||(!picture&&!text.trim())||!!(picture&&text.length>1024)}>{saving?'Sending...':picture?(request?'Check send status':'Send WhatsApp'):'Send & solve'}</button>
      <ProposeWhatsAppAnswer token={token} contactId={contactId} disabled={uploading||!!saving||!!request} onBusyChange={setProposing} onProposed={value=>{setText(value);setRequest(null);setError("");}}/>
