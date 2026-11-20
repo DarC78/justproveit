@@ -21,8 +21,8 @@ export default function ContactStartSimulation({token,contactId,name,phone,disab
  {notice&&<p role="status">{notice}</p>}
  {open&&<dialog ref={dialog} aria-label="Start Simulare" onCancel={e=>{if(saving)e.preventDefault();else setOpen(false);}}><form onSubmit={start}>
  <h3>Start Simulare</h3><p>{name} · {phone}</p>
- <p>Confirmati pornirea chatbotului de simulare pensie pentru acest numar? Chatbotul va trimite urmatoarea intrebare si va continua automat conversatia, pastrand raspunsurile deja salvate.</p>
- <p>Daca discutia a fost preluata de un agent, aceasta actiune o preda inapoi chatbotului. O conversatie oprita de client sau o trimitere neconfirmata necesita verificare si nu va fi repornita.</p>
+ <p>Confirmati pornirea chatbotului de simulare pensie pentru acest numar? Pentru clienti, chatbotul continua conversatia pastrand raspunsurile salvate. Pentru numerele recunoscute ale agentilor, fiecare pornire noua incepe un test de la zero, fara raspunsurile sau discutiile anterioare.</p>
+ <p>Daca discutia a fost preluata de un agent, aceasta actiune o preda inapoi chatbotului. Pentru clienti, o conversatie oprita necesita verificare. O trimitere in curs sau neconfirmata necesita verificare inclusiv pentru agenti.</p>
  {error&&<p role="alert">{error}</p>}
  <button type="submit" disabled={saving}>{saving?'Se programeaza...':'Confirma Start Simulare'}</button><button type="button" disabled={saving} onClick={()=>setOpen(false)}>Cancel</button>
  </form></dialog>}
