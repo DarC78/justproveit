@@ -1,5 +1,5 @@
 import {API_BASE_URL} from './auth';
-export type ManualPipelineStage='AgreedToBuy'|'ToAdrian';
+export type ManualPipelineStage='AgreedToBuy'|'ToAdrian'|'clients';
 export type PipelineControlView={contactId:string;pipelineStatus?:string;investigation?:{text:string;atUtc:string;actor:string|null}|null;ended?:{atUtc:string;actor:string|null;reason:string;pipelineStatus:string}|null;pipelineVersion?:number;manualStage?:{stage:ManualPipelineStage;assignmentId:string;atUtc:string;actor:string|null}|null;lastInboundAtUtc?:string|null;priority?:number};
 export type PipelineControlInput={requestId:string;expectedVersion:number}&({action:'stage';stage:ManualPipelineStage|null}|{action:'handle';inboundThroughAtUtc:string|null}|{action:'end';pipelineStatus:string;reason:string}|{action:'reopen'}|{action:'investigate';text:string}|{action:'clearInvestigation'});
 export async function savePipelineControl(token:string,contactId:string,input:PipelineControlInput){

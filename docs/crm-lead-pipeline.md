@@ -177,3 +177,7 @@ Lead Pipeline (including scheduled call rows), All Leads and InboundContacts sha
 End Lead now requests removal of every contact number and linked dialler client from all campaigns. The confirmation explains this effect. The response distinguishes queued removal, confirmed removal and no numbers/linked records, so the UI does not present an outbox request as completed removal. Existing stage and booking information are preserved. All shared End Lead buttons, including InboundContacts, use this same server-side operation.
 
 The shared Add email / phone dialog includes an editable Name field prefilled from the canonical contact. Name-only edits can be saved, unchanged names are omitted from requests, and name edits wait for any required duplicate review before saving. This applies to the shared actions used before opening the pension calculator as well as CRM lead rows.
+
+## Manual Client assignment (20 November 2026)
+
+Assign pipeline stage includes **Client**, using the existing `clients` stage value. Selection uses the same versioned manual-stage save and can be cleared with Automatic. It changes pipeline classification only; it does not create a purchase or confirm payment. Existing client-view priorities and cohort/closure/booking rules are retained.
