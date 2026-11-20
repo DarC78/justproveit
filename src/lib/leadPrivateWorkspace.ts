@@ -1,0 +1,9 @@
+import {API_BASE_URL} from './auth';
+export type PrivateEntry={id:string;createdAtUtc:string;addedBy:{id:string;email:string|null;name:string};text?:string;fileName?:string;size?:number};
+export type PrivateWorkspace={contactId:string;contactName:string;canReadPrivateContent:boolean;maxFileBytes:number;extensions:string[];notes?:PrivateEntry[];files?:PrivateEntry[];notesNext?:string|null;filesNext?:string|null};
+const root=(id:string)=>API_BASE_URL.replace(/\/+$/,'')+'/justproveit/admin/crm/contacts/'+encodeURIComponent(id)+'/private-workspace';
+async function checked(r:Response){if(!r.ok){const d=await r.json().catch(()=>({}));throw Error(d.error?.message||'Private workspace is unavailable.');}return r;}
+export async function loadPrivateWorkspace(token:string,id:string,section?:'notes'|'files',before?:string){return (await checked(await fetch(root(id)+(section?'/'+section:'')+(before?'?before='+encodeURIComponent(before):''),{headers:{Authorization:`Bearer ${token}`},cache:'no-store'}))).json() as Promise<PrivateWorkspace>;}
+export async function savePrivateEntry(token:string,id:string,section:'notes'|'files',body:object){return (await checked(await fetch(root(id)+'/'+section,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'}))).json() as Promise<{entry:PrivateEntry}>;}
+export async function fetchPrivateFile(token:string,id:string,fileId:string){return (await checked(await fetch(root(id)+'/files/'+encodeURIComponent(fileId),{headers:{Authorization:`Bearer ${token}`},cache:'no-store'}))).blob();}
+export function privateFileBase64(file:File){return new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onerror=()=>reject(Error('Unable to read this file.'));r.onload=()=>resolve(String(r.result).split(',')[1]);r.readAsDataURL(file);});}
