@@ -1,6 +1,6 @@
 import {API_BASE_URL} from './auth';
 export type AdrianSlot={start:string;end:string;date:string;time:string;label:string};
-export type AdrianBooking=AdrianSlot&{requestId:string;status:'pending'|'uncertain'|'confirmed'|'failed';calendarId:string;calendarLink?:string|null};
+export type AdrianBooking=AdrianSlot&{requestId:string;status:'pending'|'uncertain'|'confirmed'|'failed';calendarId:string;calendarLink?:string|null;replacedBookingIds?:string[];cancelledBookingEmails?:number;cancelledBookingWhatsApp?:number};
 export type AdrianAvailability={contactId:string;calendarId:string;timeZone:string;slotMinutes:number;booking:AdrianBooking|null;slots:AdrianSlot[]};
 async function request(token:string,id:string,input?:{requestId:string;start:string}){
  const r=await fetch(`${API_BASE_URL.replace(/\/+$/,'')}/justproveit/admin/crm/contacts/${encodeURIComponent(id)}/adrian-bookings`,{method:input?'POST':'GET',headers:{Authorization:`Bearer ${token}`,...(input?{'Content-Type':'application/json'}:{})},...(input?{body:JSON.stringify(input)}:{}),cache:'no-store'}),data=await r.json();
