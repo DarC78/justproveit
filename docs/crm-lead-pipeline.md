@@ -186,3 +186,7 @@ Assign pipeline stage includes **Client**, using the existing `clients` stage va
 ## Completed calls resolve previous incoming events (20 November 2026)
 
 InboundContacts clears incoming events through a completed meaningful agent conversation, across verified full phone aliases. Newer incoming contact stays pending independently of future Next Action Dates. Show all conversations retains resolved records; call resolution uses ordinary handled green, while dark green still requires our latest confirmed message reply. No lead status, booking, next-action date or original conversation history is changed. Call evidence is refreshed with the existing saved inbox (about 30 seconds).
+
+### Next Meetings column (20 November 2026)
+
+Next Meetings appears before Actions in lead pipeline tables. It lists all future active manual/Calendly call bookings and confirmed Adrian calls, earliest first, with UK dates/times. It also shows any Next Action Date, including today or overdue, as a date without an invented time. Empty values show a dash. Cancelled/closed/completed/solved or past meetings are omitted. Existing visibility filters and actions are unchanged. Booking data follows the pipeline background refresh; Next Action Date and Adrian booking retain their live metadata updates.
