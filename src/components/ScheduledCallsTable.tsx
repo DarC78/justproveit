@@ -18,8 +18,8 @@ function YesNo({value}:{value:boolean|null|undefined}) {
     <style jsx>{`span{display:inline-block;border-radius:20px;padding:3px 9px;font-weight:700;font-size:12px}.yes{background:#e5f4e9;color:#196a35}.no{background:#fff2d6;color:#855a0b}.unknown{color:#667085}`}</style></span>;
 }
 
-export default function ScheduledCallsTable({token,rows,attention=false,pipeline=false,showCallDate=false,showCallbackPriority=false,onChanged,renderExtraActions,onAdrianCall}:{
-  onAdrianCall?:(row:ScheduledCallRow)=>void;token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;showCallDate?:boolean;showCallbackPriority?:boolean;onChanged:(notice:string)=>void;renderExtraActions?:(row:ScheduledCallRow)=>ReactNode;
+export default function ScheduledCallsTable({token,rows,attention=false,pipeline=false,showCallDate=false,showCallbackPriority=false,onChanged,renderExtraActions,onAdrianCall,renderNextMeetings}:{
+  renderNextMeetings?:(row:ScheduledCallRow)=>ReactNode;onAdrianCall?:(row:ScheduledCallRow)=>void;token:string;rows:(ScheduledCallRow&{leadSource?:string})[];attention?:boolean;pipeline?:boolean;showCallDate?:boolean;showCallbackPriority?:boolean;onChanged:(notice:string)=>void;renderExtraActions?:(row:ScheduledCallRow)=>ReactNode;
 }) {
   const [historyBooking,setHistoryBooking]=useState<ScheduledCallRow|null>(null);
   const [now,setNow]=useState(()=>new Date());
@@ -36,7 +36,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
       <th scope="col">On WhatsApp Business</th><th scope="col">Solved on WhatsApp</th>
       <th scope="col">WhatsApp client in ziua programarii</th><th scope="col">WhatsApp noi in ziua programarii</th></>}
       {pipeline&&<th scope="col">WhatsApp messages in ziua programarii</th>}
-      <th scope="col">Actiuni programare</th>
+      {renderNextMeetings&&<th scope="col">Next Meetings</th>}<th scope="col">Actiuni programare</th>
     </tr></thead><tbody>{rows.map(row=><tr key={row.intentId} style={pipeline?(nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate,now)?.backgroundColor==='#dbeafe'?{backgroundColor:'#dbeafe'}:{backgroundColor:scheduledCallDisplay(row.appointmentAtUtc,now,(row.meaningfulCallsSinceAppointment??0)>0||!!row.onWhatsAppBusiness||!!row.solvedOnWhatsApp).backgroundColor}):nextActionRowStyle(notes.summaries['contact:'+row.contactId.toLowerCase()]?.nextActionDate)}>
       <td>{showCallbackPriority&&row.callbackPriority===0&&<strong className="callback-priority">P0 - Client returned after our call</strong>}<time dateTime={row.appointmentAtUtc}>{(attention||showCallDate||pipeline)?dateTime(row.appointmentAtUtc):londonTime.format(new Date(row.appointmentAtUtc))}</time>{pipeline&&<small>{scheduledCallDisplay(row.appointmentAtUtc,now).label}</small>}</td>
       <th scope="row">{row.adrianReadOnly?row.name||"Client":row.phone?<Link href={{pathname:"/admin/crm",query:{tab:"details",phone:row.phone}}}>{row.name||"Client"}</Link>:row.name||"Client"}
@@ -57,7 +57,7 @@ export default function ScheduledCallsTable({token,rows,attention=false,pipeline
       <td><YesNo value={row.solvedOnWhatsApp}/>{row.solvedOnWhatsApp&&<small>{dateTime(row.solvedOnWhatsAppAtUtc ?? null)}<br/>{row.solvedOnWhatsAppBy}</small>}</td>
       <td className="number">{row.whatsAppClientMessages??"Unavailable"}</td><td className="number">{row.whatsAppTeamMessages??"Unavailable"}</td></>}
       {pipeline&&<td className="number">{row.whatsAppClientMessages==null||row.whatsAppTeamMessages==null?'Unavailable':row.whatsAppClientMessages+row.whatsAppTeamMessages}</td>}
-      <td className="history">{!row.adrianReadOnly&&(pipeline&&renderExtraActions?renderExtraActions(row):<><BookingActions token={token} booking={row}
+      {renderNextMeetings&&<td>{renderNextMeetings(row)}</td>}<td className="history">{!row.adrianReadOnly&&(pipeline&&renderExtraActions?renderExtraActions(row):<><BookingActions token={token} booking={row}
         onChanged={result=>onChanged(bookingActionNotice(result))}
         onSolved={()=>onChanged("Rezolvarea pe WhatsApp a fost inregistrata.")}
         onBusinessMarked={()=>onChanged("Continuarea conversatiei pe WhatsApp Business a fost inregistrata.")}/><InternalLeadActions token={token} contactId={row.contactId} name={row.name||'Lead'} allowEnd={false} onChanged={()=>{}} summary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={notes.refresh}/>{renderExtraActions?.(row)}</>)}</td>
