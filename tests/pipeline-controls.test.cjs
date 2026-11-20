@@ -86,3 +86,11 @@ test('End Lead requires one of the five configured resolutions and retries the s
   }
  }finally{await React.act(async()=>root.unmount());dom.window.close();}
 });
+test('End Lead explains all-number removal and reports queued versus confirmed dialler status',async()=>{
+ const dom=new JSDOM('<div id="root"></div>');global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;let status='queued',message='';const mod={exports:{}};
+ new Function('require','module','exports',compile('src/components/PipelineLeadControls.tsx'))(name=>name==='@/lib/leadPipelineControls'?{savePipelineControl:async()=>({success:true,diallerRemoval:{status}})}:require(name),mod,mod.exports);
+ const root=createRoot(document.getElementById('root')),button=text=>[...document.querySelectorAll('button')].find(b=>b.textContent===text);
+ try{await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'token',row:{contactId:'lead',pipelineVersion:0,pipelineStatus:'newLead'},onChanged:m=>{message=m;}})));
+ for(const next of ['queued','removed']){status=next;await React.act(async()=>button('End Lead').click());assert.match(document.body.textContent,/all its contact phone numbers from every dialler campaign/);const select=document.querySelector('select[aria-label="Resolution for ending lead"]');await React.act(async()=>{select.value='DO_NOT_CONTACT_AGAIN';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});await React.act(async()=>button('Confirm End Lead').click());assert.match(message,next==='queued'?/removal.*queued/i:/were removed/i);}
+ }finally{await React.act(async()=>root.unmount());dom.window.close();}
+});
