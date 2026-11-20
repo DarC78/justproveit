@@ -2,6 +2,14 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {JSDOM}=require('jsdom');const {createRoot}=require('react-dom/client');
 const compile=file=>ts.transpileModule(fs.readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX,esModuleInterop:true}}).outputText;
 function cache(){const exports={};let now=0;vm.runInNewContext(compile('src/lib/phoneHistoryCache.ts'),{exports,Date:{now:()=>now},Map,Promise});return {...exports,advance:()=>now+=16000};}
+test('outbound PDFs download only on explicit click with authenticated context and no image preview',async()=>{
+ const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ const oldCreate=URL.createObjectURL,oldRevoke=URL.revokeObjectURL,downloads=[],revoked=[],timers=[];let calls=0;
+ URL.createObjectURL=()=> 'blob:pdf';URL.revokeObjectURL=u=>revoked.push(u);dom.window.HTMLAnchorElement.prototype.click=function(){downloads.push({name:this.download,url:this.href});};dom.window.setTimeout=fn=>{timers.push(fn);return 1;};
+ const api={getReplyPictureImage:async(token,id)=>{calls++;assert.deepEqual([token,id],['agent','outbound-id']);return new Blob(['%PDF-1.7'],{type:'application/pdf'});}},component={exports:{}};
+ new Function('require','module','exports',compile('src/components/PhoneHistoryModal.tsx'))(name=>(name.startsWith('./')||name.startsWith('@/components/'))?{__esModule:true,default:()=>null}:name==='@/lib/crmAdmin'?api:require(name),component,component.exports);
+ const root=createRoot(document.getElementById('root'));try{await React.act(async()=>root.render(React.createElement(component.exports.WhatsAppReplyDocument,{target:{token:'agent',kind:'contact',id:'contact-id'},messageId:'outbound-id',name:'Authority.pdf'})));assert.equal(calls,0);assert.equal(document.querySelector('img'),null);await React.act(async()=>document.querySelector('button').click());assert.equal(calls,1);assert.deepEqual(downloads,[{name:'Authority.pdf',url:'blob:pdf'}]);timers.forEach(fn=>fn());assert.deepEqual(revoked,['blob:pdf']);}finally{await React.act(async()=>root.unmount());URL.createObjectURL=oldCreate;URL.revokeObjectURL=oldRevoke;dom.window.close();}
+});
 test('preloaded reads coalesce, expire and remain isolated by login and CRM target',async()=>{
  const c=cache();let calls=0,finish;const load=()=>{calls++;return new Promise(r=>finish=r);};
  const a=c.readPhoneHistoryCached('agent','contact:a',load),b=c.readPhoneHistoryCached('agent','contact:a',load);assert.equal(calls,1);finish({events:['one']});await Promise.all([a,b]);
