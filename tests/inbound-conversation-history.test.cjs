@@ -5,7 +5,7 @@ function load(api,withComposer=false){
  const stub={__esModule:true,default:()=>null},timeline={exports:{}};
  let composer=stub;
  if(withComposer){const module={exports:{}};new Function('require','module','exports',compile('src/components/WhatsAppReplyComposer.tsx'))(name=>name==='./LeadPrivateData'?{__esModule:true,default:()=>null}:name==='@/lib/crmAdmin'?api:name==='@/lib/auth'?{API_BASE_URL:'https://api.invalid'}:name==='./ScheduleWhatsAppReply'||name==='./UploadWhatsAppPicture'?stub:require(name),module,module.exports);composer=module.exports;}
- new Function('require','module','exports',compile('src/components/PhoneHistoryModal.tsx'))(name=>name==='./LeadPrivateData'?{__esModule:true,default:()=>null}:name==='@/lib/crmAdmin'?api:name==='./MediatelMessageAttachment'||name==='./GatewayMessageMedia'||name.includes('ReplyComposer')?stub:require(name),timeline,timeline.exports);
+ new Function('require','module','exports',compile('src/components/PhoneHistoryModal.tsx'))(name=>name==='./LeadPrivateData'?{__esModule:true,default:()=>null}:name==='@/lib/crmAdmin'?api:(name==='./MediatelMessageAttachment'||name==='./WhatsAppDayDownload')||name==='./GatewayMessageMedia'||name.includes('ReplyComposer')?stub:require(name),timeline,timeline.exports);
  const component={exports:{}};
  new Function('require','module','exports',compile('src/components/LeadPhoneHistory.tsx'))(name=>name==='./LeadPrivateData'?{__esModule:true,default:()=>null}:name==='@/lib/crmAdmin'?api:name==='./PhoneHistoryModal'?timeline.exports:name.includes('ReplyComposer')?composer:require(name),component,component.exports);
  return component.exports.default;

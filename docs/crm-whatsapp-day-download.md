@@ -1,0 +1,9 @@
+﻿# WhatsApp attachments for one sender and day
+
+The CRM shows **Download all from this day** next to received images and documents in the shared lead/booking history and incoming-message batches. It downloads a single ZIP containing images and documents received from that same full phone number on the attachment's UK calendar day (`Europe/London`, including daylight-saving changes), across WhatsApp Mediatel and WhatsApp Agenti. This selection is independent of history pages and inbox filters. Outgoing messages, other senders, audio/video and other days are excluded.
+
+Authenticated CRM GET routes: `justproveit/admin/crm/{contacts|scheduled-calls}/{id}/whatsapp-media/day/{messageId}`. The message ID anchors the selection server-side; callers cannot submit an arbitrary date or media URL. Contact/booking ownership is checked within the authenticated tenant; gateway anchors must be assigned to that contact and use its configured gateway account. Mediatel anchors must have a full phone identity belonging to the contact. Media credentials and CDN URLs remain server-side. Archives are private, uncached downloads and are never stored publicly.
+
+Original bytes are preserved, filenames are sanitized and numbered to avoid collisions. `DOWNLOAD-INFO.txt` records the selected sender/date and any unavailable files. A partial ZIP also displays a CRM warning. If no file can be retrieved, the user receives an explicit error. Limits are 500 files, 64 MiB of uncompressed media, 32 MiB per document, and a 150-second download budget. Exceeding file-count/archive-size limits fails explicitly rather than silently truncating. Expired Meta files and unavailable/view-once gateway media cannot be recovered by this feature.
+
+Tests cover full-phone/tenant/account isolation, received-only selection, summer midnight and DST, booking/contact anchors, files beyond UI pagination, ZIP bytes/names, and partial/no-file responses. No outbound WhatsApp delivery is involved.
