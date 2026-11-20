@@ -25,7 +25,7 @@ export default function ContactActions({token,contactId,name,phone,onChanged,int
   inFlight.current=true;
   const id=request?.action===action?request.id:crypto.randomUUID();setRequest({action,id});setSaving(action);setError("");
   try {
-   if(action==='reply'&&picture){const result=await sendContactWhatsAppReply(token,contactId,{requestId:id,pictureId:picture.pictureId,text:text.trim(),expectedPhone:phone!});if(result.status==='failed'){setRequest(null);throw Error(result.errorMessage||'Picture delivery failed.');}if(!['accepted','sent','delivered','read'].includes(result.status)){setError('Picture queued or delivery is still being confirmed. Use Check send status before sending again.');return;}setPicture(null);setReply(false);setText('');setRequest(null);onChanged({success:true,action:'reply',contactId,solved:false,whatsAppQueued:true});return;}
+   if(action==='reply'&&picture){const result=await sendContactWhatsAppReply(token,contactId,{requestId:id,pictureId:picture.pictureId,text:text.trim(),expectedPhone:phone!});if(result.status==='failed'){setRequest(null);throw Error(result.errorMessage||'Attachment delivery failed.');}if(!['accepted','sent','delivered','read'].includes(result.status)){setError('Attachment queued or delivery is still being confirmed. Use Check send status before sending again.');return;}setPicture(null);setReply(false);setText('');setRequest(null);onChanged({success:true,action:'reply',contactId,solved:false,whatsAppQueued:true});return;}
    const result=await runContactAction(token,contactId,action,{requestId:id,...(action==="reply"?{text:text.trim()}:{})});
    setReply(false);setText("");setRequest(null);onChanged(result);
   }catch(cause){setError(cause instanceof Error?cause.message:"Unable to save this action.");}
