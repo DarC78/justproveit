@@ -3,7 +3,9 @@ test('pipeline filters and paginates server-side and opens the correct contact h
  const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
  const previous=global.fetch,calls=[];global.fetch=async(url,options)=>{calls.push({url,options});return{ok:true,json:async()=>{const data=({sources:['FB','TikTok'],counts:{newLead:31,SimulationInProgress:0,SimulationDone:0,ScheduledCall:0,AgreedToBuy:0,clients:1},purchasedServices:[{value:'pension',label:'International pension'}],cohortTotal:31,total:31,asOfUtc:'2026-11-10T12:00Z',rows:[{contactId:'correct-contact',name:'Fixture',phone:'447700900123',pipelineStatus:'newLead',source:'FB',service:'Simulator',createdAtUtc:'2026-11-01',purchases:[{saleId:'sale',service:'pension',label:'International pension',purchasedAtUtc:'2026-11-02T10:00:00Z'}]}]});if(new URL(url).searchParams.get('status')==='ScheduledCall')data.rows=['selectedDay','unresolved','future'].map((section,i)=>({...data.rows[0],contactId:'scheduled-'+i,scheduleSection:section,booking:{intentId:'booking-'+i,contactId:'scheduled-'+i}}));if(new URL(url).searchParams.get('status')==='ToAdrian'&&new URL(url).searchParams.get('search')==='Fixture')data.rows=[{...data.rows[0],contactId:'scheduled-2',pipelineStatus:'ToAdrian'}];return data;}};};
  const code=ts.transpileModule(fs.readFileSync('src/components/LeadPipelinePanel.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText,mod={exports:{}};let history,actions,scheduledTable;
+ const meetingsModule={exports:{}};new Function('require','module','exports',ts.transpileModule(fs.readFileSync('src/components/LeadNextMeetings.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(require,meetingsModule,meetingsModule.exports);
  const mocks={
+  './LeadNextMeetings':meetingsModule.exports,
   '@/lib/auth':{API_BASE_URL:'https://api.example.test'},
   '@/lib/allCustomers':{contactActionNotice:()=> 'Action saved'},
   '@/lib/bookedCalls':{bookingActionNotice:()=> 'Booking saved'},
@@ -18,6 +20,10 @@ test('pipeline filters and paginates server-side and opens the correct contact h
  let root=createRoot(document.getElementById('root'));const button=text=>[...document.querySelectorAll('button')].find(b=>b.textContent===text);
  try {
   await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'agent-token'})));
+  const headings=[...document.querySelectorAll('thead th')].map(x=>x.textContent);assert.deepEqual(headings.slice(-3),['Email','Next Meetings','Actions']);
+  const container=document.createElement('div'),meetingView=createRoot(container);
+  await React.act(async()=>meetingView.render(React.createElement(meetingsModule.exports.default,{meetings:[{id:'a',atUtc:'2099-01-01T12:00:00Z',kind:'call'},{id:'b',atUtc:'2099-06-01T12:00:00Z',kind:'adrian'}],nextActionDate:'2026-01-02'})));
+  assert.match(container.textContent,/Booked call1 Jan 2099, 12:00 UK/);assert.match(container.textContent,/Call with Adrian1 Jun 2099, 13:00 UK/);assert.match(container.textContent,/Next Action Date02\/01\/2026/);assert.equal(container.querySelectorAll('time').length,3);await React.act(async()=>{meetingView.unmount();});
   assert.equal(calls[0].options.headers.Authorization,'Bearer agent-token');assert.match(document.body.textContent,/31 leads matching/);
   assert.equal(document.querySelector('[aria-label="Show ended leads"]').checked,false);
   assert.equal(new URL(calls.at(-1).url).searchParams.get('showEnded'),'false');
