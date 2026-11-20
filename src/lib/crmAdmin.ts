@@ -1500,3 +1500,12 @@ export type ManualPaymentEvent={kind:"payment";id:string;atUtc:string;amount:num
 
 export function getLeadPrivateDataAvailability(token:string,id:string){return fetchCanonicalCrmReadJson<{hasPrivateData:boolean}>(`${BASE_PATH}/contacts/${encodeURIComponent(id)}/private-data`,{headers:authHeaders(token),cache:"no-store"});}
 export function revealLeadPrivateData(token:string,id:string,password:string){return fetchCanonicalCrmReadJson<{sections:{text:string}[];expiresAt:string}>(`${BASE_PATH}/contacts/${encodeURIComponent(id)}/private-data`,{method:"POST",headers:{...authHeaders(token),"Content-Type":"application/json"},body:JSON.stringify({password}),cache:"no-store"});}
+
+export async function getWhatsAppDayDownload(token:string,kind:'contact'|'booking',id:string,messageId:string):Promise<{blob:Blob;fileName:string;missing:number}>{
+ const path=`${BASE_PATH}/${kind==='contact'?'contacts':'scheduled-calls'}/${encodeURIComponent(id)}/whatsapp-media/day/${encodeURIComponent(messageId)}`;
+ const response=await fetch(resolveUrl(CANONICAL_READ_API_BASE_URL,path),{headers:authHeaders(token),cache:'no-store'});
+ if(!response.ok){let message='Unable to download attachments. Please retry.';try{const data=await response.json();if(typeof data.error==='string')message=data.error;}catch{}throw Error(message);}
+ if(response.headers.get('content-type')?.split(';')[0]!=='application/zip')throw Error('Unexpected download response. Please retry.');
+ const disposition=response.headers.get('content-disposition')||'',fileName=/filename="([A-Za-z0-9_.-]+)"/.exec(disposition)?.[1]||'WhatsApp-attachments.zip';
+ return{blob:await response.blob(),fileName,missing:Number(response.headers.get('x-whatsapp-missing-files')||0)};
+}

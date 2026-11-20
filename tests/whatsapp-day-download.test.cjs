@@ -1,0 +1,27 @@
+﻿const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),ts=require('typescript'),React=require('react');
+const {JSDOM}=require('jsdom'),{createRoot}=require('react-dom/client');
+test('day download uses this attachment and record, saves one ZIP, reports missing files and permits retry',async()=>{
+ const dom=new JSDOM('<div id="root"></div>',{url:'https://example.test'});global.window=dom.window;global.document=dom.window.document;global.IS_REACT_ACT_ENVIRONMENT=true;
+ const oldCreate=URL.createObjectURL,oldRevoke=URL.revokeObjectURL,oldTimer=global.setTimeout,calls=[],saved=[],revoked=[];
+ URL.createObjectURL=()=> 'blob:day-fixture';URL.revokeObjectURL=u=>revoked.push(u);dom.window.HTMLAnchorElement.prototype.click=function(){saved.push({name:this.download,url:this.href});};
+ let reject=false;const helper=async(...args)=>{calls.push(args);if(reject)throw Error('Files expired.');return{blob:new Blob(['zip']),fileName:'WhatsApp_447700900001_2026-06-15.zip',missing:1};};
+ const mod={exports:{}},code=ts.transpileModule(fs.readFileSync('src/components/WhatsAppDayDownload.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ new Function('require','module','exports',code)(n=>n==='@/lib/crmAdmin'?{getWhatsAppDayDownload:helper}:require(n),mod,mod.exports);const root=createRoot(document.getElementById('root'));
+ try{global.setTimeout=(fn,ms,...args)=>ms===60000?(fn(),0):oldTimer(fn,ms,...args);
+ await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'agent',kind:'booking',id:'booking-id',messageId:'gateway:attachment-id'})));
+ assert.equal(document.querySelector('button').textContent,'Download all from this day');await React.act(async()=>document.querySelector('button').click());assert.deepEqual(calls[0],['agent','booking','booking-id','gateway:attachment-id']);assert.equal(saved.length,1);assert.equal(saved[0].name,'WhatsApp_447700900001_2026-06-15.zip');assert.match(document.querySelector('[role=status]').textContent,/1 attachment.*DOWNLOAD-INFO/);assert.deepEqual(revoked,['blob:day-fixture']);
+ reject=true;await React.act(async()=>document.querySelector('button').click());assert.equal(saved.length,1);assert.match(document.querySelector('[role=alert]').textContent,/Files expired/);assert.equal(document.querySelector('button').disabled,false);
+ }finally{await React.act(async()=>root.unmount());URL.createObjectURL=oldCreate;URL.revokeObjectURL=oldRevoke;global.setTimeout=oldTimer;dom.window.close();}
+});
+test('download API uses authenticated private canonical route and preserves provider errors',async()=>{
+ const source=fs.readFileSync('src/lib/crmAdmin.ts','utf8'),start=source.indexOf('export async function getWhatsAppDayDownload('),code=ts.transpileModule(source.slice(start),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020}}).outputText,mod={exports:{}},calls=[];
+ const fetch=async(url,options)=>{calls.push({url,options});return{ok:true,headers:new Headers({'content-type':'application/zip','content-disposition':'attachment; filename="WhatsApp_447700900001_2026-06-15.zip"','x-whatsapp-missing-files':'2'}),blob:async()=>new Blob(['zip'])};};
+ new Function('exports','fetch','BASE_PATH','CANONICAL_READ_API_BASE_URL','resolveUrl','authHeaders',code)(mod.exports,fetch,'/justproveit/admin/crm','https://api.test',(base,path)=>base+path,token=>({Authorization:'Bearer '+token}));
+ const result=await mod.exports.getWhatsAppDayDownload('token','contact','lead','mcic:123');assert.equal(result.missing,2);assert.equal(calls[0].url,'https://api.test/justproveit/admin/crm/contacts/lead/whatsapp-media/day/mcic%3A123');assert.equal(calls[0].options.headers.Authorization,'Bearer token');assert.equal(calls[0].options.cache,'no-store');assert.equal(result.fileName,'WhatsApp_447700900001_2026-06-15.zip');
+});
+test('shared timeline places the day button beside incoming images/documents only, including gateway attachments',()=>{
+ const mod={exports:{}},code=ts.transpileModule(fs.readFileSync('src/components/PhoneHistoryModal.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText;
+ new Function('require','module','exports',code)(name=>name==='react'||name==='react/jsx-runtime'?require(name):name==='@/lib/crmAdmin'?{}:name==='./WhatsAppDayDownload'?{default:p=>React.createElement('button',{'data-day-anchor':p.messageId},'Download all from this day')}:{default:()=>null},mod,mod.exports);
+ const base={kind:'whatsapp',atUtc:'2026-06-15T12:00Z',direction:'inbound',author:'Client',text:'',messageType:'image',status:'recorded'},events=[{...base,id:'mcic:1',image:{name:'photo.jpg'}},{...base,id:'mcic:2',direction:'outbound',image:{name:'sent.jpg'}},{...base,id:'mcic:3',attachment:{kind:'document',name:'file.pdf'}},{...base,id:'gateway:abc',gatewayMedia:{messageId:'abc',type:'image'}}];
+ const html=require('react-dom/server').renderToStaticMarkup(React.createElement(mod.exports.PhoneHistoryTimeline,{events,imageTarget:{token:'test',kind:'contact',id:'lead'}}));assert.equal((html.match(/data-day-anchor=/g)||[]).length,3);assert.match(html,/data-day-anchor="mcic:1"/);assert.match(html,/data-day-anchor="mcic:3"/);assert.match(html,/data-day-anchor="gateway:abc"/);assert.doesNotMatch(html,/data-day-anchor="mcic:2"/);
+});
