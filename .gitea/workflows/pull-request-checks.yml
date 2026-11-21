@@ -12,8 +12,8 @@ jobs:
     env:
       NEXT_TELEMETRY_DISABLED: '1'
       NEXT_PUBLIC_WHATSAPP_GATEWAY_CRM: 'true'
-      NEXT_PUBLIC_API_BASE_URL: https://launchingstack-func-dev.azurewebsites.net/api
-      NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL: https://launchingstack-func-dev.azurewebsites.net/api
+      NEXT_PUBLIC_API_BASE_URL: https://agents.launchingstack.com/api
+      NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL: https://agents.launchingstack.com/api
     steps:
       - uses: https://github.com/actions/checkout@v4
       - uses: https://github.com/actions/setup-node@v4
