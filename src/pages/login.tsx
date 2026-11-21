@@ -6,7 +6,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/router";
 
 const FORGOT_PASSWORD_BASE_URL =
-  "https://launchingstack-func-dev.azurewebsites.net/api/auth/forgot-password";
+  "https://agents.launchingstack.com/api/auth/forgot-password";
 const DEFAULT_FORGOT_PASSWORD_URL =
   `${FORGOT_PASSWORD_BASE_URL}` +
   `?tenantKey=justproveit` +

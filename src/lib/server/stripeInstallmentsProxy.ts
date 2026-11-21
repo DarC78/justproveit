@@ -8,7 +8,7 @@ type ProxyConfig = {
 const ADMIN_API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   process.env.VITE_API_BASE_URL ??
-  "https://launchingstack-func-dev.azurewebsites.net/api";
+  "https://agents.launchingstack.com/api";
 
 export async function handleStripeInstallmentsProxy(
   req: NextApiRequest,
