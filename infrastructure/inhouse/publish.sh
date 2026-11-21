@@ -2,7 +2,7 @@
 set -euo pipefail
 case "${GITHUB_REF:-}" in refs/heads/main|main) ;; *) exit 1 ;; esac
 test "${GITHUB_SHA:-}" = "$(git rev-parse HEAD)"
-case "$(git remote get-url --push origin)" in https://192.168.87.184:3443/gitea-admin/justproveit.git) ;; *) exit 1 ;; esac
+case "$(git remote get-url --push origin)" in https://192.168.87.184:3443/gitea-admin/justproveit|https://192.168.87.184:3443/gitea-admin/justproveit.git) ;; *) exit 1 ;; esac
 release=$(mktemp -d)
 trap 'git worktree remove --force "$release" >/dev/null 2>&1 || true' EXIT
 set +e
@@ -25,3 +25,4 @@ git -C "$release" config user.email gitea-actions@internal.invalid
 git -C "$release" add -f site api infrastructure/inhouse inhouse-release.json
 git -C "$release" commit -m "Publish verified justproveit $GITHUB_SHA"
 git -C "$release" push origin HEAD:justproveit-inhouse
+
