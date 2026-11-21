@@ -2,6 +2,7 @@ const crypto = require('node:crypto');
 const course = require('./bani-uk-ai-course.json');
 const { onboardingEmail } = require('./baniUkAiEmail');
 const { TableClient } = require('@azure/data-tables');
+const {createPostgresLedgerClient}=require('./baniFulfillmentLedger');
 const PARTITION = 'FondatoriBaniUkAi';
 function json(status, body) { return { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' }, body }; }
 async function stripe(path, options = {}) {
@@ -15,6 +16,9 @@ function paidCourseSession(session) {
   return session.payment_link === course.paymentLinkId && session.status === 'complete' && session.mode === 'payment' && (session.payment_status === 'paid' || (session.payment_status === 'no_payment_required' && session.amount_total === 0)) && session.currency === 'gbp' && Number.isSafeInteger(session.amount_total) && session.amount_total >= 0 && /^cs_(live|test)_[A-Za-z0-9]+$/.test(session.id || '') && session.livemode === (process.env.BANI_UK_AI_STRIPE_TEST_MODE !== 'true');
 }
 async function table() {
+  const provider=process.env.BANI_UK_AI_LEDGER_PROVIDER||'azure-table';
+  if(provider==='postgres-api')return createPostgresLedgerClient({baseUrl:process.env.BANI_UK_AI_LEDGER_API_BASE_URL,key:process.env.BANI_FULFILLMENT_LEDGER_KEY,connectIp:process.env.BANI_UK_AI_LEDGER_CONNECT_IP});
+  if(provider!=='azure-table')throw new Error('Unknown fulfillment ledger provider');
   if (!process.env.BANI_UK_AI_STORAGE_CONNECTION) throw new Error('Course storage configuration unavailable');
   const client = TableClient.fromConnectionString(process.env.BANI_UK_AI_STORAGE_CONNECTION, 'BaniUkAiFounders');
   await client.createTable().catch(error => { if (error.statusCode !== 409) throw error; });
@@ -70,6 +74,7 @@ async function fulfill(session, client, sendEmail) {
 async function webhook(context, req) {
   const raw = req.rawBody;
   if (!validSignature(raw, req.headers?.['stripe-signature'], process.env.BANI_UK_AI_WEBHOOK_SECRET)) { context.res = json(400, { error: 'Invalid signature' }); return; }
+  if(process.env.BANI_UK_AI_FULFILLMENT_PAUSED==='true'){context.res=json(503,{error:'Please retry fulfillment'});return;}
   try {
     const event = JSON.parse(Buffer.isBuffer(raw) ? raw.toString('utf8') : raw);
     if (!['checkout.session.completed', 'checkout.session.async_payment_succeeded'].includes(event.type) || event.data?.object?.payment_link !== course.paymentLinkId || !['paid', 'no_payment_required'].includes(event.data.object.payment_status)) { context.res = json(200, { ignored: true }); return; }

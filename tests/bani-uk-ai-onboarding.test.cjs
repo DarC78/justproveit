@@ -32,6 +32,20 @@ test('invalid browser sessions and unsigned webhook requests fail before externa
   await verify(a, { body: { sessionId: 'fake' } }); assert.equal(a.res.status, 400);
   await webhook(b, { rawBody: '{}', headers: {} }); assert.equal(b.res.status, 400);
 });
+
+test('controlled ledger cutover pauses signed webhook work while keeping signature checks',async()=>{
+ const previousSecret=process.env.BANI_UK_AI_WEBHOOK_SECRET,previousPause=process.env.BANI_UK_AI_FULFILLMENT_PAUSED;
+ process.env.BANI_UK_AI_WEBHOOK_SECRET='fixture_pause_secret';process.env.BANI_UK_AI_FULFILLMENT_PAUSED='true';
+ try {
+  const raw='{}',timestamp=String(Math.floor(Date.now()/1000));
+  const digest=crypto.createHmac('sha256','fixture_pause_secret').update(timestamp+'.'+raw).digest('hex');
+  const signed={},unsigned={};await webhook(signed,{rawBody:raw,headers:{'stripe-signature':`t=${timestamp},v1=${digest}`}});await webhook(unsigned,{rawBody:raw,headers:{}});
+  assert.equal(signed.res.status,503);assert.equal(unsigned.res.status,400);
+ }finally{
+  if(previousSecret===undefined)delete process.env.BANI_UK_AI_WEBHOOK_SECRET;else process.env.BANI_UK_AI_WEBHOOK_SECRET=previousSecret;
+  if(previousPause===undefined)delete process.env.BANI_UK_AI_FULFILLMENT_PAUSED;else process.env.BANI_UK_AI_FULFILLMENT_PAUSED=previousPause;
+ }
+});
 class FakeTable {
   constructor() { this.rows = new Map(); }
   async getEntity(_, id) { if (!this.rows.has(id)) throw Object.assign(new Error(), { statusCode: 404 }); return { ...this.rows.get(id), etag: 'fixture' }; }
