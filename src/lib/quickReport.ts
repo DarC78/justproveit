@@ -157,7 +157,7 @@ const QUICK_REPORT_API_BASE_URL =
   process.env.VITE_JPI_QUICK_REPORT_API_BASE_URL ??
   process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL ??
   process.env.VITE_JPI_CRM_READ_API_BASE_URL ??
-  "https://launchingstack-func-dev.azurewebsites.net/api";
+  "https://agents.launchingstack.com/api";
 
 export function evaluateQuickReport(answers: QuickReportAnswers): QuickReportResult[] {
   return [
