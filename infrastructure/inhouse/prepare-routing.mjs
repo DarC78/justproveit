@@ -63,7 +63,7 @@ location ~ ^/api/(?:family-memory/stripe-webhook|justproveit/stripe-crm/(?:prove
  proxy_connect_timeout 10s;
  proxy_read_timeout 240s;
  proxy_cache off;
- client_max_body_size 2m;
+ client_max_body_size 100m;
  add_header Cache-Control no-store always;
  add_header Referrer-Policy no-referrer always;
 }
