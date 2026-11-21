@@ -1,0 +1,12 @@
+{
+  "name": "justproveit-swa-api",
+  "version": "1.0.0",
+  "private": true,
+  "engines": {
+    "node": "20.x"
+  },
+  "dependencies": {
+    "@azure/data-tables": "^13.3.0",
+    "htmlparser2": "^10.0.0"
+  }
+}
