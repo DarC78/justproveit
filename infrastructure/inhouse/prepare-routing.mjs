@@ -3,8 +3,9 @@ const routes=[];
 for(const name of await readdir('api')){
  let config;try{config=JSON.parse(await readFile(`api/${name}/function.json`,'utf8'));}catch(error){if(error.code==='ENOENT'||error.code==='ENOTDIR')continue;throw error;}
  const trigger=config.bindings.find(b=>b.type==='httpTrigger');
- if(!trigger||trigger.authLevel!=='anonymous'||!/^[a-z0-9/-]+$/.test(trigger.route))throw Error('Unexpected API hosting contract');
- routes.push(trigger.route);
+ const route=trigger?.route??name;
+ if(!trigger||trigger.authLevel!=='anonymous'||typeof route!=='string'||!/^[a-z0-9/-]+$/.test(route))throw Error('Unexpected API hosting contract');
+ routes.push(route);
 }
 if(routes.length!==12)throw Error('Review the changed API inventory before hosting');
 const config=`# Generated from the twelve existing HTTP bindings.
