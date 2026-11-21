@@ -61,3 +61,7 @@ local.setting.json
 *.tsbuildinfo
 next-env.d.ts
 /api/node_modules/
+/tmp/
+/api/local.settings*.json
+/infrastructure/inhouse/locations.conf
+__pycache__/

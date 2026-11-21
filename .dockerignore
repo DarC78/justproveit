@@ -1,0 +1,7 @@
+**/node_modules
+.git
+out
+tmp
+.env*
+**/.env*
+**/local.settings*.json
