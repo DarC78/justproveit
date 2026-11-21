@@ -39,3 +39,10 @@ jobs:
 
       - name: Build frontend without deployment credentials
         run: npm run build
+      - name: Verify internal API hosting and preserved email guards
+        run: |
+          npm ci --prefix api --ignore-scripts
+          node --test tests/proveit-email-links.test.mjs tests/bani-uk-ai-onboarding.test.cjs
+          node infrastructure/inhouse/prepare-routing.mjs
+          python3 -m py_compile infrastructure/inhouse/pull-site.py infrastructure/inhouse/install-routing.py
+          docker build -t justproveit-inhouse-pr -f infrastructure/inhouse/Dockerfile .
