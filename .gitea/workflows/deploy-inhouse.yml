@@ -26,7 +26,9 @@ jobs:
       - run: npm ci --prefix api --ignore-scripts
       - run: node --test tests/proveit-email-links.test.mjs tests/bani-uk-ai-onboarding.test.cjs tests/bani-fulfillment-ledger.test.cjs
       - run: npm run build
+      - run: apt-get update -qq && apt-get install -y --no-install-recommends nginx
       - run: node infrastructure/inhouse/prepare-routing.mjs
+      - run: node infrastructure/inhouse/routing.integration.mjs
       - run: python3 -m py_compile infrastructure/inhouse/pull-site.py infrastructure/inhouse/install-routing.py
       - run: docker build -t justproveit-inhouse-ci -f infrastructure/inhouse/Dockerfile .
       - name: Publish tested static export and original API handlers

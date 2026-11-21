@@ -52,6 +52,21 @@ location = /bani-uk-ai-multumim {
 }
 location ~ ^/bani-uk-multumim { add_header X-Robots-Tag "noindex, nofollow" always; add_header Referrer-Policy no-referrer always; add_header Cache-Control no-store always; try_files $uri $uri.html $uri/ =404; }
 location ~ ^/bani-uk-ai(?:/|$) { add_header Referrer-Policy no-referrer always; try_files $uri $uri.html $uri/ =404; }
+location ~ ^/api/(?:family-memory/stripe-webhook|justproveit/stripe-crm/(?:proveit|justproveit)/webhook|webhooks/resend|social/facebook/oauth/callback|internal/tiktok/(?:connect|account/connect)|justproveit/admin/crm/email-oauth/callback)/?$ {
+ proxy_pass http://127.0.0.1:7076;
+ proxy_http_version 1.1;
+ proxy_set_header Host $host;
+ proxy_set_header X-Forwarded-Host $host;
+ proxy_set_header X-Forwarded-Proto https;
+ proxy_set_header X-Forwarded-For $remote_addr;
+ proxy_set_header Connection "";
+ proxy_connect_timeout 10s;
+ proxy_read_timeout 240s;
+ proxy_cache off;
+ client_max_body_size 2m;
+ add_header Cache-Control no-store always;
+ add_header Referrer-Policy no-referrer always;
+}
 location ~ ^/(?:api/|admin/host|admin/functions) { return 404; }
 location ~ /\\. { return 404; }
 location ~* \\.(?:test\\.|env|pem$|key$) { return 404; }
