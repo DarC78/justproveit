@@ -1,0 +1,8 @@
+[Unit]
+Description=Check in-house JustProveIt website and API guards
+After=docker.service nginx.service
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /opt/ls-justproveit/check-health.py
+NoNewPrivileges=true
+PrivateTmp=true
