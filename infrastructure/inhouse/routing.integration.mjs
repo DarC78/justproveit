@@ -10,7 +10,7 @@ let nginx;
 try{
  for(let i=0;i<upstreams.length;i++)await new Promise(r=>upstreams[i].listen(7076+i,'127.0.0.1',r));
  const locations=await readFile('infrastructure/inhouse/locations.conf','utf8');
- await writeFile(join(fixture,'nginx.conf'),`pid ${fixture}/nginx.pid; error_log ${fixture}/error.log; events {} http { access_log off; server { listen 127.0.0.1:19091; server_name www.justproveit.co.uk; ${locations} } }`);
+ await writeFile(join(fixture,'nginx.conf'),`user root; pid ${fixture}/nginx.pid; error_log ${fixture}/error.log; events {} http { access_log off; server { listen 127.0.0.1:19091; server_name www.justproveit.co.uk; ${locations} } }`);
  nginx=spawn('nginx',['-c',join(fixture,'nginx.conf'),'-g','daemon off;'],{stdio:'ignore'});
  await new Promise((resolve,reject)=>{nginx.once('error',reject);setTimeout(resolve,500);});
  const callbacks=['family-memory/stripe-webhook','justproveit/stripe-crm/proveit/webhook','justproveit/stripe-crm/justproveit/webhook','webhooks/resend','social/facebook/oauth/callback','internal/tiktok/connect','internal/tiktok/account/connect','justproveit/admin/crm/email-oauth/callback'];
