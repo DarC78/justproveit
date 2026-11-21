@@ -18,7 +18,7 @@ add_header X-Content-Type-Options nosniff always;
 add_header Referrer-Policy strict-origin-when-cross-origin always;
 add_header Cache-Control no-cache always;
 location ^~ /.well-known/acme-challenge/ { root /var/lib/ls-frontends-acme; default_type text/plain; try_files $uri =404; }
-location ~* ^/api/(?:${routes.sort().join('|')})$ {
+location ~* ^/api/(?:${routes.sort().join('|')})/?$ {
  proxy_pass http://127.0.0.1:7077;
  proxy_http_version 1.1;
  proxy_set_header Host $host;
@@ -59,3 +59,4 @@ location / { try_files $uri $uri.html $uri/ =404; }
 `;
 await writeFile('infrastructure/inhouse/locations.conf',config);
 console.log(`Prepared ${routes.length} API routes and the existing public rewrites`);
+
