@@ -1,4 +1,4 @@
-# JustProveIt internal hosting
+﻿# JustProveIt internal hosting
 
 This release moves the Next.js static export and all twelve existing HTTP API
 handlers together. The business handlers are unchanged. Stripe, Resend and Azure
@@ -26,4 +26,6 @@ deployment for rollback. Never submit a real payment or send an acceptance email
 Shared Azure Tables remain a dependency for the course's fulfillment ledger.
 The older Azure backend URLs still forward to the internal main backend. A DNS
 cutover does not authorize deleting those resources or replaying ambiguous sends.
-`nReadiness exercises the local invalid-email-link guard (400), without requiring host administrative keys or contacting external providers. API routes accept an optional trailing slash, preserving existing callback URLs.
+
+Readiness exercises the local invalid-email-link guard (400), without requiring host administrative keys or contacting external providers. API routes accept an optional trailing slash, preserving existing callback URLs.
+
