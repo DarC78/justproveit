@@ -1,0 +1,11 @@
+[Unit]
+Description=Renew JustProveIt public certificate
+After=network-online.target nginx.service
+[Service]
+Type=oneshot
+ExecStart=/opt/ls-frontends-certbot/bin/certbot renew --cert-name justproveit --no-random-sleep-on-renew --deploy-hook "/usr/sbin/nginx -t && /usr/bin/systemctl reload nginx"
+PrivateTmp=true
+NoNewPrivileges=true
+ProtectHome=true
+ProtectSystem=full
+ReadWritePaths=/etc/letsencrypt /var/lib/letsencrypt /var/log/letsencrypt /var/lib/ls-frontends-acme

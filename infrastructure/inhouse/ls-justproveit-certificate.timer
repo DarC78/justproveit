@@ -1,0 +1,8 @@
+[Unit]
+Description=Check JustProveIt certificate twice daily
+[Timer]
+OnCalendar=*-*-* 02,14:00:00 UTC
+RandomizedDelaySec=30m
+Persistent=true
+[Install]
+WantedBy=timers.target
