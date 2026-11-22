@@ -20,6 +20,7 @@ jobs:
         with:
           node-version: '22.23.4'
       - run: npm ci
+      - run: npm ci --prefix api --ignore-scripts
       - name: Test frontend
         run: |
           node --test tests/google-purchase-confirmation.test.cjs tests/google-advertising-handoff.test.cjs
@@ -42,7 +43,6 @@ jobs:
         run: npm run build
       - name: Verify internal API hosting and preserved email guards
         run: |
-          npm ci --prefix api --ignore-scripts
           node --test tests/proveit-email-links.test.mjs tests/bani-uk-ai-onboarding.test.cjs tests/bani-fulfillment-ledger.test.cjs
           apt-get update -qq && apt-get install -y --no-install-recommends nginx
           node infrastructure/inhouse/prepare-routing.mjs
