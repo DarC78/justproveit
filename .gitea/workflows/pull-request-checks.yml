@@ -22,6 +22,7 @@ jobs:
       - run: npm ci
       - name: Test frontend
         run: |
+          node --test tests/google-purchase-confirmation.test.cjs tests/google-advertising-handoff.test.cjs
           npm run test:crm-lead-search
           node --test tests/crm-agent-telemetry.test.cjs tests/agent-report-productivity.test.cjs tests/agent-activity-chart.test.cjs
           node --test tests/pension-calculator-layout.test.cjs

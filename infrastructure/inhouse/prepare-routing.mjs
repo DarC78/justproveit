@@ -7,8 +7,8 @@ for(const name of await readdir('api')){
  if(!trigger||trigger.authLevel!=='anonymous'||typeof route!=='string'||!/^[a-z0-9/-]+$/.test(route))throw Error('Unexpected API hosting contract');
  routes.push(route);
 }
-if(routes.length!==12)throw Error('Review the changed API inventory before hosting');
-const config=`# Generated from the twelve existing HTTP bindings.
+if(routes.length!==13)throw Error('Review the changed API inventory before hosting');
+const config=`# Generated from the thirteen reviewed HTTP bindings.
 root /srv/ls-frontends/justproveit/current;
 index index.html;
 absolute_redirect off;
@@ -50,7 +50,7 @@ location = /bani-uk-ai-multumim {
  add_header Cache-Control no-store always;
  add_header Referrer-Policy no-referrer always;
 }
-location ~ ^/bani-uk-multumim { add_header X-Robots-Tag "noindex, nofollow" always; add_header Referrer-Policy no-referrer always; add_header Cache-Control no-store always; try_files $uri $uri.html $uri/ =404; }
+location ~ ^/(?:bani-uk-multumim|plata-confirmata) { add_header X-Robots-Tag "noindex, nofollow" always; add_header Referrer-Policy no-referrer always; add_header Cache-Control no-store always; try_files $uri $uri.html $uri/ =404; }
 location ~ ^/bani-uk-ai(?:/|$) { add_header Referrer-Policy no-referrer always; try_files $uri $uri.html $uri/ =404; }
 location ~ ^/api/(?:family-memory/stripe-webhook|justproveit/stripe-crm/(?:proveit|justproveit)/webhook|webhooks/resend|social/facebook/oauth/callback|internal/tiktok/(?:connect|account/connect)|justproveit/admin/crm/email-oauth/callback)/?$ {
  proxy_pass http://127.0.0.1:7076;
