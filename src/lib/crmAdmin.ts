@@ -1509,3 +1509,19 @@ export async function getWhatsAppDayDownload(token:string,kind:'contact'|'bookin
  const disposition=response.headers.get('content-disposition')||'',fileName=/filename="([A-Za-z0-9_.-]+)"/.exec(disposition)?.[1]||'WhatsApp-attachments.zip';
  return{blob:await response.blob(),fileName,missing:Number(response.headers.get('x-whatsapp-missing-files')||0)};
 }
+
+
+export type CallListeningMark={atUtc:string;actor:string|null};
+export type ListeningRecording={recordingId:number;durationMs:number|null;transcription:CallTranscription|null};
+export type ListeningCall={callId:string;mark:CallListeningMark;atUtc:string|null;endedAtUtc:string|null;agent:string|null;callcode:string|null;available:boolean;recordings:ListeningRecording[]};
+export type CallsToListenReport={totalLeads:number;totalCalls:number;offset:number;limit:number;rows:{contactId:string;name:string;phone:string|null;calls:ListeningCall[]}[]};
+const listeningTargetPath=(kind:'contact'|'booking',id:string)=>BASE_PATH+'/'+(kind==='contact'?'contacts':'scheduled-calls')+'/'+encodeURIComponent(id);
+export function getCallListeningMarks(token:string,kind:'contact'|'booking',id:string,signal?:AbortSignal){return fetchCanonicalCrmReadJson<{contactId:string;marks:Record<string,CallListeningMark>}>(listeningTargetPath(kind,id)+'/call-listening',{headers:authHeaders(token),cache:'no-store',signal});}
+export function setCallListeningLabel(token:string,kind:'contact'|'booking',id:string,callId:string,body:{requestId:string;marked:boolean}){return fetchCanonicalCrmReadJson<{callId:string;marked:boolean;review?:CallListeningMark}>(listeningTargetPath(kind,id)+'/calls/'+encodeURIComponent(callId)+'/listening',{method:'POST',headers:{...authHeaders(token),'Content-Type':'application/json'},body:JSON.stringify(body),cache:'no-store'});}
+export function getCallsToListen(token:string,offset=0,search='',signal?:AbortSignal){return fetchCanonicalCrmReadJson<CallsToListenReport>(BASE_PATH+'/calls-to-listen?'+new URLSearchParams({offset:String(offset),search}),{headers:authHeaders(token),cache:'no-store',signal});}
+export async function getCallListeningAudio(token:string,contactId:string,callId:string,recordingId:number,signal?:AbortSignal){
+ const path=listeningTargetPath('contact',contactId)+'/calls/'+encodeURIComponent(callId)+'/recordings/'+recordingId+'/audio';
+ const response=await fetch(CANONICAL_READ_API_BASE_URL.replace(/\/+$/,'')+path,{headers:authHeaders(token),cache:'no-store',signal});
+ if(!response.ok)throw Error(response.status===404?'The recording is not ready yet. Please retry shortly.':'Unable to load this recording. Please retry.');
+ const blob=await response.blob();if(!blob.type.startsWith('audio/')||blob.size<16||blob.size>25*1024*1024)throw Error('The recording could not be played.');return blob;
+}

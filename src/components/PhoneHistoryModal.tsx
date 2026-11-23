@@ -4,7 +4,7 @@ import GatewayMessageMedia from './GatewayMessageMedia';
 import SmsReplyComposer from './SmsReplyComposer';
 import WhatsAppReplyComposer from "@/components/WhatsAppReplyComposer";
 import {useEffect,useRef,useState} from "react";
-import {getReplyPictureImage,getPhoneHistoryImage,getCrmStripeHistory,CrmStripeEvent,getCrmEmailHistory,getCrmEmailBody,CrmEmailBody,CrmEmailEvent,getScheduledPhoneHistory,PhoneHistoryEvent,ScheduledCallRow,ScheduledPhoneHistory,CallTranscription} from "@/lib/crmAdmin";
+import {getCallListeningMarks,setCallListeningLabel,CallListeningMark,getReplyPictureImage,getPhoneHistoryImage,getCrmStripeHistory,CrmStripeEvent,getCrmEmailHistory,getCrmEmailBody,CrmEmailBody,CrmEmailEvent,getScheduledPhoneHistory,PhoneHistoryEvent,ScheduledCallRow,ScheduledPhoneHistory,CallTranscription} from "@/lib/crmAdmin";
 
 const clock=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/London",dateStyle:"medium",timeStyle:"medium"});
 function dateTime(value:string|null){const at=Date.parse(value||"");return Number.isFinite(at)?clock.format(at):"Time unavailable";}
@@ -68,6 +68,17 @@ export function StripeHistoryRecord({item}:{item:CrmStripeEvent}) {
 }
 
 export function PhoneHistoryTimeline({events,imageTarget,paged=false,onSmsSent}:{events:PhoneHistoryEvent[];imageTarget?:ImageTarget;paged?:boolean;onSmsSent?:()=>void}) {
+  const [listeningMarks,setListeningMarks]=useState<Record<string,CallListeningMark>|null>(null),[listeningError,setListeningError]=useState(''),[listeningRevision,setListeningRevision]=useState(0),[savingListening,setSavingListening]=useState('');
+  const listeningTarget=useRef(imageTarget);listeningTarget.current=imageTarget;const listeningRequests=useRef<Record<string,{requestId:string;marked:boolean}>>({});
+  const listeningCalls=events.filter(e=>e.kind==='call'&&/^call:[1-9]\d*$/.test(e.id)).map(e=>e.id).join(',');
+  useEffect(()=>{const reload=()=>setListeningRevision(n=>n+1);window.addEventListener('crm-call-listening-changed',reload);const timer=setInterval(()=>{if(document.visibilityState==='visible')reload();},30000);return()=>{window.removeEventListener('crm-call-listening-changed',reload);clearInterval(timer);};},[]);
+  useEffect(()=>{setListeningMarks(null);setListeningError('');if(!imageTarget||!listeningCalls){setListeningMarks({});return;}const c=new AbortController();void(async()=>{try{const data=await getCallListeningMarks(imageTarget.token,imageTarget.kind,imageTarget.id,c.signal);if(!c.signal.aborted)setListeningMarks(data.marks);}catch{if(!c.signal.aborted)setListeningError('Call labels could not be loaded.');}})();return()=>c.abort();},[imageTarget?.token,imageTarget?.kind,imageTarget?.id,listeningCalls,listeningRevision]);
+  async function changeListening(callId:string){if(!imageTarget||!listeningMarks)return;const target=imageTarget,marked=!listeningMarks[callId];const sameTarget=()=>listeningTarget.current?.id===target.id&&listeningTarget.current?.kind===target.kind&&listeningTarget.current?.token===target.token;
+   setSavingListening(callId);setListeningError('');if(listeningRequests.current[callId]?.marked!==marked)listeningRequests.current[callId]={requestId:crypto.randomUUID(),marked};
+   try{await setCallListeningLabel(target.token,target.kind,target.id,callId,listeningRequests.current[callId]);delete listeningRequests.current[callId];if(sameTarget()){setListeningRevision(n=>n+1);window.dispatchEvent(new Event('crm-call-listening-changed'));}}
+   catch{if(sameTarget())setListeningError('Unable to confirm the call label. Refresh or retry.');}finally{if(sameTarget())setSavingListening('');}
+  }
+
   const [stripeEvents,setStripeEvents]=useState<CrmStripeEvent[]>([]),[stripeCursor,setStripeCursor]=useState<string|null>(null),[stripeError,setStripeError]=useState(""),[stripeLoading,setStripeLoading]=useState(false);
   const stripeTarget=useRef(imageTarget);stripeTarget.current=imageTarget;
   useEffect(()=>{setStripeEvents([]);setStripeCursor(null);setStripeError("");if(!imageTarget||paged)return;const controller=new AbortController();let loading=false,initialized=false;
@@ -83,7 +94,7 @@ export function PhoneHistoryTimeline({events,imageTarget,paged=false,onSmsSent}:
   },[imageTarget?.token,imageTarget?.kind,imageTarget?.id,paged]);
   const olderEmails=async()=>{if(!imageTarget||!emailCursor)return;setEmailLoading(true);try{const result=await getCrmEmailHistory(imageTarget.token,imageTarget.kind,imageTarget.id,emailCursor);setEmails(current=>[...new Map([...current,...result.items].map(e=>[e.id,e])).values()]);setEmailCursor(result.nextCursor);setEmailError("");}catch{setEmailError("Older emails could not be loaded. Please retry.");}finally{setEmailLoading(false);}};
   const ordered=[...events,...emails,...stripeEvents].sort((a,b)=>{const left=Date.parse(a.atUtc||''),right=Date.parse(b.atUtc||'');return (Number.isFinite(right)?right:-Infinity)-(Number.isFinite(left)?left:-Infinity)||a.id.localeCompare(b.id,undefined,{numeric:true});});
-  return <>{stripeError&&<p role="status">{stripeError}</p>}{emailPending&&<p role="status">Older system emails are being verified in the background and will appear here automatically.</p>}{emailError&&<p role="status">{emailError}</p>}<ol className="timeline" aria-label="Calls, WhatsApp, SMS messages and emails, newest first">
+  return <>{listeningError&&<p role="status">{listeningError} <button type="button" onClick={()=>setListeningRevision(n=>n+1)}>Reload call labels</button></p>}{stripeError&&<p role="status">{stripeError}</p>}{emailPending&&<p role="status">Older system emails are being verified in the background and will appear here automatically.</p>}{emailError&&<p role="status">{emailError}</p>}<ol className="timeline" aria-label="Calls, WhatsApp, SMS messages and emails, newest first">
     {ordered.map(event=><li key={event.id} className={event.kind==="whatsapp"&&event.direction==="outbound"&&event.status==="failed"?"outbound delivery-failed":event.kind==="whatsapp"&&["scheduled","queued"].includes(event.status)?"outbound scheduled-pending":event.kind==="note"?"document-note":event.kind==="payment"?"stripe":event.kind==="sms"?`sms ${event.direction}`:event.kind==="stripe"?"stripe":event.kind==="email"?`email ${event.direction}`:event.kind==="call"?`call ${event.direction==="inbound"||/inbound|incoming/i.test(event.callType||"")?"call-inbound":/predictive/i.test(event.callType||"")?"call-predictive":""}`:event.direction}>
       <article>
         <div className="event-heading"><strong>{event.kind==="note"?"Private pension activity (imported)":event.kind==="payment"?"Bank transfer ? manually confirmed":event.kind==="sms"?`SMS - ${event.direction==="inbound"?"Client":"ProveIt"}`:event.kind==="stripe"?`Stripe - ${event.source==="proveit"?"ProveIt":"JustProveIt"}`:event.kind==="email"?"Email":event.kind==="call"?(event.source==="WhatsApp Agenti"?"WhatsApp Agenti call":"Phone call"):event.source==="Scheduled WhatsApp reply"?"WhatsApp - scheduled reply":`${event.channel==="agents"||event.id.startsWith("gateway:")||event.id.startsWith("gateway-outbound:")||event.source==="Self-hosted WhatsApp"||event.source==="WhatsApp Agenti"?"WhatsApp Agenti":"WhatsApp Mediatel"} - ${event.direction==="inbound"?"Client":"ProveIt"}`}</strong>
@@ -94,7 +105,7 @@ export function PhoneHistoryTimeline({events,imageTarget,paged=false,onSmsSent}:
               <div><dt>{event.source==="WhatsApp Agenti"?"Observed connected duration":"Total duration"}</dt><dd>{duration(event.durationSeconds)}</dd></div><div><dt>Agent talk time</dt><dd>{duration(event.talkSeconds)}</dd></div>
               <div><dt>Ended</dt><dd>{event.endedAtUtc?dateTime(event.endedAtUtc):"Unavailable"}</dd></div></dl>
               {event.coverage&&<p>{event.coverage}</p>}
-              {event.transcriptions?.map(item=><CallTranscriptRow key={item.recordingId} item={item}/>)}</>}
+              {imageTarget&&/^call:[1-9]\d*$/.test(event.id)&&<p>{listeningMarks?.[event.id.slice(5)]&&<strong style={{color:'#7c3aed'}}>To be listened ? </strong>}<button type="button" aria-pressed={!!listeningMarks?.[event.id.slice(5)]} disabled={listeningMarks===null||!!savingListening} onClick={()=>void changeListening(event.id.slice(5))}>{savingListening===event.id.slice(5)?'Saving...':listeningMarks===null?'Loading call label...':listeningMarks[event.id.slice(5)]?'Remove listening label':'Mark to be listened'}</button></p>}{event.transcriptions?.map(item=><CallTranscriptRow key={item.recordingId} item={item}/>)}</>}
       </article>
     </li>)}
     <style jsx>{`

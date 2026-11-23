@@ -1,3 +1,4 @@
+import CallsToListenPanel from './CallsToListenPanel';
 import LeadNextMeetings,{type FutureLeadMeeting} from './LeadNextMeetings';
 import {Fragment,useEffect,useState,useRef} from 'react';
 import {API_BASE_URL} from '@/lib/auth';
@@ -9,7 +10,7 @@ import {nextActionRowStyle,useLeadNoteSummaries} from '@/lib/leadNotes';
 import type {ScheduledCallRow} from '@/lib/crmAdmin';
 const statuses=['newLead','SimulationInProgress','SimulationDone','ScheduledCall','AgreedToBuy','ToAdrian','clients','ToInvestigate'] as const;
 type Status=typeof statuses[number];
-type Row=PipelineControlView&{futureMeetings?:FutureLeadMeeting[];manualPriority?:boolean;contactId:string;name:string;phone:string|null;email:string|null;source:string;service:string;createdAtUtc:string;pipelineStatus:Status;operationalStatus:string|null;meaningfulCallAtUtc:string|null;agreedAtUtc:string|null;documentReceivedAtUtc?:string|null;scheduledCallAtUtc?:string|null;scheduledCallStatus?:string|null;simulationStartedAtUtc:string|null;simulationDeliveredAtUtc:string|null;lastInboundAtUtc?:string|null;lastActivityAtUtc?:string|null;purchases?:{saleId:string|null;service:string;label:string;purchasedAtUtc:string|null}[];nextActionDate?:string|null;priority?:number;priorityLabel?:string;priorityAtUtc?:string|null;priorityDate?:string|null;nextContactDate?:string|null;scheduleSection?:'selectedDay'|'unresolved'|'future';booking?:ScheduledCallRow|null};
+type Row=PipelineControlView&{callsToListenCount?:number;futureMeetings?:FutureLeadMeeting[];manualPriority?:boolean;contactId:string;name:string;phone:string|null;email:string|null;source:string;service:string;createdAtUtc:string;pipelineStatus:Status;operationalStatus:string|null;meaningfulCallAtUtc:string|null;agreedAtUtc:string|null;documentReceivedAtUtc?:string|null;scheduledCallAtUtc?:string|null;scheduledCallStatus?:string|null;simulationStartedAtUtc:string|null;simulationDeliveredAtUtc:string|null;lastInboundAtUtc?:string|null;lastActivityAtUtc?:string|null;purchases?:{saleId:string|null;service:string;label:string;purchasedAtUtc:string|null}[];nextActionDate?:string|null;priority?:number;priorityLabel?:string;priorityAtUtc?:string|null;priorityDate?:string|null;nextContactDate?:string|null;scheduleSection?:'selectedDay'|'unresolved'|'future';booking?:ScheduledCallRow|null};
 type Report={refreshIntervalSeconds?:number;stale?:boolean;counts:Record<Status,number>;purchasedServices?:{value:string;label:string}[];scheduledDate?:string;warnings?:string[];cohortTotal:number;filteredCohortTotal?:number;sources?:string[];total:number;limit:number;offset:number;asOfUtc:string;cohortStartUtc:string;rows:Row[]};
 const clock=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/London',dateStyle:'medium',timeStyle:'short'});
 const at=(value:string|null)=>value?clock.format(new Date(value)):'—';
@@ -25,6 +26,8 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
  const [report,setReport]=useState<Report|null>(null),[loading,setLoading]=useState(true),[error,setError]=useState(''),[history,setHistory]=useState<string|null>(null);
  const [reportQuery,setReportQuery]=useState('');const previousQuery=useRef('');const pendingAdrian=useRef<string|null>(null);
  const [notice,setNotice]=useState('');
+ const [listeningView,setListeningView]=useState(false),[listeningCount,setListeningCount]=useState<number|null>(null);
+ useEffect(()=>{try{setListeningView(window.localStorage.getItem(storageKey+':listening')==='1');}catch{}},[storageKey]);
  const [purchasedService,setPurchasedService]=useState('');
  const [scheduledDate,setScheduledDate]=useState(()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/London',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
  const pageSize=status==='ScheduledCall'?25:30;
@@ -36,7 +39,7 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
  });return()=>{active=false;};},[storageKey]);
  const persist=(next:{status:Status|'';source:string;inboundDays:number;purchasedService?:string;showFutureScheduled?:boolean;showEnded?:boolean;showBookedCalls?:boolean})=>{try{window.localStorage.setItem(storageKey,JSON.stringify({...next,showEnded:next.showEnded??showEnded,purchasedService:next.purchasedService??purchasedService,showFutureScheduled:next.showFutureScheduled??showFutureScheduled,showBookedCalls:next.showBookedCalls??showBookedCalls}));}catch{/* Keep filters usable when storage is disabled. */}};
  useEffect(()=>{const controller=new AbortController();
-  if(restoredKey!==storageKey)return;
+  if(restoredKey!==storageKey||listeningView)return;
   const base=process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||API_BASE_URL;
   const query=new URLSearchParams({status,source,inboundDays:String(inboundDays),showFutureScheduled:String(showFutureScheduled),showEnded:String(showEnded),showBookedCalls:String(showBookedCalls),search:applied,offset:String(page*pageSize)});
   if(status==='ScheduledCall')query.set('scheduledDate',scheduledDate);
@@ -45,20 +48,23 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
    .then(async response=>{if(!response)return null;const body=await response.json();if(!response.ok)throw Error(body.error?.message||'Unable to load lead pipeline.');return body as Report;})
    .then(data=>{if(!controller.signal.aborted&&data){if(page>0&&page*pageSize>=data.total){setPage(Math.max(0,Math.ceil(data.total/pageSize)-1));return;}setReport(data);setReportQuery(activeQuery);if(pendingAdrian.current&&data.rows.some(r=>r.contactId===pendingAdrian.current)){setHistory(pendingAdrian.current);pendingAdrian.current=null;}}}).catch(cause=>{if(!controller.signal.aborted)setError(cause instanceof Error?cause.message:'Unable to load lead pipeline.');}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});
   return()=>controller.abort();
- },[token,status,scheduledDate,purchasedService,source,inboundDays,showFutureScheduled,showBookedCalls,showEnded,applied,page,pageSize,revision,restoredKey,storageKey,activeQuery]);
- const choose=(value:Status|'')=>{setStatus(value);setPage(0);persist({status:value,source,inboundDays});};
+ },[listeningView,token,status,scheduledDate,purchasedService,source,inboundDays,showFutureScheduled,showBookedCalls,showEnded,applied,page,pageSize,revision,restoredKey,storageKey,activeQuery]);
+ const choose=(value:Status|'')=>{setListeningView(false);try{window.localStorage.removeItem(storageKey+':listening');}catch{}setStatus(value);setPage(0);persist({status:value,source,inboundDays});};
  const changeSource=(value:string)=>{setSource(value);setPage(0);persist({status,source:value,inboundDays});};
  const changeDays=(value:string)=>{const days=value===''?0:Number(value);if(!Number.isInteger(days)||days<0||days>365)return;setInboundDays(days);setPage(0);persist({status,source,inboundDays:days});};
  const sources=[...new Set([...(report?.sources||[]),...(source?[source]:[])])];
  const priorityView=['AgreedToBuy','ToAdrian','clients'].includes(status);
+ useEffect(()=>{const refresh=()=>setRevision(n=>n+1);window.addEventListener('crm-call-listening-changed',refresh);return()=>window.removeEventListener('crm-call-listening-changed',refresh);},[]);
  const pipelineChanged=(message:string)=>{setNotice(message);setRevision(n=>n+1);};
  return <section className="pipeline-panel">
   <h1>Lead Pipeline — activity in the last 60 days</h1>
-  <p className="pipeline-intro">Contacts with any call outcome or incoming/outgoing WhatsApp message in the past 60 days, regardless of when they first became a lead. Car-finance-only clients and known internal identities are excluded. Other clients appear in clients; contact and enquiry statuses are preserved.</p>
+  <p className="pipeline-intro" hidden={listeningView}>Contacts with any call outcome or incoming/outgoing WhatsApp message in the past 60 days, regardless of when they first became a lead. Car-finance-only clients and known internal identities are excluded. Other clients appear in clients; contact and enquiry statuses are preserved.</p>
   <div className="pipeline-tabs" role="group" aria-label="Pipeline status shortcuts">
-   <button className="pipeline-tab" type="button" onClick={()=>choose('')} aria-pressed={!status}>All: <strong className="pipeline-count">{report?.filteredCohortTotal??report?.cohortTotal??'…'}</strong></button>
-   {statuses.map(s=><button className="pipeline-tab" key={s} type="button" onClick={()=>choose(s)} aria-pressed={status===s} title={descriptions[s]}>{s}: <strong className="pipeline-count">{report?.counts[s]??'…'}</strong></button>)}
+   <button className="pipeline-tab" type="button" onClick={()=>choose('')} aria-pressed={!listeningView&&!status}>All: <strong className="pipeline-count">{report?.filteredCohortTotal??report?.cohortTotal??'…'}</strong></button>
+   {statuses.map(s=><button className="pipeline-tab" key={s} type="button" onClick={()=>choose(s)} aria-pressed={!listeningView&&status===s} title={descriptions[s]}>{s}: <strong className="pipeline-count">{report?.counts[s]??'…'}</strong></button>)}
+   <button className="pipeline-tab" type="button" aria-pressed={listeningView} onClick={()=>{setListeningView(true);try{window.localStorage.setItem(storageKey+':listening','1');}catch{}}}>To be listened{listeningCount!==null&&<>: <strong className="pipeline-count">{listeningCount}</strong></>}</button>
   </div>
+  {listeningView?<CallsToListenPanel token={token} onCount={setListeningCount}/>:<>
   {status&&<p className="pipeline-status-description">{descriptions[status]}</p>}
   <form className="pipeline-filters" onSubmit={e=>{e.preventDefault();setApplied(search.trim());setPage(0);}}>
    {status==='ScheduledCall'&&<label className="pipeline-field">ScheduledDate<input className="pipeline-control" aria-label="ScheduledDate" type="date" value={scheduledDate} onChange={e=>{if(e.target.value){setScheduledDate(e.target.value);setPage(0);}}}/></label>}
@@ -90,7 +96,7 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
    </>:<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse'}}><thead><tr>{[...(priorityView?['Date / time (UK)']:[]),'Lead','Phone','Email',...(status==='clients'?['Purchased services / purchase date']:[]),'Next Meeting/Action date','Actions'].map(h=><th key={h} style={{padding:10,textAlign:'left',background:'#edf3fc'}}>{h}</th>)}</tr></thead><tbody>
     {report.rows.map(row=>{const key='contact:'+row.contactId.toLowerCase(),date=report.refreshIntervalSeconds?row.nextActionDate:notes.summaries[key]?notes.summaries[key].nextActionDate:row.nextActionDate,noteStyle=nextActionRowStyle(date),futureStyle=date&&noteStyle?.backgroundColor==='#dbeafe'?noteStyle:undefined;return <Fragment key={row.contactId}><tr style={{borderBottom:'1px solid #dae2ee',...(status==='clients'?{backgroundColor:clientPriorityColors[row.priority??2]}:futureStyle||((priorityView||row.manualPriority)?{backgroundColor:priorityColors[row.priority??5]}:noteStyle))}}>
      {priorityView&&<td className="pipeline-priority-date"><time dateTime={row.priorityAtUtc||row.priorityDate||undefined}>{row.priorityAtUtc?at(row.priorityAtUtc):row.priorityDate?row.priorityDate.split('-').reverse().join('/')+' \u00b7 No time set':at(null)}</time><br/><strong>{row.priority===-1?'Adrian call today':`P${row.priority??5}`}</strong><br/><small>{row.priorityLabel||'No higher-priority condition'}</small></td>}
-     <td style={{padding:10}}><strong>{row.name||'Unnamed lead'}</strong><br/><small>Received: {at(row.createdAtUtc)}</small></td>
+     <td style={{padding:10}}><strong>{row.name||'Unnamed lead'}</strong>{!!row.callsToListenCount&&<small style={{display:'block',color:'#7c3aed'}}>To be listened ? {row.callsToListenCount} call{row.callsToListenCount===1?'':'s'}</small>}<br/><small>Received: {at(row.createdAtUtc)}</small></td>
      <td><button className="pipeline-phone-link" type="button" title="Open lead history" onClick={()=>setHistory(history===row.contactId?null:row.contactId)} aria-expanded={history===row.contactId}>{row.phone||'Open history'}</button></td><td>{row.email||'—'}</td>
      {status==='clients'&&<td style={{padding:10,minWidth:220}}>{row.purchases?.map((p,index)=><div key={p.saleId||index}><strong>{p.label}</strong><br/><small>Purchased: {at(p.purchasedAtUtc)}</small></div>)}</td>}
      <td style={{padding:10,verticalAlign:'top'}}><LeadNextMeetings meetings={row.futureMeetings} nextActionDate={date}/></td><td style={{padding:10,minWidth:300}}><LeadPipelineRowActions token={token} row={row} noteSummary={notes.summaries['contact:'+row.contactId.toLowerCase()]} onNoteSaved={()=>{notes.refresh();setRevision(n=>n+1);}} onChanged={pipelineChanged}/></td>
@@ -98,6 +104,7 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
     {!report.rows.length&&<tr><td colSpan={5+Number(priorityView)+Number(status==='clients')}>No leads match these filters.</td></tr>}
    </tbody></table></div>}
    <div className="pipeline-pagination"><button className="pipeline-button" type="button" disabled={!page} onClick={()=>setPage(p=>p-1)}>Previous</button><span>Page {page+1} of {Math.max(1,Math.ceil(report.total/pageSize))}</span><button className="pipeline-button" type="button" disabled={(page+1)*pageSize>=report.total} onClick={()=>setPage(p=>p+1)}>Next</button></div>
+  </>}
   </>}
   <style>{`
    .pipeline-panel{padding:24px 0;color:#344054}

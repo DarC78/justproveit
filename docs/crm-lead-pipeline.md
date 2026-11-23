@@ -194,3 +194,15 @@ Next Meetings appears before Actions in lead pipeline tables. It lists all futur
 ### Next Meeting/Action date (23 November 2026)
 
 The column uses this label in both pipeline table layouts. It lists every active future ContactTimeUtc on the contact?s lead records: manual/Calendly bookings as Booked call and other scheduled follow-up/contact dates as Next contact, plus confirmed Adrian calls. Meetings are ordered earliest first and use UK dates/times. Next Action Date is shown separately, including today and overdue dates. Cancelled, closed, solved, completed and past meetings are excluded. This display change does not alter filters, priorities, bookings or outbound automations.
+
+
+## Call listening labels
+
+The independent **To be listened** category follows ToInvestigate. Mark individual
+Mediatel calls from lead history; labels leave the operational stage unchanged.
+The list includes flagged leads across all stages and ages, grouped by lead, with
+call time, agent, callcode, marking actor/time, transcript and authenticated audio
+playback. All authorised CRM users can mark, clear and listen. Transcription runs
+automatically within the existing spending limit and reuses completed transcripts.
+Missing recordings show a pending/unavailable state. Audio is fetched only after
+pressing Listen and browser blob URLs are revoked on navigation.
