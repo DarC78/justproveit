@@ -57,7 +57,7 @@ export default function LeadPipelinePanel({token,userId='default'}:{token:string
  useEffect(()=>{const refresh=()=>setRevision(n=>n+1);window.addEventListener('crm-call-listening-changed',refresh);return()=>window.removeEventListener('crm-call-listening-changed',refresh);},[]);
  const pipelineChanged=(message:string)=>{setNotice(message);setRevision(n=>n+1);};
  return <section className="pipeline-panel">
-  <h1>Lead Pipeline — activity in the last 60 days</h1>
+  <h1>{listeningView?'Lead Pipeline ? calls to be listened':'Lead Pipeline ? activity in the last 60 days'}</h1>
   <p className="pipeline-intro" hidden={listeningView}>Contacts with any call outcome or incoming/outgoing WhatsApp message in the past 60 days, regardless of when they first became a lead. Car-finance-only clients and known internal identities are excluded. Other clients appear in clients; contact and enquiry statuses are preserved.</p>
   <div className="pipeline-tabs" role="group" aria-label="Pipeline status shortcuts">
    <button className="pipeline-tab" type="button" onClick={()=>choose('')} aria-pressed={!listeningView&&!status}>All: <strong className="pipeline-count">{report?.filteredCohortTotal??report?.cohortTotal??'…'}</strong></button>
