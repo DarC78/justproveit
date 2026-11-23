@@ -190,3 +190,7 @@ InboundContacts clears incoming events through a completed meaningful agent conv
 ### Next Meetings column (20 November 2026)
 
 Next Meetings appears before Actions in lead pipeline tables. It lists all future active manual/Calendly call bookings and confirmed Adrian calls, earliest first, with UK dates/times. It also shows any Next Action Date, including today or overdue, as a date without an invented time. Empty values show a dash. Cancelled/closed/completed/solved or past meetings are omitted. Existing visibility filters and actions are unchanged. Booking data follows the pipeline background refresh; Next Action Date and Adrian booking retain their live metadata updates.
+
+### Next Meeting/Action date (23 November 2026)
+
+The column uses this label in both pipeline table layouts. It lists every active future ContactTimeUtc on the contact?s lead records: manual/Calendly bookings as Booked call and other scheduled follow-up/contact dates as Next contact, plus confirmed Adrian calls. Meetings are ordered earliest first and use UK dates/times. Next Action Date is shown separately, including today and overdue dates. Cancelled, closed, solved, completed and past meetings are excluded. This display change does not alter filters, priorities, bookings or outbound automations.

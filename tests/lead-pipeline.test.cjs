@@ -20,7 +20,7 @@ test('pipeline filters and paginates server-side and opens the correct contact h
  let root=createRoot(document.getElementById('root'));const button=text=>[...document.querySelectorAll('button')].find(b=>b.textContent===text);
  try {
   await React.act(async()=>root.render(React.createElement(mod.exports.default,{token:'agent-token'})));
-  const headings=[...document.querySelectorAll('thead th')].map(x=>x.textContent);assert.deepEqual(headings.slice(-3),['Email','Next Meetings','Actions']);
+  const headings=[...document.querySelectorAll('thead th')].map(x=>x.textContent);assert.deepEqual(headings.slice(-3),['Email','Next Meeting/Action date','Actions']);
   const container=document.createElement('div'),meetingView=createRoot(container);
   await React.act(async()=>meetingView.render(React.createElement(meetingsModule.exports.default,{meetings:[{id:'a',atUtc:'2099-01-01T12:00:00Z',kind:'call'},{id:'b',atUtc:'2099-06-01T12:00:00Z',kind:'adrian'}],nextActionDate:'2026-01-02'})));
   assert.match(container.textContent,/Booked call1 Jan 2099, 12:00 UK/);assert.match(container.textContent,/Call with Adrian1 Jun 2099, 13:00 UK/);assert.match(container.textContent,/Next Action Date02\/01\/2026/);assert.equal(container.querySelectorAll('time').length,3);await React.act(async()=>{meetingView.unmount();});
@@ -87,4 +87,12 @@ test('pipeline filters and paginates server-side and opens the correct contact h
   await React.act(async()=>scheduledTable.onAdrianCall(scheduledTable.rows[0]));
   const handoff=new URL(calls.at(-1).url).searchParams;assert.equal(handoff.get('status'),'ToAdrian');assert.equal(handoff.get('search'),'Fixture');assert.equal(handoff.get('source'),'');assert.equal(handoff.get('inboundDays'),'0');assert.equal(handoff.get('offset'),'0');assert.equal(history.contactId,'scheduled-2');
  }finally{await React.act(async()=>root.unmount());global.fetch=previous;dom.window.close();delete global.window;delete global.document;}
+});
+
+
+test('meeting/action cell displays booked calls, Adrian calls, other future contacts and a date-only action',()=>{
+ const mod={exports:{}};new Function('require','module','exports',ts.transpileModule(fs.readFileSync('src/components/LeadNextMeetings.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText)(require,mod,mod.exports);
+ const html=require('react-dom/server').renderToStaticMarkup(React.createElement(mod.exports.default,{meetings:[{id:'call',atUtc:'2099-01-02T10:00:00Z',kind:'call'},{id:'adrian',atUtc:'2099-01-03T11:00:00Z',kind:'adrian'},{id:'contact',atUtc:'2099-01-04T12:00:00Z',kind:'contact'}],nextActionDate:'2099-01-05'}));
+ for(const label of ['Booked call','Call with Adrian','Next contact','Next Action Date','05/01/2099'])assert.ok(html.includes(label),label);
+ assert.ok(new JSDOM(html).window.document.querySelector('time[datetime="2099-01-05"]'));assert.ok(html.includes(' UK'));
 });
