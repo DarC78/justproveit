@@ -7,7 +7,7 @@ export default function UploadWhatsAppPicture({token,contactId,intentId,phone,pi
  useEffect(()=>()=>{if(picture?.previewUrl)URL.revokeObjectURL(picture.previewUrl);},[picture?.previewUrl]);
  async function upload(file:File){
   if(flight.current||disabled||!phone)return;
-  if(!['image/jpeg','image/png','application/pdf'].includes(file.type)||!file.size||file.size>5*1024*1024){setError('Choose a JPEG or PNG picture, or a PDF, up to 5 MB.');return;}
+  if(!['image/jpeg','image/png','application/pdf'].includes(file.type)||!file.size||file.size>(file.type==='application/pdf'?50:5)*1024*1024){setError('Choose a JPEG or PNG picture up to 5 MB, or a PDF up to 50 MB.');return;}
   flight.current=true;setBusy(true);onBusyChange(true);setError('');
   try{
    const base64=await new Promise<string>((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>typeof reader.result==='string'?resolve(reader.result.slice(reader.result.indexOf(',')+1)):reject(Error('Unable to read this attachment.'));reader.onerror=()=>reject(Error('Unable to read this attachment.'));reader.readAsDataURL(file);});

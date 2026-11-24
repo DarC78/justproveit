@@ -1477,7 +1477,7 @@ export async function getPhoneHistoryImage(token:string,targetKind:"contact"|"bo
  if(!["image/jpeg","image/png","image/webp","image/gif"].includes(blob.type))throw new Error("Unsupported photo format.");return blob;
 }
 export async function getReplyPictureImage(token:string,messageId:string,signal?:AbortSignal):Promise<Blob>{
- const r=await fetch(resolveUrl(CANONICAL_READ_API_BASE_URL,`${BASE_PATH}/whatsapp/reply-pictures/${encodeURIComponent(messageId)}`),{headers:authHeaders(token),cache:'no-store',signal});if(!r.ok)throw Error('Picture unavailable.');const blob=await r.blob();if(!['image/jpeg','image/png','application/pdf'].includes(blob.type)||blob.size>5*1024*1024)throw Error('Picture unavailable.');return blob;
+ const r=await fetch(resolveUrl(CANONICAL_READ_API_BASE_URL,`${BASE_PATH}/whatsapp/reply-pictures/${encodeURIComponent(messageId)}`),{headers:authHeaders(token),cache:'no-store',signal});if(!r.ok)throw Error('Picture unavailable.');const blob=await r.blob();if(!['image/jpeg','image/png','application/pdf'].includes(blob.type)||blob.size>(blob.type==='application/pdf'?50:5)*1024*1024)throw Error('Picture unavailable.');return blob;
 }
 export function getCrmEmailHistory(token:string,kind:"contact"|"booking",id:string,cursor:string|null=null,signal?:AbortSignal){
  return fetchCanonicalCrmReadJson<{items:CrmEmailEvent[];nextCursor:string|null;systemArchivePending?:boolean}>(BASE_PATH+"/"+(kind==="contact"?"contacts":"scheduled-calls")+"/"+encodeURIComponent(id)+"/emails"+(cursor?"?cursor="+encodeURIComponent(cursor):""),{headers:authHeaders(token),cache:"no-store",signal});
@@ -1526,5 +1526,5 @@ export async function getCallListeningAudio(token:string,contactId:string,callId
  const blob=await response.blob();if(!blob.type.startsWith('audio/')||blob.size<16||blob.size>25*1024*1024)throw Error('The recording could not be played.');return blob;
 }
 
-export type AgentMessageTemplate = {id:string;name:string;text:string|null};
+export type AgentMessageTemplate = {id:string;name:string;text:string|null;body?:string};
 export function getComposerAgentTemplates(token:string){return fetchCanonicalCrmReadJson<{templates:AgentMessageTemplate[];agentName:string|null;error:string|null}>(`${BASE_PATH}/whatsapp-composer/agent-templates`,{headers:authHeaders(token)});}
