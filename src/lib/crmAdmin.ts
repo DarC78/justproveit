@@ -1526,5 +1526,5 @@ export async function getCallListeningAudio(token:string,contactId:string,callId
  const blob=await response.blob();if(!blob.type.startsWith('audio/')||blob.size<16||blob.size>25*1024*1024)throw Error('The recording could not be played.');return blob;
 }
 
-export type AgentMessageTemplate = {id:string;name:string;text:string|null};
+export type AgentMessageTemplate = {id:string;name:string;text:string|null;body?:string};
 export function getComposerAgentTemplates(token:string){return fetchCanonicalCrmReadJson<{templates:AgentMessageTemplate[];agentName:string|null;error:string|null}>(`${BASE_PATH}/whatsapp-composer/agent-templates`,{headers:authHeaders(token)});}

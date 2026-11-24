@@ -47,9 +47,9 @@ all of them. Existing legacy call links and message/reply routing are preserved.
 
 The shared composer uses the label Templates. Approved Meta options show Meta -
 before the unchanged provider name; the API still receives the exact original name
-and language. AGENTS - OFFER, FU1–FU3 and FUNA1–FUNA3 load independently from
+and language. AGENTS - OFFER, FU1ï¿½FU3 and FUNA1ï¿½FUNA3 load independently from
 GET /justproveit/admin/crm/whatsapp-composer/agent-templates. Selection fills editable
 plain text with the signed-in agent's live Mediatel Full Name; it sends nothing.
-Missing verified names disable these options and explain how to repair the mapping.
+When no verified name is available, the draft uses a manual [Numele agentului] placeholder. The agent edits the signature in the message. Sending and scheduling are blocked until the placeholder is replaced; a blank closing also remains blocked. Automatic Mediatel signatures are unchanged. This fallback was explicitly authorized by the user on 24 November 2026.
 The existing send/schedule route rechecks channel, opt-out and idempotency normally.
 The maintained corrected copy is in backend docs/systems/crm-agent-message-templates.md.
