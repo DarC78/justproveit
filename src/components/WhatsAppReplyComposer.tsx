@@ -33,7 +33,7 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
   }
   const media=template?.components.find(c=>c.type==="HEADER"&&["IMAGE","VIDEO","DOCUMENT"].includes(c.format||""));
   const selectedAgent=agentTemplates.find(item=>"agent:"+item.id===selected);
-  const missingSignature=text.includes("[Numele agentului]")||!!selectedAgent&&!selectedAgent.text&&text.trim().endsWith("O zi bună,");
+  const missingSignature=!template&&(text.includes("[Numele agentului]")||!!selectedAgent&&!selectedAgent.text&&text.trim().endsWith("O zi bună,"));
   const valid=!missingSignature&&(template?fields.every(field=>!!values[field.key]?.trim())&&(!media||/^https:\/\//i.test(headerUrl)):picture?text.trim().length<=1024:!!text.trim());
   const preview=template?.components.filter(c=>c.text).map(c=>(c.text||"").replace(/\{\{(\w+)\}\}/g,(match,name)=>values[c.type.toLowerCase()+":"+name]||match)).join("\n\n");
   const unresolved=!!attempt.current&&(!!error||result?.status==="processing"||result?.status==='queued');

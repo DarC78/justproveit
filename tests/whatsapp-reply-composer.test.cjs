@@ -111,3 +111,10 @@ test('unmapped agent can choose a draft, fill its manual signature and send only
  f.find(tree,'textarea').props.onChange({target:{value:f.find(tree,'textarea').props.value.replace('[Numele agentului]','Elena Mailat')}});
  await submit(f.render());assert.equal(calls.length,1);assert.ok(calls[0][2].text.endsWith('O zi bun\u0103,\nElena Mailat'));assert.equal(calls[0][2].templateName,undefined);
 });
+
+test('unfinished manual signature cannot leak through free text and does not block an approved Meta template',async()=>{
+ const calls=[],f=fixture(async(...args)=>{calls.push(args);return{status:'accepted'};},[{name:'approved',language:'ro',components:[{type:'BODY',text:'Approved body'}]}],{agentTemplates:[{id:'fu1',name:'AGENTS - FU1',text:null,body:'Draft'}]});
+ await f.load();f.find(f.render(),'select').props.onChange({target:{value:'agent:fu1'}});
+ f.find(f.render(),'select').props.onChange({target:{value:''}});await submit(f.render());assert.equal(calls.length,0);
+ f.find(f.render(),'select').props.onChange({target:{value:'approved:ro'}});await submit(f.render());assert.equal(calls.length,1);assert.equal(calls[0][2].templateName,'approved');assert.equal(calls[0][2].text,undefined);
+});
