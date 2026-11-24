@@ -21,6 +21,7 @@ const rows=Array.from({length:7},(_,n)=>({contactId:`contact-${n}`,name:`Matchin
 const crm={ async getLeadPrivateDataAvailability(){return {hasPrivateData:false};},
  async getWhatsAppReplyRouting(){return {channel:'mediatel',channelLabel:'WhatsApp Mediatel',reason:'latest_mediatel_open',available:true};},
  async getContactPhoneHistory(token,id){calls.histories.push(id);return {contactId:id,phone:rows.find(row=>row.contactId===id).phone,whatsAppMessages:1,calls:0,events:[{kind:'whatsapp',id:`event-${id}`,atUtc:'2026-11-01T10:00:00Z',direction:'inbound',author:'Client',text:`History for ${id}`,messageType:'text',status:'recorded'}]};},
+ async getComposerAgentTemplates(){return {templates:[],error:null};},
  async getComposerTemplates(){return {templates:[{name:'approved-template',language:'ro',components:[{type:'BODY',text:'Approved greeting'}]}]};},
  async sendContactWhatsAppReply(token,id,body){calls.sends.push({id,body});return {id:'send-1',status:'accepted'};},
  async sendScheduledWhatsAppReply(){assert.fail('A booking must not be required for lead replies');}
