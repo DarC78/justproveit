@@ -23,7 +23,7 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
   const [selected,setSelected]=useState(""),[values,setValues]=useState<Record<string,string>>({}),[headerUrl,setHeaderUrl]=useState("");
   useEffect(()=>{let active=true;getComposerTemplates(token).then(result=>{if(active)setTemplates(result.templates);}).catch(()=>{if(active)setTemplateError("Unable to load approved Meta templates. Free text is still available.");});return()=>{active=false;};},[token]);
   const [agentTemplates,setAgentTemplates]=useState<AgentMessageTemplate[]>([]),[agentTemplateError,setAgentTemplateError]=useState("");
-  useEffect(()=>{let active=true;setAgentTemplates([]);setAgentTemplateError("");getComposerAgentTemplates(token).then(result=>{if(active){setAgentTemplates(result.templates);setAgentTemplateError(result.error||"");}}).catch(()=>{if(active)setAgentTemplateError("Unable to load agent templates. Free text is still available.");});return()=>{active=false;};},[token]);
+  useEffect(()=>{let active=true;setAgentTemplates([]);setAgentTemplateError("");getComposerAgentTemplates(token).then(result=>{if(active){setAgentTemplates(result.templates);setAgentTemplateError(result.error?(result.templates.some(item=>item.body)?"Numele din Mediatel nu este disponibil. Completați manual semnătura în mesaj.":result.error):"");}}).catch(()=>{if(active)setAgentTemplateError("Unable to load agent templates. Free text is still available.");});return()=>{active=false;};},[token]);
   const template=templates.find(item=>item.name+":"+item.language===selected);
   const fields:Array<{key:string;label:string}>=[];
   for(const component of template?.components||[]){
@@ -32,7 +32,9 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
     for(const [index,button] of (component.buttons||[]).entries())if(button.url?.includes("{{"))fields.push({key:"button:"+index,label:"Button "+(index+1)+" value"});
   }
   const media=template?.components.find(c=>c.type==="HEADER"&&["IMAGE","VIDEO","DOCUMENT"].includes(c.format||""));
-  const valid=template?fields.every(field=>!!values[field.key]?.trim())&&(!media||/^https:\/\//i.test(headerUrl)):picture?text.trim().length<=1024:!!text.trim();
+  const selectedAgent=agentTemplates.find(item=>"agent:"+item.id===selected);
+  const missingSignature=!template&&(text.includes("[Numele agentului]")||!!selectedAgent&&!selectedAgent.text&&text.trim().endsWith("O zi bună,"));
+  const valid=!missingSignature&&(template?fields.every(field=>!!values[field.key]?.trim())&&(!media||/^https:\/\//i.test(headerUrl)):picture?text.trim().length<=1024:!!text.trim());
   const preview=template?.components.filter(c=>c.text).map(c=>(c.text||"").replace(/\{\{(\w+)\}\}/g,(match,name)=>values[c.type.toLowerCase()+":"+name]||match)).join("\n\n");
   const unresolved=!!attempt.current&&(!!error||result?.status==="processing"||result?.status==='queued');
   async function submit(event:FormEvent) {
@@ -68,10 +70,10 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
   }
   return <section className="reply-composer"><form id={fieldId+"-form"} onSubmit={submit} aria-label="Reply on WhatsApp">
     <label htmlFor={fieldId+"-template"}>Templates</label>
-    <select id={fieldId+"-template"} value={selected} disabled={uploading||!!picture||proposing||sending||scheduleLocked||unresolved} onChange={event=>{setSelected(event.target.value);const agent=agentTemplates.find(item=>"agent:"+item.id===event.target.value);if(agent?.text)setText(agent.text);setValues({});setHeaderUrl("");setResult(null);setError("");}}>
-      <option value="">Free text message</option>{agentTemplates.map(item=><option disabled={!item.text} key={"agent:"+item.id} value={"agent:"+item.id}>{item.name}</option>)}{templates.map(item=><option disabled={routing?.channel==='agents'} key={item.name+":"+item.language} value={item.name+":"+item.language}>Meta - {item.name} ({item.language})</option>)}
+    <select id={fieldId+"-template"} value={selected} disabled={uploading||!!picture||proposing||sending||scheduleLocked||unresolved} onChange={event=>{setSelected(event.target.value);const agent=agentTemplates.find(item=>"agent:"+item.id===event.target.value);if(agent)setText(agent.text||(agent.body?agent.body+"\n\nO zi bună,\n[Numele agentului]":""));setValues({});setHeaderUrl("");setResult(null);setError("");}}>
+      <option value="">Free text message</option>{agentTemplates.map(item=><option disabled={!item.text&&!item.body} key={"agent:"+item.id} value={"agent:"+item.id}>{item.name}</option>)}{templates.map(item=><option disabled={routing?.channel==='agents'} key={item.name+":"+item.language} value={item.name+":"+item.language}>Meta - {item.name} ({item.language})</option>)}
     </select>
-    {agentTemplateError&&<p role="alert" className="failure">{agentTemplateError}</p>}
+    {agentTemplateError&&<p role="status" className="help">{agentTemplateError}</p>}
     {templateError&&<p role="alert" className="failure">{templateError}</p>}
     {fields.map(field=><label key={field.key}>{field.label}<input maxLength={1024} disabled={proposing||sending||scheduleLocked||unresolved} value={values[field.key]||""} onChange={event=>setValues({...values,[field.key]:event.target.value})}/></label>)}
     {media&&<label>{media.format} attachment URL<input type="url" disabled={proposing||sending||scheduleLocked||unresolved} value={headerUrl} placeholder="https://..." onChange={event=>setHeaderUrl(event.target.value)}/></label>}
@@ -79,6 +81,7 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
     <p className="help">Send to {phone}. {routing?<>Reply channel: <strong>{routing.channelLabel}</strong>. {routing.reason==='mediatel_window_closed'||routing.reason==='no_open_mediatel_window'?'The Mediatel 24-hour window is closed. The first WhatsApp Agenti reply adds an introduction only if your message has no greeting.':'Uses the channel of the latest incoming WhatsApp message.'} {!routing.available&&'WhatsApp Agenti is not available yet. Please contact an administrator.'}</>:routingError?'Reply channel could not be verified.':'Checking the latest reply channel...'} The channel is checked again when you send.</p>
     {routingError&&<p role="alert" className="failure">{routingError}</p>}
 
+    {missingSignature&&<p className="help">Înlocuiți [Numele agentului] cu numele dumneavoastră înainte de trimitere sau programare.</p>}
     <textarea id={fieldId+"-reply"} rows={template?12:4} maxLength={picture?1024:4096} value={template?preview:text} disabled={uploading||proposing||sending||scheduleLocked||unresolved||!!template}
       onChange={event=>{setText(event.target.value);setResult(null);setError("");}} placeholder="Type your WhatsApp reply…" />
     </form><div className="actions"><small>{template?"Approved template preview":text.length+'/'+(picture?1024:4096)}</small><div className="send-actions"><button type="submit" form={fieldId+"-form"} disabled={uploading||proposing||sending||scheduleLocked||(!unresolved&&(!valid||!routing?.available||Boolean(template&&routing.channel==='agents')))}>
