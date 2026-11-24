@@ -5,7 +5,7 @@ function fixture(send,templates,options={}){
  const exports={};const source=ts.transpileModule(fs.readFileSync('src/components/WhatsAppReplyComposer.tsx','utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2020,jsx:ts.JsxEmit.ReactJSX}}).outputText;
  const react={useId:()=>"reply-fixture",useState(initial){const i=stateIndex++;if(!(i in states))states[i]=initial;return [states[i],v=>{states[i]=typeof v==='function'?v(states[i]):v;}];},useRef(initial){const i=refIndex++;return refs[i]||(refs[i]={current:initial});},useEffect(effect){if(templates)effects.push(effect);}};
  const jsx=(type,props)=>({type,props});
- vm.runInNewContext(source,{exports,process:{env:{}},fetch:options.fetch,crypto:{randomUUID:()=> 'fixed-request-id'},require:name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:{API_BASE_URL:'https://api.invalid',sendContactWhatsAppReply:send,sendScheduledWhatsAppReply:send,getComposerTemplates:async()=>({templates}),getWhatsAppReplyRouting:async()=>({channel:'mediatel',channelLabel:'WhatsApp Mediatel',available:true,reason:'latest_mediatel_open'})}});
+ vm.runInNewContext(source,{exports,process:{env:{}},fetch:options.fetch,crypto:{randomUUID:()=> 'fixed-request-id'},require:name=>name==='react'?react:name==='react/jsx-runtime'?{jsx,jsxs:jsx}:{API_BASE_URL:'https://api.invalid',sendContactWhatsAppReply:send,sendScheduledWhatsAppReply:send,getComposerTemplates:async()=>({templates}),getComposerAgentTemplates:async()=>({templates:options.agentTemplates||[],error:options.agentError||null}),getWhatsAppReplyRouting:async()=>({channel:'mediatel',channelLabel:'WhatsApp Mediatel',available:true,reason:'latest_mediatel_open'})}});
  function render(){stateIndex=0;refIndex=0;return exports.default({token:'token',intentId:'booking',...(options.contactId?{contactId:options.contactId}:{}),phone:'447700900001',onSent:()=>updated++});}
  function find(node,type){if(!node||typeof node!=='object')return null;if(node.type===type)return node;const children=node.props?.children;for(const child of Array.isArray(children)?children:[children]){const result=find(child,type);if(result)return result;}return null;}
  return {render,find,updated:()=>updated,async load(){render();for(const effect of effects.splice(0))effect();await Promise.resolve();await Promise.resolve();}};
@@ -84,4 +84,21 @@ test('proposal fills the shared textbox without sending; uncertain generation pr
 test('booking-based reply forms show the proposal button and use the booking-scoped endpoint',async()=>{
  let calls=0;const f=fixture(async()=>{throw Error('must not send');},null,{fetch:async(url)=>{calls++;assert.match(url,/scheduled-calls\/booking\/proposed-reply$/);return{ok:true,json:async()=>({success:true,intentId:'booking',contactId:'resolved',text:'Booking conversation answer'})};}});
  const button=proposalButton(f.render());assert.ok(button);button.props.onClick();await new Promise(setImmediate);assert.equal(f.find(f.render(),'textarea').props.value,'Booking conversation answer');assert.equal(calls,1);
+});
+
+test('agent template selection fills editable signed text without sending and submits edited plain text',async()=>{
+ const calls=[],draft='Bună ziua,\n\nMulțumesc pentru discuție.\n\nO zi bună,\nAndreea Anca';
+ const f=fixture(async(...args)=>{calls.push(args);return{status:'accepted'};},[],{agentTemplates:[{id:'fu1',name:'AGENTS - FU1',text:draft}]});
+ await f.load();let tree=f.render();assert.match(JSON.stringify(tree),/Templates/);
+ f.find(tree,'select').props.onChange({target:{value:'agent:fu1'}});
+ tree=f.render();assert.equal(calls.length,0);assert.equal(f.find(tree,'textarea').props.value,draft);assert.equal(f.find(tree,'textarea').props.disabled,false);
+ f.find(tree,'textarea').props.onChange({target:{value:draft+'\nPersonalizat'}});await submit(f.render());
+ assert.equal(calls[0][2].text,draft+'\nPersonalizat');assert.equal(calls[0][2].templateName,undefined);
+});
+test('Meta display prefix preserves the exact provider name and missing signature disables agent draft',async()=>{
+ const f=fixture(async()=>{},[{name:'provider_original_name',language:'ro',components:[]}],{agentTemplates:[{id:'offer',name:'AGENTS - OFFER',text:null}],agentError:'Numele complet din Mediatel nu este disponibil.'});
+ await f.load();const tree=f.render(),all=n=>!n||typeof n!=='object'?[]:[n,...[n.props?.children].flat(Infinity).flatMap(all)];
+ const opts=all(tree).filter(n=>n.type==='option');assert.equal(opts.find(n=>n.props.value==='agent:offer').props.disabled,true);
+ const meta=opts.find(n=>n.props.value==='provider_original_name:ro');assert.equal(meta.props.children[0],'Meta - ');assert.equal(meta.props.children[1],'provider_original_name');
+ assert.match(JSON.stringify(tree),/Numele complet din Mediatel/);
 });

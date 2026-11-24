@@ -2,7 +2,7 @@ import {API_BASE_URL} from '@/lib/auth';
 import ScheduleWhatsAppReply from './ScheduleWhatsAppReply';
 import UploadWhatsAppPicture,{type UploadedWhatsAppPicture} from './UploadWhatsAppPicture';
 import {FormEvent, useEffect, useId, useRef, useState} from "react";
-import {sendContactWhatsAppReply,sendScheduledWhatsAppReply, WhatsAppReplyResult, ComposerRequest, ComposerTemplate, getComposerTemplates,getWhatsAppReplyRouting,WhatsAppReplyRouting} from "@/lib/crmAdmin";
+import {sendContactWhatsAppReply,sendScheduledWhatsAppReply, WhatsAppReplyResult, ComposerRequest, ComposerTemplate, AgentMessageTemplate, getComposerAgentTemplates, getComposerTemplates,getWhatsAppReplyRouting,WhatsAppReplyRouting} from "@/lib/crmAdmin";
 
 export default function WhatsAppReplyComposer({token,intentId,contactId,phone,onSent}:{token:string;intentId?:string;contactId?:string;phone:string;name?:string;onSent:(result:WhatsAppReplyResult)=>void}) {
   const fieldId=useId();
@@ -22,6 +22,8 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
   const [templates,setTemplates]=useState<ComposerTemplate[]>([]),[templateError,setTemplateError]=useState("");
   const [selected,setSelected]=useState(""),[values,setValues]=useState<Record<string,string>>({}),[headerUrl,setHeaderUrl]=useState("");
   useEffect(()=>{let active=true;getComposerTemplates(token).then(result=>{if(active)setTemplates(result.templates);}).catch(()=>{if(active)setTemplateError("Unable to load approved Meta templates. Free text is still available.");});return()=>{active=false;};},[token]);
+  const [agentTemplates,setAgentTemplates]=useState<AgentMessageTemplate[]>([]),[agentTemplateError,setAgentTemplateError]=useState("");
+  useEffect(()=>{let active=true;setAgentTemplates([]);setAgentTemplateError("");getComposerAgentTemplates(token).then(result=>{if(active){setAgentTemplates(result.templates);setAgentTemplateError(result.error||"");}}).catch(()=>{if(active)setAgentTemplateError("Unable to load agent templates. Free text is still available.");});return()=>{active=false;};},[token]);
   const template=templates.find(item=>item.name+":"+item.language===selected);
   const fields:Array<{key:string;label:string}>=[];
   for(const component of template?.components||[]){
@@ -65,10 +67,11 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
     finally{busy.current=false;if(mounted.current)setProposing(false);}
   }
   return <section className="reply-composer"><form id={fieldId+"-form"} onSubmit={submit} aria-label="Reply on WhatsApp">
-    <label htmlFor={fieldId+"-template"}>Meta template</label>
-    <select id={fieldId+"-template"} value={selected} disabled={uploading||!!picture||proposing||sending||scheduleLocked||unresolved} onChange={event=>{setSelected(event.target.value);setValues({});setHeaderUrl("");setResult(null);setError("");}}>
-      <option value="">Free text message</option>{templates.map(item=><option disabled={routing?.channel==='agents'} key={item.name+":"+item.language} value={item.name+":"+item.language}>{item.name} ({item.language})</option>)}
+    <label htmlFor={fieldId+"-template"}>Templates</label>
+    <select id={fieldId+"-template"} value={selected} disabled={uploading||!!picture||proposing||sending||scheduleLocked||unresolved} onChange={event=>{setSelected(event.target.value);const agent=agentTemplates.find(item=>"agent:"+item.id===event.target.value);if(agent?.text)setText(agent.text);setValues({});setHeaderUrl("");setResult(null);setError("");}}>
+      <option value="">Free text message</option>{agentTemplates.map(item=><option disabled={!item.text} key={"agent:"+item.id} value={"agent:"+item.id}>{item.name}</option>)}{templates.map(item=><option disabled={routing?.channel==='agents'} key={item.name+":"+item.language} value={item.name+":"+item.language}>Meta - {item.name} ({item.language})</option>)}
     </select>
+    {agentTemplateError&&<p role="alert" className="failure">{agentTemplateError}</p>}
     {templateError&&<p role="alert" className="failure">{templateError}</p>}
     {fields.map(field=><label key={field.key}>{field.label}<input maxLength={1024} disabled={proposing||sending||scheduleLocked||unresolved} value={values[field.key]||""} onChange={event=>setValues({...values,[field.key]:event.target.value})}/></label>)}
     {media&&<label>{media.format} attachment URL<input type="url" disabled={proposing||sending||scheduleLocked||unresolved} value={headerUrl} placeholder="https://..." onChange={event=>setHeaderUrl(event.target.value)}/></label>}

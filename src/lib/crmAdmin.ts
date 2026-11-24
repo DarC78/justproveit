@@ -1525,3 +1525,6 @@ export async function getCallListeningAudio(token:string,contactId:string,callId
  if(!response.ok)throw Error(response.status===404?'The recording is not ready yet. Please retry shortly.':'Unable to load this recording. Please retry.');
  const blob=await response.blob();if(!blob.type.startsWith('audio/')||blob.size<16||blob.size>25*1024*1024)throw Error('The recording could not be played.');return blob;
 }
+
+export type AgentMessageTemplate = {id:string;name:string;text:string|null};
+export function getComposerAgentTemplates(token:string){return fetchCanonicalCrmReadJson<{templates:AgentMessageTemplate[];agentName:string|null;error:string|null}>(`${BASE_PATH}/whatsapp-composer/agent-templates`,{headers:authHeaders(token)});}

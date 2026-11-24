@@ -42,3 +42,14 @@ tied/absent activity uses newest lead creation date and stable ID. The panel sho
 all selected lead names. Automatic selection is fixed across that call's updates.
 A manual lead selection replaces all automatic associations, and unlink removes
 all of them. Existing legacy call links and message/reply routing are preserved.
+
+## Agent drafts and Meta template labels
+
+The shared composer uses the label Templates. Approved Meta options show Meta -
+before the unchanged provider name; the API still receives the exact original name
+and language. AGENTS - OFFER, FU1–FU3 and FUNA1–FUNA3 load independently from
+GET /justproveit/admin/crm/whatsapp-composer/agent-templates. Selection fills editable
+plain text with the signed-in agent's live Mediatel Full Name; it sends nothing.
+Missing verified names disable these options and explain how to repair the mapping.
+The existing send/schedule route rechecks channel, opt-out and idempotency normally.
+The maintained corrected copy is in backend docs/systems/crm-agent-message-templates.md.
