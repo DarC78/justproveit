@@ -102,3 +102,19 @@ test('Meta display prefix preserves the exact provider name and missing signatur
  const meta=opts.find(n=>n.props.value==='provider_original_name:ro');assert.equal(meta.props.children[0],'Meta - ');assert.equal(meta.props.children[1],'provider_original_name');
  assert.match(JSON.stringify(tree),/Numele complet din Mediatel/);
 });
+test('unmapped agent can choose a draft, fill its manual signature and send only after replacing the placeholder',async()=>{
+ const calls=[],f=fixture(async(...args)=>{calls.push(args);return{status:'accepted'};},[],{contactId:'contact',agentTemplates:[{id:'fu1',name:'AGENTS - FU1',text:null,body:'Bun\u0103 ziua,\n\nMul\u021bumesc pentru discu\u021bie.'}],agentError:'Missing Mediatel mapping'});
+ await f.load();f.find(f.render(),'select').props.onChange({target:{value:'agent:fu1'}});
+ let tree=f.render();assert.match(f.find(tree,'textarea').props.value,/\[Numele agentului\]/);assert.equal(f.find(tree,'textarea').props.disabled,false);
+ const walk=n=>!n||typeof n!=='object'?[]:[n,...[n.props?.children].flat(Infinity).flatMap(walk)];assert.equal(walk(tree).find(n=>typeof n.props?.onScheduled==='function').props.disabled,true);
+ await submit(tree);assert.equal(calls.length,0);
+ f.find(tree,'textarea').props.onChange({target:{value:f.find(tree,'textarea').props.value.replace('[Numele agentului]','Elena Mailat')}});
+ await submit(f.render());assert.equal(calls.length,1);assert.ok(calls[0][2].text.endsWith('O zi bun\u0103,\nElena Mailat'));assert.equal(calls[0][2].templateName,undefined);
+});
+
+test('unfinished manual signature cannot leak through free text and does not block an approved Meta template',async()=>{
+ const calls=[],f=fixture(async(...args)=>{calls.push(args);return{status:'accepted'};},[{name:'approved',language:'ro',components:[{type:'BODY',text:'Approved body'}]}],{agentTemplates:[{id:'fu1',name:'AGENTS - FU1',text:null,body:'Draft'}]});
+ await f.load();f.find(f.render(),'select').props.onChange({target:{value:'agent:fu1'}});
+ f.find(f.render(),'select').props.onChange({target:{value:''}});await submit(f.render());assert.equal(calls.length,0);
+ f.find(f.render(),'select').props.onChange({target:{value:'approved:ro'}});await submit(f.render());assert.equal(calls.length,1);assert.equal(calls[0][2].templateName,'approved');assert.equal(calls[0][2].text,undefined);
+});
