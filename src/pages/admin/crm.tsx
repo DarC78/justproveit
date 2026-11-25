@@ -1,3 +1,4 @@
+import AccountancyPanel from '@/components/AccountancyPanel';
 import AgentActivityChart from "@/components/AgentActivityChart";
 import AgentCrmMetrics from '@/components/AgentCrmMetrics';
 import type {AgentCrmProductivity} from '@/lib/crmAdmin';
@@ -1237,6 +1238,7 @@ export default function AdminCrmPage() {
               ) : null}
 
               {activeTab === "privatePensions" && canUsePrivatePensions ? <PrivatePensionsPanel token={token} /> : null}
+              {activeTab === "accountancy" ? <AccountancyPanel token={token} /> : null}
               {["scheduledCalls","attention","allCustomersView","all"].includes(activeTab)&&<CrmEmailConnections token={token}/>}
               {activeTab === "scheduledCalls" ? <ScheduledCallsPanel token={token} /> : null}
               {activeTab === "attention" ? <AttentionPanel token={token} /> : null}
