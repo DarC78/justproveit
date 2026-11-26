@@ -68,7 +68,7 @@ test('approved template selector sends exact language and values and leaves free
  // Template variables are rendered as an array of labeled inputs.
  function input(node){if(!node||typeof node!=='object')return null;if(Array.isArray(node)){for(const child of node){const found=input(child);if(found)return found;}return null;}if(node.type==='input')return node;return input(node.props?.children);}
  input(tree).props.onChange({target:{value:'Ana'}});
- tree=f.render();assert.equal(f.find(tree,'textarea').props.value,'Buna Ana');assert.equal(f.find(tree,'button').props.disabled,false);
+ tree=f.render();const walk=n=>!n||typeof n!=='object'?[]:[n,...[n.props?.children].flat(Infinity).flatMap(walk)];const sms=walk(tree).find(n=>n.props?.onLockChange&&n.props?.onSent);assert.ok(sms);assert.equal(sms.props.text,'Buna Ana');assert.equal(sms.props.disabled,false);assert.equal(f.find(tree,'textarea').props.value,'Buna Ana');assert.equal(f.find(tree,'button').props.disabled,false);
  await submit(tree);assert.equal(calls[0][2].templateName,'pensii_private_voicemail');assert.equal(calls[0][2].templateLanguage,'ro');assert.equal(calls[0][2].parameters['body:1'],'Ana');
  f.find(f.render(),'select').props.onChange({target:{value:''}});assert.equal(f.find(f.render(),'textarea').props.disabled,false);
 });
