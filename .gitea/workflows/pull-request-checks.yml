@@ -30,7 +30,7 @@ jobs:
           node --test tests/pipeline-scheduled-table.test.cjs
           node --test tests/pension-agent-workflow.test.cjs
           node --test tests/scheduled-reply.test.cjs
-          node --test tests/upload-whatsapp-picture.test.cjs tests/whatsapp-day-download.test.cjs
+          node --test tests/upload-whatsapp-picture.test.cjs tests/whatsapp-day-download.test.cjs tests/send-composer-sms.test.cjs
           node --test tests/lead-private-workspace.test.cjs
           node --test tests/contact-start-simulation.test.cjs
           node --test tests/whatsapp-gateway-crm.test.cjs

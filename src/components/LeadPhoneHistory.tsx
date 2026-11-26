@@ -30,7 +30,7 @@ export default function LeadPhoneHistory({token,contactId,phone,name,onReplied,o
   return()=>controller.abort();
  },[token,contactId,phone,revision,page,conversation,refreshKey]);
  return <section aria-label={`History for ${name||phone||"lead"}`}>
-  {phone&&<div className="history-reply"><WhatsAppReplyComposer key={contactId+phone} token={token} contactId={contactId} phone={phone} name={name} onSent={result=>{setRevision(n=>n+1);if(['accepted','sent','delivered','read'].includes(result.status))onReplied?.();}}/></div>}
+  {phone&&<div className="history-reply"><WhatsAppReplyComposer key={contactId+phone} token={token} contactId={contactId} phone={phone} name={name} onSmsSent={()=>setRevision(n=>n+1)} onSent={result=>{setRevision(n=>n+1);if(['accepted','sent','delivered','read'].includes(result.status))onReplied?.();}}/></div>}
   <LeadPrivateData key={token+contactId} token={token} contactId={contactId}/>
   <header><div><h3>{conversation?'Conversation':'Calls, WhatsApp, SMS & email history'}</h3><p>{name||"Lead"} · {phone||"No phone number recorded"} · Newest first · UK time</p>{conversation&&<p>Includes incoming messages and replies sent from CRM or synced from the WhatsApp app.</p>}</div>
    <div className="history-controls">
