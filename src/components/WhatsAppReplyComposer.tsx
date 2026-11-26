@@ -1,16 +1,18 @@
+import SendComposerSms from './SendComposerSms';
 import {API_BASE_URL} from '@/lib/auth';
 import ScheduleWhatsAppReply from './ScheduleWhatsAppReply';
 import UploadWhatsAppPicture,{type UploadedWhatsAppPicture} from './UploadWhatsAppPicture';
 import {FormEvent, useEffect, useId, useRef, useState} from "react";
 import {sendContactWhatsAppReply,sendScheduledWhatsAppReply, WhatsAppReplyResult, ComposerRequest, ComposerTemplate, AgentMessageTemplate, getComposerAgentTemplates, getComposerTemplates,getWhatsAppReplyRouting,WhatsAppReplyRouting} from "@/lib/crmAdmin";
 
-export default function WhatsAppReplyComposer({token,intentId,contactId,phone,onSent}:{token:string;intentId?:string;contactId?:string;phone:string;name?:string;onSent:(result:WhatsAppReplyResult)=>void}) {
+export default function WhatsAppReplyComposer({token,intentId,contactId,phone,onSent,onSmsSent}:{token:string;intentId?:string;contactId?:string;phone:string;name?:string;onSent:(result:WhatsAppReplyResult)=>void;onSmsSent?:()=>void}) {
   const fieldId=useId();
   const [text,setText]=useState("");
   const [sending,setSending]=useState(false);
   const [picture,setPicture]=useState<UploadedWhatsAppPicture|null>(null),[uploading,setUploading]=useState(false);
   const [proposing,setProposing]=useState(false);
   const [scheduleLocked,setScheduleLocked]=useState(false);
+  const [smsLocked,setSmsLocked]=useState(false);
   const [result,setResult]=useState<WhatsAppReplyResult|null>(null);
   const [error,setError]=useState("");
   const [routing,setRouting]=useState<WhatsAppReplyRouting|null>(null),[routingError,setRoutingError]=useState(''),[routingRevision,setRoutingRevision]=useState(0);
@@ -38,7 +40,7 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
   const preview=template?.components.filter(c=>c.text).map(c=>(c.text||"").replace(/\{\{(\w+)\}\}/g,(match,name)=>values[c.type.toLowerCase()+":"+name]||match)).join("\n\n");
   const unresolved=!!attempt.current&&(!!error||result?.status==="processing"||result?.status==='queued');
   async function submit(event:FormEvent) {
-    event.preventDefault();if(busy.current||uploading||scheduleLocked||(!attempt.current&&!valid))return;
+    event.preventDefault();if(busy.current||uploading||scheduleLocked||smsLocked||(!attempt.current&&!valid))return;
     busy.current=true;setSending(true);setError("");
     const current=attempt.current||{requestId:crypto.randomUUID(),...(template?{templateName:template.name,templateLanguage:template.language,parameters:values,headerUrl}:{text:text.trim(),...(picture?{pictureId:picture.pictureId}:{})})};
     attempt.current=current;
@@ -57,7 +59,7 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
     } finally {busy.current=false;if(mounted.current)setSending(false);}
   }
   async function propose(){
-    if(busy.current||uploading||scheduleLocked||unresolved||(!contactId&&!intentId))return;
+    if(busy.current||uploading||scheduleLocked||smsLocked||unresolved||(!contactId&&!intentId))return;
     busy.current=true;setProposing(true);setError("");
     try{
       const base=(process.env.NEXT_PUBLIC_JPI_CRM_READ_API_BASE_URL||API_BASE_URL).replace(/\/+$/,'');
@@ -70,22 +72,22 @@ export default function WhatsAppReplyComposer({token,intentId,contactId,phone,on
   }
   return <section className="reply-composer"><form id={fieldId+"-form"} onSubmit={submit} aria-label="Reply on WhatsApp">
     <label htmlFor={fieldId+"-template"}>Templates</label>
-    <select id={fieldId+"-template"} value={selected} disabled={uploading||!!picture||proposing||sending||scheduleLocked||unresolved} onChange={event=>{setSelected(event.target.value);const agent=agentTemplates.find(item=>"agent:"+item.id===event.target.value);if(agent)setText(agent.text||(agent.body?agent.body+"\n\nO zi bună,\n[Numele agentului]":""));setValues({});setHeaderUrl("");setResult(null);setError("");}}>
+    <select id={fieldId+"-template"} value={selected} disabled={uploading||!!picture||proposing||sending||scheduleLocked||smsLocked||unresolved} onChange={event=>{setSelected(event.target.value);const agent=agentTemplates.find(item=>"agent:"+item.id===event.target.value);if(agent)setText(agent.text||(agent.body?agent.body+"\n\nO zi bună,\n[Numele agentului]":""));setValues({});setHeaderUrl("");setResult(null);setError("");}}>
       <option value="">Free text message</option>{agentTemplates.map(item=><option disabled={!item.text&&!item.body} key={"agent:"+item.id} value={"agent:"+item.id}>{item.name}</option>)}{templates.map(item=><option disabled={routing?.channel==='agents'} key={item.name+":"+item.language} value={item.name+":"+item.language}>Meta - {item.name} ({item.language})</option>)}
     </select>
     {agentTemplateError&&<p role="status" className="help">{agentTemplateError}</p>}
     {templateError&&<p role="alert" className="failure">{templateError}</p>}
-    {fields.map(field=><label key={field.key}>{field.label}<input maxLength={1024} disabled={proposing||sending||scheduleLocked||unresolved} value={values[field.key]||""} onChange={event=>setValues({...values,[field.key]:event.target.value})}/></label>)}
-    {media&&<label>{media.format} attachment URL<input type="url" disabled={proposing||sending||scheduleLocked||unresolved} value={headerUrl} placeholder="https://..." onChange={event=>setHeaderUrl(event.target.value)}/></label>}
+    {fields.map(field=><label key={field.key}>{field.label}<input maxLength={1024} disabled={proposing||sending||scheduleLocked||smsLocked||unresolved} value={values[field.key]||""} onChange={event=>setValues({...values,[field.key]:event.target.value})}/></label>)}
+    {media&&<label>{media.format} attachment URL<input type="url" disabled={proposing||sending||scheduleLocked||smsLocked||unresolved} value={headerUrl} placeholder="https://..." onChange={event=>setHeaderUrl(event.target.value)}/></label>}
     <label htmlFor={fieldId+"-reply"}>Reply on WhatsApp</label>
     <p className="help">Send to {phone}. {routing?<>Reply channel: <strong>{routing.channelLabel}</strong>. {routing.reason==='mediatel_window_closed'||routing.reason==='no_open_mediatel_window'?'The Mediatel 24-hour window is closed. The first WhatsApp Agenti reply adds an introduction only if your message has no greeting.':'Uses the channel of the latest incoming WhatsApp message.'} {!routing.available&&'WhatsApp Agenti is not available yet. Please contact an administrator.'}</>:routingError?'Reply channel could not be verified.':'Checking the latest reply channel...'} The channel is checked again when you send.</p>
     {routingError&&<p role="alert" className="failure">{routingError}</p>}
 
     {missingSignature&&<p className="help">Înlocuiți [Numele agentului] cu numele dumneavoastră înainte de trimitere sau programare.</p>}
-    <textarea id={fieldId+"-reply"} rows={10} maxLength={picture?1024:4096} value={template?preview:text} disabled={uploading||proposing||sending||scheduleLocked||unresolved||!!template}
+    <textarea id={fieldId+"-reply"} rows={10} maxLength={picture?1024:4096} value={template?preview:text} disabled={uploading||proposing||sending||scheduleLocked||smsLocked||unresolved||!!template}
       onChange={event=>{setText(event.target.value);setResult(null);setError("");}} placeholder="Type your WhatsApp reply…" />
-    </form><div className="actions"><small>{template?"Approved template preview":text.length+'/'+(picture?1024:4096)}</small><div className="send-actions"><button type="submit" form={fieldId+"-form"} disabled={uploading||proposing||sending||scheduleLocked||(!unresolved&&(!valid||!routing?.available||Boolean(template&&routing.channel==='agents')))}>
-      {sending?"Sending…":unresolved?"Check send status":"Send WhatsApp"}</button>{contactId&&<ScheduleWhatsAppReply token={token} contactId={contactId} phone={phone} text={text} pictureId={picture?.pictureId} disabled={uploading||proposing||sending||unresolved||!!template||!valid} onLockChange={setScheduleLocked} onScheduled={()=>{setText("");setPicture(null);setResult(null);setError("");}}/>}{(contactId||intentId)&&<button type="button" disabled={uploading||proposing||sending||scheduleLocked||unresolved} onClick={()=>void propose()}>{proposing?"Proposing...":"Propose an answer"}</button>}<UploadWhatsAppPicture token={token} contactId={contactId} intentId={intentId} phone={phone} picture={picture} disabled={proposing||sending||scheduleLocked||unresolved||!!template} onBusyChange={setUploading} onChange={value=>{setPicture(value);setResult(null);setError('');}}/></div></div>
+    </form><div className="actions"><small>{template?"Approved template preview":text.length+'/'+(picture?1024:4096)}</small><div className="send-actions"><button type="submit" form={fieldId+"-form"} disabled={uploading||proposing||sending||scheduleLocked||smsLocked||(!unresolved&&(!valid||!routing?.available||Boolean(template&&routing.channel==='agents')))}>
+      {sending?"Sending…":unresolved?"Check send status":"Send WhatsApp"}</button>{contactId&&<ScheduleWhatsAppReply token={token} contactId={contactId} phone={phone} text={text} pictureId={picture?.pictureId} disabled={smsLocked||uploading||proposing||sending||unresolved||!!template||!valid} onLockChange={setScheduleLocked} onScheduled={()=>{setText("");setPicture(null);setResult(null);setError("");}}/>}{(contactId||intentId)&&<button type="button" disabled={uploading||proposing||sending||scheduleLocked||smsLocked||unresolved} onClick={()=>void propose()}>{proposing?"Proposing...":"Propose an answer"}</button>}<UploadWhatsAppPicture token={token} contactId={contactId} intentId={intentId} phone={phone} picture={picture} disabled={proposing||sending||scheduleLocked||smsLocked||unresolved||!!template} onBusyChange={setUploading} onChange={value=>{setPicture(value);setResult(null);setError('');}}/><SendComposerSms token={token} contactId={contactId} intentId={intentId} phone={phone} text={text} disabled={uploading||proposing||sending||scheduleLocked||unresolved||!!template||missingSignature} onLockChange={setSmsLocked} onSent={()=>{setText('');onSmsSent?.();}}/></div></div>
     <button type="button" disabled={proposing||sending} onClick={()=>setRoutingRevision(n=>n+1)}>Refresh reply channel</button>
     {error?<p role="alert" className="failure">{error}</p>:result&&<p role={result.status==="failed"?"alert":"status"} className={result.status==="failed"?"failure":"feedback"}>
       {result.status==="failed"?result.errorMessage||"WhatsApp could not deliver the reply. Your text has been kept.":

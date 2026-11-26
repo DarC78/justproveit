@@ -1378,6 +1378,10 @@ export function sendPublicManualCrmEmail(payload: ManualCrmEmailPayload) {
   });
 }
 
+export function sendCrmComposerSms(token:string,kind:'contact'|'booking',id:string,payload:{requestId:string;text:string;expectedPhone:string}){
+ return fetchJson<{success:boolean;status:string;providerMessageId:string|null;errorMessage?:string|null}>(`${BASE_PATH}/${kind==='contact'?'contacts':'scheduled-calls'}/${encodeURIComponent(id)}/sms/replies`,{method:'POST',headers:authHeaders(token),body:JSON.stringify(payload)});
+}
+
 export function sendManualCrmSms(token: string, payload: ManualCrmSmsPayload) {
   return fetchJson<{ success: boolean; result?: string; message?: string; providerMessageId?:string|null }>(`${BASE_PATH}/manual-sms`, {
     method: "POST",

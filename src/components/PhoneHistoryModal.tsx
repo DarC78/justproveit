@@ -164,7 +164,7 @@ export default function PhoneHistoryModal({token,booking,onClose}:{token:string;
           <button type="button" onClick={onClose} aria-label="Close phone history">Close</button></div></header>
       <p id="phone-history-description" className="description">Full recorded history for this number · Newest first · All times UK. Queued WhatsApp messages are not shown as sent.</p>
       <div className="content" aria-busy={loading} aria-live="polite">
-        {booking.phone&&<WhatsAppReplyComposer key={booking.intentId+booking.phone} token={token} intentId={booking.intentId} phone={booking.phone} onSent={()=>setRefresh(value=>value+1)}/>}
+        {booking.phone&&<WhatsAppReplyComposer key={booking.intentId+booking.phone} token={token} intentId={booking.intentId} phone={booking.phone} onSmsSent={()=>setRefresh(value=>value+1)} onSent={()=>setRefresh(value=>value+1)}/>}
         {loading&&!matched?<p className="status">Loading the full WhatsApp conversation and call history...</p>:!matched&&error?<p role="alert" className="error">{error}</p>:matched&&history&&<>
           {error&&<p role="alert" className="error">{error}</p>}<p className="totals">On this page: {history.whatsAppMessages} WhatsApp messages · {history.smsMessages||0} SMS | {history.calls} calls</p>
           {history.pageSize===25&&<HistoryPagination page={page} hasMore={Boolean(history.hasMore)} loading={loading} onPage={setPage}/>}
