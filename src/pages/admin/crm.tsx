@@ -1307,6 +1307,44 @@ export default function AdminCrmPage() {
         body {
           background: #ffffff;
         }
+        /* Child components do not inherit styled-jsx's scoped button rules.
+           Keep this fallback below their specificity so custom action colours win. */
+        .crm-page :where(button) {
+          appearance: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          min-height: 34px;
+          padding: 7px 12px;
+          border: 1px solid #94a3b8;
+          border-radius: 6px;
+          background: #edf3ff;
+          color: #17376e;
+          font: inherit;
+          font-weight: 600;
+          line-height: 1.35;
+          text-align: center;
+          text-decoration: none;
+          box-shadow: 0 1px 2px rgb(15 23 42 / 12%);
+          cursor: pointer;
+          transition: box-shadow 120ms ease, transform 120ms ease;
+        }
+        .crm-page :where(button:hover:not(:disabled)) {
+          box-shadow: 0 2px 5px rgb(15 23 42 / 22%);
+        }
+        .crm-page :where(button:active:not(:disabled)) {
+          transform: translateY(1px);
+        }
+        .crm-page :where(button:focus-visible) {
+          outline: 3px solid #2563eb;
+          outline-offset: 3px;
+        }
+        .crm-page :where(button:disabled) {
+          opacity: .55;
+          cursor: not-allowed;
+          box-shadow: none;
+        }
       `}</style>
       <style jsx>{`
         .crm-page {
