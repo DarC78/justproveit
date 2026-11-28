@@ -7,7 +7,7 @@ export default function OutreachPanel({token}:{token:string|null}){
  useEffect(()=>{
   const receive=(event:MessageEvent)=>{
    if(event.origin!==ORIGIN||event.source!==frame.current?.contentWindow||event.data?.type!=='launchingstack.outreach.ready'||!token)return;
-   frame.current.contentWindow?.postMessage({type:'launchingstack.outreach.auth',token,defaults:{name:'Adrian Defta',profileUrl:'https://www.linkedin.com/in/adriandefta'}},ORIGIN);setReady(true);
+   frame.current.contentWindow?.postMessage({type:'launchingstack.outreach.auth',token,defaults:{name:'Adrian Defta',profileUrl:'https://www.linkedin.com/in/adriandefta',brand:'proveit',brands:['proveit','launchingstack','proveit-agency','club-ai','fundraise']}},ORIGIN);setReady(true);
   };
   window.addEventListener('message',receive);return()=>window.removeEventListener('message',receive);
  },[token]);
