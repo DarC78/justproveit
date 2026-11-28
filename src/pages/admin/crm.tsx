@@ -18,6 +18,7 @@ import {useCrmTab} from "@/lib/useCrmTab";
 import {type CrmTabKey as TabKey} from "@/lib/crmTabs";
 import WhatsAppStatsPanel from '@/components/WhatsAppStatsPanel';
 import PrivatePensionsPanel from "@/components/PrivatePensionsPanel";
+import OutreachPanel from "@/components/OutreachPanel";
 import BookedCallsDayPanel from "@/components/BookedCallsDayPanel";
 import BookingWhatsAppConversation from "@/components/BookingWhatsAppConversation";
 import AttentionPanel from "@/components/AttentionPanel";
@@ -1043,7 +1044,7 @@ export default function AdminCrmPage() {
   const autoloadedPhoneRef = useRef("");
   const agentName = user?.name || user?.email || "";
   const canUsePrivatePensions = status === "authenticated" && isCrm && user?.email?.trim().toLowerCase() === "adrian@proveitweb.co.uk";
-  const activeTab = activeTabState === "privatePensions" && !canUsePrivatePensions ? "details" : activeTabState;
+  const activeTab = ["privatePensions","outreach"].includes(activeTabState) && !canUsePrivatePensions ? "details" : activeTabState;
   const forcedDetailsIntent = useMemo(() => {
     const intentQuery = router.query.intent ?? router.query.leadIntent ?? router.query.interestType;
     const value = Array.isArray(intentQuery) ? intentQuery[0] : intentQuery;
@@ -1238,6 +1239,7 @@ export default function AdminCrmPage() {
               ) : null}
 
               {activeTab === "privatePensions" && canUsePrivatePensions ? <PrivatePensionsPanel token={token} /> : null}
+              {activeTab === "outreach" && canUsePrivatePensions ? <OutreachPanel token={token} /> : null}
               {activeTab === "accountancy" ? <AccountancyPanel token={token} /> : null}
               {["scheduledCalls","attention","allCustomersView","all"].includes(activeTab)&&<CrmEmailConnections token={token}/>}
               {activeTab === "scheduledCalls" ? <ScheduledCallsPanel token={token} /> : null}
