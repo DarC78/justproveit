@@ -29,7 +29,7 @@ function loadAssignment(api){const mod={exports:{}};const source=ts.transpileMod
 test('assignment offers Adrian last and becomes read-only after saving',async()=>{
  let saves=0,notice='';const Component=loadAssignment(async(token,id,agent)=>{saves++;assert.equal(id,'contact');return {success:true,assignment:{agent,assignedAtUtc:'2026-11-02T12:00:00Z'}};});
  const host=document.createElement('div');document.body.append(host);const root=createRoot(host);
- try{await act(async()=>root.render(React.createElement(Component,{token:'token',contactId:'contact',onChanged:value=>{notice=value;}})));assert.equal(host.querySelector('button').disabled,true);assert.deepEqual([...host.querySelectorAll('option')].slice(1).map(o=>o.textContent),['Daniel','Andreea','Elena','Georgiana','Adrian']);
+ try{await act(async()=>root.render(React.createElement(Component,{token:'token',contactId:'contact',onChanged:value=>{notice=value;}})));assert.equal(host.querySelector('button').disabled,true);assert.deepEqual([...host.querySelectorAll('option')].slice(1).map(o=>o.textContent),['Daniel','Andreea','Adrian']);
  await act(async()=>{const select=host.querySelector('select');select.value='Adrian';select.dispatchEvent(new window.Event('change',{bubbles:true}));});await act(async()=>{host.querySelector('button').click();});assert.equal(saves,1);assert.equal(host.querySelector('select'),null);assert.equal(host.querySelector('button'),null);assert.equal(host.textContent,'Adrian');assert.match(notice,/Adrian/);
  }finally{await act(async()=>root.unmount());host.remove();}
 });
