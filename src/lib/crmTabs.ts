@@ -1,4 +1,4 @@
-export type CrmTabKey='accountancy'|'nextBestActions'|'privatePensions'|'details'|'new'|'scheduledCalls'|'attention'|'allCustomersView'|'leadPipeline'|'InboundContacts'|'allMessages'|'AllWhatsAppMessages'|'sales'|'all'|'intents'|'inboundSms'|'whatsappGateway'|'whatsappStats'|'agentreport'|'manual'|'highLevelFunnels'|'missed';
+export type CrmTabKey='outreach'|'accountancy'|'nextBestActions'|'privatePensions'|'details'|'new'|'scheduledCalls'|'attention'|'allCustomersView'|'leadPipeline'|'InboundContacts'|'allMessages'|'AllWhatsAppMessages'|'sales'|'all'|'intents'|'inboundSms'|'whatsappGateway'|'whatsappStats'|'agentreport'|'manual'|'highLevelFunnels'|'missed';
 export type CrmTab={key:CrmTabKey;label:string};
 export const PRIMARY_CRM_TABS:CrmTab[]=[
  {key:'leadPipeline',label:'Lead Pipeline'},
@@ -9,6 +9,7 @@ export const PRIMARY_CRM_TABS:CrmTab[]=[
 ];
 export function otherCrmTabs(gatewayEnabled=false,privatePensions=true):CrmTab[]{return [
  ...(privatePensions?[{key:'privatePensions' as const,label:'Livrare Pensii Private'}]:[]),
+ ...(privatePensions?[{key:'outreach' as const,label:'LinkedIn Outreach'}]:[]),
  {key:'accountancy',label:'Contabilitate'},
  {key:'nextBestActions',label:'Next Best Actions'},
  {key:'details',label:'Detalii Lead'},
